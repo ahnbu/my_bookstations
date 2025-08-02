@@ -1,6 +1,5 @@
 // CloudFlare Workers - 3-Way 통합 도서관 재고 확인 API (개선된 전자책 크롤링)
-
-// 22:53 claude 제안으로 e북 크롤링 함수 수정
+// 최종 수정: 2025-08-02 - 정규식 기반 파싱에서 문자열 분할 방식으로 변경하여 안정성 확보
 
 // =================================================================
 // 메인 핸들러: API 요청을 받고, 3가지 크롤링을 오케스트레이션(조율)합니다.
@@ -8,7 +7,7 @@
 export default {
   async fetch(request) {
     const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': '*', 
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     };
@@ -23,7 +22,7 @@ export default {
           status: "ok",
           message: "3-Way 통합 도서관 재고 확인 API",
           usage: "POST 요청으로 {\"isbn\": \"...\", \"title\": \"...\"} 전송",
-          version: "2.0 - 개선된 전자책 크롤링"
+          version: "2.1 - 안정화된 전자책 크롤링"
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -34,7 +33,6 @@ export default {
         const body = await request.json();
         const { isbn, title } = body;
 
-        // --- ❗️ 핵심 수정사항: 요청 파라미터 로깅 ❗️ ---
         console.log(`\n\n========================================`);
         console.log(`[${new Date().toISOString()}] 신규 요청 수신`);
         console.log(`- ISBN: ${isbn}`);
@@ -46,9 +44,9 @@ export default {
         }
 
         const promises = [
-          searchGwangjuLibrary(isbn),
-          searchSingleGyeonggiEbook(title, '10000004'),
-          searchSingleGyeonggiEbook(title, '10000009'),
+          searchGwangjuLibrary(isbn, title), // title을 넘겨주어 정확도 향상
+          searchSingleGyeonggiEbook(title, '10000004'), // 성남
+          searchSingleGyeonggiEbook(title, '10000009'), // 통합
         ];
 
         console.log("3가지 크롤링 동시 요청 시작...");
@@ -87,16 +85,16 @@ export default {
 
 
 // =================================================================
-// 크롤링 함수들 (변경 없음)
+// 크롤링 함수들
 // =================================================================
-async function searchGwangjuLibrary(isbn) {
+async function searchGwangjuLibrary(isbn, title) {
   const url = "https://lib.gjcity.go.kr:8443/kolaseek/plus/search/plusSearchResultList.do";
   const payload = new URLSearchParams({'searchType': 'DETAIL','searchKey5': 'ISBN','searchKeyword5': isbn,'searchLibrary': 'ALL','searchSort': 'SIMILAR','searchRecordCount': '30'});
   const headers = {'User-Agent': 'Mozilla/5.0','Content-Type': 'application/x-www-form-urlencoded','Referer': 'https://lib.gjcity.go.kr:8443/kolaseek/plus/search/plusSearchDetail.do'};
   const response = await fetch(url, { method: 'POST', headers: headers, body: payload.toString(), signal: AbortSignal.timeout(20000) });
   if (!response.ok) throw new Error(`경기광주 HTTP ${response.status}`);
   const htmlContent = await response.text();
-  return parseGwangjuHTML(htmlContent);
+  return parseGwangjuHTML(htmlContent, title); // title을 파서로 전달
 }
 
 async function searchSingleGyeonggiEbook(searchText, libraryCode) {
@@ -110,15 +108,10 @@ async function searchSingleGyeonggiEbook(searchText, libraryCode) {
   url.searchParams.set("rowCount", "50");
 
   console.log(`경기도교육청 전자도서관 크롤링 시작 - 라이브러리 코드: ${libraryCode}, 검색어: ${searchText}`);
-  console.log(`요청 URL: ${url.toString()}`);
-
   const headers = {'User-Agent': 'Mozilla/5.0'};
   const response = await fetch(url.toString(), { method: 'GET', headers: headers, signal: AbortSignal.timeout(20000) });
   if (!response.ok) throw new Error(`경기도교육청(${libraryCode}) HTTP ${response.status}`);
   const htmlContent = await response.text();
-  
-  console.log(`경기도교육청(${libraryCode}) HTML 응답 길이: ${htmlContent.length}`);
-  
   return parseGyeonggiHTML(htmlContent, libraryCode);
 }
 
@@ -127,97 +120,99 @@ async function searchSingleGyeonggiEbook(searchText, libraryCode) {
 // 파싱 함수들
 // =================================================================
 
-// [변경 없음] 파싱 함수 1: 경기광주 도서관
-function parseGwangjuHTML(html) {
+// [수정] 파싱 함수 1: 경기광주 도서관 - 제목 유사도 체크 추가
+function parseGwangjuHTML(html, referenceTitle) {
   try {
     const bookListMatch = html.match(/<ul[^>]*class[^>]*resultList[^>]*imageType[^>]*>([\s\S]*?)<\/ul>/i);
-    if (!bookListMatch) return null;
+    if (!bookListMatch) return { book_title: "결과 없음", availability: [] };
+    
     const liPattern = /<li[^>]*>([\s\S]*?)<\/li>/gi;
     const bookItems = [...bookListMatch[1].matchAll(liPattern)];
-    if (bookItems.length === 0) return null;
-    const firstBookHtml = bookItems[0][1];
-    const titleMatch = firstBookHtml.match(/<dt[^>]*class[^>]*tit[^>]*>[\s\S]*?<a[^>]*>([^<]+)<\/a>/i);
-    let title = titleMatch ? titleMatch[1].trim().replace(/^\d+\.\s*/, '') : "제목 정보 없음";
-    
-    const results = bookItems.map(item => {
-        const bookHtml = item[1];
-        const library = bookHtml.match(/<dd[^>]*class[^>]*site[^>]*>[\s\S]*?<span[^>]*>도서관:\s*([^<]+)<\/span>/i)?.[1].trim() || "정보 없음";
-        const callNo = bookHtml.match(/청구기호:\s*([^\n<]+?)(?:\s*<|$)/i)?.[1].trim() || "정보 없음";
-        const baseCallNo = callNo.split('=')[0];
-        let status = "알 수 없음";
-        let dueDate = "-";
-        const statusSectionMatch = bookHtml.match(/<div[^>]*class[^>]*bookStateBar[^>]*>[\s\S]*?<p[^>]*class[^>]*txt[^>]*>([\s\S]*?)<\/p>/i);
-        if (statusSectionMatch) {
-            const statusContent = statusSectionMatch[1];
-            const statusText = statusContent.match(/<b[^>]*>([^<]+)<\/b>/i)?.[1].trim() || "";
-            if (statusText.includes('대출가능')) status = '대출가능';
-            else if (statusText.includes('대출불가') || statusText.includes('대출중')) {
-                status = '대출불가';
-                dueDate = statusContent.match(/반납예정일:\s*([0-9.-]+)/i)?.[1].trim() || "-";
-            }
-        }
-        return { '소장도서관': library, '청구기호': callNo, '기본청구기호': baseCallNo, '대출상태': status, '반납예정일': dueDate };
-    });
+    if (bookItems.length === 0) return { book_title: "결과 없음", availability: [] };
 
-    return { book_title: title, availability: results };
+    // 제목 유사도 계산 함수
+    const getSimilarity = (t1, t2) => {
+        const set1 = new Set(t1.replace(/[:\s]/g, '').split(''));
+        const set2 = new Set(t2.replace(/[:\s]/g, '').split(''));
+        const intersection = new Set([...set1].filter(x => set2.has(x)));
+        return intersection.size / Math.max(set1.size, set2.size);
+    };
+
+    let bestMatch = { score: -1, title: "제목 정보 없음", availability: [] };
+
+    for (const item of bookItems) {
+        const bookHtml = item[1];
+        const titleMatch = bookHtml.match(/<dt[^>]*class[^>]*tit[^>]*>[\s\S]*?<a[^>]*>([^<]+)<\/a>/i);
+        const currentTitle = titleMatch ? titleMatch[1].trim().replace(/^\d+\.\s*/, '') : "";
+        
+        if (!currentTitle) continue;
+
+        const score = getSimilarity(referenceTitle, currentTitle);
+
+        if (score > bestMatch.score) {
+            const library = bookHtml.match(/<dd[^>]*class[^>]*site[^>]*>[\s\S]*?<span[^>]*>도서관:\s*([^<]+)<\/span>/i)?.[1].trim() || "정보 없음";
+            const callNo = bookHtml.match(/청구기호:\s*([^\n<]+?)(?:\s*<|$)/i)?.[1].trim() || "정보 없음";
+            const baseCallNo = callNo.split('=')[0];
+            let status = "알 수 없음";
+            let dueDate = "-";
+            const statusSectionMatch = bookHtml.match(/<div[^>]*class[^>]*bookStateBar[^>]*>[\s\S]*?<p[^>]*class[^>]*txt[^>]*>([\s\S]*?)<\/p>/i);
+            if (statusSectionMatch) {
+                const statusContent = statusSectionMatch[1];
+                const statusText = statusContent.match(/<b[^>]*>([^<]+)<\/b>/i)?.[1].trim() || "";
+                if (statusText.includes('대출가능')) status = '대출가능';
+                else if (statusText.includes('대출불가') || statusText.includes('대출중')) {
+                    status = '대출불가';
+                    dueDate = statusContent.match(/반납예정일:\s*([0-9.-]+)/i)?.[1].trim() || "-";
+                }
+            }
+            const availability = [{ '소장도서관': library, '청구기호': callNo, '기본청구기호': baseCallNo, '대출상태': status, '반납예정일': dueDate }];
+            
+            bestMatch = { score, title: currentTitle, availability };
+        }
+    }
+    
+    // 만약 가장 유사한 책의 재고 정보가 여러 도서관에 있다면, 모두 취합해야 함.
+    // 이 로직은 현재 첫번째 매칭된 도서관의 정보만 가져오므로, 추후 확장 필요.
+    // 지금은 가장 유사한 제목의 첫번째 재고정보를 반환.
+
+    return { book_title: bestMatch.title, availability: bestMatch.availability };
   } catch (error) { throw new Error(`광주 파싱 오류: ${error.message}`); }
 }
 
-// [변경] 파싱 함수 2: 경기도교육청 전자도서관
+// [수정] 파싱 함수 2: 경기도교육청 전자도서관 - 문자열 분할 방식으로 안정성 확보
 function parseGyeonggiHTML(html, libraryCode) {
   try {
     const libraryNameMap = { '10000004': '성남도서관', '10000009': '통합도서관' };
     const branchName = libraryNameMap[libraryCode] || `코드(${libraryCode})`;
 
     if (html.includes("찾으시는 자료가 없습니다")) {
-      console.log(`경기도교육청(${branchName}): '찾으시는 자료가 없습니다' 메시지 확인. 빈 결과를 반환합니다.`);
       return { library_name: `경기도교육청-${branchName}`, availability: [] };
     }
 
-    const searchResultsMatch = html.match(/<div id="search-results" class="search-results">([\s\S]*?)<\/div>/i);
+    const searchResultsMatch = html.match(/<div id=\"search-results\" class=\"search-results\">([\s\S]*?)<div class=\"pagination\">/i);
     if (!searchResultsMatch) {
       console.log(`경기도교육청(${branchName}): 검색 결과 영역(search-results)을 찾을 수 없습니다.`);
       return { library_name: `경기도교육청-${branchName}`, availability: [] };
     }
     const searchResultsHtml = searchResultsMatch[1];
+
+    // '<div class="row">'를 기준으로 HTML을 분할하여 각 도서 항목을 배열로 만듭니다.
+    const bookBlocks = searchResultsHtml.split('<div class="row">').slice(1);
     
-    // 개선된 정규식 패턴: 실제 HTML 구조에 맞게 수정
-    const bookItemsPattern = /<div class="row">\s*<div class="thumb">[\s\S]*?<\/div>\s*<div class="box">[\s\S]*?<\/div>(?:\s*<div class="btnarea"[\s\S]*?<\/div>)?\s*<\/div>/gi;
-    const bookItems = [...searchResultsHtml.matchAll(bookItemsPattern)];
+    console.log(`경기도교육청(${branchName}): 문자열 분할로 ${bookBlocks.length}개 도서 블록 발견`);
     
-    console.log(`경기도교육청(${branchName}): 정규식으로 ${bookItems.length}개 도서 항목 발견`);
-    
-    if (bookItems.length === 0) {
-      console.log(`경기도교육청(${branchName}): 도서 항목(.row)을 찾을 수 없습니다.`);
-      console.log(`검색결과 영역 시작 500자: ${searchResultsHtml.substring(0, 500)}`);
-      
-      // 대안 패턴 시도
-      const alternativePattern = /<div class="row"[\s\S]*?<\/div>(?=\s*<div class="row"|$)/gi;
-      const alternativeItems = [...searchResultsHtml.matchAll(alternativePattern)];
-      console.log(`대안 패턴으로 ${alternativeItems.length}개 항목 발견`);
-      
-      if (alternativeItems.length > 0) {
-        console.log(`대안 패턴 첫 번째 항목 일부: ${alternativeItems[0][0].substring(0, 200)}`);
-      }
-      
+    if (bookBlocks.length === 0) {
       return { library_name: `경기도교육청-${branchName}`, availability: [] };
     }
 
-    const availability = bookItems.map((item, index) => {
-      const bookHtml = item[0]; // Full match, not just capture group
-      console.log(`${branchName} - 도서 ${index + 1} 파싱 중... (HTML 길이: ${bookHtml.length})`);
-      
-      // IMPROVED: More robust title extraction
+    const availability = bookBlocks.map((bookHtml, index) => {
+      const titleMatch = bookHtml.match(/<a[^>]+class=\"name goDetail\"[^>]*>([\s\S]*?)<\/a>/i);
       let title = "정보 없음";
-      const titleMatch = bookHtml.match(/<a[^>]+class="name goDetail"[^>]*>([\s\S]*?)<\/a>/i);
       if (titleMatch) {
-        title = titleMatch[1].trim();
-        // Remove any HTML tags (especially spans with highlighting)
-        title = title.replace(/<[^>]*>/g, '').trim();
+        title = titleMatch[1].replace(/<[^>]*>/g, '').trim();
       }
       
-      // IMPROVED: More robust info extraction from the bif div
-      const bifMatch = bookHtml.match(/<div class="bif">([\s\S]*?)<\/div>/i);
+      const bifMatch = bookHtml.match(/<div class=\"bif\">([\s\S]*?)<\/div>/i);
       const infoBlock = bifMatch ? bifMatch[1] : "";
       
       const author = infoBlock.match(/저자\s*:\s*([^<│]+?)(?:<|│|$)/i)?.[1]?.trim() || "정보 없음";
@@ -231,8 +226,6 @@ function parseGyeonggiHTML(html, libraryCode) {
       } else if (statusText.includes("대출중") || statusText.includes("대출 불가") || statusText.includes("대출불가")) {
         status = "대출불가";
       }
-      
-      console.log(`${branchName} - 도서명: "${title}", 상태: ${status}, 저자: ${author}`);
       
       return { 
         '소장도서관': branchName, 

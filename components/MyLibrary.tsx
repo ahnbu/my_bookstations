@@ -9,7 +9,7 @@ import { useBookStore } from '../stores/useBookStore';
 import { useAuthStore } from '../stores/useAuthStore';
 import StarRating from './StarRating';
 import MyLibraryBookDetailModal from './MyLibraryBookDetailModal';
-import { getStatusEmoji, isEBooksEmpty, hasAvailableEBooks, processBookTitle } from '../services/ebook.service';
+import { getStatusEmoji, isEBooksEmpty, hasAvailableEBooks, processBookTitle } from '../services/unifiedLibrary.service';
 
 const SortArrow: React.FC<{ order: 'asc' | 'desc' }> = ({ order }) => (
   <span className="ml-1 inline-block w-3 h-3 text-xs">
@@ -284,11 +284,11 @@ const MyLibrary: React.FC = () => {
             <div className="w-28 p-4 font-semibold text-gray-300">출간일</div>
             <div className="w-32 p-4 font-semibold text-gray-300">읽음</div>
             <div className="w-24 p-4 font-semibold text-gray-300" style={{ width: '8rem' }}>별점</div>
+            <div className="w-20 p-4 font-semibold text-gray-300 text-center">종이책</div>
+            <div className="w-20 p-4 font-semibold text-gray-300 text-center">전자책</div>
             <div className="w-24 p-4 font-semibold text-gray-300 text-center">퇴촌lib</div>
             <div className="w-24 p-4 font-semibold text-gray-300 text-center">기타lib</div>
             <div className="w-24 p-4 font-semibold text-gray-300 text-center">e북.교육</div>
-            <div className="w-20 p-4 font-semibold text-gray-300 text-center">종이책</div>
-            <div className="w-20 p-4 font-semibold text-gray-300 text-center">전자책</div>
             <div className="w-24 p-4 font-semibold text-gray-300 text-center">관리</div>
           </div>
 
@@ -357,6 +357,22 @@ const MyLibrary: React.FC = () => {
                       onRatingChange={(newRating) => updateRating(book.id, newRating)}
                     />
                   </div>
+                  {/* Paper Book */}
+                   <div className="w-20 p-3 text-center">
+                    <a href={book.link} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
+                        보기
+                    </a>
+                  </div>
+                  {/* 기존 전자책 */}
+                  <div className="w-20 p-3 text-center">
+                    {book.subInfo?.ebookList?.[0]?.link ? (
+                      <a href={book.subInfo.ebookList[0].link} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
+                        보기
+                      </a>
+                    ) : (
+                      <span className="text-gray-500" title="전자책 없음">❌</span>
+                    )}
+                  </div>
                   {/* Toechon Stock */}
                   <a
                     href={toechonSearchUrl}
@@ -391,22 +407,6 @@ const MyLibrary: React.FC = () => {
                       <div className="flex justify-center"><Spinner/></div>
                     ) : (
                       renderEBookCell(book)
-                    )}
-                  </div>
-                  {/* Paper Book */}
-                   <div className="w-20 p-3 text-center">
-                    <a href={book.link} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
-                        보기
-                    </a>
-                  </div>
-                  {/* 기존 전자책 */}
-                  <div className="w-20 p-3 text-center">
-                    {book.subInfo?.ebookList?.[0]?.link ? (
-                      <a href={book.subInfo.ebookList[0].link} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
-                        보기
-                      </a>
-                    ) : (
-                      <span className="text-gray-500" title="전자책 없음">❌</span>
                     )}
                   </div>
                   {/* Actions */}

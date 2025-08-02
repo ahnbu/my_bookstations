@@ -5,7 +5,7 @@ import {
   EBookError, 
   EBookSummary,
   LibraryApiResponse 
-} from './services/ebook.service';
+} from './services/unifiedLibrary.service';
 
 // The 'Json' type is no longer exported from 'supabase-js'.
 // We define it here to match the expected structure for JSONB columns.

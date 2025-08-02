@@ -1,10 +1,9 @@
 
 import { create } from 'zustand';
 import { supabase } from '../lib/supabaseClient';
-import { AladdinBookItem, SelectedBook, SortKey, ReadStatus, BookData, Json, EBookInfo } from '../types';
+import { AladdinBookItem, SelectedBook, SortKey, ReadStatus, BookData, Json, EBookInfo, StockInfo } from '../types';
 import { searchAladinBooks } from '../services/aladin.service';
-import { fetchLibraryStock as fetchLibraryStockService } from '../services/library.service';
-import { fetchBookAvailability, summarizeEBooks } from '../services/ebook.service';
+import { fetchBookAvailability, summarizeEBooks, GwangjuPaperResult } from '../services/unifiedLibrary.service';
 import { useUIStore } from './useUIStore';
 import { useAuthStore } from './useAuthStore';
 
@@ -23,7 +22,6 @@ interface BookState {
   unselectBook: () => void;
   addToLibrary: () => Promise<void>;
   removeFromLibrary: (id: number) => Promise<void>;
-  refreshStock: (id: number, isbn13: string) => Promise<void>;
   refreshEBookInfo: (id: number, isbn: string, title: string) => Promise<void>;
   refreshAllBookInfo: (id: number, isbn13: string, title: string) => Promise<void>;
   sortLibrary: (key: SortKey) => void;
@@ -192,51 +190,6 @@ export const useBookStore = create<BookState>(
             useUIStore.getState().setNotification({ message: '서재에서 책을 삭제하는 데 실패했습니다.', type: 'error'});
         }
       },
-      
-      refreshStock: async (id, isbn13) => {
-        set({ refreshingIsbn: isbn13 });
-        try {
-          const result = await fetchLibraryStockService(isbn13);
-          const availability = result.availability ?? [];
-          let toechonTotal = 0, toechonAvailable = 0, otherTotal = 0, otherAvailable = 0;
-          availability.forEach(item => {
-            const isToechon = item['소장도서관'] === '퇴촌도서관';
-            const isAvailable = item['대출상태'] === '대출가능';
-            if (isToechon) { toechonTotal++; if (isAvailable) toechonAvailable++; } 
-            else { otherTotal++; if (isAvailable) otherAvailable++; }
-          });
-          
-          const bookToUpdate = get().myLibraryBooks.find(b => b.id === id);
-          if(!bookToUpdate) return;
-
-          const newStockData = {
-            toechonStock: { total: toechonTotal, available: toechonAvailable },
-            otherStock: { total: otherTotal, available: otherAvailable }
-          };
-          const updatedBook = { ...bookToUpdate, ...newStockData };
-          
-          const { id: bookId, ...bookDataForDb } = updatedBook; // Exclude id for jsonb
-          
-          const { error } = await supabase
-            .from('user_library')
-            .update({ book_data: bookDataForDb as Json })
-            .eq('id', id);
-
-          if (error) throw error;
-          
-          set(state => ({
-            myLibraryBooks: state.myLibraryBooks.map(book =>
-              book.id === id ? updatedBook : book
-            ),
-            selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBook : state.selectedBook
-          }));
-        } catch (error) {
-          console.error(`Failed to refresh stock for ISBN ${isbn13}`, error);
-          useUIStore.getState().setNotification({ message: '재고 정보 갱신에 실패했습니다.', type: 'error' });
-        } finally {
-          set({ refreshingIsbn: null });
-        }
-      },
 
       refreshEBookInfo: async (id, isbn, title) => {
         set({ refreshingEbookId: id });
@@ -280,11 +233,8 @@ export const useBookStore = create<BookState>(
       refreshAllBookInfo: async (id, isbn13, title) => {
         set({ refreshingIsbn: isbn13, refreshingEbookId: id });
         try {
-          // 3-way API 호출
-          const [stockResult, ebookResult] = await Promise.allSettled([
-            fetchLibraryStockService(isbn13),
-            fetchBookAvailability(isbn13, title)
-          ]);
+          // 통합 API 호출
+          const result = await fetchBookAvailability(isbn13, title);
 
           const bookToUpdate = get().myLibraryBooks.find(b => b.id === id);
           if (!bookToUpdate) return;
@@ -292,9 +242,11 @@ export const useBookStore = create<BookState>(
           let updatedBook = { ...bookToUpdate };
 
           // 종이책 재고 업데이트
-          if (stockResult.status === 'fulfilled') {
-            const availability = stockResult.value.availability ?? [];
+          if ('availability' in result.gwangju_paper) {
+            const paperResult = result.gwangju_paper as GwangjuPaperResult;
+            const availability = paperResult.availability ?? [];
             let toechonTotal = 0, toechonAvailable = 0, otherTotal = 0, otherAvailable = 0;
+            
             availability.forEach(item => {
               const isToechon = item['소장도서관'] === '퇴촌도서관';
               const isAvailable = item['대출상태'] === '대출가능';
@@ -307,14 +259,12 @@ export const useBookStore = create<BookState>(
           }
 
           // 전자책 정보 업데이트
-          if (ebookResult.status === 'fulfilled') {
-            const ebookSummary = summarizeEBooks(ebookResult.value.gyeonggi_ebooks);
-            updatedBook.ebookInfo = {
-              summary: ebookSummary,
-              details: ebookResult.value.gyeonggi_ebooks,
-              lastUpdated: Date.now()
-            };
-          }
+          const ebookSummary = summarizeEBooks(result.gyeonggi_ebooks);
+          updatedBook.ebookInfo = {
+            summary: ebookSummary,
+            details: result.gyeonggi_ebooks,
+            lastUpdated: Date.now()
+          };
 
           const { id: bookId, ...bookDataForDb } = updatedBook;
           
@@ -398,7 +348,7 @@ export const useBookStore = create<BookState>(
       },
 
       exportToCSV: (books) => {
-        if (books.length === 0) return;
+        if (books.length === 0) return; 
         
         const headers = ['Title', 'Author', 'Publisher', 'PublicationDate', 'ISBN13', 'PriceStandard', 'PriceSales', 'ReadStatus', 'Rating', 'EbookAvailable', 'EbookLink', 'Link', 'ToechonStockTotal', 'OtherStockTotal', 'AddedDate'];
         const rows = books.map(book => {
@@ -423,7 +373,7 @@ export const useBookStore = create<BookState>(
             escapeCsvField(addedDate)
         ].join(',');
         });
-        const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + headers.join(",") + "\n" + rows.join("\n");
+        const csvContent = "data:text/csv;charset=utf-8,\"" + headers.join(",") + "\n" + rows.join("\n");
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);

@@ -5,7 +5,7 @@ import { useBookStore } from '../stores/useBookStore';
 import { CloseIcon, RefreshIcon, BookOpenIcon } from './Icons';
 import Spinner from './Spinner';
 import StarRating from './StarRating';
-import { getStatusClass, getStatusEmoji, processBookTitle } from '../services/ebook.service';
+import { getStatusClass, getStatusEmoji, processBookTitle } from '../services/unifiedLibrary.service';
 
 // Use the standardized title processing function from ebook.service
 const createSearchSubject = processBookTitle;
@@ -74,11 +74,23 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
 
     if (!book) return null; // Render nothing while closing or if book not found
 
+    const formatDate = (timestamp: number) => {
+        const date = new Date(timestamp);
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        const hh = String(date.getHours()).padStart(2, '0');
+        const min = String(date.getMinutes()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+    };
+
+    const hasEbookLink = book.subInfo?.ebookList?.[0]?.link;
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 p-4 transition-opacity duration-300">
             <div className="bg-gray-800 rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col relative animate-fade-in">
                 <div className="flex justify-between items-center p-4 border-b border-gray-700">
-                  <h2 className="text-xl font-bold text-white truncate pr-8" title={book.title}>{book.title} - 상세 정보</h2>
+                  <h2 className="text-xl font-bold text-white truncate pr-8">도서 상세 정보</h2>
                   <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white">
                     <CloseIcon className="w-6 h-6" />
                   </button>
@@ -103,15 +115,30 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
 
                           <p className="text-sm text-gray-400 leading-relaxed mb-6 line-clamp-4">{book.description || "제공된 설명이 없습니다."}</p>
                           
-                          <a
-                            href={book.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors duration-300"
-                          >
-                            <BookOpenIcon className="w-5 h-5" />
-                            알라딘 보기
-                          </a>
+                          <div className="flex flex-wrap gap-4">
+                            <a
+                              href={book.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors duration-300"
+                            >
+                              <BookOpenIcon className="w-5 h-5" />
+                              알라딘 보기
+                            </a>
+                            <a
+                              href={hasEbookLink || '#'}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => !hasEbookLink && e.preventDefault()}
+                              className={`inline-flex items-center justify-center gap-2 px-5 py-2 bg-sky-500 text-white font-semibold rounded-lg transition-colors duration-300 ${
+                                !hasEbookLink ? 'opacity-50 cursor-not-allowed' : 'hover:bg-sky-600'
+                              }`}
+                              title={!hasEbookLink ? "알라딘에서 제공하는 전자책 정보가 없습니다" : "알라딘에서 전자책 보기"}
+                            >
+                              <BookOpenIcon className="w-5 h-5" />
+                              전자책 보기
+                            </a>
+                          </div>
                         </div>
                     </div>
                     
@@ -127,7 +154,7 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                         onRatingChange={(newRating) => updateRating(book.id, newRating)}
                                     />
                                 </div>
-                                <div>
+                                <div className="w-32">
                                     <label className="block text-sm font-medium text-gray-300 mb-2">읽음 상태</label>
                                     <select
                                         value={book.readStatus}
@@ -235,7 +262,7 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                             )}
                                             
                                             <div className="text-xs text-gray-500 pt-2 border-t border-gray-600">
-                                                마지막 업데이트: {new Date(book.ebookInfo.lastUpdated).toLocaleString()}
+                                                {formatDate(book.ebookInfo.lastUpdated)} 기준
                                             </div>
                                         </div>
                                     ) : (

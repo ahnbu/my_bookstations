@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { LibraryStockResponse } from '../types';
 import { SearchIcon } from './Icons';
 import Spinner from './Spinner';
-import { fetchBookAvailability, processBookTitle, LibraryApiResponse } from '../services/ebook.service';
+import { fetchBookAvailability, processBookTitle, LibraryApiResponse } from '../services/unifiedLibrary.service';
 
 type TestType = 'paper' | 'ebook' | 'combined';
 
 const APITest: React.FC = () => {
   const [testType, setTestType] = useState<TestType>('combined');
-  const [isbn, setIsbn] = useState<string>('9791130629353');
-  const [title, setTitle] = useState<string>('네이비씰 균형의 기술: 리더십의 이분법');
+  const [isbn, setIsbn] = useState<string>('9791162543481');
+  const [title, setTitle] = useState<string>('세상에서 가장 긴 행복 탐구 보고서');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [paperResult, setPaperResult] = useState<LibraryStockResponse | null>(null);
   const [ebookResult, setEbookResult] = useState<LibraryApiResponse | null>(null);
