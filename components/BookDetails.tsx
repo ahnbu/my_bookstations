@@ -8,20 +8,52 @@ import { SelectedBook, ReadStatus, StockInfo } from '../types';
 import StarRating from './StarRating';
 import Spinner from './Spinner';
 
-const renderStockInfo = (libraryName: string, stock?: StockInfo) => {
+const createSearchSubject = (title: string): string => {
+  const chunks = title.split(' ');
+  if (chunks.length <= 3) {
+    return title;
+  }
+  return chunks.slice(0, 3).join(' ');
+};
+
+const renderStockInfo = (libraryName: string, stock?: StockInfo, bookTitle: string) => {
     if (!stock) {
         return <div className="flex justify-between items-center"><span>{libraryName}:</span> <span className="text-gray-500">정보 없음</span></div>;
     }
     const { total, available } = stock;
     const statusColor = available > 0 ? 'text-green-400' : 'text-red-400';
     const statusText = available > 0 ? '대출가능' : '대출불가';
+    
+    const subject = createSearchSubject(bookTitle);
+    let searchUrl = '';
+    let searchTitle = '';
+    
+    if (libraryName === '퇴촌 도서관') {
+        searchUrl = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(subject)}`;
+        searchTitle = `퇴촌 도서관에서 '${subject}' 검색`;
+    } else if (libraryName === '기타 도서관') {
+        searchUrl = `https://lib.gjcity.go.kr/lay1/program/S1T446C461/jnet/resourcessearch/resultList.do?searchType=SIMPLE&searchKey=TITLE&searchLibrary=ALL&searchKeyword=${encodeURIComponent(subject)}`;
+        searchTitle = `광주시립도서관에서 '${subject}' 검색`;
+    }
 
     return (
-        <div className="flex justify-between items-center" title={`${statusText} ${available}권, 총 ${total}권 소장`}>
+        <div className="flex justify-between items-center">
             <span>{libraryName}:</span>
-            <span className={`font-mono font-bold ${statusColor}`}>
-                {available} / {total}
-            </span>
+            {searchUrl ? (
+                <a
+                    href={searchUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`font-medium ${statusColor} hover:text-blue-400 hover:underline cursor-pointer transition-colors`}
+                    title={`${searchTitle} - ${statusText} ${available}권, 총 ${total}권 소장`}
+                >
+                    {available} / {total}
+                </a>
+            ) : (
+                <span className={`font-medium ${statusColor}`} title={`${statusText} ${available}권, 총 ${total}권 소장`}>
+                    {available} / {total}
+                </span>
+            )}
         </div>
     );
 };
@@ -163,8 +195,8 @@ const BookDetails: React.FC = () => {
                              </button>
                         </div>
                         <div className="space-y-2 text-sm text-gray-300 bg-gray-800 p-4 rounded-md">
-                            {renderStockInfo('퇴촌 도서관', bookFromLibrary.toechonStock)}
-                            {renderStockInfo('기타 도서관', bookFromLibrary.otherStock)}
+                            {renderStockInfo('퇴촌 도서관', bookFromLibrary.toechonStock, bookFromLibrary.title)}
+                            {renderStockInfo('기타 도서관', bookFromLibrary.otherStock, bookFromLibrary.title)}
                         </div>
                     </div>
                 </div>

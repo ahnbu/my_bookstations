@@ -3,4 +3,25 @@
   width: 100%;
   min-width: 1520px;
   max-width: none;
+  /* Smooth scrolling for better UX when virtualization kicks in */
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar for small datasets while maintaining functionality */
+.my-library-table::-webkit-scrollbar {
+  width: 8px;
+}
+
+.my-library-table::-webkit-scrollbar-track {
+  background: #374151;
+  border-radius: 4px;
+}
+
+.my-library-table::-webkit-scrollbar-thumb {
+  background: #6B7280;
+  border-radius: 4px;
+}
+
+.my-library-table::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
 }

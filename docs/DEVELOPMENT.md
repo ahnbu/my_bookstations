@@ -86,6 +86,7 @@ my_bookstation/
 ### UI/UX
 - **Tailwind CSS**: 유틸리티 우선 CSS 프레임워크
 - **반응형 디자인**: 모바일 및 데스크톱 환경 지원
+- **@tanstack/react-virtual**: 대용량 데이터 가상화 처리 (500-1000권 최적화)
 
 ### 데이터 검증
 - **Zod 3**: 
@@ -118,13 +119,36 @@ MyLibrary → useBookStore (CRUD operations) → Supabase → Real-time sync
 
 ## 🔍 주요 컴포넌트 분석
 
+### MyLibrary.tsx
+**역할**: 가상화된 개인 서재 테이블 관리
+
+**주요 기능**:
+- `@tanstack/react-virtual`을 활용한 대용량 데이터 처리
+- 동적 높이 계산으로 최적화된 스크롤 경험
+- 도서관 재고 클릭 시 외부 사이트 연동
+- 정렬, 필터링, CSV 내보내기 기능
+
+**성능 최적화**:
+- 소량 데이터(≤15권): 가상화 비활성, 자연스러운 높이
+- 대량 데이터(>15권): 가상화 활성, 스크롤 최적화
+- 메모화된 정렬 로직으로 불필요한 재렌더링 방지
+
+### BookDetails.tsx & MyLibraryBookDetailModal.tsx
+**역할**: 도서 상세 정보 표시 및 도서관 연동
+
+**주요 기능**:
+- 통일된 상세 정보 UI/UX
+- 도서관 재고 클릭 기능 (퇴촌도서관, 광주시립도서관)
+- 읽음 상태 및 별점 관리
+- 일관된 폰트 시스템
+
 ### useBookStore.ts
 **역할**: 도서 검색, 서재 관리, 도서관 재고 확인의 중심 허브
 
 **주요 상태**:
 - `searchResults`: 검색된 도서 목록
 - `selectedBook`: 현재 선택된 도서
-- `myLibraryBooks`: 개인 서재의 도서 목록
+- `myLibraryBooks`: 개인 서재의 도서 목록 (가상화 최적화)
 
 **핵심 액션**:
 - `searchBooks()`: 알라딘 API 도서 검색
@@ -243,6 +267,11 @@ npx tsc --noEmit
 3. **Supabase 연결 에러**
    - 환경 변수 확인
    - Row Level Security (RLS) 정책 확인
+
+4. **가상화 테이블 성능 이슈**
+   - 데이터량에 따른 동적 가상화 설정 확인
+   - `estimateSize` 값과 실제 행 높이 일치 여부 검증
+   - `overscan` 값 조정으로 스크롤 성능 최적화
 
 ### 디버깅 도구
 - **React Developer Tools**: 컴포넌트 상태 확인

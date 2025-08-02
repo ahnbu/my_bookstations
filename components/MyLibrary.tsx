@@ -80,6 +80,22 @@ const MyLibrary: React.FC = () => {
     overscan: 5, // Render 5 items above and below the visible area
   });
 
+  // Calculate actual content height for natural sizing
+  const contentHeight = useMemo(() => {
+    const headerHeight = 60; // Header height
+    const actualRowHeight = 72; // Actual row height
+    const maxVisibleRows = 15; // Maximum rows to display before enabling scroll
+    
+    // For small datasets, show all rows naturally
+    if (sortedLibraryBooks.length <= maxVisibleRows) {
+      const totalRowsHeight = sortedLibraryBooks.length * actualRowHeight;
+      return headerHeight + totalRowsHeight;
+    }
+    
+    // For large datasets, use virtualization with controlled height
+    return headerHeight + (maxVisibleRows * actualRowHeight);
+  }, [sortedLibraryBooks.length]);
+
   const renderStockCell = (stock?: StockInfo) => {
     if (typeof stock === 'undefined') {
       return <span className="text-xs text-gray-500">확인중...</span>;
@@ -149,7 +165,7 @@ const MyLibrary: React.FC = () => {
           </button>
         </div>
       </div>
-      <div ref={parentRef} className="my-library-table bg-gray-800 rounded-lg shadow-xl overflow-x-auto">
+      <div ref={parentRef} className="my-library-table bg-gray-800 rounded-lg shadow-xl overflow-x-auto" style={{ height: `${contentHeight}px`, overflowY: sortedLibraryBooks.length <= 15 ? 'hidden' : 'auto' }}>
         {/* Sticky Header */}
         <div className="flex items-center bg-gray-700 border-b border-gray-600 sticky top-0 z-10" style={{ height: '60px' }}>
           <div className="flex-shrink-0 w-20 p-4 font-semibold text-gray-300">표지</div>

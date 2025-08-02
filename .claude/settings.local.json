@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx @playwright/mcp@latest:*)",
+      "Bash(ls:*)",
+      "Bash(echo $APPDATA)",
+      "Bash(npx playwright:*)",
+      "Bash(npm install:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": []
+  }
+}
