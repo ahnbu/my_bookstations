@@ -32,6 +32,14 @@ const MyLibrary: React.FC = () => {
   
   const [detailModalBookId, setDetailModalBookId] = useState<number | null>(null);
   
+  const createSearchSubject = (title: string): string => {
+    const chunks = title.split(' ');
+    if (chunks.length <= 3) {
+      return title;
+    }
+    return chunks.slice(0, 3).join(' ');
+  };
+
   const sortedLibraryBooks = useMemo(() => {
     const readStatusOrder: Record<ReadStatus, number> = { '완독': 0, '읽는 중': 1, '읽지 않음': 2 };
 
@@ -167,6 +175,11 @@ const MyLibrary: React.FC = () => {
           {rowVirtualizer.getVirtualItems().map(virtualItem => {
             const book = sortedLibraryBooks[virtualItem.index];
             if (!book) return null;
+
+            const subject = createSearchSubject(book.title);
+            const toechonSearchUrl = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(subject)}`;
+            const otherSearchUrl = `https://lib.gjcity.go.kr/lay1/program/S1T446C461/jnet/resourcessearch/resultList.do?searchType=SIMPLE&searchKey=TITLE&searchLibrary=ALL&searchKeyword=${encodeURIComponent(subject)}`;
+
             return (
               <div
                 key={book.id}
@@ -218,29 +231,33 @@ const MyLibrary: React.FC = () => {
                   />
                 </div>
                 {/* Toechon Stock */}
-                <div
-                  className="w-24 p-3 text-center text-gray-300 cursor-pointer hover:bg-gray-700 transition-colors"
-                  title="상세 정보 보기"
-                  onClick={() => setDetailModalBookId(book.id)}
+                <a
+                  href={toechonSearchUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-24 p-3 text-center text-gray-300 hover:bg-gray-700 transition-colors block"
+                  title={`퇴촌 도서관에서 '${subject}' 검색`}
                 >
                   {refreshingIsbn === book.isbn13 ? (
                     <div className="flex justify-center"><Spinner/></div>
                   ) : (
                     renderStockCell(book.toechonStock)
                   )}
-                </div>
+                </a>
                 {/* Other Stock */}
-                <div
-                  className="w-24 p-3 text-center text-gray-300 cursor-pointer hover:bg-gray-700 transition-colors"
-                  title="상세 정보 보기"
-                  onClick={() => setDetailModalBookId(book.id)}
+                <a
+                  href={otherSearchUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-24 p-3 text-center text-gray-300 hover:bg-gray-700 transition-colors block"
+                  title={`광주시립도서관에서 '${subject}' 검색`}
                 >
                   {refreshingIsbn === book.isbn13 ? (
                     <div className="flex justify-center"><Spinner/></div>
                   ) : (
                     renderStockCell(book.otherStock)
                   )}
-                </div>
+                </a>
                 {/* Paper Book */}
                  <div className="w-20 p-3 text-center">
                   <a href={book.link} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
