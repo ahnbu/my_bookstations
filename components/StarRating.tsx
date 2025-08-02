@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { StarIcon } from './Icons';
 
@@ -17,11 +18,11 @@ const StarRating: React.FC<StarRatingProps> = ({ rating, onRatingChange }) => {
           onMouseEnter={() => setHoverRating(star)}
           onMouseLeave={() => setHoverRating(0)}
           onClick={() => onRatingChange(star)}
-          className="p-1 cursor-pointer"
+          className="px-0.5 cursor-pointer"
           aria-label={`Rate ${star} star`}
         >
           <StarIcon
-            className={`w-6 h-6 transition-colors duration-200 ${
+            className={`w-5 h-5 transition-colors duration-200 ${
               (hoverRating || rating) >= star ? 'text-yellow-400' : 'text-gray-600'
             }`}
           />

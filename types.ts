@@ -1,3 +1,4 @@
+
 import { z } from 'zod';
 
 // The 'Json' type is no longer exported from 'supabase-js'.
@@ -85,7 +86,7 @@ export type SelectedBook = BookData & {
   id: number;
 };
 
-export type SortKey = 'title' | 'author' | 'addedDate' | 'rating' | 'readStatus';
+export type SortKey = 'title' | 'author' | 'addedDate' | 'rating' | 'readStatus' | 'pubDate';
 
 
 // Supabase Types

@@ -48,6 +48,7 @@ my_bookstation/
 │   ├── BookModal.tsx       # 도서 검색 결과 모달
 │   ├── BookDetails.tsx     # 선택된 도서 상세 정보
 │   ├── MyLibrary.tsx       # 개인 서재 관리
+│   ├── MyLibraryBookDetailModal.tsx # 내 서재 상세 정보 모달
 │   ├── LibraryStock.tsx    # 도서관 재고 정보
 │   ├── SearchForm.tsx      # 도서 검색 폼
 │   ├── StarRating.tsx      # 별점 평가 컴포넌트
@@ -106,7 +107,7 @@ SearchForm → useBookStore.searchBooks() → aladin.service → Zod 검증 → 
 
 ### 2. 도서관 재고 확인 플로우
 ```
-BookDetails → useBookStore.fetchLibraryStock() → library.service → Zod 검증 → UI 업데이트
+BookDetails → useBookStore.refreshStock() → library.service → Zod 검증 → UI 업데이트
 ```
 
 ### 3. 서재 관리 플로우
@@ -123,13 +124,12 @@ MyLibrary → useBookStore (CRUD operations) → Supabase → Real-time sync
 - `searchResults`: 검색된 도서 목록
 - `selectedBook`: 현재 선택된 도서
 - `myLibraryBooks`: 개인 서재의 도서 목록
-- `libraryStock`: 도서관 재고 정보
 
 **핵심 액션**:
 - `searchBooks()`: 알라딘 API 도서 검색
 - `fetchUserLibrary()`: Supabase에서 사용자 서재 로드
 - `addToLibrary()`: 서재에 도서 추가
-- `fetchLibraryStock()`: 도서관 재고 확인
+- `refreshStock()`: 도서관 재고 확인
 
 ### useAuthStore.ts
 **역할**: 사용자 인증 상태 관리
@@ -248,57 +248,6 @@ npx tsc --noEmit
 - **Browser DevTools**: 네트워크 요청 모니터링
 - **Zustand DevTools**: 상태 변화 추적
 
-## 📊 성능 최적화
-
-### 번들 크기 최적화
-- 코드 스플리팅 (현재 단일 번들)
-- Tree shaking (Vite 자동 적용)
-- 이미지 최적화
-
-### 런타임 성능
-- React.memo 사용 최소화 (필요시에만)
-- useCallback/useMemo 적절한 사용
-- Zustand 상태 구조 최적화
-
-## 🔄 업데이트 전략
-
-### 의존성 업데이트
-```bash
-# 패키지 상태 확인
-npm outdated
-
-# 안전한 업데이트
-npm update
-
-# 메이저 업데이트 (주의 필요)
-npm install package@latest
-```
-
-### 보안 업데이트
-```bash
-# 보안 취약점 확인
-npm audit
-
-# 자동 수정
-npm audit fix
-```
-
-## 📝 코딩 컨벤션
-
-### TypeScript
-- **Interface vs Type**: 외부 라이브러리 호환성을 위해 type alias 우선 사용
-- **명명 규칙**: PascalCase for types, camelCase for variables
-- **Import 순서**: React → 라이브러리 → 내부 모듈
-
-### React
-- **함수형 컴포넌트**: 모든 컴포넌트는 함수형으로 작성
-- **Hooks 규칙**: 항상 컴포넌트 최상단에서 호출
-- **Props 타입**: 모든 props는 명시적 타입 정의
-
-### CSS
-- **Tailwind 우선**: 인라인 유틸리티 클래스 사용
-- **반응형**: 모바일 우선 (sm:, md:, lg: 접두사)
-
 ---
 
-*문서 최종 수정일: 2025-08-01*
+*문서 최종 수정일: 2025-08-01 20:50*

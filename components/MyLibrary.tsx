@@ -1,11 +1,14 @@
-import React, { useMemo, useRef } from 'react';
+
+
+import React, { useMemo, useState, useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { SelectedBook, StockInfo, SortKey, ReadStatus } from '../types';
-import { DownloadIcon, TrashIcon } from './Icons';
+import { DownloadIcon, TrashIcon, RefreshIcon } from './Icons';
 import Spinner from './Spinner';
 import { useBookStore } from '../stores/useBookStore';
 import { useAuthStore } from '../stores/useAuthStore';
 import StarRating from './StarRating';
+import MyLibraryBookDetailModal from './MyLibraryBookDetailModal';
 
 const SortArrow: React.FC<{ order: 'asc' | 'desc' }> = ({ order }) => (
   <span className="ml-1 inline-block w-3 h-3 text-xs">
@@ -27,38 +30,46 @@ const MyLibrary: React.FC = () => {
     updateRating,
   } = useBookStore();
   
-  const parentRef = useRef<HTMLDivElement>(null);
+  const [detailModalBookId, setDetailModalBookId] = useState<number | null>(null);
   
   const sortedLibraryBooks = useMemo(() => {
     const readStatusOrder: Record<ReadStatus, number> = { '완독': 0, '읽는 중': 1, '읽지 않음': 2 };
 
     return [...myLibraryBooks].sort((a, b) => {
-        if (sortConfig.key === 'addedDate') {
-            return sortConfig.order === 'asc' ? a.addedDate - b.addedDate : b.addedDate - a.addedDate;
+        if (!sortConfig.key) return 0;
+        
+        let aVal = a[sortConfig.key as keyof SelectedBook];
+        let bVal = b[sortConfig.key as keyof SelectedBook];
+
+        // Handle pubDate for sorting
+        if (sortConfig.key === 'pubDate') {
+            aVal = new Date(a.pubDate).getTime();
+            bVal = new Date(b.pubDate).getTime();
         }
-        if (sortConfig.key === 'title' || sortConfig.key === 'author') {
-            const aVal = a[sortConfig.key] || '';
-            const bVal = b[sortConfig.key] || '';
+        
+        if (typeof aVal === 'number' && typeof bVal === 'number') {
+            return sortConfig.order === 'asc' ? aVal - bVal : bVal - aVal;
+        }
+
+        if (typeof aVal === 'string' && typeof bVal === 'string') {
+             if (sortConfig.key === 'readStatus') {
+                const comparison = readStatusOrder[a.readStatus] - readStatusOrder[b.readStatus];
+                return sortConfig.order === 'asc' ? comparison : -comparison;
+            }
             const comparison = aVal.localeCompare(bVal, 'ko-KR');
-            return sortConfig.order === 'asc' ? comparison : -comparison;
-        }
-        if (sortConfig.key === 'rating') {
-            return sortConfig.order === 'asc' ? a.rating - b.rating : b.rating - a.rating;
-        }
-        if (sortConfig.key === 'readStatus') {
-            const comparison = readStatusOrder[a.readStatus] - readStatusOrder[b.readStatus];
             return sortConfig.order === 'asc' ? comparison : -comparison;
         }
         return 0;
     });
   }, [myLibraryBooks, sortConfig]);
+  
+  const parentRef = useRef<HTMLDivElement>(null);
 
-  // Initialize the virtualizer
   const rowVirtualizer = useVirtualizer({
     count: sortedLibraryBooks.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 72, // Estimated height for each row in pixels
-    overscan: 10, // Render 10 extra items outside of the visible area for smooth scrolling
+    estimateSize: () => 72, // Estimated height for each row
+    overscan: 5, // Render 5 items above and below the visible area
   });
 
   const renderStockCell = (stock?: StockInfo) => {
@@ -80,93 +91,6 @@ const MyLibrary: React.FC = () => {
       {children}
       {sortConfig.key === sortKey && <SortArrow order={sortConfig.order} />}
     </button>
-  );
-
-  // Component for rendering individual book rows
-  const BookRow: React.FC<{ book: SelectedBook; index: number }> = ({ book, index }) => (
-    <div className={`flex items-center border-b border-gray-700 hover:bg-gray-700/50 transition-colors duration-200 ${index % 2 === 0 ? 'bg-gray-800/50' : 'bg-gray-800/30'}`} style={{ height: '72px' }}>
-      {/* Cover */}
-      <div className="flex-shrink-0 w-20 p-3">
-        <img src={book.cover} alt={book.title} className="w-12 h-16 object-cover rounded bg-gray-700" />
-      </div>
-      
-      {/* Title */}
-      <div className="flex-1 min-w-0 p-3 font-medium text-white">
-        <a href={book.link} target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 hover:underline truncate block" title="알라딘에서 자세히 보기">
-          {book.title}
-        </a>
-      </div>
-      
-      {/* Author */}
-      <div className="w-40 p-3 text-gray-400 truncate">
-        {book.author.replace(/\s*\([^)]*\)/g, '').split(',')[0]}
-      </div>
-      
-      {/* Read Status */}
-      <div className="w-32 p-3">
-        <select
-          value={book.readStatus}
-          onChange={(e) => updateReadStatus(book.id, e.target.value as ReadStatus)}
-          className="bg-gray-700 border-gray-600 text-white text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-2"
-        >
-          <option value="읽지 않음">읽지 않음</option>
-          <option value="읽는 중">읽는 중</option>
-          <option value="완독">완독</option>
-        </select>
-      </div>
-      
-      {/* Rating */}
-      <div className="w-40 p-3">
-        <StarRating
-          rating={book.rating}
-          onRatingChange={(newRating) => updateRating(book.id, newRating)}
-        />
-      </div>
-      
-      {/* Toechon Stock */}
-      <div 
-        className="w-32 p-3 text-center text-gray-300 cursor-pointer hover:bg-gray-700 transition-colors"
-        title="클릭하여 재고 갱신"
-        onClick={() => refreshingIsbn !== book.isbn13 && refreshStock(book.id, book.isbn13)}
-      >
-        {refreshingIsbn === book.isbn13 ? (
-          <div className="flex justify-center"><Spinner/></div>
-        ) : (
-          renderStockCell(book.toechonStock)
-        )}
-      </div>
-      
-      {/* Other Stock */}
-      <div 
-        className="w-32 p-3 text-center text-gray-300 cursor-pointer hover:bg-gray-700 transition-colors"
-        title="클릭하여 재고 갱신"
-        onClick={() => refreshingIsbn !== book.isbn13 && refreshStock(book.id, book.isbn13)}
-      >
-        {refreshingIsbn === book.isbn13 ? (
-          <div className="flex justify-center"><Spinner/></div>
-        ) : (
-          renderStockCell(book.otherStock)
-        )}
-      </div>
-      
-      {/* E-book */}
-      <div className="w-28 p-3 text-center">
-        {book.subInfo?.ebookList?.[0]?.link ? (
-          <a href={book.subInfo.ebookList[0].link} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
-            보기
-          </a>
-        ) : (
-          <span className="text-gray-500" title="전자책 없음">❌</span>
-        )}
-      </div>
-      
-      {/* Actions */}
-      <div className="w-24 p-3 text-center">
-        <button onClick={() => removeFromLibrary(book.id)} title="서재에서 삭제" className="text-red-500 hover:text-red-400 p-2 rounded-full hover:bg-gray-600 transition-colors duration-200">
-          <TrashIcon className="w-5 h-5" />
-        </button>
-      </div>
-    </div>
   );
   
   if (!session) {
@@ -197,11 +121,6 @@ const MyLibrary: React.FC = () => {
           <span className="text-sm text-gray-400 bg-gray-700 px-3 py-1 rounded-full">
             총 {sortedLibraryBooks.length}권
           </span>
-          {sortedLibraryBooks.length > 0 && (
-            <span className="text-xs text-green-400 bg-green-900/30 px-2 py-1 rounded-full" title="가상화로 렌더링된 항목 수">
-              렌더링: {rowVirtualizer.getVirtualItems().length}/{sortedLibraryBooks.length}
-            </span>
-          )}
         </div>
         <div className="flex items-center gap-x-4 sm:gap-x-6">
           <div className="flex items-center gap-2 flex-wrap">
@@ -209,6 +128,7 @@ const MyLibrary: React.FC = () => {
             <SortButton sortKey="addedDate">추가순</SortButton>
             <SortButton sortKey="title">제목순</SortButton>
             <SortButton sortKey="author">저자순</SortButton>
+            <SortButton sortKey="pubDate">출간일순</SortButton>
             <SortButton sortKey="rating">별점순</SortButton>
             <SortButton sortKey="readStatus">읽음순</SortButton>
           </div>
@@ -217,60 +137,160 @@ const MyLibrary: React.FC = () => {
             className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors duration-300"
           >
             <DownloadIcon className="w-5 h-5" />
-            <span>CSV로 내보내기</span>
+            <span className="hidden sm:inline">CSV로 내보내기</span>
           </button>
         </div>
       </div>
-      <div className="bg-gray-800 rounded-lg shadow-xl overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center bg-gray-700/50 border-b border-gray-600 min-w-[1400px]" style={{ height: '60px' }}>
+      <div ref={parentRef} className="bg-gray-800 rounded-lg shadow-xl overflow-x-auto">
+        {/* Sticky Header */}
+        <div className="flex items-center bg-gray-700 border-b border-gray-600 min-w-[1520px] sticky top-0 z-10" style={{ height: '60px' }}>
           <div className="flex-shrink-0 w-20 p-4 font-semibold text-gray-300">표지</div>
-          <div className="flex-1 min-w-0 p-4 font-semibold text-gray-300">제목</div>
+          <div className="flex-1 min-w-0 p-4 font-semibold text-gray-300" style={{ width: '24rem' }}>제목</div>
           <div className="w-40 p-4 font-semibold text-gray-300">저자</div>
+          <div className="w-28 p-4 font-semibold text-gray-300">출간일</div>
           <div className="w-32 p-4 font-semibold text-gray-300">읽음</div>
-          <div className="w-40 p-4 font-semibold text-gray-300">별점</div>
+          <div className="w-24 p-4 font-semibold text-gray-300" style={{ width: '8rem' }}>별점</div>
           <div className="w-32 p-4 font-semibold text-gray-300 text-center">퇴촌lib</div>
           <div className="w-32 p-4 font-semibold text-gray-300 text-center">기타lib</div>
+          <div className="w-28 p-4 font-semibold text-gray-300 text-center">종이책</div>
           <div className="w-28 p-4 font-semibold text-gray-300 text-center">전자책</div>
           <div className="w-24 p-4 font-semibold text-gray-300 text-center">관리</div>
         </div>
 
-        {/* Virtualized List Container */}
+        {/* Virtualized Rows */}
         <div
-          ref={parentRef}
-          className="overflow-auto"
-          style={{ height: '600px' }} // Fixed height for scrolling
+          className="relative"
+          style={{
+            height: `${rowVirtualizer.getTotalSize()}px`,
+            minWidth: '1520px',
+          }}
         >
-          <div
-            style={{
-              height: `${rowVirtualizer.getTotalSize()}px`,
-              width: '100%',
-              position: 'relative',
-              minWidth: '1400px'
-            }}
-          >
-            {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-              const book = sortedLibraryBooks[virtualItem.index];
-              return (
-                <div
-                  key={virtualItem.key}
-                  data-index={virtualItem.index}
-                  ref={rowVirtualizer.measureElement}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    transform: `translateY(${virtualItem.start}px)`,
-                  }}
-                >
-                  <BookRow book={book} index={virtualItem.index} />
+          {rowVirtualizer.getVirtualItems().map(virtualItem => {
+            const book = sortedLibraryBooks[virtualItem.index];
+            if (!book) return null;
+            return (
+              <div
+                key={book.id}
+                className={`absolute top-0 left-0 w-full flex items-center border-b border-gray-700 hover:bg-gray-700/50 transition-colors duration-200 ${virtualItem.index % 2 === 0 ? 'bg-gray-800/50' : 'bg-gray-800/30'}`}
+                style={{
+                  height: `${virtualItem.size}px`,
+                  transform: `translateY(${virtualItem.start}px)`,
+                }}
+              >
+                {/* Cover */}
+                <div className="flex-shrink-0 w-20 p-3">
+                  <img src={book.cover} alt={book.title} className="w-12 h-16 object-cover rounded bg-gray-700" />
                 </div>
-              );
-            })}
-          </div>
+                {/* Title */}
+                <div className="flex-1 min-w-0 p-3 font-medium text-white" style={{ width: '24rem' }}>
+                  <button
+                    onClick={() => setDetailModalBookId(book.id)}
+                    className="text-left hover:text-blue-400 hover:underline truncate block w-full"
+                    title={book.title}
+                  >
+                    {book.title}
+                  </button>
+                </div>
+                {/* Author */}
+                <div className="w-40 p-3 text-gray-400 truncate">
+                  {book.author.replace(/\s*\([^)]*\)/g, '').split(',')[0]}
+                </div>
+                {/* PubDate */}
+                <div className="w-28 p-3 text-gray-400 truncate" title={book.pubDate}>
+                  {book.pubDate.substring(0, 7)}
+                </div>
+                {/* Read Status */}
+                <div className="w-32 p-3">
+                  <select
+                    value={book.readStatus}
+                    onChange={(e) => updateReadStatus(book.id, e.target.value as ReadStatus)}
+                    className="bg-gray-700 border-gray-600 text-white text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-2"
+                  >
+                    <option value="읽지 않음">읽지 않음</option>
+                    <option value="읽는 중">읽는 중</option>
+                    <option value="완독">완독</option>
+                  </select>
+                </div>
+                {/* Rating */}
+                <div className="w-24 p-3" style={{ width: '8rem' }}>
+                  <StarRating
+                    rating={book.rating}
+                    onRatingChange={(newRating) => updateRating(book.id, newRating)}
+                  />
+                </div>
+                {/* Toechon Stock */}
+                <div
+                  className="w-32 p-3 text-center text-gray-300 cursor-pointer hover:bg-gray-700 transition-colors"
+                  title="상세 정보 보기"
+                  onClick={() => setDetailModalBookId(book.id)}
+                >
+                  {refreshingIsbn === book.isbn13 ? (
+                    <div className="flex justify-center"><Spinner/></div>
+                  ) : (
+                    renderStockCell(book.toechonStock)
+                  )}
+                </div>
+                {/* Other Stock */}
+                <div
+                  className="w-32 p-3 text-center text-gray-300 cursor-pointer hover:bg-gray-700 transition-colors"
+                  title="상세 정보 보기"
+                  onClick={() => setDetailModalBookId(book.id)}
+                >
+                  {refreshingIsbn === book.isbn13 ? (
+                    <div className="flex justify-center"><Spinner/></div>
+                  ) : (
+                    renderStockCell(book.otherStock)
+                  )}
+                </div>
+                {/* Paper Book */}
+                 <div className="w-28 p-3 text-center">
+                  <a href={book.link} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
+                      보기
+                  </a>
+                </div>
+                {/* E-book */}
+                <div className="w-28 p-3 text-center">
+                  {book.subInfo?.ebookList?.[0]?.link ? (
+                    <a href={book.subInfo.ebookList[0].link} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
+                      보기
+                    </a>
+                  ) : (
+                    <span className="text-gray-500" title="전자책 없음">❌</span>
+                  )}
+                </div>
+                {/* Actions */}
+                <div className="w-24 p-3 flex items-center justify-center gap-2">
+                  <button
+                      onClick={() => refreshingIsbn !== book.isbn13 && refreshStock(book.id, book.isbn13)}
+                      disabled={refreshingIsbn === book.isbn13}
+                      title="재고 새로고침"
+                      className="p-1 rounded-full text-blue-400 hover:text-blue-300 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-wait transition-colors"
+                  >
+                      {refreshingIsbn === book.isbn13 ? <Spinner /> : <RefreshIcon className="w-5 h-5" />}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`'${book.title}'을(를) 서재에서 삭제하시겠습니까?`)) {
+                        removeFromLibrary(book.id);
+                      }
+                    }}
+                    title="서재에서 삭제"
+                    className="p-1 rounded-full text-red-500 hover:text-red-400 hover:bg-gray-700 transition-colors"
+                  >
+                    <TrashIcon className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
+      {detailModalBookId && (
+        <MyLibraryBookDetailModal 
+            bookId={detailModalBookId}
+            onClose={() => setDetailModalBookId(null)}
+        />
+      )}
     </div>
   );
 };

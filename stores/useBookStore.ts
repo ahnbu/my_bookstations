@@ -1,6 +1,7 @@
+
 import { create } from 'zustand';
 import { supabase } from '../lib/supabaseClient';
-import { AladdinBookItem, SelectedBook, SortKey, LibraryStockResponse, ReadStatus, BookData, Json } from '../types';
+import { AladdinBookItem, SelectedBook, SortKey, ReadStatus, BookData, Json } from '../types';
 import { searchAladinBooks } from '../services/aladin.service';
 import { fetchLibraryStock as fetchLibraryStockService } from '../services/library.service';
 import { useUIStore } from './useUIStore';
@@ -9,22 +10,20 @@ import { useAuthStore } from './useAuthStore';
 
 interface BookState {
   searchResults: AladdinBookItem[];
-  selectedBook: AladdinBookItem | null;
+  selectedBook: AladdinBookItem | SelectedBook | null;
   myLibraryBooks: SelectedBook[];
-  libraryStock: LibraryStockResponse | null;
   sortConfig: { key: SortKey; order: 'asc' | 'desc' };
   refreshingIsbn: string | null;
 
   // Actions
   searchBooks: (query: string, searchType: string) => Promise<void>;
-  selectBook: (book: AladdinBookItem) => void;
+  selectBook: (book: AladdinBookItem | SelectedBook) => void;
   unselectBook: () => void;
   addToLibrary: () => Promise<void>;
   removeFromLibrary: (id: number) => Promise<void>;
   refreshStock: (id: number, isbn13: string) => Promise<void>;
   sortLibrary: (key: SortKey) => void;
   exportToCSV: (books: SelectedBook[]) => void;
-  fetchLibraryStock: (isbn: string) => Promise<void>;
   fetchUserLibrary: () => Promise<void>;
   clearLibrary: () => void;
   updateReadStatus: (id: number, status: ReadStatus) => Promise<void>;
@@ -45,7 +44,6 @@ export const useBookStore = create<BookState>(
       searchResults: [],
       selectedBook: null,
       myLibraryBooks: [],
-      libraryStock: null,
       sortConfig: { key: 'addedDate', order: 'desc' },
       refreshingIsbn: null,
 
@@ -90,13 +88,13 @@ export const useBookStore = create<BookState>(
       },
 
       clearLibrary: () => {
-        set({ myLibraryBooks: [], selectedBook: null, libraryStock: null });
+        set({ myLibraryBooks: [], selectedBook: null });
       },
       
       searchBooks: async (query, searchType) => {
         const { setIsLoading, setNotification, openBookModal } = useUIStore.getState();
         setIsLoading(true);
-        set({ selectedBook: null, libraryStock: null });
+        set({ selectedBook: null });
         try {
           const results = await searchAladinBooks(query, searchType);
           set({ searchResults: results });
@@ -111,8 +109,10 @@ export const useBookStore = create<BookState>(
       },
       
       selectBook: (book) => {
-        set({ selectedBook: book, libraryStock: null });
+        set({ selectedBook: book });
         useUIStore.getState().closeBookModal();
+        // Scroll to the top to see the details view
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       },
 
       unselectBook: () => {
@@ -120,30 +120,15 @@ export const useBookStore = create<BookState>(
       },
 
       addToLibrary: async () => {
-        const { selectedBook, libraryStock } = get();
+        const { selectedBook } = get();
         const { session } = useAuthStore.getState();
         if (!selectedBook || !session) return;
-
-        const availability = libraryStock?.availability ?? [];
-        let toechonTotal = 0, toechonAvailable = 0, otherTotal = 0, otherAvailable = 0;
-
-        availability.forEach(item => {
-          const isToechon = item['소장도서관'] === '퇴촌도서관';
-          const isAvailable = item['대출상태'] === '대출가능';
-          if (isToechon) {
-            toechonTotal++;
-            if (isAvailable) toechonAvailable++;
-          } else {
-            otherTotal++;
-            if (isAvailable) otherAvailable++;
-          }
-        });
 
         const newBookData: BookData = {
           ...selectedBook,
           addedDate: Date.now(),
-          toechonStock: { total: toechonTotal, available: toechonAvailable },
-          otherStock: { total: otherTotal, available: otherAvailable },
+          toechonStock: { total: 0, available: 0 },
+          otherStock: { total: 0, available: 0 },
           readStatus: '읽지 않음' as ReadStatus,
           rating: 0
         };
@@ -166,6 +151,9 @@ export const useBookStore = create<BookState>(
             set(state => ({
                 myLibraryBooks: [newBookWithId, ...state.myLibraryBooks]
             }));
+            
+            // After adding, trigger a background stock refresh.
+            get().refreshStock(newBookWithId.id, newBookWithId.isbn13);
 
         } catch(error) {
             console.error("Error adding book to library:", error);
@@ -177,9 +165,21 @@ export const useBookStore = create<BookState>(
         try {
             const { error } = await supabase.from('user_library').delete().eq('id', id);
             if (error) throw error;
-            set(state => ({
-              myLibraryBooks: state.myLibraryBooks.filter(b => b.id !== id)
-            }));
+
+            set(state => {
+                const newLibraryBooks = state.myLibraryBooks.filter(b => b.id !== id);
+                let newSelectedBook = state.selectedBook;
+
+                // If the deleted book was the selected book, unselect it to prevent errors.
+                if (newSelectedBook && 'id' in newSelectedBook && newSelectedBook.id === id) {
+                    newSelectedBook = null;
+                }
+                
+                return {
+                    myLibraryBooks: newLibraryBooks,
+                    selectedBook: newSelectedBook,
+                };
+            });
         } catch(error) {
             console.error("Error removing book from library:", error);
             useUIStore.getState().setNotification({ message: '서재에서 책을 삭제하는 데 실패했습니다.', type: 'error'});
@@ -220,7 +220,8 @@ export const useBookStore = create<BookState>(
           set(state => ({
             myLibraryBooks: state.myLibraryBooks.map(book =>
               book.id === id ? updatedBook : book
-            )
+            ),
+            selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBook : state.selectedBook
           }));
         } catch (error) {
           console.error(`Failed to refresh stock for ISBN ${isbn13}`, error);
@@ -245,7 +246,8 @@ export const useBookStore = create<BookState>(
 
             if (error) throw error;
             set(state => ({
-                myLibraryBooks: state.myLibraryBooks.map(b => b.id === id ? updatedBook : b)
+                myLibraryBooks: state.myLibraryBooks.map(b => b.id === id ? updatedBook : b),
+                selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBook : state.selectedBook
             }));
         } catch (error) {
             console.error('Error updating read status:', error);
@@ -268,7 +270,8 @@ export const useBookStore = create<BookState>(
 
             if (error) throw error;
             set(state => ({
-                myLibraryBooks: state.myLibraryBooks.map(b => b.id === id ? updatedBook : b)
+                myLibraryBooks: state.myLibraryBooks.map(b => b.id === id ? updatedBook : b),
+                selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBook : state.selectedBook
             }));
         } catch (error) {
             console.error('Error updating rating:', error);
@@ -281,7 +284,7 @@ export const useBookStore = create<BookState>(
         if (sortConfig.key === key) {
           set({ sortConfig: { ...sortConfig, order: sortConfig.order === 'asc' ? 'desc' : 'asc' } });
         } else {
-          const newOrder = ['addedDate', 'rating', 'readStatus'].includes(key) ? 'desc' : 'asc';
+          const newOrder = ['addedDate', 'rating', 'readStatus', 'pubDate'].includes(key) ? 'desc' : 'asc';
           set({ sortConfig: { key, order: newOrder } });
         }
       },
@@ -321,24 +324,5 @@ export const useBookStore = create<BookState>(
         link.click();
         document.body.removeChild(link);
       },
-
-      fetchLibraryStock: async (isbn) => {
-        const { setIsLibraryStockLoading, setLibraryStockError } = useUIStore.getState();
-        if (!isbn || !/^\d{13}$/.test(isbn)) return;
-
-        setIsLibraryStockLoading(true);
-        setLibraryStockError(null);
-        set({ libraryStock: null });
-
-        try {
-          const result = await fetchLibraryStockService(isbn);
-          set({ libraryStock: result });
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
-            setLibraryStockError(errorMessage);
-        } finally {
-          setIsLibraryStockLoading(false);
-        }
-      }
     })
 );
