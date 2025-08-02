@@ -77,7 +77,8 @@ const BookDetails: React.FC = () => {
           <h2 className="text-3xl font-bold text-white mb-2">{selectedBook.title}</h2>
           <p className="text-lg text-gray-300 mb-1"><strong>저자:</strong> {selectedBook.author.replace(/\s*\([^)]*\)/g, '')}</p>
           <p className="text-md text-gray-400 mb-1"><strong>출판사:</strong> {selectedBook.publisher}</p>
-          <p className="text-md text-gray-400 mb-4"><strong>출간일:</strong> {selectedBook.pubDate}</p>
+          <p className="text-md text-gray-400 mb-1"><strong>출간일:</strong> {selectedBook.pubDate}</p>
+          <p className="text-md text-gray-400 mb-4"><strong>ISBN:</strong> {selectedBook.isbn13}</p>
           
           <div className="flex items-baseline mb-4">
              <p className="text-2xl font-bold text-blue-400">{selectedBook.priceSales.toLocaleString()}원</p>
@@ -110,6 +111,15 @@ const BookDetails: React.FC = () => {
               <ArrowLeftIcon className="w-5 h-5" />
               검색결과로
             </button>
+            <a
+              href={selectedBook.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors duration-300"
+            >
+              <BookOpenIcon className="w-5 h-5" />
+              알라딘 보기
+            </a>
           </div>
         </div>
       </div>

@@ -97,7 +97,9 @@ export const useBookStore = create<BookState>(
         set({ selectedBook: null });
         try {
           const results = await searchAladinBooks(query, searchType);
-          set({ searchResults: results });
+          // [세트] 로 시작하는 도서 제외
+          const filteredResults = results.filter(book => !book.title.startsWith('[세트]'));
+          set({ searchResults: filteredResults });
           openBookModal();
         } catch (error) {
           console.error(error);

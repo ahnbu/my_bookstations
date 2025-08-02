@@ -1,0 +1,6 @@
+/* CSS 파일에 추가 */
+.my-library-table {
+  width: 100%;
+  min-width: 1520px;
+  max-width: none;
+}

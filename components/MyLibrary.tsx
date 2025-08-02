@@ -141,19 +141,19 @@ const MyLibrary: React.FC = () => {
           </button>
         </div>
       </div>
-      <div ref={parentRef} className="bg-gray-800 rounded-lg shadow-xl overflow-x-auto">
+      <div ref={parentRef} className="my-library-table bg-gray-800 rounded-lg shadow-xl overflow-x-auto">
         {/* Sticky Header */}
-        <div className="flex items-center bg-gray-700 border-b border-gray-600 min-w-[1520px] sticky top-0 z-10" style={{ height: '60px' }}>
+        <div className="flex items-center bg-gray-700 border-b border-gray-600 sticky top-0 z-10" style={{ height: '60px' }}>
           <div className="flex-shrink-0 w-20 p-4 font-semibold text-gray-300">표지</div>
           <div className="flex-1 min-w-0 p-4 font-semibold text-gray-300" style={{ width: '24rem' }}>제목</div>
           <div className="w-40 p-4 font-semibold text-gray-300">저자</div>
           <div className="w-28 p-4 font-semibold text-gray-300">출간일</div>
           <div className="w-32 p-4 font-semibold text-gray-300">읽음</div>
           <div className="w-24 p-4 font-semibold text-gray-300" style={{ width: '8rem' }}>별점</div>
-          <div className="w-32 p-4 font-semibold text-gray-300 text-center">퇴촌lib</div>
-          <div className="w-32 p-4 font-semibold text-gray-300 text-center">기타lib</div>
-          <div className="w-28 p-4 font-semibold text-gray-300 text-center">종이책</div>
-          <div className="w-28 p-4 font-semibold text-gray-300 text-center">전자책</div>
+          <div className="w-24 p-4 font-semibold text-gray-300 text-center">퇴촌lib</div>
+          <div className="w-24 p-4 font-semibold text-gray-300 text-center">기타lib</div>
+          <div className="w-20 p-4 font-semibold text-gray-300 text-center">종이책</div>
+          <div className="w-20 p-4 font-semibold text-gray-300 text-center">전자책</div>
           <div className="w-24 p-4 font-semibold text-gray-300 text-center">관리</div>
         </div>
 
@@ -162,7 +162,6 @@ const MyLibrary: React.FC = () => {
           className="relative"
           style={{
             height: `${rowVirtualizer.getTotalSize()}px`,
-            minWidth: '1520px',
           }}
         >
           {rowVirtualizer.getVirtualItems().map(virtualItem => {
@@ -220,7 +219,7 @@ const MyLibrary: React.FC = () => {
                 </div>
                 {/* Toechon Stock */}
                 <div
-                  className="w-32 p-3 text-center text-gray-300 cursor-pointer hover:bg-gray-700 transition-colors"
+                  className="w-24 p-3 text-center text-gray-300 cursor-pointer hover:bg-gray-700 transition-colors"
                   title="상세 정보 보기"
                   onClick={() => setDetailModalBookId(book.id)}
                 >
@@ -232,7 +231,7 @@ const MyLibrary: React.FC = () => {
                 </div>
                 {/* Other Stock */}
                 <div
-                  className="w-32 p-3 text-center text-gray-300 cursor-pointer hover:bg-gray-700 transition-colors"
+                  className="w-24 p-3 text-center text-gray-300 cursor-pointer hover:bg-gray-700 transition-colors"
                   title="상세 정보 보기"
                   onClick={() => setDetailModalBookId(book.id)}
                 >
@@ -243,13 +242,13 @@ const MyLibrary: React.FC = () => {
                   )}
                 </div>
                 {/* Paper Book */}
-                 <div className="w-28 p-3 text-center">
+                 <div className="w-20 p-3 text-center">
                   <a href={book.link} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
                       보기
                   </a>
                 </div>
                 {/* E-book */}
-                <div className="w-28 p-3 text-center">
+                <div className="w-20 p-3 text-center">
                   {book.subInfo?.ebookList?.[0]?.link ? (
                     <a href={book.subInfo.ebookList[0].link} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
                       보기

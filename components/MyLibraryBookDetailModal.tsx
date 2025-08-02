@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { ReadStatus, StockInfo } from '../types';
 import { useBookStore } from '../stores/useBookStore';
-import { CloseIcon, RefreshIcon } from './Icons';
+import { CloseIcon, RefreshIcon, BookOpenIcon } from './Icons';
 import Spinner from './Spinner';
 import StarRating from './StarRating';
 
@@ -65,7 +65,8 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                           <h3 className="text-2xl font-bold text-white mb-2">{book.title}</h3>
                           <p className="text-lg text-gray-300 mb-1"><strong>저자:</strong> {book.author.replace(/\s*\([^)]*\)/g, '')}</p>
                           <p className="text-md text-gray-400 mb-1"><strong>출판사:</strong> {book.publisher}</p>
-                          <p className="text-md text-gray-400 mb-4"><strong>출간일:</strong> {book.pubDate}</p>
+                          <p className="text-md text-gray-400 mb-1"><strong>출간일:</strong> {book.pubDate}</p>
+                          <p className="text-md text-gray-400 mb-4"><strong>ISBN:</strong> {book.isbn13}</p>
                           
                           <div className="flex items-baseline mb-4">
                              <p className="text-2xl font-bold text-blue-400">{book.priceSales.toLocaleString()}원</p>
@@ -73,6 +74,16 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                           </div>
 
                           <p className="text-sm text-gray-400 leading-relaxed mb-6 line-clamp-4">{book.description || "제공된 설명이 없습니다."}</p>
+                          
+                          <a
+                            href={book.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors duration-300"
+                          >
+                            <BookOpenIcon className="w-5 h-5" />
+                            알라딘 보기
+                          </a>
                         </div>
                     </div>
                     
