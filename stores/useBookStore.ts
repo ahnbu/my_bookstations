@@ -1,9 +1,10 @@
 
 import { create } from 'zustand';
 import { supabase } from '../lib/supabaseClient';
-import { AladdinBookItem, SelectedBook, SortKey, ReadStatus, BookData, Json } from '../types';
+import { AladdinBookItem, SelectedBook, SortKey, ReadStatus, BookData, Json, EBookInfo } from '../types';
 import { searchAladinBooks } from '../services/aladin.service';
 import { fetchLibraryStock as fetchLibraryStockService } from '../services/library.service';
+import { fetchBookAvailability, summarizeEBooks } from '../services/ebook.service';
 import { useUIStore } from './useUIStore';
 import { useAuthStore } from './useAuthStore';
 
@@ -14,6 +15,7 @@ interface BookState {
   myLibraryBooks: SelectedBook[];
   sortConfig: { key: SortKey; order: 'asc' | 'desc' };
   refreshingIsbn: string | null;
+  refreshingEbookId: number | null;
 
   // Actions
   searchBooks: (query: string, searchType: string) => Promise<void>;
@@ -22,6 +24,8 @@ interface BookState {
   addToLibrary: () => Promise<void>;
   removeFromLibrary: (id: number) => Promise<void>;
   refreshStock: (id: number, isbn13: string) => Promise<void>;
+  refreshEBookInfo: (id: number, isbn: string, title: string) => Promise<void>;
+  refreshAllBookInfo: (id: number, isbn13: string, title: string) => Promise<void>;
   sortLibrary: (key: SortKey) => void;
   exportToCSV: (books: SelectedBook[]) => void;
   fetchUserLibrary: () => Promise<void>;
@@ -46,6 +50,7 @@ export const useBookStore = create<BookState>(
       myLibraryBooks: [],
       sortConfig: { key: 'addedDate', order: 'desc' },
       refreshingIsbn: null,
+      refreshingEbookId: null,
 
       // Actions
       fetchUserLibrary: async () => {
@@ -154,8 +159,8 @@ export const useBookStore = create<BookState>(
                 myLibraryBooks: [newBookWithId, ...state.myLibraryBooks]
             }));
             
-            // After adding, trigger a background stock refresh.
-            get().refreshStock(newBookWithId.id, newBookWithId.isbn13);
+            // After adding, trigger a background stock and ebook refresh.
+            get().refreshAllBookInfo(newBookWithId.id, newBookWithId.isbn13, newBookWithId.title);
 
         } catch(error) {
             console.error("Error adding book to library:", error);
@@ -230,6 +235,107 @@ export const useBookStore = create<BookState>(
           useUIStore.getState().setNotification({ message: '재고 정보 갱신에 실패했습니다.', type: 'error' });
         } finally {
           set({ refreshingIsbn: null });
+        }
+      },
+
+      refreshEBookInfo: async (id, isbn, title) => {
+        set({ refreshingEbookId: id });
+        try {
+          const result = await fetchBookAvailability(isbn, title);
+          const ebookSummary = summarizeEBooks(result.gyeonggi_ebooks);
+          
+          const bookToUpdate = get().myLibraryBooks.find(b => b.id === id);
+          if (!bookToUpdate) return;
+
+          const newEBookInfo: EBookInfo = {
+            summary: ebookSummary,
+            details: result.gyeonggi_ebooks,
+            lastUpdated: Date.now()
+          };
+
+          const updatedBook = { ...bookToUpdate, ebookInfo: newEBookInfo };
+          const { id: bookId, ...bookDataForDb } = updatedBook;
+          
+          const { error } = await supabase
+            .from('user_library')
+            .update({ book_data: bookDataForDb as Json })
+            .eq('id', id);
+
+          if (error) throw error;
+          
+          set(state => ({
+            myLibraryBooks: state.myLibraryBooks.map(book =>
+              book.id === id ? updatedBook : book
+            ),
+            selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBook : state.selectedBook
+          }));
+        } catch (error) {
+          console.error(`Failed to refresh ebook info for ${title}`, error);
+          useUIStore.getState().setNotification({ message: '전자책 정보 갱신에 실패했습니다.', type: 'error' });
+        } finally {
+          set({ refreshingEbookId: null });
+        }
+      },
+
+      refreshAllBookInfo: async (id, isbn13, title) => {
+        set({ refreshingIsbn: isbn13, refreshingEbookId: id });
+        try {
+          // 3-way API 호출
+          const [stockResult, ebookResult] = await Promise.allSettled([
+            fetchLibraryStockService(isbn13),
+            fetchBookAvailability(isbn13, title)
+          ]);
+
+          const bookToUpdate = get().myLibraryBooks.find(b => b.id === id);
+          if (!bookToUpdate) return;
+
+          let updatedBook = { ...bookToUpdate };
+
+          // 종이책 재고 업데이트
+          if (stockResult.status === 'fulfilled') {
+            const availability = stockResult.value.availability ?? [];
+            let toechonTotal = 0, toechonAvailable = 0, otherTotal = 0, otherAvailable = 0;
+            availability.forEach(item => {
+              const isToechon = item['소장도서관'] === '퇴촌도서관';
+              const isAvailable = item['대출상태'] === '대출가능';
+              if (isToechon) { toechonTotal++; if (isAvailable) toechonAvailable++; } 
+              else { otherTotal++; if (isAvailable) otherAvailable++; }
+            });
+            
+            updatedBook.toechonStock = { total: toechonTotal, available: toechonAvailable };
+            updatedBook.otherStock = { total: otherTotal, available: otherAvailable };
+          }
+
+          // 전자책 정보 업데이트
+          if (ebookResult.status === 'fulfilled') {
+            const ebookSummary = summarizeEBooks(ebookResult.value.gyeonggi_ebooks);
+            updatedBook.ebookInfo = {
+              summary: ebookSummary,
+              details: ebookResult.value.gyeonggi_ebooks,
+              lastUpdated: Date.now()
+            };
+          }
+
+          const { id: bookId, ...bookDataForDb } = updatedBook;
+          
+          const { error } = await supabase
+            .from('user_library')
+            .update({ book_data: bookDataForDb as Json })
+            .eq('id', id);
+
+          if (error) throw error;
+          
+          set(state => ({
+            myLibraryBooks: state.myLibraryBooks.map(book =>
+              book.id === id ? updatedBook : book
+            ),
+            selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBook : state.selectedBook
+          }));
+        } catch (error) {
+          console.error(`Failed to refresh all book info for ${title}`, error);
+          useUIStore.getState().setNotification({ message: '도서 정보 갱신에 실패했습니다.', type: 'error' });
+        } finally {
+          set({ refreshingIsbn: null, refreshingEbookId: null });
         }
       },
 

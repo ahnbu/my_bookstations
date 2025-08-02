@@ -1,5 +1,11 @@
 
 import { z } from 'zod';
+import { 
+  EBookAvailability, 
+  EBookError, 
+  EBookSummary,
+  LibraryApiResponse 
+} from './services/ebook.service';
 
 // The 'Json' type is no longer exported from 'supabase-js'.
 // We define it here to match the expected structure for JSONB columns.
@@ -72,10 +78,18 @@ export type StockInfo = {
 
 export type ReadStatus = '읽지 않음' | '읽는 중' | '완독';
 
+// Extended EBook information for storage
+export type EBookInfo = {
+  summary: EBookSummary;
+  details: (EBookAvailability | EBookError)[];
+  lastUpdated: number;
+};
+
 // This is the shape of the data that will be stored in the 'book_data' jsonb column.
 export type BookData = AladdinBookItem & {
   toechonStock: StockInfo;
   otherStock: StockInfo;
+  ebookInfo?: EBookInfo; // New ebook information
   addedDate: number;
   readStatus: ReadStatus;
   rating: number;
