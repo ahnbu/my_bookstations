@@ -381,7 +381,7 @@ const MyLibrary: React.FC = () => {
             <div className="w-24 p-4 font-semibold text-gray-300 text-center">퇴촌lib</div>
             <div className="w-24 p-4 font-semibold text-gray-300 text-center">기타lib</div>
             <div className="w-24 p-4 font-semibold text-gray-300 text-center">e북.교육</div>
-            <div className="w-24 p-4 font-semibold text-gray-300 text-center">e북(시립구독)</div>
+            <div className="w-24 p-4 font-semibold text-gray-300 text-center">e북.시독</div>
             <div className="w-24 p-4 font-semibold text-gray-300 text-center">관리</div>
           </div>
 
@@ -502,7 +502,7 @@ const MyLibrary: React.FC = () => {
                       renderEBookCell(book)
                     )}
                   </div>
-                  {/* e북(시립구독) 정보 */}
+                  {/* e북.시독 정보 */}
                   <div className="w-24 p-3 text-center text-gray-300">
                     <a
                       href={`https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent((() => {
