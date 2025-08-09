@@ -39,6 +39,40 @@ const MyLibrary: React.FC = () => {
   const [detailModalBookId, setDetailModalBookId] = useState<number | null>(null);
   const [viewType, setViewType] = useState<ViewType>('table');
   const [gridColumns, setGridColumns] = useState(5);
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const sortDropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
+        setSortDropdownOpen(false);
+      }
+    };
+
+    if (sortDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [sortDropdownOpen]);
+  
+  // Sort options mapping
+  const sortOptions: Record<SortKey, string> = {
+    addedDate: '추가순',
+    title: '제목순',
+    author: '저자순',
+    pubDate: '출간일순',
+    rating: '별점순',
+    readStatus: '읽음순'
+  };
+  
+  // Get current sort display name
+  const getCurrentSortName = () => {
+    return sortOptions[sortConfig.key] || '정렬';
+  };
   
   // Use the standardized title processing function from ebook.service
   const createSearchSubject = processBookTitle;
@@ -103,7 +137,7 @@ const MyLibrary: React.FC = () => {
   const gridVirtualizer = useVirtualizer({
     count: Math.ceil(sortedLibraryBooks.length / gridColumns),
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 280, // Estimated height for each grid row
+    estimateSize: () => 316, // Adjusted height for each grid row (300 + 16px vertical spacing)
     overscan: 2,
   });
 
@@ -178,7 +212,7 @@ const MyLibrary: React.FC = () => {
       );
     }
 
-    const availableEmoji = summary.대출가능 > 0 ? '✅' : '❌';
+    const availableEmoji = summary.대출가능 > 0 ? '✔️' : '❌';
     const statusTitle = `총 ${summary.총개수}권 (대출가능: ${summary.대출가능}권, 대출불가: ${summary.대출불가}권)`;
     
     return (
@@ -189,12 +223,6 @@ const MyLibrary: React.FC = () => {
     );
   };
   
-  const SortButton: React.FC<{ sortKey: SortKey; children: React.ReactNode }> = ({ sortKey, children }) => (
-    <button onClick={() => sortLibrary(sortKey)} className={`px-3 py-1 text-sm rounded-full transition-colors duration-200 flex items-center ${sortConfig.key === sortKey ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
-      {children}
-      {sortConfig.key === sortKey && <SortArrow order={sortConfig.order} />}
-    </button>
-  );
   
   if (!session) {
     return (
@@ -255,14 +283,67 @@ const MyLibrary: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-x-4 sm:gap-x-6">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm text-gray-400 font-medium">정렬:</span>
-            <SortButton sortKey="addedDate">추가순</SortButton>
-            <SortButton sortKey="title">제목순</SortButton>
-            <SortButton sortKey="author">저자순</SortButton>
-            <SortButton sortKey="pubDate">출간일순</SortButton>
-            <SortButton sortKey="rating">별점순</SortButton>
-            <SortButton sortKey="readStatus">읽음순</SortButton>
+          {/* Sort Dropdown */}
+          <div className="relative" ref={sortDropdownRef}>
+            <button
+              onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setSortDropdownOpen(!sortDropdownOpen);
+                } else if (e.key === 'Escape') {
+                  setSortDropdownOpen(false);
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors duration-200 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              aria-expanded={sortDropdownOpen}
+              aria-haspopup="true"
+              aria-label="정렬 방식 선택"
+            >
+              <span>{getCurrentSortName()}</span>
+              <svg
+                className={`w-4 h-4 transition-transform duration-200 ${sortDropdownOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            {sortDropdownOpen && (
+              <div className="absolute top-full left-0 mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg shadow-lg z-20 animate-in fade-in duration-200">
+                {(Object.entries(sortOptions) as [SortKey, string][]).map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      sortLibrary(key);
+                      setSortDropdownOpen(false);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        sortLibrary(key);
+                        setSortDropdownOpen(false);
+                      } else if (e.key === 'Escape') {
+                        setSortDropdownOpen(false);
+                      }
+                    }}
+                    className={`w-full text-left px-3 py-2 text-sm transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg focus:ring-2 focus:ring-blue-500 focus:outline-none ${
+                      sortConfig.key === key 
+                        ? 'bg-blue-600 text-white' 
+                        : 'text-gray-300 hover:bg-gray-600 hover:text-white focus:bg-gray-600'
+                    }`}
+                    aria-label={`${label}로 정렬`}
+                  >
+                    <span className="flex items-center justify-between">
+                      {label}
+                      {sortConfig.key === key && <SortArrow order={sortConfig.order} />}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <button
             onClick={() => exportToCSV(sortedLibraryBooks)}
@@ -455,6 +536,7 @@ const MyLibrary: React.FC = () => {
                   style={{
                     height: `${virtualItem.size}px`,
                     transform: `translateY(${virtualItem.start}px)`,
+                    paddingBottom: '16px', // Add vertical spacing between rows (equivalent to gap-4)
                   }}
                 >
                   <div 
@@ -480,7 +562,7 @@ const MyLibrary: React.FC = () => {
                       return (
                         <div
                           key={book.id}
-                          className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-all duration-200 cursor-pointer transform hover:scale-105 flex flex-col h-full"
+                          className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-all duration-200 cursor-pointer transform hover:scale-105 flex flex-col h-full min-h-[260px]"
                           onClick={() => setDetailModalBookId(book.id)}
                         >
                           {/* Book Cover */}
@@ -496,7 +578,16 @@ const MyLibrary: React.FC = () => {
                           <div className="flex-1 flex flex-col">
                             {/* Title */}
                             <h3 
-                              className="text-white font-medium text-sm leading-tight mb-2 line-clamp-2 hover:text-blue-400 transition-colors"
+                              className="text-white font-medium text-sm mb-2 hover:text-blue-400 transition-colors"
+                              style={{ 
+                                height: '2.5rem', 
+                                lineHeight: '1.25rem',
+                                display: '-webkit-box',
+                                WebkitBoxOrient: 'vertical',
+                                WebkitLineClamp: 2,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}
                               title={book.title}
                             >
                               {book.title}
@@ -513,7 +604,7 @@ const MyLibrary: React.FC = () => {
                             </div>
 
                             {/* E-book Info */}
-                            <div className="mb-2">
+                            <div className="mb-1">
                               {book.ebookInfo ? (
                                 <div className="flex items-center justify-between text-xs">
                                   <span className="text-gray-400">전자책:</span>

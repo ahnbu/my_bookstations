@@ -13,8 +13,11 @@
       "Bash(npm run:*)",
       "Bash(node:*)",
       "Bash(rm:*)",
-      "Bash(timeout 10s npm run dev)"
+      "Bash(timeout 10s npm run dev)",
+      "Bash(npx tsc:*)",
+      "Bash(git checkout:*)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "plan"
   }
 }
