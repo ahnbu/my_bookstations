@@ -16,7 +16,7 @@
 ├─────────────────────────────────────────────────┤
 │                Service Layer                    │
 │  ┌─────────────────┬─────────────────────────┐  │
-│  │ aladin.service  │ library.service         │  │
+│  │ aladin.service  │ unifiedLibrary.service  │  │
 │  └─────────────────┴─────────────────────────┘  │
 ├─────────────────────────────────────────────────┤
 │              External APIs                      │
@@ -62,7 +62,7 @@ my_bookstation/
 │   └── useUIStore.ts       # UI 상태 (모달, 로딩, 알림)
 ├── services/               # API 서비스 계층
 │   ├── aladin.service.ts   # 알라딘 도서 검색 API
-│   └── library.service.ts  # 도서관 재고 확인 API
+│   └── unifiedLibrary.service.ts  # 통합 도서관 재고 확인 API
 ├── lib/                    # 라이브러리 설정
 │   └── supabaseClient.ts   # Supabase 클라이언트 초기화
 ├── docs/                   # 프로젝트 문서
@@ -109,7 +109,7 @@ SearchForm → useBookStore.searchBooks() → aladin.service → Zod 검증 → 
 
 ### 2. 도서관 재고 확인 플로우
 ```
-BookDetails → useBookStore.refreshStock() → library.service → Zod 검증 → UI 업데이트
+MyLibrary / BookDetails → useBookStore.refreshAllBookInfo() / refreshEBookInfo() → unifiedLibrary.service → Zod 검증 → UI 업데이트
 ```
 
 ### 3. 서재 관리 플로우
@@ -125,7 +125,8 @@ MyLibrary → useBookStore (CRUD operations) → Supabase → Real-time sync
 **주요 기능**:
 - `@tanstack/react-virtual`을 활용한 대용량 데이터 처리
 - 동적 높이 계산으로 최적화된 스크롤 경험
-- 도서관 재고 클릭 시 외부 사이트 연동
+- 도서관 재고 클릭 시 외부 사이트 연동 (종이책, 전자책(교육), 전자책(시립구독) 모두 지원)
+- 'e북(시립구독)' 링크의 제목 추출 로직 (하이픈 처리 및 3단어 제한)
 - 정렬, 필터링, CSV 내보내기 기능
 
 **성능 최적화**:
@@ -138,7 +139,7 @@ MyLibrary → useBookStore (CRUD operations) → Supabase → Real-time sync
 
 **주요 기능**:
 - 통일된 상세 정보 UI/UX
-- 도서관 재고 클릭 기능 (퇴촌도서관, 광주시립도서관)
+- 도서관 재고 클릭 기능 (퇴촌도서관, 광주시립도서관, 전자책(교육), 전자책(시립구독))
 - 읽음 상태 및 별점 관리
 - 일관된 폰트 시스템
 
@@ -154,7 +155,9 @@ MyLibrary → useBookStore (CRUD operations) → Supabase → Real-time sync
 - `searchBooks()`: 알라딘 API 도서 검색
 - `fetchUserLibrary()`: Supabase에서 사용자 서재 로드
 - `addToLibrary()`: 서재에 도서 추가
-- `refreshStock()`: 도서관 재고 확인
+- `refreshAllBookInfo()`: 통합 도서관 재고 및 전자책 정보 갱신
+- `refreshEBookInfo()`: 전자책 정보만 갱신
+- `exportToCSV()`: CSV 파일 내보내기 (한글 깨짐 수정, 전자책재고 열 추가, 파일명에 날짜 포함)
 
 ### useAuthStore.ts
 **역할**: 사용자 인증 상태 관리
@@ -239,7 +242,7 @@ npx tsc --noEmit
 
 ### API 응답 검증
 - 모든 외부 API 응답은 Zod 스키마로 런타임 검증
-- 개발 환경에서 `APITest.tsx` 컴포넌트로 API 동작 확인
+- 개발 환경에서 `APITest.tsx` 컴포넌트로 API 동작 확인 (간소화된 UI)
 
 ## 🚀 배포
 
@@ -280,4 +283,4 @@ npx tsc --noEmit
 
 ---
 
-*문서 최종 수정일: 2025-08-02*
+*문서 최종 수정일: 2025-08-09*

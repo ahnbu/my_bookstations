@@ -146,4 +146,4 @@ export type SortKey = 'title' | 'author' | 'addedDate' | 'rating' | 'readStatus'
 
 ---
 
-*문서 최종 수정일: 2025-08-01 20:50*
+*문서 최종 수정일: 2025-08-09*

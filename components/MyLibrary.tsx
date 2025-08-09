@@ -162,11 +162,13 @@ const MyLibrary: React.FC = () => {
       return <span className="text-xs text-gray-500">확인중...</span>;
     }
     const { total, available } = stock;
-    const emoji = available > 0 ? '✔️' : '❌';
+    const emoji = available > 0 ? '✔️' : '-';
+    const emojiClass = available > 0 ? '' : 'text-gray-500 opacity-50';
+    const textClass = available > 0 ? '' : 'text-gray-500 opacity-50';
     return (
       <span className="flex items-center justify-center whitespace-nowrap">
-        <span title={available > 0 ? '대출가능' : '대출불가'} className="mr-2">{emoji}</span>
-        {total}({available})
+        <span title={available > 0 ? '대출가능' : '대출불가'} className={`mr-2 ${emojiClass}`}>{emoji}</span>
+        <span className={textClass}>{total}({available})</span>
       </span>
     );
   };
@@ -198,28 +200,37 @@ const MyLibrary: React.FC = () => {
     
     if (summary.총개수 === 0 && summary.오류개수 > 0) {
       return (
-        <span className="text-red-400" title="조회 실패">
-          ❌
+        <span className="flex items-center justify-center whitespace-nowrap text-gray-500 opacity-50" title="조회 실패">
+          <span className="mr-2">-</span>0(0)
         </span>
       );
     }
 
     if (summary.총개수 === 0) {
       return (
-        <span className="text-gray-500" title="전자책 없음">
-          ❌
+        <span className="flex items-center justify-center whitespace-nowrap text-gray-500 opacity-50" title="전자책 없음">
+          <span className="mr-2">-</span>0(0)
         </span>
       );
     }
 
-    const availableEmoji = summary.대출가능 > 0 ? '✔️' : '❌';
+    const availableEmoji = summary.대출가능 > 0 ? '✔️' : '-';
+    const emojiClass = summary.대출가능 > 0 ? '' : 'text-gray-500 opacity-50';
     const statusTitle = `총 ${summary.총개수}권 (대출가능: ${summary.대출가능}권, 대출불가: ${summary.대출불가}권)`;
     
+    const processedTitle = createSearchSubject(book.title);
+    const ebookEduUrl = `https://lib.goe.go.kr/elib/module/elib/search/index.do?menu_idx=94&author_name=&viewPage=1&search_text=${encodeURIComponent(processedTitle)}&sortField=book_pubdt&sortType=desc&rowCount=20`;
+
     return (
-      <span className="flex items-center justify-center whitespace-nowrap">
-        <span title={statusTitle} className="mr-2">{availableEmoji}</span>
+      <a
+        href={ebookEduUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center whitespace-nowrap text-blue-400 hover:text-blue-300"
+      >
+        <span className={`mr-2 ${emojiClass}`}>{availableEmoji}</span>
         {summary.총개수}({summary.대출가능})
-      </span>
+      </a>
     );
   };
   
@@ -370,6 +381,7 @@ const MyLibrary: React.FC = () => {
             <div className="w-24 p-4 font-semibold text-gray-300 text-center">퇴촌lib</div>
             <div className="w-24 p-4 font-semibold text-gray-300 text-center">기타lib</div>
             <div className="w-24 p-4 font-semibold text-gray-300 text-center">e북.교육</div>
+            <div className="w-24 p-4 font-semibold text-gray-300 text-center">e북(시립구독)</div>
             <div className="w-24 p-4 font-semibold text-gray-300 text-center">관리</div>
           </div>
 
@@ -489,6 +501,24 @@ const MyLibrary: React.FC = () => {
                     ) : (
                       renderEBookCell(book)
                     )}
+                  </div>
+                  {/* e북(시립구독) 정보 */}
+                  <div className="w-24 p-3 text-center text-gray-300">
+                    <a
+                      href={`https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent((() => {
+                        let titleForSearch = book.title;
+                        const dashIndex = titleForSearch.indexOf('-');
+                        if (dashIndex !== -1) {
+                          titleForSearch = titleForSearch.substring(0, dashIndex).trim();
+                        }
+                        return titleForSearch.split(' ').slice(0, 3).join(' ');
+                      })())}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300"
+                    >
+                      1(1)
+                    </a>
                   </div>
                   {/* Actions */}
                   <div className="w-24 p-3 flex items-center justify-center gap-2">

@@ -3,6 +3,18 @@
 *모든 시간은 KST(UTC+9) 기준입니다.*
 
 ---
+### **8. Unterminated regular expression 오류**
+- **최초 발생일**: 2025-08-09
+- **에러 현상**:
+    - `npm run dev` 또는 `npm run build` 시 `D:/Vibe_Coding/my_bookstation/components/MyLibrary.tsx` 파일에서 `ERROR: Unterminated regular expression` 오류 발생.
+    - 스택 트레이스에서 JSX 내부의 닫는 `</span>` 태그가 중복되어 있음을 지시.
+- **원인 분석**:
+    - `MyLibrary.tsx` 파일의 `renderEBookCell` 함수 내에서 전자책 재고가 0일 때 표시되는 HTML 구조에 불필요한 닫는 `</span>` 태그가 중복으로 삽입되어 JSX 문법 오류를 유발했습니다.
+- **해결 방법**:
+    - `MyLibrary.tsx` 파일의 해당 위치에서 중복된 `</span>` 태그를 제거하여 올바른 JSX 구조를 복원했습니다.
+- **교훈 및 예방 조치**:
+    - JSX를 포함하는 복잡한 문자열 조작 시, HTML/JSX 태그의 열림/닫힘 쌍이 정확한지 주의 깊게 확인해야 합니다. 특히 여러 줄에 걸쳐 코드를 수정할 때 이러한 오류가 발생하기 쉽습니다.
+
 ### **7. 앱 로딩 실패 (Failed to load the app)**
 - **최초 발생일**: 2025-08-01 20:00
 - **에러 현상**:
@@ -77,4 +89,4 @@
     - `StockInfo`를 interface에서 type alias로 변경하여 `Json` 타입과의 호환성을 확보했습니다.
 
 ---
-*문서 최종 수정일: 2025-08-01 20:50*
+*문서 최종 수정일: 2025-08-09*

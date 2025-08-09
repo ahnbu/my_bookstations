@@ -350,11 +350,12 @@ export const useBookStore = create<BookState>(
       exportToCSV: (books) => {
         if (books.length === 0) return; 
         
-        const headers = ['Title', 'Author', 'Publisher', 'PublicationDate', 'ISBN13', 'PriceStandard', 'PriceSales', 'ReadStatus', 'Rating', 'EbookAvailable', 'EbookLink', 'Link', 'ToechonStockTotal', 'OtherStockTotal', 'AddedDate'];
+        const headers = ['Title', 'Author', 'Publisher', 'PublicationDate', 'ISBN13', 'PriceStandard', 'PriceSales', 'ReadStatus', 'Rating', 'EbookAvailable', 'EbookLink', 'Link', 'ToechonStockTotal', 'OtherStockTotal', 'EbookStock', 'AddedDate'];
         const rows = books.map(book => {
           const ebookAvailable = (book.subInfo?.ebookList && book.subInfo.ebookList.length > 0) ? 'Yes' : 'No';
           const ebookLink = book.subInfo?.ebookList?.[0]?.link ?? '';
           const addedDate = new Date(book.addedDate).toISOString().split('T')[0];
+          const ebookStock = book.ebookInfo ? book.ebookInfo.summary.총개수 : 0;
           return [
             escapeCsvField(book.title), 
             escapeCsvField(book.author), 
@@ -370,14 +371,20 @@ export const useBookStore = create<BookState>(
             escapeCsvField(book.link), 
             escapeCsvField(book.toechonStock.total), 
             escapeCsvField(book.otherStock.total), 
+            escapeCsvField(ebookStock), 
             escapeCsvField(addedDate)
         ].join(',');
         });
-        const csvContent = "data:text/csv;charset=utf-8,\"" + headers.join(",") + "\n" + rows.join("\n");
-        const encodedUri = encodeURI(csvContent);
+        const csvContent = "\uFEFF" + headers.join(",") + "\n" + rows.join("\n");
+        const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `my_library.csv`);
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+        const dd = String(today.getDate()).padStart(2, '0');
+        const dateSuffix = `_${yyyy}${mm}${dd}`;
+        link.setAttribute("download", `my_library${dateSuffix}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

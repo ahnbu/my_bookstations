@@ -4,7 +4,7 @@ import { SearchIcon } from './Icons';
 import Spinner from './Spinner';
 import { fetchBookAvailability, processBookTitle, LibraryApiResponse } from '../services/unifiedLibrary.service';
 
-type TestType = 'paper' | 'ebook' | 'combined';
+type TestType = 'combined';
 
 const APITest: React.FC = () => {
   const [testType, setTestType] = useState<TestType>('combined');
@@ -19,15 +19,7 @@ const APITest: React.FC = () => {
     e.preventDefault();
     
     // Validation
-    if (testType === 'paper' && !isbn.trim()) {
-      setError('ISBN을 입력해주세요.');
-      return;
-    }
-    if (testType === 'ebook' && !title.trim()) {
-      setError('도서 제목을 입력해주세요.');
-      return;
-    }
-    if (testType === 'combined' && (!isbn.trim() || !title.trim())) {
+    if (!isbn.trim() || !title.trim()) {
       setError('ISBN과 도서 제목을 모두 입력해주세요.');
       return;
     }
@@ -38,35 +30,15 @@ const APITest: React.FC = () => {
     setError(null);
 
     try {
-      if (testType === 'paper') {
-        // For paper book testing, use the unified API with ISBN and a minimal title
-        const data = await fetchBookAvailability(isbn.trim(), 'test');
-        // Only extract and show paper book result
-        setPaperResult({
-          book_title: (data.gwangju_paper as any)?.book_title || '',
-          availability: (data.gwangju_paper as any)?.availability || [],
-          error: 'error' in data.gwangju_paper ? data.gwangju_paper.error : undefined
-        });
-      } else if (testType === 'ebook') {
-        // For ebook testing, we still need a valid ISBN - use the provided one or a default
-        const testIsbn = isbn.trim() || '9791130629353';
-        const data = await fetchBookAvailability(testIsbn, title.trim());
-        // Only show ebook results, create a filtered response
-        setEbookResult({
-          gwangju_paper: { error: 'Paper book data hidden for ebook-only test' },
-          gyeonggi_ebooks: data.gyeonggi_ebooks
-        });
-      } else if (testType === 'combined') {
-        // For combined testing, use both real values and show both results
-        const data = await fetchBookAvailability(isbn.trim(), title.trim());
-        setEbookResult(data);
-        // Extract paper book result for display
-        setPaperResult({
-          book_title: (data.gwangju_paper as any)?.book_title || '',
-          availability: (data.gwangju_paper as any)?.availability || [],
-          error: 'error' in data.gwangju_paper ? data.gwangju_paper.error : undefined
-        });
-      }
+      const data = await fetchBookAvailability(isbn.trim(), title.trim());
+      setEbookResult({
+        gyeonggi_ebooks: data.gyeonggi_ebooks
+      });
+      setPaperResult({
+        book_title: (data.gwangju_paper as any)?.book_title || '',
+        availability: (data.gwangju_paper as any)?.availability || [],
+        error: 'error' in data.gwangju_paper ? data.gwangju_paper.error : undefined
+      });
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -82,56 +54,15 @@ const APITest: React.FC = () => {
 
   return (
     <div className="mt-12 animate-fade-in">
-      <h2 className="text-3xl font-bold text-white mb-6">API 테스트: 도서관 재고 직접 조회</h2>
-      <div className="mb-4 p-3 bg-blue-900/50 border border-blue-600 rounded-lg text-sm text-blue-200">
-        <p>💡 <strong>참고:</strong> 현재 API는 통합형 endpoint를 사용하며, 종이책과 전자책 정보를 함께 조회합니다.</p>
-      </div>
+      <h2 className="text-3xl font-bold text-white mb-6">API 테스트</h2>
+      
       <div className="bg-gray-800 rounded-lg shadow-xl p-6">
-        {/* Test Type Selection */}
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-white mb-3">테스트 유형 선택</h3>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setTestType('combined')}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                testType === 'combined'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}
-            >
-              🔄 통합 테스트 (ISBN + 제목)
-            </button>
-            <button
-              type="button"
-              onClick={() => setTestType('paper')}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                testType === 'paper'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}
-            >
-              📚 종이책 재고 (ISBN)
-            </button>
-            <button
-              type="button"
-              onClick={() => setTestType('ebook')}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                testType === 'ebook'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}
-            >
-              📱 전자책 재고 (제목)
-            </button>
-          </div>
-        </div>
+        
 
         <form onSubmit={handleSubmit} className="mb-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             {/* ISBN Input */}
-            {(testType === 'paper' || testType === 'combined') && (
-              <div>
+            <div>
                 <label htmlFor="isbn-test" className="block text-sm font-medium text-gray-300 mb-2">
                   ISBN (13자리)
                 </label>
@@ -145,14 +76,11 @@ const APITest: React.FC = () => {
                   disabled={isLoading}
                 />
               </div>
-            )}
 
             {/* Title Input */}
-            {(testType === 'ebook' || testType === 'combined') && (
               <div>
                 <label htmlFor="title-test" className="block text-sm font-medium text-gray-300 mb-2">
                   도서 제목
-                  {testType === 'ebook' && <span className="text-xs text-gray-400 ml-2">(ISBN은 자동으로 설정됩니다)</span>}
                 </label>
                 <input
                   id="title-test"
@@ -169,7 +97,6 @@ const APITest: React.FC = () => {
                   </p>
                 )}
               </div>
-            )}
           </div>
 
           <button
@@ -211,11 +138,7 @@ const APITest: React.FC = () => {
             </div>
           )}
 
-          {!isLoading && !error && !paperResult && !ebookResult && (
-            <div className="bg-gray-900/50 rounded-lg p-4 text-center text-gray-500">
-              <p>테스트 유형을 선택하고 필요한 정보를 입력한 후 'API 테스트 실행' 버튼을 눌러주세요.</p>
-            </div>
-          )}
+          
         </div>
       </div>
     </div>

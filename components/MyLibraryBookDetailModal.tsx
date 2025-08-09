@@ -187,9 +187,14 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                     <div className="flex justify-between items-center">
                                         <span>전자책(교육):</span>
                                         {book.ebookInfo ? (
-                                            <span className={`font-medium ${book.ebookInfo.summary.대출가능 > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                            <a
+                                                href={`https://lib.goe.go.kr/elib/module/elib/search/index.do?menu_idx=94&author_name=&viewPage=1&search_text=${encodeURIComponent(createSearchSubject(book.title))}&sortField=book_pubdt&sortType=desc&rowCount=20`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className={`font-medium ${book.ebookInfo.summary.대출가능 > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
+                                            >
                                                 {book.ebookInfo.summary.대출가능} / {book.ebookInfo.summary.총개수}
-                                            </span>
+                                            </a>
                                         ) : (
                                             <span className="text-gray-500">정보 없음</span>
                                         )}
