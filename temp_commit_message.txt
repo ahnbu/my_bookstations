@@ -1,0 +1,10 @@
+feat: 아이콘 디자인 Lucide 컴포넌트 통일 및 파비콘 업데이트
+
+웹사이트의 아이콘 디자인을 Lucide 컴포넌트로 통일하고, 파비콘을 openbook 아이콘으로 업데이트했습니다.
+
+주요 변경 사항:
+- `lucide-react` 패키지 설치 및 `package.json`, `package-lock.json` 업데이트.
+- `components/Icons.tsx` 파일 내 기존 SVG 아이콘을 `lucide-react` 컴포넌트로 대체. (GoogleIcon은 유지)
+- `favicon.svg` 파일을 openbook 아이콘으로 생성하고 `index.html`에 파비콘으로 지정. 파비콘 색상은 메인 페이지 제목의 그라디언트 시작 색상인 blue-400 (#60A5FA)으로 설정.
+- `crwaling_test` 디렉토리의 파일들을 `crawling_test`로 이름 변경 및 일부 불필요한 크롤링 테스트 관련 파일 삭제.
+- `.gitignore` 파일 업데이트.
