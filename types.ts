@@ -33,6 +33,7 @@ export const AladdinBookItemSchema = z.object({
     ebookList: z.array(z.object({
       itemId: z.number(),
       isbn: z.string(),
+      isbn13: z.string(),
       priceSales: z.number(),
       link: z.string(),
     })).optional(),

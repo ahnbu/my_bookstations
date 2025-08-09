@@ -382,6 +382,7 @@ const MyLibrary: React.FC = () => {
             <div className="w-24 p-4 font-semibold text-gray-300 text-center">기타lib</div>
             <div className="w-24 p-4 font-semibold text-gray-300 text-center">e북.교육</div>
             <div className="w-24 p-4 font-semibold text-gray-300 text-center">e북.시독</div>
+            <div className="w-24 p-4 font-semibold text-gray-300 text-center">e북.경기</div>
             <div className="w-24 p-4 font-semibold text-gray-300 text-center">관리</div>
           </div>
 
@@ -463,7 +464,7 @@ const MyLibrary: React.FC = () => {
                         보기
                       </a>
                     ) : (
-                      <span className="text-gray-500" title="전자책 없음">❌</span>
+                      <span className="text-gray-500 opacity-50" title="전자책 없음">-</span>
                     )}
                   </div>
                   {/* Toechon Stock */}
@@ -513,6 +514,24 @@ const MyLibrary: React.FC = () => {
                         }
                         return titleForSearch.split(' ').slice(0, 3).join(' ');
                       })())}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300"
+                    >
+                      1(1)
+                    </a>
+                  </div>
+                  {/* e북.경기 정보 */}
+                  <div className="w-24 p-3 text-center text-gray-300">
+                    <a
+                      href={`https://ebook.library.kr/search?detailQuery=TITLE:${encodeURIComponent((() => {
+                        let titleForSearch = book.title;
+                        const dashIndex = titleForSearch.indexOf('-');
+                        if (dashIndex !== -1) {
+                          titleForSearch = titleForSearch.substring(0, dashIndex).trim();
+                        }
+                        return titleForSearch.split(' ').slice(0, 3).join(' ');
+                      })())}:true&OnlyStartWith=false&searchType=all&listType=list`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-400 hover:text-blue-300"

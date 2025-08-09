@@ -30,6 +30,7 @@ interface BookState {
   clearLibrary: () => void;
   updateReadStatus: (id: number, status: ReadStatus) => Promise<void>;
   updateRating: (id: number, rating: number) => Promise<void>;
+  updateMissingEbookIsbn13: () => Promise<void>;
 }
 
 const escapeCsvField = (field: string | number | undefined): string => {
@@ -82,11 +83,59 @@ export const useBookStore = create<BookState>(
               .filter((book): book is SelectedBook => book !== null);
 
             set({ myLibraryBooks: libraryBooks });
+            // 라이브러리 로드 후 누락된 전자책 ISBN13 업데이트 시작
+            get().updateMissingEbookIsbn13();
         } catch (error) {
             console.error('Error fetching user library:', error);
             setNotification({ message: '서재 정보를 불러오는 데 실패했습니다.', type: 'error' });
         } finally {
             setIsLoading(false);
+        }
+      },
+
+      updateMissingEbookIsbn13: async () => {
+        const { myLibraryBooks } = get();
+        const { setNotification } = useUIStore.getState();
+        
+        for (const book of myLibraryBooks) {
+          // ebookList가 없거나, 첫 번째 항목이 없거나, isbn13이 없는 경우
+          if (!book.subInfo?.ebookList?.[0]?.isbn13) {
+            try {
+              // 해당 책의 ISBN13으로 알라딘 API를 다시 검색하여 최신 정보 가져오기
+              const results = await searchAladinBooks(book.isbn13, 'ISBN');
+              const updatedAladinBook = results.find(item => item.isbn13 === book.isbn13);
+
+              if (updatedAladinBook && updatedAladinBook.subInfo?.ebookList?.[0]?.isbn13) {
+                const newSubInfo = updatedAladinBook.subInfo;
+                
+                const updatedBookData: BookData = {
+                  ...book,
+                  subInfo: newSubInfo, // 새로운 subInfo로 업데이트
+                };
+
+                const { id: bookId, ...bookDataForDb } = updatedBookData;
+
+                const { error } = await supabase
+                  .from('user_library')
+                  .update({ book_data: bookDataForDb as Json })
+                  .eq('id', book.id);
+
+                if (error) throw error;
+
+                // 상태 업데이트
+                set(state => ({
+                  myLibraryBooks: state.myLibraryBooks.map(b =>
+                    b.id === book.id ? updatedBookData : b
+                  ),
+                  selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === book.id ? updatedBookData : state.selectedBook
+                }));
+                console.log(`Updated ebook isbn13 for book ID: ${book.id}`);
+              }
+            } catch (error) {
+              console.error(`Failed to update ebook isbn13 for book ID: ${book.id}`, error);
+              setNotification({ message: `일부 책의 전자책 ISBN 정보 갱신에 실패했습니다: ${book.title}`, type: 'warning' });
+            }
+          }
         }
       },
 
@@ -135,7 +184,9 @@ export const useBookStore = create<BookState>(
           toechonStock: { total: 0, available: 0 },
           otherStock: { total: 0, available: 0 },
           readStatus: '읽지 않음' as ReadStatus,
-          rating: 0
+          rating: 0,
+          // subInfo가 selectedBook에 있다면 명시적으로 포함
+          ...(selectedBook.subInfo && { subInfo: selectedBook.subInfo }),
         };
         
         try {

@@ -110,7 +110,10 @@ const BookDetails: React.FC = () => {
           <p className="text-lg text-gray-300 mb-1"><strong>저자:</strong> {selectedBook.author.replace(/\s*\([^)]*\)/g, '')}</p>
           <p className="text-md text-gray-400 mb-1"><strong>출판사:</strong> {selectedBook.publisher}</p>
           <p className="text-md text-gray-400 mb-1"><strong>출간일:</strong> {selectedBook.pubDate}</p>
-          <p className="text-md text-gray-400 mb-4"><strong>ISBN:</strong> {selectedBook.isbn13}</p>
+          <p className="text-md text-gray-400 mb-1"><strong>ISBN:</strong> {selectedBook.isbn13}</p>
+          {selectedBook.subInfo?.ebookList?.[0]?.isbn13 && (
+            <p className="text-md text-gray-400 mb-4"><strong>ISBN:</strong> {selectedBook.subInfo.ebookList[0].isbn13} (전자책)</p>
+          )}
           
           <div className="flex items-baseline mb-4">
              <p className="text-2xl font-bold text-blue-400">{selectedBook.priceSales.toLocaleString()}원</p>
@@ -152,6 +155,17 @@ const BookDetails: React.FC = () => {
               <BookOpenIcon className="w-5 h-5" />
               알라딘 보기
             </a>
+            {selectedBook.subInfo?.ebookList?.[0]?.link && (
+              <a
+                href={selectedBook.subInfo.ebookList[0].link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2 bg-sky-500 text-white font-semibold rounded-lg hover:bg-sky-600 transition-colors duration-300"
+              >
+                <BookOpenIcon className="w-5 h-5" />
+                전자책 보기
+              </a>
+            )}
           </div>
         </div>
       </div>

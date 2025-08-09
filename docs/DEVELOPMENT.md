@@ -109,7 +109,7 @@ SearchForm → useBookStore.searchBooks() → aladin.service → Zod 검증 → 
 
 ### 2. 도서관 재고 확인 플로우
 ```
-MyLibrary / BookDetails → useBookStore.refreshAllBookInfo() / refreshEBookInfo() → unifiedLibrary.service → Zod 검증 → UI 업데이트
+MyLibrary / BookDetails → useBookStore.refreshAllBookInfo() / refreshEBookInfo() / updateMissingEbookIsbn13() → unifiedLibrary.service → Zod 검증 → UI 업데이트
 ```
 
 ### 3. 서재 관리 플로우
@@ -125,8 +125,9 @@ MyLibrary → useBookStore (CRUD operations) → Supabase → Real-time sync
 **주요 기능**:
 - `@tanstack/react-virtual`을 활용한 대용량 데이터 처리
 - 동적 높이 계산으로 최적화된 스크롤 경험
-- 도서관 재고 클릭 시 외부 사이트 연동 (종이책, 전자책(교육), 전자책(시립구독) 모두 지원)
-- 'e북(시립구독)' 링크의 제목 추출 로직 (하이픈 처리 및 3단어 제한)
+- 도서관 재고 클릭 시 외부 사이트 연동 (종이책, 전자책(교육), 전자책(시립구독), 전자책(경기소장) 모두 지원)
+- 'e북(시립구독)' 및 'e북(경기소장)' 링크의 제목 추출 로직 (하이픈 처리 및 3단어 제한)
+- '전자책' 열에서 재고 없음 표시를 회색 대시('-')로 통일
 - 정렬, 필터링, CSV 내보내기 기능
 
 **성능 최적화**:
@@ -139,7 +140,8 @@ MyLibrary → useBookStore (CRUD operations) → Supabase → Real-time sync
 
 **주요 기능**:
 - 통일된 상세 정보 UI/UX
-- 도서관 재고 클릭 기능 (퇴촌도서관, 광주시립도서관, 전자책(교육), 전자책(시립구독))
+- 도서관 재고 클릭 기능 (퇴촌도서관, 광주시립도서관, 전자책(교육), 전자책(시립구독), 전자책(경기소장))
+- 책 상세 페이지에 전자책 ISBN(`isbn13` 또는 `isbn`) 표시
 - 읽음 상태 및 별점 관리
 - 일관된 폰트 시스템
 
@@ -154,9 +156,10 @@ MyLibrary → useBookStore (CRUD operations) → Supabase → Real-time sync
 **핵심 액션**:
 - `searchBooks()`: 알라딘 API 도서 검색
 - `fetchUserLibrary()`: Supabase에서 사용자 서재 로드
-- `addToLibrary()`: 서재에 도서 추가
+- `addToLibrary()`: 서재에 도서 추가 (전자책 `subInfo` 포함 저장)
 - `refreshAllBookInfo()`: 통합 도서관 재고 및 전자책 정보 갱신
 - `refreshEBookInfo()`: 전자책 정보만 갱신
+- `updateMissingEbookIsbn13()`: 기존 서재 책의 누락된 전자책 `isbn13` 정보 업데이트
 - `exportToCSV()`: CSV 파일 내보내기 (한글 깨짐 수정, 전자책재고 열 추가, 파일명에 날짜 포함)
 
 ### useAuthStore.ts
@@ -183,7 +186,7 @@ MyLibrary → useBookStore (CRUD operations) → Supabase → Real-time sync
 ### 외부 API 타입 (Zod 기반)
 ```typescript
 // Zod 스키마로 정의 후 타입 추론
-export type AladdinBookItem = z.infer<typeof AladdinBookItemSchema>;
+export type AladdinBookItem = z.infer<typeof AladdinBookItemSchema>; // ebookList에 isbn13 포함
 export type LibraryStockResponse = z.infer<typeof LibraryStockResponseSchema>;
 ```
 

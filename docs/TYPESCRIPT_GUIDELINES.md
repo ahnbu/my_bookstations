@@ -106,10 +106,10 @@ useEffect(() => {
 
 ## 🔍 Zod 스키마와 TypeScript 타입
 
-### 외부 API 타입은 Zod 스키마 기반
+### 외부 API 타입 (Zod 기반)
 ```typescript
 // ✅ 외부 API 데이터는 Zod로 검증 후 타입 추론
-export type AladdinBookItem = z.infer<typeof AladdinBookItemSchema>;
+export type AladdinBookItem = z.infer<typeof AladdinBookItemSchema>; // ebookList에 isbn13 필드 포함
 
 // 서비스에서 사용
 const validationResult = AladdinAPIResponseSchema.safeParse(rawData);

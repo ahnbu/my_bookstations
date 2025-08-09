@@ -106,7 +106,10 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                           <p className="text-lg text-gray-300 mb-1"><strong>저자:</strong> {book.author.replace(/\s*\([^)]*\)/g, '')}</p>
                           <p className="text-md text-gray-400 mb-1"><strong>출판사:</strong> {book.publisher}</p>
                           <p className="text-md text-gray-400 mb-1"><strong>출간일:</strong> {book.pubDate}</p>
-                          <p className="text-md text-gray-400 mb-4"><strong>ISBN:</strong> {book.isbn13}</p>
+                          <p className="text-md text-gray-400 mb-1"><strong>ISBN:</strong> {book.isbn13}</p>
+                          {book.subInfo?.ebookList?.[0]?.isbn13 && (
+                            <p className="text-md text-gray-400 mb-4"><strong>ISBN:</strong> {book.subInfo.ebookList[0].isbn13} (전자책)</p>
+                          )}
                           
                           <div className="flex items-baseline mb-4">
                              <p className="text-2xl font-bold text-blue-400">{book.priceSales.toLocaleString()}원</p>
@@ -198,6 +201,42 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                         ) : (
                                             <span className="text-gray-500">정보 없음</span>
                                         )}
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span>전자책(시립구독):</span>
+                                        <a
+                                            href={`https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent((() => {
+                                                let titleForSearch = book.title;
+                                                const dashIndex = titleForSearch.indexOf('-');
+                                                if (dashIndex !== -1) {
+                                                    titleForSearch = titleForSearch.substring(0, dashIndex).trim();
+                                                }
+                                                return titleForSearch.split(' ').slice(0, 3).join(' ');
+                                            })())}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={`font-medium text-green-400 hover:text-blue-400`}
+                                        >
+                                            1 / 1
+                                        </a>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span>전자책(경기소장):</span>
+                                        <a
+                                            href={`https://ebook.library.kr/search?detailQuery=TITLE:${encodeURIComponent((() => {
+                                                let titleForSearch = book.title;
+                                                const dashIndex = titleForSearch.indexOf('-');
+                                                if (dashIndex !== -1) {
+                                                    titleForSearch = titleForSearch.substring(0, dashIndex).trim();
+                                                }
+                                                return titleForSearch.split(' ').slice(0, 3).join(' ');
+                                            })())}:true&OnlyStartWith=false&searchType=all&listType=list`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={`font-medium text-green-400 hover:text-blue-400`}
+                                        >
+                                            1 / 1
+                                        </a>
                                     </div>
                                 </div>
                                 {/* 시간 정보 유지 */}
