@@ -15,7 +15,11 @@
       "Bash(rm:*)",
       "Bash(timeout 10s npm run dev)",
       "Bash(npx tsc:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(wrangler:*)",
+      "Bash(curl:*)",
+      "Bash(touch:*)",
+      "Bash(npx wrangler dev:*)"
     ],
     "deny": [],
     "defaultMode": "plan"

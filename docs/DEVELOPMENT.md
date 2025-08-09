@@ -65,7 +65,8 @@ my_bookstation/
 │   └── unifiedLibrary.service.ts  # 통합 도서관 재고 확인 API
 ├── lib/                    # 라이브러리 설정
 │   └── supabaseClient.ts   # Supabase 클라이언트 초기화
-├── docs/                   # 프로젝트 문서
+├── library-checker/        # Cloudflare Workers 서버 (도서관 재고 확인 API)
+│   └── src/index.js        # Workers 메인 스크립트
 └── types.ts                # TypeScript 타입 정의
 ├── index.css               # 전역 스타일시트
 ```
@@ -99,6 +100,7 @@ my_bookstation/
   - PostgreSQL 데이터베이스
   - 실시간 구독
   - 소셜 로그인 (Google) 및 이메일 인증
+- **Cloudflare Workers**: `library-checker/src/index.js`를 사용하는 서버리스 백엔드 (도서관 재고 크롤링 및 API 연동)
 
 ## 🔄 데이터 플로우
 
@@ -246,6 +248,20 @@ npx tsc --noEmit
 ### API 응답 검증
 - 모든 외부 API 응답은 Zod 스키마로 런타임 검증
 - 개발 환경에서 `APITest.tsx` 컴포넌트로 API 동작 확인 (간소화된 UI)
+
+### Cloudflare Workers 로컬 테스트
+1.  **`library-checker` 디렉토리로 이동:**
+    ```bash
+    cd D:\Vibe_Coding\my_bookstation\library-checker
+    ```
+2.  **Workers 서버 실행:**
+    ```bash
+    npx wrangler dev src\index.js --port 8787 --local
+    ```
+    *   서버 종료는 터미널에서 `Ctrl + C`를 누릅니다.
+3.  **프론트엔드에서 테스트:**
+    *   `D:\Vibe_Coding\my_bookstation`에서 `npm run dev`로 프론트엔드 서버를 실행합니다.
+    *   앱에서 도서 검색 및 재고 확인 기능을 테스트합니다.
 
 ## 🚀 배포
 

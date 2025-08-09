@@ -91,6 +91,23 @@
    http://localhost:5173
    ```
 
+### Cloudflare Workers 서버 실행
+
+Cloudflare Workers는 `library-checker` 폴더 내의 `src/index.js` 파일을 사용합니다.
+
+1.  **터미널에서 `library-checker` 디렉토리로 이동:**
+    ```bash
+    cd D:\Vibe_Coding\my_bookstation\library-checker
+    ```
+2.  **Workers 서버 실행:**
+    ```bash
+    npx wrangler dev src\index.js --port 8787 --local
+    ```
+    *   `--port 8787`: 로컬 서버가 8787 포트에서 실행되도록 지정합니다.
+    *   `--local`: 로컬 환경에서 Workers를 실행하도록 지정합니다.
+
+서버를 종료하려면, 해당 터미널에서 `Ctrl + C`를 누르면 됩니다.
+
 ### 프로덕션 빌드
 
 ```bash
@@ -110,10 +127,8 @@ my_bookstation/
 ├── docs/                   # 프로젝트 문서
 │   ├── changelog.md        # 변경 내역
 │   └── ...
-├── crwaling_test/          # CloudFlare Workers 크롤링 스크립트
-│   ├── workers_finalv1.js  # 도서관 재고 크롤링 워커 (v1)
-│   ├── workers_finalv2.js  # 도서관 재고 크롤링 워커 (v2)
-│   └── workers_finalv3.js  # 도서관 재고 크롤링 워커 (v3, 현재)
+├── library-checker/        # Cloudflare Workers 서버 (도서관 재고 확인 API)
+│   └── src/index.js        # Workers 메인 스크립트
 ├── gemini.md               # Gemini 에이전트 협업 규칙
 └── ...
 ```
@@ -137,8 +152,35 @@ my_bookstation/
 #### 전자책 (광주 시립도서관 구독형)
 - **교보문고 구독형**: 광주 시립도서관에서 제공하는 교보문고 전자책 구독 서비스
 
-#### 전자책 (경기도 교육청 통합 도서관)
+#### 전자책 (경기도 교육청 전자도서관)
 - **경기도 교육청 통합 도서관**: 경기도 교육청에서 제공하는 전자책 서비스
+
+#### 전자책 (경기도 전자도서관) - API 방식 (신규)
+- **API 엔드포인트**: `https://ebook.library.kr/api/service/search-engine`
+- **요청 방식**: `GET`
+- **주요 파라미터**:
+    - `contentType=EB`: 전자책 콘텐츠 유형
+    - `searchType=all`: 전체 검색
+    - `detailQuery=TITLE:{SEARCH_TERM}:true`: 제목 검색 (예: `TITLE:내%20손으로:true`)
+    - `sort=relevance`: 관련도순 정렬
+    - `asc=desc`: 내림차순 정렬
+    - `loanable=false`: 대출 가능 여부 필터 (false: 대출 가능 여부 무관)
+    - `withFacet=true`: 패싯 정보 포함
+    - `page=1`: 페이지 번호
+    - `size=20`: 페이지당 결과 개수
+- **사용 예시 (JavaScript)**:
+    ```javascript
+    function buildGyeonggiEbookApiUrl(searchTerm) {
+      const detailQuery = `TITLE:${searchTerm}:true`;
+      const encodedDetailQuery = encodeURIComponent(detailQuery);
+      return `https://ebook.library.kr/api/service/search-engine?contentType=EB&searchType=all&detailQuery=${encodedDetailQuery}&sort=relevance&asc=desc&loanable=false&withFacet=true&page=1&size=20`;
+    }
+    // 예시: console.log(buildGyeonggiEbookApiUrl("내 손으로"));
+    ```
+- **특징**:
+    - 기존 HTML 크롤링 방식에서 API 직접 호출 방식으로 전환하여 안정성과 정확성 향상.
+    - `detailQuery` 파라미터에 검색어를 `TITLE:{검색어}:true` 형식으로 URL 인코딩하여 전달.
+    - JSON 응답을 통해 도서 정보, 대출 가능 여부, 예약 정보 등 상세 데이터 제공.
 
 ### 🔄 재고 확인 프로세스
 
@@ -167,6 +209,32 @@ my_bookstation/
   - 출력: `"도서 제목"`
   - 입력: `"긴 도서 제목 - 부제 (추가 정보)"`
   - 출력: `"긴 도서 제목"`
+
+#### 2.2. 전자책 (경기도 교육청 전자도서관) 제목 처리 로직
+- **"-" 문자 처리**: 제목에 특수문자(예. "-", ",")가 있으면, 첫 번째 특수문자를 포함하여 그 뒤에 있는 내용은 추출할 텍스트에서 사용하지 않습니다.
+- **최대 3단어 제한**: 위 처리 후, 공백으로 분리한 첫 3개 단어만 사용합니다.
+- **예시**:
+  - 입력: `"도서 제목 - 부제"`
+  - 출력: `"도서 제목"`
+  - 입력: `"내 손으로, 시베리아 횡단열차 - 일러스트레이터 이다의 카메라 없는 핸드메이드 여행일기"`
+  - 출력: `"내 손으로"`
+
+## ⚠️ 중요 개발 노트
+
+### 제목 처리 방식 관련 주의사항
+1. **`processBookTitle`과 `processGyeonggiEbookTitle`의 차이점 유지**: 
+   - `processBookTitle`: 기존 교육청 전자책용 (한글만 추출, 3단어 제한)
+   - `processGyeonggiEbookTitle`: 경기도 전자도서관용 (특수문자에서 자름, 3단어 제한)
+   - **두 함수는 서로 다른 목적으로 사용되므로 통일하지 않습니다**
+
+2. **제목 추출 방식 수정 금지**: 
+   - 현재 제목 처리 방식은 실제 검색에서 잘 작동하는 것이 확인되었습니다
+   - 제목 추출 알고리즘을 임의로 변경하지 않습니다
+
+3. **크롤링 결과와 웹페이지 불일치 문제**:
+   - HTML 크롤링 결과와 실제 웹페이지 표시 결과가 다를 수 있습니다
+   - 이는 JavaScript 동적 로딩, 검색 파라미터 인코딩 등의 문제일 수 있습니다
+   - 예시: "내 손으로" 검색 시 HTML에서는 4건 표시되지만 웹페이지에서는 0(0) 표시
 
 #### 3. 병렬 API 호출
 ```javascript

@@ -40,6 +40,12 @@ export interface GyeonggiEbookLibraryBook {
   status: '대출가능' | '대출불가';
   current_borrow?: number;
   total_capacity?: number;
+  author?: string;
+  publisher?: string;
+  isbn?: string;
+  owner?: string;
+  reservable?: boolean;
+  reserve_count?: number;
 }
 
 export interface GyeonggiEbookLibraryResult {
@@ -71,8 +77,19 @@ export interface EBookSummary {
   오류개수: number;
 }
 
-const API_ENDPOINT = 'https://library-checker.byungwook-an.workers.dev';
+// 개발/프로덕션 환경에 따른 API 엔드포인트 설정
+const isDevelopment = import.meta.env.MODE === 'development';
+const API_ENDPOINT = isDevelopment 
+  ? 'http://127.0.0.1:8787'  // 로컬 Cloudflare Workers 개발 서버
+  : 'https://library-checker.byungwook-an.workers.dev'; // 프로덕션 Workers 배포
 const REQUEST_TIMEOUT = 30000; // 30초
+
+// 디버그 정보 로깅 함수
+function debugLog(message: string, data?: any) {
+  if (isDevelopment) {
+    console.log(`[UnifiedLibrary] ${message}`, data || '');
+  }
+}
 
 /**
  * 전자책 검색용 책 제목 처리 함수
@@ -149,8 +166,22 @@ export async function fetchBookAvailability(isbn: string, title: string): Promis
   
   // 경기도 전자도서관용 제목 처리 (숫자/영어 포함, 특수문자에서 자름)
   const gyeonggiProcessedTitle = processGyeonggiEbookTitle(title);
+  
+  // 디버그용 로그 추가
+  debugLog('제목 처리:', {
+    originalTitle: title,
+    processedTitle: processedTitle,
+    gyeonggiProcessedTitle: gyeonggiProcessedTitle
+  });
 
   try {
+    debugLog(`API 호출 시작 - 엔드포인트: ${API_ENDPOINT}`);
+    debugLog('요청 데이터:', {
+      isbn: isbn,
+      title: processedTitle,
+      gyeonggiTitle: gyeonggiProcessedTitle
+    });
+
     const response = await fetch(API_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -167,10 +198,12 @@ export async function fetchBookAvailability(isbn: string, title: string): Promis
     clearTimeout(timeoutId);
 
     if (!response.ok) {
+      debugLog(`API 요청 실패: HTTP ${response.status}`);
       throw new Error(`API 요청 실패: HTTP ${response.status}`);
     }
 
     const data: LibraryApiResponse = await response.json();
+    debugLog('API 응답 성공:', data);
     return data;
   } catch (error) {
     clearTimeout(timeoutId);

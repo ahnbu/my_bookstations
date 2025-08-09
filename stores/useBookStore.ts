@@ -317,6 +317,11 @@ export const useBookStore = create<BookState>(
             lastUpdated: Date.now()
           };
 
+          // 경기도 전자도서관 정보 업데이트
+          if (result.gyeonggi_ebook_library) {
+            updatedBook.gyeonggiEbookInfo = result.gyeonggi_ebook_library;
+          }
+
           const { id: bookId, ...bookDataForDb } = updatedBook;
           
           const { error } = await supabase
