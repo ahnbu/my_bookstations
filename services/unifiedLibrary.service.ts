@@ -33,9 +33,33 @@ export interface GwangjuPaperError {
   error: string;
 }
 
+// 경기도 전자도서관 관련 타입 정의
+export interface GyeonggiEbookLibraryBook {
+  type: '소장형' | '구독형';
+  title: string;
+  status: '대출가능' | '대출불가';
+  current_borrow?: number;
+  total_capacity?: number;
+}
+
+export interface GyeonggiEbookLibraryResult {
+  library_name: string;
+  total_count: number;
+  available_count: number;
+  unavailable_count: number;
+  owned_count: number;
+  subscription_count: number;
+  books: GyeonggiEbookLibraryBook[];
+}
+
+export interface GyeonggiEbookLibraryError {
+  error: string;
+}
+
 export interface LibraryApiResponse {
   gwangju_paper: GwangjuPaperResult | GwangjuPaperError;
   gyeonggi_ebooks: (EBookAvailability | EBookError)[];
+  gyeonggi_ebook_library?: GyeonggiEbookLibraryResult | GyeonggiEbookLibraryError;
 }
 
 export interface EBookSummary {
@@ -72,6 +96,45 @@ export function processBookTitle(title: string): string {
 }
 
 /**
+ * 경기도 전자도서관 검색용 책 제목 처리 함수
+ * 특수문자 발견 시 그 이후 내용 제거, 최대 3단어 제한
+ * @param title - 원본 제목
+ * @returns 처리된 제목
+ */
+export function processGyeonggiEbookTitle(title: string): string {
+  // 특수문자 목록 (쉼표, 하이픈, 콜론, 세미콜론, 괄호 등)
+  const specialChars = /[,\-:;()[\]{}]/;
+  
+  // 특수문자가 있으면 그 위치까지만 추출
+  let processedTitle = title;
+  const match = title.search(specialChars);
+  if (match !== -1) {
+    processedTitle = title.substring(0, match).trim();
+  }
+  
+  // 공백으로 분리하고 빈 문자열 제거
+  const words = processedTitle.split(' ').filter(word => word.trim() !== '');
+  
+  // 최대 3단어까지만 사용
+  return words.slice(0, 3).join(' ');
+}
+
+/**
+ * 경기도 전자도서관 검색 URL 생성 (올바른 인코딩)
+ * @param title - 검색할 제목
+ * @returns 검색 URL
+ */
+export function createGyeonggiEbookSearchURL(title: string): string {
+  const processedTitle = processGyeonggiEbookTitle(title);
+  // URL 수동 구성 (올바른 인코딩을 위해)
+  const baseUrl = "https://ebook.library.kr/search";
+  const encodedTitle = encodeURIComponent(processedTitle).replace(/'/g, '%27');
+  const detailQuery = `TITLE:${encodedTitle}:true`;
+  
+  return `${baseUrl}?detailQuery=${detailQuery}&OnlyStartWith=false&searchType=all&listType=list`;
+}
+
+/**
  * 3-Way 통합 도서관 재고 확인 API 호출
  * @param isbn - 종이책 검색용 ISBN
  * @param title - 전자책 검색용 제목
@@ -81,8 +144,11 @@ export async function fetchBookAvailability(isbn: string, title: string): Promis
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
-  // 제목을 처리하여 3개 chunk로 제한
+  // 제목을 처리하여 3개 chunk로 제한 (기존 도서관용 - 한글만)
   const processedTitle = processBookTitle(title);
+  
+  // 경기도 전자도서관용 제목 처리 (숫자/영어 포함, 특수문자에서 자름)
+  const gyeonggiProcessedTitle = processGyeonggiEbookTitle(title);
 
   try {
     const response = await fetch(API_ENDPOINT, {
@@ -92,7 +158,8 @@ export async function fetchBookAvailability(isbn: string, title: string): Promis
       },
       body: JSON.stringify({
         isbn: isbn,
-        title: processedTitle,
+        title: processedTitle, // 기존 도서관용 (한글만)
+        gyeonggiTitle: gyeonggiProcessedTitle, // 경기도 전자도서관용 (숫자/영어 포함)
       }),
       signal: controller.signal,
     });

@@ -5,7 +5,7 @@ import { useBookStore } from '../stores/useBookStore';
 import { CloseIcon, RefreshIcon, BookOpenIcon } from './Icons';
 import Spinner from './Spinner';
 import StarRating from './StarRating';
-import { getStatusClass, getStatusEmoji, processBookTitle } from '../services/unifiedLibrary.service';
+import { getStatusClass, getStatusEmoji, processBookTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL } from '../services/unifiedLibrary.service';
 
 // Use the standardized title processing function from ebook.service
 const createSearchSubject = processBookTitle;
@@ -221,22 +221,33 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                         </a>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span>전자책(경기소장):</span>
-                                        <a
-                                            href={`https://ebook.library.kr/search?detailQuery=TITLE:${encodeURIComponent((() => {
-                                                let titleForSearch = book.title;
-                                                const dashIndex = titleForSearch.indexOf('-');
-                                                if (dashIndex !== -1) {
-                                                    titleForSearch = titleForSearch.substring(0, dashIndex).trim();
-                                                }
-                                                return titleForSearch.split(' ').slice(0, 3).join(' ');
-                                            })())}:true&OnlyStartWith=false&searchType=all&listType=list`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className={`font-medium text-green-400 hover:text-blue-400`}
-                                        >
-                                            1 / 1
-                                        </a>
+                                        <span>전자책(경기):</span>
+                                        {book.gyeonggiEbookInfo ? (
+                                            'error' in book.gyeonggiEbookInfo ? (
+                                                <span className="font-medium text-gray-500">정보 없음</span>
+                                            ) : (
+                                                <a
+                                                    href={createGyeonggiEbookSearchURL(book.title)}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className={`font-medium ${book.gyeonggiEbookInfo.available_count > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
+                                                    title={`총 ${book.gyeonggiEbookInfo.total_count}권 (대출가능: ${book.gyeonggiEbookInfo.available_count}권, 소장형: ${book.gyeonggiEbookInfo.owned_count}권, 구독형: ${book.gyeonggiEbookInfo.subscription_count}권)`}
+                                                >
+                                                    {book.gyeonggiEbookInfo.available_count} / {book.gyeonggiEbookInfo.total_count}
+                                                </a>
+                                            )
+                                        ) : (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    refreshAllBookInfo(book.id, book.isbn13, book.title);
+                                                }}
+                                                className="font-medium text-blue-400 hover:text-blue-300"
+                                                disabled={refreshingEbookId === book.id}
+                                            >
+                                                {refreshingEbookId === book.id ? '로딩...' : '조회'}
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                                 {/* 시간 정보 유지 */}

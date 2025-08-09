@@ -9,7 +9,7 @@ import { useBookStore } from '../stores/useBookStore';
 import { useAuthStore } from '../stores/useAuthStore';
 import StarRating from './StarRating';
 import MyLibraryBookDetailModal from './MyLibraryBookDetailModal';
-import { getStatusEmoji, isEBooksEmpty, hasAvailableEBooks, processBookTitle } from '../services/unifiedLibrary.service';
+import { getStatusEmoji, isEBooksEmpty, hasAvailableEBooks, processBookTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL } from '../services/unifiedLibrary.service';
 
 const SortArrow: React.FC<{ order: 'asc' | 'desc' }> = ({ order }) => (
   <span className="ml-1 inline-block w-3 h-3 text-xs">
@@ -162,12 +162,12 @@ const MyLibrary: React.FC = () => {
       return <span className="text-xs text-gray-500">확인중...</span>;
     }
     const { total, available } = stock;
-    const emoji = available > 0 ? '✔️' : '-';
+    const emoji = available > 0 ? '✔️' : '';
     const emojiClass = available > 0 ? '' : 'text-gray-500 opacity-50';
     const textClass = available > 0 ? '' : 'text-gray-500 opacity-50';
     return (
       <span className="flex items-center justify-center whitespace-nowrap">
-        <span title={available > 0 ? '대출가능' : '대출불가'} className={`mr-2 ${emojiClass}`}>{emoji}</span>
+        {emoji && <span title={available > 0 ? '대출가능' : '대출불가'} className={`mr-2 ${emojiClass}`}>{emoji}</span>}
         <span className={textClass}>{total}({available})</span>
       </span>
     );
@@ -198,28 +198,40 @@ const MyLibrary: React.FC = () => {
 
     const { summary } = book.ebookInfo;
     
+    const processedTitle = createSearchSubject(book.title);
+    const ebookEduUrl = `https://lib.goe.go.kr/elib/module/elib/search/index.do?menu_idx=94&author_name=&viewPage=1&search_text=${encodeURIComponent(processedTitle)}&sortField=book_pubdt&sortType=desc&rowCount=20`;
+
     if (summary.총개수 === 0 && summary.오류개수 > 0) {
       return (
-        <span className="flex items-center justify-center whitespace-nowrap text-gray-500 opacity-50" title="조회 실패">
-          <span className="mr-2">-</span>0(0)
-        </span>
+        <a
+          href={ebookEduUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center whitespace-nowrap text-gray-500 opacity-50 hover:text-blue-300"
+          title="조회 실패 - 클릭하여 직접 검색"
+        >
+          0(0)
+        </a>
       );
     }
 
     if (summary.총개수 === 0) {
       return (
-        <span className="flex items-center justify-center whitespace-nowrap text-gray-500 opacity-50" title="전자책 없음">
-          <span className="mr-2">-</span>0(0)
-        </span>
+        <a
+          href={ebookEduUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center whitespace-nowrap text-gray-500 opacity-50 hover:text-blue-300"
+          title="전자책 없음 - 클릭하여 직접 검색"
+        >
+          0(0)
+        </a>
       );
     }
 
-    const availableEmoji = summary.대출가능 > 0 ? '✔️' : '-';
+    const availableEmoji = summary.대출가능 > 0 ? '✔️' : '';
     const emojiClass = summary.대출가능 > 0 ? '' : 'text-gray-500 opacity-50';
     const statusTitle = `총 ${summary.총개수}권 (대출가능: ${summary.대출가능}권, 대출불가: ${summary.대출불가}권)`;
-    
-    const processedTitle = createSearchSubject(book.title);
-    const ebookEduUrl = `https://lib.goe.go.kr/elib/module/elib/search/index.do?menu_idx=94&author_name=&viewPage=1&search_text=${encodeURIComponent(processedTitle)}&sortField=book_pubdt&sortType=desc&rowCount=20`;
 
     return (
       <a
@@ -228,8 +240,107 @@ const MyLibrary: React.FC = () => {
         rel="noopener noreferrer"
         className="flex items-center justify-center whitespace-nowrap text-blue-400 hover:text-blue-300"
       >
-        <span className={`mr-2 ${emojiClass}`}>{availableEmoji}</span>
+        {availableEmoji && <span className={`mr-2 ${emojiClass}`}>{availableEmoji}</span>}
         {summary.총개수}({summary.대출가능})
+      </a>
+    );
+  };
+
+  const renderSidokEbookCell = (book: SelectedBook) => {
+    // e북.시독은 별도의 API가 없으므로 항상 클릭 가능한 링크로 표시
+    const titleForSearch = (() => {
+      let titleForSearch = book.title;
+      const dashIndex = titleForSearch.indexOf('-');
+      if (dashIndex !== -1) {
+        titleForSearch = titleForSearch.substring(0, dashIndex).trim();
+      }
+      return titleForSearch.split(' ').slice(0, 3).join(' ');
+    })();
+
+    const sidokUrl = `https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent(titleForSearch)}`;
+
+    return (
+      <a
+        href={sidokUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center whitespace-nowrap text-blue-400 hover:text-blue-300"
+        title="광주시립도서관 전자책(구독) 검색"
+      >
+        <span className="mr-2">✔️</span>1(1)
+      </a>
+    );
+  };
+
+  const renderGyeonggiEbookCell = (book: SelectedBook) => {
+    const isRefreshing = refreshingEbookId === book.id;
+    
+    if (isRefreshing) {
+      return (
+        <div className="flex justify-center">
+          <Spinner />
+        </div>
+      );
+    }
+
+    if (!book.gyeonggiEbookInfo) {
+      return (
+        <button
+          onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title)}
+          className="text-blue-400 hover:text-blue-300 underline"
+          title="경기도 전자도서관 정보 조회"
+        >
+          조회
+        </button>
+      );
+    }
+
+    const gyeonggiEbookUrl = createGyeonggiEbookSearchURL(book.title);
+
+    if ('error' in book.gyeonggiEbookInfo) {
+      return (
+        <a
+          href={gyeonggiEbookUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center whitespace-nowrap text-gray-500 opacity-50 hover:text-blue-300"
+          title="조회 실패 - 클릭하여 직접 검색"
+        >
+          0(0)
+        </a>
+      );
+    }
+
+    const { total_count, available_count } = book.gyeonggiEbookInfo;
+    
+    if (total_count === 0) {
+      return (
+        <a
+          href={gyeonggiEbookUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center whitespace-nowrap text-gray-500 opacity-50 hover:text-blue-300"
+          title="전자책 없음 - 클릭하여 직접 검색"
+        >
+          0(0)
+        </a>
+      );
+    }
+
+    const availableEmoji = available_count > 0 ? '✔️' : '';
+    const emojiClass = available_count > 0 ? '' : 'text-gray-500 opacity-50';
+    const statusTitle = `총 ${total_count}권 (대출가능: ${available_count}권, 소장형: ${book.gyeonggiEbookInfo.owned_count}권, 구독형: ${book.gyeonggiEbookInfo.subscription_count}권)`;
+
+    return (
+      <a
+        href={gyeonggiEbookUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center whitespace-nowrap text-blue-400 hover:text-blue-300"
+        title={statusTitle}
+      >
+        {availableEmoji && <span className={`mr-2 ${emojiClass}`}>{availableEmoji}</span>}
+        {total_count}({available_count})
       </a>
     );
   };
@@ -505,39 +616,11 @@ const MyLibrary: React.FC = () => {
                   </div>
                   {/* e북.시독 정보 */}
                   <div className="w-24 p-3 text-center text-gray-300">
-                    <a
-                      href={`https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent((() => {
-                        let titleForSearch = book.title;
-                        const dashIndex = titleForSearch.indexOf('-');
-                        if (dashIndex !== -1) {
-                          titleForSearch = titleForSearch.substring(0, dashIndex).trim();
-                        }
-                        return titleForSearch.split(' ').slice(0, 3).join(' ');
-                      })())}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-400 hover:text-blue-300"
-                    >
-                      1(1)
-                    </a>
+                    {renderSidokEbookCell(book)}
                   </div>
                   {/* e북.경기 정보 */}
                   <div className="w-24 p-3 text-center text-gray-300">
-                    <a
-                      href={`https://ebook.library.kr/search?detailQuery=TITLE:${encodeURIComponent((() => {
-                        let titleForSearch = book.title;
-                        const dashIndex = titleForSearch.indexOf('-');
-                        if (dashIndex !== -1) {
-                          titleForSearch = titleForSearch.substring(0, dashIndex).trim();
-                        }
-                        return titleForSearch.split(' ').slice(0, 3).join(' ');
-                      })())}:true&OnlyStartWith=false&searchType=all&listType=list`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-400 hover:text-blue-300"
-                    >
-                      1(1)
-                    </a>
+                    {renderGyeonggiEbookCell(book)}
                   </div>
                   {/* Actions */}
                   <div className="w-24 p-3 flex items-center justify-center gap-2">
