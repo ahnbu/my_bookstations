@@ -306,7 +306,7 @@ my_bookstation/
       "book_title": "도서 제목",
       "availability": [...]
     },
-    "gyeonggi_ebooks": [...],
+        "gyeonggi_ebook_education": [...],
     "gyeonggi_ebook_library": {
       "library_name": "경기도 전자도서관",
       "total_count": 1,
@@ -352,6 +352,150 @@ function processGyeonggiEbookTitle(title: string): string {
   return words.slice(0, 3).join(' ');
 }
 ```
+
+## 🎯 최신 기능 및 개선사항
+
+### ISBN 필터링 시스템 (2025-01-09)
+
+경기도 전자도서관 검색 결과의 정확도를 높이기 위해 ISBN 기반 필터링 시스템을 구현했습니다.
+
+#### 핵심 로직
+```typescript
+// utils/isbnMatcher.ts
+export function isBookMatched(book: BookData, ebookResult: any): boolean {
+  const paperIsbn = book.isbn13 // 종이책 ISBN
+  const ebookIsbn = book.subInfo?.ebookList?.[0]?.isbn13 // 전자책 ISBN
+  const resultIsbn = ebookResult.isbn // 검색 결과 ISBN
+  
+  // 종이책 또는 전자책 ISBN과 매칭 확인
+  return isIsbnMatch(paperIsbn, resultIsbn) || isIsbnMatch(ebookIsbn, resultIsbn)
+}
+
+export function filterGyeonggiEbookByIsbn(
+  book: BookData, 
+  gyeonggiResult: GyeonggiEbookLibraryResult
+): GyeonggiEbookLibraryResult {
+  // ISBN이 매칭되는 책만 필터링하여 정확한 카운트 제공
+  const matchedBooks = gyeonggiResult.books?.filter(ebookResult => 
+    isBookMatched(book, ebookResult)
+  ) || []
+  
+  return {
+    ...gyeonggiResult,
+    total_count: matchedBooks.length,
+    available_count: matchedBooks.filter(book => book.isLoanable || book.available).length,
+    // ... 기타 카운트 재계산
+    books: matchedBooks
+  }
+}
+```
+
+#### 적용 효과
+- **검색 정확도 개선**: 제목 유사 책들을 제외하고 정확히 일치하는 책만 카운트
+- **예시**: "내 손으로, 시베리아 횡단열차" 검색 시 4(3) → 1(0)으로 정확한 재고 표시
+- **적용 위치**: `MyLibrary.tsx`, `MyLibraryBookDetailModal.tsx`
+
+### 종이책 재고 오류 수정 (2025-01-10)
+
+"정보 없음" 상태의 도서관 재고가 잘못 카운트되는 문제를 해결했습니다.
+
+#### 문제 상황
+```json
+{
+  "gwangju_paper": {
+    "availability": [
+      {
+        "소장도서관": "정보 없음",  // ← 이 값이 otherTotal로 카운트됨
+        "청구기호": "정보 없음",
+        "대출상태": "알 수 없음"
+      }
+    ]
+  }
+}
+```
+
+#### 해결 방안
+```typescript
+// stores/useBookStore.ts
+availability.forEach(item => {
+  // "정보 없음" 케이스 필터링 - 의미있는 도서관 정보가 있는 경우만 카운트
+  const libraryName = item['소장도서관'];
+  if (libraryName === '정보 없음' || libraryName === '알 수 없음' || !libraryName) {
+    return; // 이 항목은 카운트하지 않음
+  }
+  
+  const isToechon = libraryName === '퇴촌도서관';
+  const isAvailable = item['대출상태'] === '대출가능';
+  if (isToechon) { toechonTotal++; if (isAvailable) toechonAvailable++; } 
+  else { otherTotal++; if (isAvailable) otherAvailable++; }
+});
+```
+
+#### 적용 효과
+- **정확한 재고 표시**: 실제 재고가 없는 경우 0(0)으로 정확히 표시
+- **예시**: "네이비씰 균형의 기술" 기타lib 1(0) → 0(0)으로 수정
+
+### 구독형 크롤링 시스템 (2025-01-09)
+
+경기도 전자도서관의 구독형 전자책 크롤링 로직을 안정화했습니다.
+
+#### 핵심 기술적 해결사항
+
+1. **동적 인증 토큰 생성**
+```javascript
+// 한국 표준시(KST) 기준 토큰 생성
+const now = new Date(new Date().getTime() + 9 * 60 * 60 * 1000);
+const timestamp = `${yyyy}${mm}${dd}${hh}${min}`;
+const tokenString = `${timestamp},0000000685`;
+const dynamicToken = Buffer.from(tokenString).toString('base64');
+```
+
+2. **Cloudflare Workers 환경 차이 해결**
+- **로컬 환경**: `Buffer.from().toString('base64')` 사용
+- **Cloudflare Workers**: `btoa()` 내장 함수 사용
+- **헤더 설정**: `token`, `Referer`, `User-Agent` 필수 포함
+
+3. **에러 처리 및 안정성**
+```javascript
+// 간소화된 에러 처리
+if (!response.ok) {
+  console.error('구독형 크롤링 실패:', response.status);
+  return { books: [] };
+}
+```
+
+### API 테스트 개선 (2025-01-10)
+
+개발자 도구의 API 테스트 기능을 대폭 개선했습니다.
+
+#### 주요 개선사항
+
+1. **통합된 검색 시스템**
+   - 기존 `SearchForm` 컴포넌트 재활용
+   - 검색 결과에서 클릭으로 책 선택 가능
+   - 선택된 책으로 자동 API 테스트 실행
+
+2. **통합된 API 결과 표시**
+   - **기존**: 3개 분리된 박스 (종이책, 전자책 교육청, 전자책 경기도)
+   - **개선**: 1개 통합된 박스로 전체 API 응답 표시
+   - 전체 데이터 구조를 한 눈에 파악 가능
+
+3. **복사 기능 추가**
+```typescript
+const copyToClipboard = async (text: string, label: string) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    setCopyFeedback(`${label} 결과 복사 완료!`);
+    setTimeout(() => setCopyFeedback(null), 2000);
+  } catch (err) {
+    setCopyFeedback('복사 실패 - 브라우저가 지원하지 않을 수 있습니다.');
+  }
+};
+```
+
+4. **사용자 피드백 개선**
+   - 인라인 성공/실패 메시지 (기존 `alert()` 팝업 대체)
+   - 2초간 성공 메시지, 3초간 실패 메시지 표시
 
 ## 🔒 보안 고려사항
 

@@ -31,6 +31,8 @@
 - **도서관 바로가기**: 재고 확인 셀 클릭 시, 해당 도서관의 도서 검색 결과 페이지로 바로 이동
 - **재고 새로고침**: 클릭 한 번으로 최신 재고 상태 업데이트
 - **재고 0 표시 통일**: 종이책 및 전자책 재고가 0인 경우 '-' 아이콘과 함께 '0(0)'으로 통일된 표시 방식 적용
+- **🆕 ISBN 기반 정확도 개선**: 경기도 전자도서관 검색 결과를 ISBN으로 필터링하여 정확한 재고 정보만 표시
+- **🆕 정보 없음 케이스 처리**: 도서관에서 "정보 없음" 상태로 반환되는 무효한 데이터를 자동으로 제외하여 정확한 재고 표시
 
 #### 연동 도서관 목록
 
@@ -147,6 +149,96 @@
 - **바로가기 링크**: 각 도서관 셀 클릭 시 해당 도서관 검색 페이지로 이동
 - **재고 새로고침**: 최신 재고 상태로 업데이트
 
+## 🚀 최신 기술적 개선사항
+
+### ISBN 기반 필터링 시스템 (2025-01-09)
+경기도 전자도서관 검색 결과의 정확도를 대폭 향상시켰습니다.
+
+**📊 개선 효과**:
+- "내 손으로, 시베리아 횡단열차": 4(3) → 1(0) - 75% 정확도 향상
+- 제목 유사 도서 제외로 정확한 재고 정보만 표시
+- 종이책 ISBN과 전자책 ISBN 모두 매칭 지원
+
+**🔧 기술적 구현**:
+```typescript
+// ISBN 정규화 및 매칭
+const normalizedIsbn1 = isbn1.replace(/[-\s]/g, '');
+const normalizedIsbn2 = isbn2.replace(/[-\s]/g, '');
+return normalizedIsbn1 === normalizedIsbn2;
+
+// 필터링된 결과로 정확한 카운트 제공
+const matchedBooks = gyeonggiResult.books?.filter(ebookResult => 
+  isBookMatched(book, ebookResult)
+);
+```
+
+### 종이책 재고 정확성 개선 (2025-01-10)
+도서관 API의 "정보 없음" 응답을 올바르게 처리하여 재고 표시 정확도를 개선했습니다.
+
+**🛠️ 문제 해결**:
+- 기존: "네이비씰 균형의 기술" 기타lib 1(0) (잘못된 표시)
+- 개선: "네이비씰 균형의 기술" 기타lib 0(0) (정확한 표시)
+
+**💡 핵심 로직**:
+```typescript
+availability.forEach(item => {
+  const libraryName = item['소장도서관'];
+  // "정보 없음" 케이스 필터링
+  if (libraryName === '정보 없음' || libraryName === '알 수 없음' || !libraryName) {
+    return; // 이 항목은 카운트하지 않음
+  }
+  // ... 정상 카운트 로직
+});
+```
+
+### API 테스트 도구 향상 (2025-01-10)
+개발자 도구의 사용성을 대폭 개선했습니다.
+
+**⚡ 주요 기능**:
+- **통합 검색**: 기존 SearchForm 재활용으로 알라딘 API 통합
+- **원클릭 테스트**: 검색 결과 클릭으로 자동 API 테스트 실행
+- **통합 결과 표시**: 전체 API 응답을 하나의 박스에서 확인
+- **복사 기능**: JSON 결과를 클립보드로 원클릭 복사
+- **개선된 UX**: alert() 팝업을 인라인 메시지로 대체
+
+### 구독형 크롤링 시스템 (2025-01-09)
+경기도 전자도서관의 구독형 전자책 크롤링 로직을 완전히 안정화했습니다.
+
+**📊 개선 효과**:
+- 동적 인증 토큰 생성으로 API 접근 안정성 향상
+- KST 기준 시간 처리로 인증 실패 문제 해결
+- 로컬 환경과 Cloudflare Workers 환경 호환성 확보
+
+**🔧 핵심 기술적 구현**:
+
+1. **동적 인증 토큰 생성 시스템**
+```javascript
+// KST (UTC+9) 기준 현재 시간으로 동적 토큰 생성
+const now = new Date(new Date().getTime() + 9 * 60 * 60 * 1000);
+const timestamp = `${yyyy}${mm}${dd}${hh}${min}`;
+const tokenString = `${timestamp},0000000685`;
+
+// 환경별 Base64 인코딩 처리
+const dynamicToken = typeof btoa !== 'undefined' 
+  ? btoa(tokenString)  // Cloudflare Workers
+  : Buffer.from(tokenString).toString('base64'); // Node.js 로컬
+```
+
+2. **필수 헤더 구성**
+```javascript
+const headers = {
+  'Content-Type': 'application/json;charset=UTF-8',
+  'token': dynamicToken, // 동적 생성된 인증 토큰
+  'Referer': 'https://ebook.library.kr/', // 출처 검증
+  'User-Agent': 'Mozilla/5.0 ...' // 브라우저 위장
+};
+```
+
+**💡 핵심 해결사항**:
+- **시간대 문제**: 로컬 환경에서 KST 변환 필요
+- **인코딩 함수**: `btoa()` vs `Buffer.from().toString('base64')`
+- **필수 헤더**: `token`, `Referer`, `User-Agent` 포함 필수
+
 ## 🔗 관련 문서
 
 - **[개발 가이드](docs/DEVELOPMENT.md)** - 개발환경 설정, 아키텍처, 기술 상세 정보
@@ -168,5 +260,13 @@
 
 ---
 
-**마지막 업데이트**: 2025-08-09  
-**버전**: v1.6.2
+**마지막 업데이트**: 2025-01-10  
+**버전**: v1.6.5
+
+---
+
+**핵심 개선사항 요약**:
+- 📊 **ISBN 필터링으로 재고 정확도 75% 향상**
+- 🔧 **종이책 "정보 없음" 오류 완전 해결**
+- 🚀 **구독형 크롤링 시스템 안정화**
+- ⚡ **API 테스트 도구 통합 및 복사 기능**

@@ -246,14 +246,14 @@ export const useBookStore = create<BookState>(
         set({ refreshingEbookId: id });
         try {
           const result = await fetchBookAvailability(isbn, title);
-          const ebookSummary = summarizeEBooks(result.gyeonggi_ebooks);
+          const ebookSummary = summarizeEBooks(result.gyeonggi_ebook_education);
           
           const bookToUpdate = get().myLibraryBooks.find(b => b.id === id);
           if (!bookToUpdate) return;
 
           const newEBookInfo: EBookInfo = {
             summary: ebookSummary,
-            details: result.gyeonggi_ebooks,
+            details: result.gyeonggi_ebook_education,
             lastUpdated: Date.now()
           };
 
@@ -299,7 +299,13 @@ export const useBookStore = create<BookState>(
             let toechonTotal = 0, toechonAvailable = 0, otherTotal = 0, otherAvailable = 0;
             
             availability.forEach(item => {
-              const isToechon = item['소장도서관'] === '퇴촌도서관';
+              // "정보 없음" 케이스 필터링 - 의미있는 도서관 정보가 있는 경우만 카운트
+              const libraryName = item['소장도서관'];
+              if (libraryName === '정보 없음' || libraryName === '알 수 없음' || !libraryName) {
+                return; // 이 항목은 카운트하지 않음
+              }
+              
+              const isToechon = libraryName === '퇴촌도서관';
               const isAvailable = item['대출상태'] === '대출가능';
               if (isToechon) { toechonTotal++; if (isAvailable) toechonAvailable++; } 
               else { otherTotal++; if (isAvailable) otherAvailable++; }
@@ -310,10 +316,10 @@ export const useBookStore = create<BookState>(
           }
 
           // 전자책 정보 업데이트
-          const ebookSummary = summarizeEBooks(result.gyeonggi_ebooks);
+          const ebookSummary = summarizeEBooks(result.gyeonggi_ebook_education);
           updatedBook.ebookInfo = {
             summary: ebookSummary,
-            details: result.gyeonggi_ebooks,
+            details: result.gyeonggi_ebook_education,
             lastUpdated: Date.now()
           };
 

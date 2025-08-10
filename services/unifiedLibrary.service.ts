@@ -64,7 +64,7 @@ export interface GyeonggiEbookLibraryError {
 
 export interface LibraryApiResponse {
   gwangju_paper: GwangjuPaperResult | GwangjuPaperError;
-  gyeonggi_ebooks: (EBookAvailability | EBookError)[];
+  gyeonggi_ebook_education: (EBookAvailability | EBookError)[];
   gyeonggi_ebook_library?: GyeonggiEbookLibraryResult | GyeonggiEbookLibraryError;
 }
 

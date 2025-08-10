@@ -6,6 +6,7 @@ import { CloseIcon, RefreshIcon, BookOpenIcon } from './Icons';
 import Spinner from './Spinner';
 import StarRating from './StarRating';
 import { getStatusClass, getStatusEmoji, processBookTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL } from '../services/unifiedLibrary.service';
+import { filterGyeonggiEbookByIsbn } from '../utils/isbnMatcher';
 
 // Use the standardized title processing function from ebook.service
 const createSearchSubject = processBookTitle;
@@ -225,17 +226,21 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                         {book.gyeonggiEbookInfo ? (
                                             'error' in book.gyeonggiEbookInfo ? (
                                                 <span className="font-medium text-gray-500">정보 없음</span>
-                                            ) : (
-                                                <a
-                                                    href={createGyeonggiEbookSearchURL(book.title)}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className={`font-medium ${book.gyeonggiEbookInfo.available_count > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
-                                                    title={`총 ${book.gyeonggiEbookInfo.total_count}권 (대출가능: ${book.gyeonggiEbookInfo.available_count}권, 소장형: ${book.gyeonggiEbookInfo.owned_count}권, 구독형: ${book.gyeonggiEbookInfo.subscription_count}권)`}
-                                                >
-                                                    {book.gyeonggiEbookInfo.available_count} / {book.gyeonggiEbookInfo.total_count}
-                                                </a>
-                                            )
+                                            ) : (() => {
+                                                // ISBN 필터링 적용
+                                                const filteredGyeonggiInfo = filterGyeonggiEbookByIsbn(book, book.gyeonggiEbookInfo);
+                                                return (
+                                                    <a
+                                                        href={createGyeonggiEbookSearchURL(book.title)}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className={`font-medium ${filteredGyeonggiInfo.available_count > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
+                                                        title={`총 ${filteredGyeonggiInfo.total_count}권 (대출가능: ${filteredGyeonggiInfo.available_count}권, 소장형: ${filteredGyeonggiInfo.owned_count}권, 구독형: ${filteredGyeonggiInfo.subscription_count}권)`}
+                                                    >
+                                                        {filteredGyeonggiInfo.available_count} / {filteredGyeonggiInfo.total_count}
+                                                    </a>
+                                                );
+                                            })()
                                         ) : (
                                             <button
                                                 onClick={(e) => {

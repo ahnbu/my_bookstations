@@ -10,6 +10,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 import StarRating from './StarRating';
 import MyLibraryBookDetailModal from './MyLibraryBookDetailModal';
 import { getStatusEmoji, isEBooksEmpty, hasAvailableEBooks, processBookTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL } from '../services/unifiedLibrary.service';
+import { filterGyeonggiEbookByIsbn, debugIsbnMatching } from '../utils/isbnMatcher';
 
 const SortArrow: React.FC<{ order: 'asc' | 'desc' }> = ({ order }) => (
   <span className="ml-1 inline-block w-3 h-3 text-xs">
@@ -311,7 +312,15 @@ const MyLibrary: React.FC = () => {
       );
     }
 
-    const { total_count, available_count } = book.gyeonggiEbookInfo;
+    // ISBN 필터링 적용
+    const filteredGyeonggiInfo = filterGyeonggiEbookByIsbn(book, book.gyeonggiEbookInfo);
+    
+    // 디버깅 모드에서 매칭 정보 출력 (개발 환경에서만)
+    if (process.env.NODE_ENV === 'development' && filteredGyeonggiInfo.total_count !== book.gyeonggiEbookInfo.total_count) {
+      debugIsbnMatching(book, book.gyeonggiEbookInfo);
+    }
+    
+    const { total_count, available_count } = filteredGyeonggiInfo;
     
     if (total_count === 0) {
       return (
@@ -329,7 +338,7 @@ const MyLibrary: React.FC = () => {
 
     const showIcon = available_count > 0;
     const iconClass = available_count > 0 ? 'text-green-500' : 'text-gray-500 opacity-50';
-    const statusTitle = `총 ${total_count}권 (대출가능: ${available_count}권, 소장형: ${book.gyeonggiEbookInfo.owned_count}권, 구독형: ${book.gyeonggiEbookInfo.subscription_count}권)`;
+    const statusTitle = `총 ${total_count}권 (대출가능: ${available_count}권, 소장형: ${filteredGyeonggiInfo.owned_count}권, 구독형: ${filteredGyeonggiInfo.subscription_count}권)`;
 
     return (
       <a
