@@ -79,7 +79,7 @@ curl -X POST "http://127.0.0.1:8787" \
       }
     ]
   },
-  "gyeonggi_ebooks": [
+          "gyeonggi_ebook_education": [
     {
       "소장도서관": "성남도서관",
       "도서명": "아몬드",
