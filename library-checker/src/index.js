@@ -56,7 +56,10 @@ export default {
         
         // 경기도 전자도서관은 gyeonggiTitle 사용하여 별도 처리
         if (gyeonggiTitle) {
+            console.log(`경기도 전자도서관 검색 시작: "${gyeonggiTitle}"`);
             gyeonggiEbookPromise = searchGyeonggiEbookLibrary(gyeonggiTitle);
+        } else {
+            console.log('gyeonggiTitle이 없어서 경기도 전자도서관 검색을 건너뜀');
         }
 
         const results = await Promise.allSettled(promises);
@@ -65,10 +68,15 @@ export default {
         let gyeonggiEbookResult = null;
         if (gyeonggiEbookPromise) {
             try {
+                console.log('경기도 전자도서관 Promise 대기 중...');
                 gyeonggiEbookResult = await gyeonggiEbookPromise;
+                console.log('경기도 전자도서관 결과 수신:', JSON.stringify(gyeonggiEbookResult, null, 2));
             } catch (error) {
+                console.error('경기도 전자도서관 검색 오류:', error.message);
                 gyeonggiEbookResult = { error: error.message };
             }
+        } else {
+            console.log('gyeonggiEbookPromise가 null이어서 검색하지 않음');
         }
 
         const finalResult = {
@@ -163,51 +171,36 @@ async function searchSingleGyeonggiEbook(searchText, libraryCode) {
   return parseGyeonggiHTML(htmlContent, libraryCode);
 }
 
-// 새로운 경기도 전자도서관 크롤링 함수
+// 새로운 경기도 전자도서관 API 함수
 async function searchGyeonggiEbookLibrary(searchText) {
-  // URL 수동 구성 (올바른 인코딩을 위해)
-  const baseUrl = "https://ebook.library.kr/search";
   const encodedTitle = encodeURIComponent(searchText);
-  const detailQuery = `TITLE:${encodedTitle}:true`;
-  
-  const url = `${baseUrl}?detailQuery=${detailQuery}&OnlyStartWith=false&searchType=all&listType=list`;
+  const apiUrl = `https://ebook.library.kr/api/service/search-engine?contentType=EB&searchType=all&detailQuery=TITLE:${encodedTitle}:true&sort=relevance&asc=desc&loanable=false&withFacet=true&page=1&size=6`;
+
+  console.log(`경기도 전자도서관 API 요청: ${searchText} -> ${apiUrl}`);
 
   const headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+    'Accept': 'application/json, text/plain, */*',
     'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
     'Accept-Encoding': 'gzip, deflate, br',
-    'Cache-Control': 'max-age=0',
-    'DNT': '1',
-    'Connection': 'keep-alive',
-    'Upgrade-Insecure-Requests': '1',
     'Referer': 'https://ebook.library.kr/',
-    'Sec-Fetch-Site': 'same-origin',
-    'Sec-Fetch-Mode': 'navigate',
-    'Sec-Fetch-User': '?1',
-    'Sec-Fetch-Dest': 'document',
-    'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-    'sec-ch-ua-mobile': '?0',
-    'sec-ch-ua-platform': '"Windows"'
+    'Origin': 'https://ebook.library.kr'
   };
 
-  const response = await fetch(url, { method: 'GET', headers: headers, signal: AbortSignal.timeout(25000) });
-  if (!response.ok) throw new Error(`경기도 전자도서관 HTTP ${response.status}`);
-  const htmlContent = await response.text();
+  const response = await fetch(apiUrl, { 
+    method: 'GET', 
+    headers: headers, 
+    signal: AbortSignal.timeout(25000) 
+  });
   
-  // HTML 내용의 일부를 로깅 (디버깅용)
-  console.log(`검색어: ${searchText}, URL: ${url}`);
-  console.log('HTML 응답 길이:', htmlContent.length);
-  console.log('HTML에서 "소장형" 검색:', htmlContent.includes('소장형'));
-  console.log('HTML에서 "구독형" 검색:', htmlContent.includes('구독형'));
-  console.log('HTML에서 "searchResultList" 검색:', htmlContent.includes('searchResultList'));
-  console.log('HTML에서 "data-type" 검색:', htmlContent.includes('data-type'));
+  if (!response.ok) {
+    throw new Error(`경기도 전자도서관 API HTTP ${response.status}`);
+  }
   
-  // 더 많은 HTML 내용 로깅
-  console.log('HTML 중간 부분 (10000-11000):', htmlContent.substring(10000, 11000));
-  console.log('HTML 중간 부분 (20000-21000):', htmlContent.substring(20000, 21000));
+  const jsonData = await response.json();
+  console.log('경기도 전자도서관 API 응답:', JSON.stringify(jsonData, null, 2));
   
-  return parseGyeonggiEbookLibraryHTML(htmlContent);
+  return parseGyeonggiEbookApiResponseNew(jsonData, searchText);
 }
 
 
@@ -327,11 +320,10 @@ function parseGyeonggiHTML(html, libraryCode) {
   }
 }
 
-// 새로운 경기도 전자도서관 HTML 파싱 함수
-function parseGyeonggiEbookLibraryHTML(html) {
+// 새로운 경기도 전자도서관 API 응답 파싱 함수
+function parseGyeonggiEbookApiResponse(apiResponse, searchText) {
   try {
-    console.log('경기도 전자도서관 파싱 시작');
-    console.log('HTML 길이:', html.length);
+    console.log('경기도 전자도서관 API 응답 파싱 시작');
     
     // 더 포괄적인 검색 결과 없음 체크
     const noResultPatterns = [
@@ -561,5 +553,117 @@ function parseGyeonggiEbookLibraryHTML(html) {
   } catch (error) {
     console.error(`경기도 전자도서관 파싱 오류: ${error.message}`);
     throw new Error(`경기도 전자도서관 파싱 오류: ${error.message}`);
+  }
+}
+
+// 새로운 API 기반 파싱 함수 (실제 사용)
+function parseGyeonggiEbookApiResponseNew(apiResponse, searchText) {
+  try {
+    console.log('경기도 전자도서관 API 응답 파싱 시작');
+    
+    // API 응답 구조 확인
+    if (!apiResponse || apiResponse.httpStatus !== 'OK' || !apiResponse.data) {
+      console.log('API 응답이 올바르지 않음:', apiResponse);
+      return {
+        library_name: '경기도 전자도서관',
+        total_count: 0,
+        available_count: 0,
+        unavailable_count: 0,
+        owned_count: 0,
+        subscription_count: 0,
+        books: []
+      };
+    }
+
+    const contents = apiResponse.data.contents || [];
+    console.log(`검색 결과: ${contents.length}권 발견`);
+    
+    if (contents.length === 0) {
+      console.log('검색 결과 없음');
+      return {
+        library_name: '경기도 전자도서관',
+        total_count: 0,
+        available_count: 0,
+        unavailable_count: 0,
+        owned_count: 0,
+        subscription_count: 0,
+        books: []
+      };
+    }
+
+    let totalOwned = 0;
+    let totalSubscription = 0;
+    let totalAvailable = 0;
+    const books = [];
+
+    // 각 책의 정보를 파싱
+    contents.forEach((book, index) => {
+      console.log(`책 ${index + 1}: ${book.TITLE}`);
+      console.log(`  - 콘텐츠 타입: ${book.CONTENT_TYPE_DESC || 'N/A'}`);
+      console.log(`  - 총 권수(COPYS): ${book.COPYS || 'N/A'}`);
+      console.log(`  - 대출중(LOAN_CNT): ${book.LOAN_CNT || 'N/A'}`);
+      console.log(`  - 대출가능(LOANABLE): ${book.LOANABLE || 'N/A'}`);
+      
+      const totalCopies = parseInt(book.COPYS || 0, 10);
+      const loanCount = parseInt(book.LOAN_CNT || 0, 10);
+      const loanable = parseInt(book.LOANABLE || 0, 10);
+      const contentTypeDesc = book.CONTENT_TYPE_DESC || '소장형';
+      
+      // 대출 가능한 권수 계산: 총 권수 - 대출중인 권수
+      // LOANABLE은 현재 대출 가능 여부이므로, 총 보유량은 항상 계산해야 함
+      const availableCopies = Math.max(0, totalCopies - loanCount);
+      
+      console.log(`  계산된 대출가능: ${availableCopies}권`);
+      
+      // 타입별로 분류 (총 권수는 항상 추가, 대출가능 권수는 따로)
+      if (contentTypeDesc.includes('소장형') || contentTypeDesc === '소장형') {
+        totalOwned += totalCopies;
+      } else if (contentTypeDesc.includes('구독형')) {
+        totalSubscription += totalCopies;
+      } else {
+        // 기본적으로 소장형으로 처리
+        totalOwned += totalCopies;
+      }
+      
+      // 대출 가능한 권수는 별도로 계산
+      totalAvailable += availableCopies;
+
+      books.push({
+        type: contentTypeDesc,
+        title: book.TITLE || book.TITLE_N || '전자책',
+        author: book.AUTHOR || book.AUTHOR_N || '',
+        publisher: book.PUBLISHER || book.PUBLISHER_N || '',
+        isbn: book.ISBN || '',
+        status: loanable === 1 ? '대출가능' : '대출불가',
+        total_copies: totalCopies,
+        loan_count: loanCount,
+        available_copies: availableCopies,
+        loanable: loanable === 1
+      });
+    });
+
+    const totalCount = totalOwned + totalSubscription;
+    const unavailableCount = totalCount - totalAvailable;
+
+    console.log(`파싱 완료:`);
+    console.log(`  총 권수: ${totalCount}`);
+    console.log(`  소장형: ${totalOwned}`);
+    console.log(`  구독형: ${totalSubscription}`);
+    console.log(`  대출가능: ${totalAvailable}`);
+    console.log(`  대출불가: ${unavailableCount}`);
+
+    return {
+      library_name: '경기도 전자도서관',
+      total_count: totalCount,
+      available_count: totalAvailable,
+      unavailable_count: unavailableCount,
+      owned_count: totalOwned,
+      subscription_count: totalSubscription,
+      books: books
+    };
+
+  } catch (error) {
+    console.error(`경기도 전자도서관 API 파싱 오류: ${error.message}`);
+    throw new Error(`경기도 전자도서관 API 파싱 오류: ${error.message}`);
   }
 }
