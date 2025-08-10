@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { SelectedBook, StockInfo, SortKey, ReadStatus } from '../types';
-import { DownloadIcon, TrashIcon, RefreshIcon } from './Icons';
+import { DownloadIcon, TrashIcon, RefreshIcon, CheckIcon } from './Icons';
 import Spinner from './Spinner';
 import { useBookStore } from '../stores/useBookStore';
 import { useAuthStore } from '../stores/useAuthStore';
@@ -162,12 +162,12 @@ const MyLibrary: React.FC = () => {
       return <span className="text-xs text-gray-500">확인중...</span>;
     }
     const { total, available } = stock;
-    const emoji = available > 0 ? '✔️' : '';
-    const emojiClass = available > 0 ? '' : 'text-gray-500 opacity-50';
+    const showIcon = available > 0;
+    const iconClass = available > 0 ? 'text-green-500' : 'text-gray-500 opacity-50';
     const textClass = available > 0 ? '' : 'text-gray-500 opacity-50';
     return (
       <span className="flex items-center justify-center whitespace-nowrap">
-        {emoji && <span title={available > 0 ? '대출가능' : '대출불가'} className={`mr-2 ${emojiClass}`}>{emoji}</span>}
+        {showIcon && <CheckIcon title="대출가능" className={`mr-1 w-3 h-3 ${iconClass}`} />}
         <span className={textClass}>{total}({available})</span>
       </span>
     );
@@ -229,8 +229,8 @@ const MyLibrary: React.FC = () => {
       );
     }
 
-    const availableEmoji = summary.대출가능 > 0 ? '✔️' : '';
-    const emojiClass = summary.대출가능 > 0 ? '' : 'text-gray-500 opacity-50';
+    const showIcon = summary.대출가능 > 0;
+    const iconClass = summary.대출가능 > 0 ? 'text-green-500' : 'text-gray-500 opacity-50';
     const statusTitle = `총 ${summary.총개수}권 (대출가능: ${summary.대출가능}권, 대출불가: ${summary.대출불가}권)`;
 
     return (
@@ -240,7 +240,7 @@ const MyLibrary: React.FC = () => {
         rel="noopener noreferrer"
         className="flex items-center justify-center whitespace-nowrap text-blue-400 hover:text-blue-300"
       >
-        {availableEmoji && <span className={`mr-2 ${emojiClass}`}>{availableEmoji}</span>}
+        {showIcon && <CheckIcon className={`mr-1 w-3 h-3 ${iconClass}`} />}
         {summary.총개수}({summary.대출가능})
       </a>
     );
@@ -267,7 +267,7 @@ const MyLibrary: React.FC = () => {
         className="flex items-center justify-center whitespace-nowrap text-blue-400 hover:text-blue-300"
         title="광주시립도서관 전자책(구독) 검색"
       >
-        <span className="mr-2">✔️</span>1(1)
+        <CheckIcon className="mr-1 w-3 h-3 text-green-500" />1(1)
       </a>
     );
   };
@@ -327,8 +327,8 @@ const MyLibrary: React.FC = () => {
       );
     }
 
-    const availableEmoji = available_count > 0 ? '✔️' : '';
-    const emojiClass = available_count > 0 ? '' : 'text-gray-500 opacity-50';
+    const showIcon = available_count > 0;
+    const iconClass = available_count > 0 ? 'text-green-500' : 'text-gray-500 opacity-50';
     const statusTitle = `총 ${total_count}권 (대출가능: ${available_count}권, 소장형: ${book.gyeonggiEbookInfo.owned_count}권, 구독형: ${book.gyeonggiEbookInfo.subscription_count}권)`;
 
     return (
@@ -339,7 +339,7 @@ const MyLibrary: React.FC = () => {
         className="flex items-center justify-center whitespace-nowrap text-blue-400 hover:text-blue-300"
         title={statusTitle}
       >
-        {availableEmoji && <span className={`mr-2 ${emojiClass}`}>{availableEmoji}</span>}
+        {showIcon && <CheckIcon className={`mr-1 w-3 h-3 ${iconClass}`} />}
         {total_count}({available_count})
       </a>
     );

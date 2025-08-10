@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, X, Download, Plus, Trash2, RefreshCcw, User, Lock, CheckCircle, XCircle, Star, ArrowLeft, BookOpen } from 'lucide-react';
+import { Search, X, Download, Plus, Trash2, RefreshCcw, User, Lock, CheckCircle, XCircle, Star, ArrowLeft, BookOpen, Check, AlertCircle, Book } from 'lucide-react';
 
 export const SearchIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <Search {...props} />
@@ -60,4 +60,16 @@ export const ArrowLeftIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) =>
 
 export const BookOpenIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <BookOpen {...props} />
+);
+
+export const CheckIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <Check {...props} />
+);
+
+export const AlertCircleIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <AlertCircle {...props} />
+);
+
+export const BookIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <Book {...props} />
 );

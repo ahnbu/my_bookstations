@@ -2,7 +2,47 @@
 
 마이북스테이션 프로젝트의 개발자를 위한 기술 문서입니다.
 
-## 🏗️ 아키텍처 개요
+## 🎯 제품 요구사항 (Product Requirements)
+
+### 서비스 비전
+마이북스테이션은 도서 검색부터 재고 확인, 개인 서재 관리까지 원스톱으로 제공하는 통합 도서 서비스입니다.
+
+### 핵심 비즈니스 요구사항
+1. **통합 검색**: 알라딘 API를 통한 전국 도서 검색
+2. **실시간 재고**: 여러 도서관 재고 상태 동시 확인
+3. **개인 서재**: 사용자별 도서 관리 및 독서 기록
+4. **접근성**: 직관적 UI/UX로 모든 사용자 지원
+
+### 기능 우선순위
+- **P0 (필수)**: 도서 검색, 재고 확인, 사용자 인증
+- **P1 (중요)**: 개인 서재, 독서 상태 관리
+- **P2 (개선)**: CSV 내보내기, 고급 정렬 옵션
+
+## 🏗️ 시스템 아키텍처
+
+### 전체 아키텍처 개요
+```mermaid
+graph TB
+    subgraph "Frontend (React)"
+        A[React Components] --> B[Zustand Store]
+        B --> C[Service Layer]
+    end
+    
+    subgraph "External APIs"
+        D[Aladin API]
+        E[Library APIs]
+    end
+    
+    subgraph "Backend Services"
+        F[Supabase Auth/DB]
+        G[Cloudflare Workers]
+    end
+    
+    C --> D
+    C --> E
+    C --> F
+    C --> G
+```
 
 ### 프론트엔드 아키텍처
 ```
@@ -35,7 +75,7 @@ useAuthStore (인증 상태)
 useBookStore (비즈니스 로직)
 ```
 
-## 📁 디렉토리 구조
+## 📁 프로젝트 구조
 
 ```
 my_bookstation/
@@ -54,7 +94,7 @@ my_bookstation/
 │   ├── StarRating.tsx      # 별점 평가 컴포넌트
 │   ├── Notification.tsx    # 알림 메시지
 │   ├── Spinner.tsx         # 로딩 스피너
-│   ├── Icons.tsx           # 아이콘 컴포넌트
+│   ├── Icons.tsx           # Lucide React 아이콘 컴포넌트 (일관된 아이콘 시스템)
 │   └── APITest.tsx         # API 테스트 컴포넌트 (개발용)
 ├── stores/                 # Zustand 상태 관리
 │   ├── useAuthStore.ts     # 사용자 인증 상태
@@ -67,11 +107,18 @@ my_bookstation/
 │   └── supabaseClient.ts   # Supabase 클라이언트 초기화
 ├── library-checker/        # Cloudflare Workers 서버 (도서관 재고 확인 API)
 │   └── src/index.js        # Workers 메인 스크립트
+├── temp/                   # 임시 파일 및 테스트 파일 관리
+│   ├── README.md          # temp 폴더 사용 가이드
+│   ├── tests/             # 테스트 관련 파일들
+│   │   ├── title-processing/ # 제목 처리 로직 테스트
+│   │   ├── api-testing/   # API 연동 테스트
+│   │   └── ui-testing/    # UI 관련 테스트
+│   └── screenshots/       # 개발 과정 스크린샷
 └── types.ts                # TypeScript 타입 정의
 ├── index.css               # 전역 스타일시트
 ```
 
-## 🔧 핵심 기술 스택
+## 🔧 기술 스택 상세
 
 ### Frontend Framework
 - **React 19**: 최신 React 기능 및 훅 활용
@@ -86,6 +133,7 @@ my_bookstation/
 
 ### UI/UX
 - **Tailwind CSS**: 유틸리티 우선 CSS 프레임워크
+- **Lucide React**: 일관된 아이콘 시스템으로 전체 UI 통일
 - **반응형 디자인**: 모바일 및 데스크톱 환경 지원
 - **@tanstack/react-virtual**: 대용량 데이터 가상화 처리 (500-1000권 최적화)
 
@@ -98,193 +146,241 @@ my_bookstation/
 ### Backend & Authentication
 - **Supabase**:
   - PostgreSQL 데이터베이스
-  - 실시간 구독
-  - 소셜 로그인 (Google) 및 이메일 인증
-- **Cloudflare Workers**: `library-checker/src/index.js`를 사용하는 서버리스 백엔드 (도서관 재고 크롤링 및 API 연동)
+  - 실시간 구독 기능
+  - Row Level Security (RLS)
+  - Google OAuth & 이메일/비밀번호 인증
 
-## 🔄 데이터 플로우
+### 서버리스 백엔드
+- **Cloudflare Workers**:
+  - 도서관 재고 크롤링
+  - CORS 프록시 기능
+  - 실시간 HTML 파싱
+  - Supabase Keep-Alive 스케줄링
 
-### 1. 도서 검색 플로우
-```
-SearchForm → useBookStore.searchBooks() → aladin.service → Zod 검증 → UI 업데이트
-```
+## 🚀 개발 환경 설정
 
-### 2. 도서관 재고 확인 플로우
-```
-MyLibrary / BookDetails → useBookStore.refreshAllBookInfo() / refreshEBookInfo() / updateMissingEbookIsbn13() → unifiedLibrary.service → Zod 검증 → UI 업데이트
-```
-
-### 3. 서재 관리 플로우
-```
-MyLibrary → useBookStore (CRUD operations) → Supabase → Real-time sync
-```
-
-## 🔍 주요 컴포넌트 분석
-
-### MyLibrary.tsx
-**역할**: 가상화된 개인 서재 테이블 관리
-
-**주요 기능**:
-- `@tanstack/react-virtual`을 활용한 대용량 데이터 처리
-- 동적 높이 계산으로 최적화된 스크롤 경험
-- 도서관 재고 클릭 시 외부 사이트 연동 (종이책, 전자책(교육), 전자책(시립구독), 전자책(경기소장) 모두 지원)
-- 'e북(시립구독)' 및 'e북(경기소장)' 링크의 제목 추출 로직 (하이픈 처리 및 3단어 제한)
-- '전자책' 열에서 재고 없음 표시를 회색 대시('-')로 통일
-- 정렬, 필터링, CSV 내보내기 기능
-
-**성능 최적화**:
-- 소량 데이터(≤15권): 가상화 비활성, 자연스러운 높이
-- 대량 데이터(>15권): 가상화 활성, 스크롤 최적화
-- 메모화된 정렬 로직으로 불필요한 재렌더링 방지
-
-### BookDetails.tsx & MyLibraryBookDetailModal.tsx
-**역할**: 도서 상세 정보 표시 및 도서관 연동
-
-**주요 기능**:
-- 통일된 상세 정보 UI/UX
-- 도서관 재고 클릭 기능 (퇴촌도서관, 광주시립도서관, 전자책(교육), 전자책(시립구독), 전자책(경기소장))
-- 책 상세 페이지에 전자책 ISBN(`isbn13` 또는 `isbn`) 표시
-- 읽음 상태 및 별점 관리
-- 일관된 폰트 시스템
-
-### useBookStore.ts
-**역할**: 도서 검색, 서재 관리, 도서관 재고 확인의 중심 허브
-
-**주요 상태**:
-- `searchResults`: 검색된 도서 목록
-- `selectedBook`: 현재 선택된 도서
-- `myLibraryBooks`: 개인 서재의 도서 목록 (가상화 최적화)
-
-**핵심 액션**:
-- `searchBooks()`: 알라딘 API 도서 검색
-- `fetchUserLibrary()`: Supabase에서 사용자 서재 로드
-- `addToLibrary()`: 서재에 도서 추가 (전자책 `subInfo` 포함 저장)
-- `refreshAllBookInfo()`: 통합 도서관 재고 및 전자책 정보 갱신
-- `refreshEBookInfo()`: 전자책 정보만 갱신
-- `updateMissingEbookIsbn13()`: 기존 서재 책의 누락된 전자책 `isbn13` 정보 업데이트
-- `exportToCSV()`: CSV 파일 내보내기 (한글 깨짐 수정, 전자책재고 열 추가, 파일명에 날짜 포함)
-
-### useAuthStore.ts
-**역할**: 사용자 인증 상태 관리
-
-**주요 상태**:
-- `session`: Supabase 세션 객체
-
-**핵심 액션**:
-- `initializeAuthListener()`: 인증 상태 변화 감지
-- `signOut()`: 로그아웃 처리
-
-### useUIStore.ts
-**역할**: 모달, 로딩, 알림 등 UI 상태 관리
-
-**주요 상태**:
-- `isBookModalOpen`: 도서 검색 모달 상태
-- `isAuthModalOpen`: 인증 모달 상태
-- `isLoading`: 전역 로딩 상태
-- `notification`: 알림 메시지
-
-## 🔒 타입 시스템
-
-### 외부 API 타입 (Zod 기반)
-```typescript
-// Zod 스키마로 정의 후 타입 추론
-export type AladdinBookItem = z.infer<typeof AladdinBookItemSchema>; // ebookList에 isbn13 포함
-export type LibraryStockResponse = z.infer<typeof LibraryStockResponseSchema>;
-```
-
-### 내부 애플리케이션 타입
-```typescript
-// 직접 정의로 단순성 확보
-export type ReadStatus = '읽지 않음' | '읽는 중' | '완독';
-export type StockInfo = {
-  total: number;
-  available: number;
-};
-```
-
-### 복합 타입
-```typescript
-// 외부 타입과 내부 타입의 조합
-export type BookData = AladdinBookItem & {
-  toechonStock: StockInfo;
-  otherStock: StockInfo;
-  addedDate: number;
-  readStatus: ReadStatus;
-  rating: number;
-};
-```
-
-## 🛠️ 개발 환경 설정
-
-### 필수 도구
+### 필수 요구사항
 - **Node.js**: 18.0 이상
-- **npm**: 8.0 이상 
-- **TypeScript**: 5.8.2
-- **VS Code**: 권장 에디터 (TypeScript 확장 필수)
+- **npm**: 8.0 이상
+- **Git**: 최신 버전
 
-### 추천 VS Code 확장
-- **TypeScript Importer**: 자동 import 관리
-- **Tailwind CSS IntelliSense**: CSS 클래스 자동완성
-- **ES7+ React/Redux/React-Native snippets**: React 스니펫
+### 로컬 개발 설정
 
-### 환경 변수
-```bash
-# .env.local
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+1. **저장소 클론**
+   ```bash
+   git clone <repository-url>
+   cd my_bookstation
+   ```
+
+2. **의존성 설치**
+   ```bash
+   npm install
+   ```
+
+3. **환경 변수 설정**
+   
+   `.env.local` 파일 생성:
+   ```bash
+   # Supabase 설정
+   VITE_SUPABASE_URL=https://your-project.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-anon-key
+   
+   # 개발 모드 설정
+   VITE_DEV_MODE=true
+   ```
+
+4. **Cloudflare Workers 설정**
+   
+   `library-checker/.dev.vars` 파일 생성:
+   ```bash
+   # Supabase 연결 정보
+   SUPABASE_URL=https://your-project.supabase.co
+   SUPABASE_ANON_KEY=your-anon-key
+   
+   # 개발 환경 설정
+   ENVIRONMENT=development
+   DEBUG=true
+   ```
+
+5. **개발 서버 실행**
+   ```bash
+   # 메인 애플리케이션 실행
+   npm run dev
+   
+   # Cloudflare Workers 실행 (별도 터미널)
+   cd library-checker
+   npm run dev
+   ```
+
+### Cloudflare Workers 서버 실행
+
+1. **터미널에서 `library-checker` 디렉토리로 이동:**
+   ```bash
+   cd library-checker
+   ```
+
+2. **의존성 설치:**
+   ```bash
+   npm install
+   ```
+
+3. **개발 서버 시작:**
+   ```bash
+   npm run dev
+   # 또는
+   wrangler dev --test-scheduled --port 8787
+   ```
+
+4. **API 테스트:**
+   ```bash
+   # 상태 확인
+   curl -X GET "http://127.0.0.1:8787"
+   
+   # 도서 검색 테스트
+   curl -X POST "http://127.0.0.1:8787" \
+     -H "Content-Type: application/json" \
+     -d '{"isbn": "9788934985822", "title": "아몬드", "gyeonggiTitle": "아몬드"}'
+   ```
+
+## 🧪 테스트 파일 관리
+
+### temp 폴더 사용 지침
+
+프로젝트 개발 중 생성되는 테스트 파일들은 **반드시 `temp` 폴더 내에서 관리**해야 합니다.
+
+#### 📁 temp 폴더 구조
+- `temp/tests/title-processing/` - 제목 처리 로직 테스트
+- `temp/tests/api-testing/` - API 연동 테스트  
+- `temp/tests/ui-testing/` - UI 관련 테스트
+- `temp/screenshots/` - 개발 과정 스크린샷
+
+#### 🔧 테스트 파일 생성 규칙
+1. **위치**: 프로젝트 최상단이 아닌 `temp/tests/` 하위에 생성
+2. **명명**: `test_[기능명]_[날짜].[확장자]` 형식 사용
+3. **정리**: 개발 완료 후 즉시 정리
+4. **백업**: 중요한 실험 결과는 적절한 위치에 백업
+
+#### ⚠️ 주의사항
+- **금지**: 프로젝트 최상단에 테스트 파일 생성
+- **보안**: 민감한 정보 포함 파일은 temp 폴더에도 저장 금지
+- **정리**: 클로드 세션 종료 전 불필요한 파일들 정리
+- **Git**: temp 폴더 대부분 파일은 `.gitignore`에 포함됨
+
+#### 💡 베스트 프랙티스
+1. 테스트 전 `temp/README.md` 가이드라인 확인
+2. 테스트 파일은 해당 기능별 폴더에 분류
+3. 세션 종료 시 또는 기능 개발 완료 시 정리
+4. 장기적으로 필요한 파일만 적절한 위치로 이동
+
+### 디버깅 워크플로우
+1. **문제 정의** → 2. **temp/tests/에 테스트 파일 생성** → 3. **실험 및 검증** → 4. **결과 적용** → 5. **테스트 파일 정리**
+
+## 📊 API 명세
+
+### 알라딘 도서 검색 API
+- **엔드포인트**: `http://www.aladin.co.kr/ttb/api/ItemSearch.aspx`
+- **인증**: TTB Key 필요
+- **응답 형식**: JSON/XML
+- **주요 파라미터**:
+  - `Query`: 검색어
+  - `QueryType`: 검색 유형 (Title, Author, Publisher 등)
+  - `MaxResults`: 최대 결과 수
+  - `output`: 출력 형식 (JSON)
+
+### 통합 도서관 재고 API (Cloudflare Workers)
+- **로컬**: `http://127.0.0.1:8787`
+- **프로덕션**: `https://library-checker.byungwook-an.workers.dev`
+- **메서드**: POST
+- **요청 형식**:
+  ```json
+  {
+    "isbn": "9788934985822",
+    "title": "아몬드",
+    "gyeonggiTitle": "아몬드"
+  }
+  ```
+- **응답 형식**:
+  ```json
+  {
+    "gwangju_paper": {
+      "book_title": "도서 제목",
+      "availability": [...]
+    },
+    "gyeonggi_ebooks": [...],
+    "gyeonggi_ebook_library": {
+      "library_name": "경기도 전자도서관",
+      "total_count": 1,
+      "available_count": 1,
+      "books": [...]
+    }
+  }
+  ```
+
+### 제목 처리 로직
+
+#### 기본 도서관용 제목 처리 (processBookTitle)
+```typescript
+function processBookTitle(title: string): string {
+  // 한글 외의 문자를 공백으로 변경
+  const processedTitle = title.replace(/[^가-힣\s]/g, ' ');
+  
+  // 공백으로 분리하고 빈 문자열 제거
+  const chunks = processedTitle.split(' ').filter(chunk => chunk.trim() !== '');
+  
+  // 3개 이하면 그대로 반환, 3개 초과면 첫 3개만 반환
+  return chunks.length <= 3 ? chunks.join(' ') : chunks.slice(0, 3).join(' ');
+}
 ```
 
-## 🧪 테스팅 전략
-
-### 타입 검증
-```bash
-# TypeScript 컴파일 체크
-npm run build
-
-# 타입 체크만 실행
-npx tsc --noEmit
+#### 경기도 전자도서관용 제목 처리 (processGyeonggiEbookTitle)
+```typescript
+function processGyeonggiEbookTitle(title: string): string {
+  // 특수문자 목록 (쉼표, 하이픈, 콜론, 세미콜론, 괄호 등)
+  const specialChars = /[,\-:;()[\]{}]/;
+  
+  // 특수문자가 있으면 그 위치까지만 추출
+  let processedTitle = title;
+  const match = title.search(specialChars);
+  if (match !== -1) {
+    processedTitle = title.substring(0, match).trim();
+  }
+  
+  // 공백으로 분리하고 빈 문자열 제거
+  const words = processedTitle.split(' ').filter(word => word.trim() !== '');
+  
+  // 최대 3단어까지만 사용
+  return words.slice(0, 3).join(' ');
+}
 ```
 
-### API 응답 검증
-- 모든 외부 API 응답은 Zod 스키마로 런타임 검증
-- 개발 환경에서 `APITest.tsx` 컴포넌트로 API 동작 확인 (간소화된 UI)
+## 🔒 보안 고려사항
 
-### Cloudflare Workers 로컬 테스트
-1.  **`library-checker` 디렉토리로 이동:**
-    ```bash
-    cd D:\Vibe_Coding\my_bookstation\library-checker
-    ```
-2.  **Workers 서버 실행:**
-    ```bash
-    npx wrangler dev src\index.js --port 8787 --local
-    ```
-    *   서버 종료는 터미널에서 `Ctrl + C`를 누릅니다.
-3.  **프론트엔드에서 테스트:**
-    *   `D:\Vibe_Coding\my_bookstation`에서 `npm run dev`로 프론트엔드 서버를 실행합니다.
-    *   앱에서 도서 검색 및 재고 확인 기능을 테스트합니다.
+### 환경 변수 관리
+- **개발**: `.env.local` 파일 사용 (Git 제외)
+- **프로덕션**: Vercel/Netlify 환경 변수 설정
+- **Workers**: `.dev.vars` 파일 사용 (Git 제외)
 
-## 🚀 배포
+### API 키 보호
+- 클라이언트 사이드에서 민감한 키 노출 금지
+- Cloudflare Workers를 통한 API 프록시
+- Supabase RLS(Row Level Security) 활용
 
-### Vercel 배포 (권장)
-1. GitHub 연동
-2. 환경 변수 설정
-3. 자동 배포 파이프라인 구성
+### 사용자 데이터 보호
+- Supabase의 내장 보안 기능 활용
+- 사용자별 데이터 격리
+- HTTPS 강제 사용
 
-### 환경별 설정
-- **개발**: `npm run dev` (CORS 프록시 사용)
-- **프로덕션**: `/api/search` 엔드포인트 (자체 백엔드 프록시)
+## 🐛 트러블슈팅
 
-## 🔧 트러블슈팅
+### 일반적인 문제들
 
-### 자주 발생하는 문제
-
-1. **TypeScript 컴파일 에러**
-   - `TYPESCRIPT_GUIDELINES.md` 참조
-   - interface 대신 type 사용 권장
-
-2. **CORS 에러**
+1. **CORS 에러**
    - 개발 환경: corsproxy.io 사용
    - 프로덕션 환경: 백엔드 프록시 설정 필요
+
+2. **알라딘 API 응답 지연**
+   - 타임아웃 설정 확인 (30초)
+   - 네트워크 상태 점검
 
 3. **Supabase 연결 에러**
    - 환경 변수 확인
@@ -295,11 +391,96 @@ npx tsc --noEmit
    - `estimateSize` 값과 실제 행 높이 일치 여부 검증
    - `overscan` 값 조정으로 스크롤 성능 최적화
 
+5. **Cloudflare Workers 디버깅**
+   ```bash
+   # 실시간 로그 확인
+   wrangler tail
+   
+   # 로컬 디버깅
+   wrangler dev --test-scheduled --port 8787
+   ```
+
+### 성능 최적화
+
+1. **번들 크기 최적화**
+   ```bash
+   # 번들 분석
+   npm run build
+   npm run analyze
+   ```
+
+2. **가상화 설정 최적화**
+   - 대용량 데이터 처리 시 `@tanstack/react-virtual` 사용
+   - 적절한 `overscan` 값 설정
+
+3. **API 응답 캐싱**
+   - 브라우저 캐시 활용
+   - 적절한 Cache-Control 헤더 설정
+
 ### 디버깅 도구
 - **React Developer Tools**: 컴포넌트 상태 확인
 - **Browser DevTools**: 네트워크 요청 모니터링
 - **Zustand DevTools**: 상태 변화 추적
+- **Wrangler Tail**: Cloudflare Workers 로그 실시간 확인
+
+## 🚀 배포
+
+### 프론트엔드 배포 (Vercel)
+1. **Vercel 프로젝트 생성**
+2. **환경 변수 설정**
+3. **자동 배포 설정**
+
+### Cloudflare Workers 배포
+```bash
+cd library-checker
+npm run deploy
+```
+
+### 환경별 설정
+- **개발**: 로컬 개발 서버
+- **스테이징**: 테스트용 배포 환경
+- **프로덕션**: 실제 서비스 환경
+
+## 📋 코딩 컨벤션
+
+### TypeScript 규칙
+- 모든 함수와 변수에 타입 명시
+- `interface` 사용 권장 (`type` 대신)
+- Enum보다는 Union Type 사용
+
+### React 컨벤션
+- 함수형 컴포넌트 사용
+- Custom Hook 활용으로 로직 분리
+- Props는 interface로 정의
+
+### 파일 구조 규칙
+- 컴포넌트는 PascalCase
+- 서비스 파일은 camelCase.service.ts
+- 타입 정의는 별도 파일로 분리
+
+### UI/UX 컨벤션
+- **아이콘 시스템**: `components/Icons.tsx`에서 통일된 Lucide React 아이콘 사용
+- **아이콘 사용법**: 직접 Lucide import 금지, Icons.tsx의 래핑된 컴포넌트 사용
+- **아이콘 크기**: `w-3 h-3` (작은), `w-5 h-5` (일반), `w-6 h-6` (큰) 표준 사용
+- **아이콘 색상**: Tailwind 색상 시스템 준수 (`text-green-500`, `text-red-400` 등)
+
+## 📚 참고 자료
+
+### 공식 문서
+- [React 19 Documentation](https://react.dev/)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+- [Vite Guide](https://vitejs.dev/guide/)
+- [Supabase Docs](https://supabase.com/docs)
+- [Cloudflare Workers](https://developers.cloudflare.com/workers/)
+
+### 사용된 라이브러리
+- [Zustand](https://github.com/pmndrs/zustand)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Lucide React](https://lucide.dev/guide/packages/lucide-react)
+- [Zod](https://zod.dev/)
+- [React Virtual](https://tanstack.com/virtual/v3)
 
 ---
 
-*문서 최종 수정일: 2025-08-09*
+**문서 최종 수정일**: 2025-08-09  
+**작성자**: 개발팀

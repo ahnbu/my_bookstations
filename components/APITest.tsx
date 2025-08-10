@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { LibraryStockResponse } from '../types';
-import { SearchIcon } from './Icons';
+import { SearchIcon, AlertCircleIcon, BookIcon } from './Icons';
 import Spinner from './Spinner';
 import { fetchBookAvailability, processBookTitle, LibraryApiResponse } from '../services/unifiedLibrary.service';
 
@@ -113,7 +113,10 @@ const APITest: React.FC = () => {
         <div className="space-y-4">
           {error && (
             <div className="bg-red-900/50 border border-red-600 rounded-lg p-4">
-              <h4 className="font-bold text-red-400 mb-2">❌ 오류 발생</h4>
+              <h4 className="font-bold text-red-400 mb-2 flex items-center">
+                <AlertCircleIcon className="w-5 h-5 mr-2" />
+                오류 발생
+              </h4>
               <pre className="text-red-300 whitespace-pre-wrap text-sm">{error}</pre>
             </div>
           )}
@@ -121,7 +124,10 @@ const APITest: React.FC = () => {
           {/* Paper Book Results */}
           {paperResult && (
             <div className="bg-gray-900/50 rounded-lg p-4">
-              <h4 className="font-bold text-green-400 mb-2">📚 종이책 재고 결과</h4>
+              <h4 className="font-bold text-green-400 mb-2 flex items-center">
+                <BookIcon className="w-5 h-5 mr-2" />
+                종이책 재고 결과
+              </h4>
               <div className="bg-gray-800 rounded p-3 font-mono text-sm text-gray-300 overflow-auto max-h-64">
                 <pre className="whitespace-pre-wrap break-all">{JSON.stringify(paperResult, null, 2)}</pre>
               </div>
