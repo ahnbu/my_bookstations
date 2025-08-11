@@ -71,9 +71,18 @@ export function filterGyeonggiEbookByIsbn(
   
   // 필터링된 책들로 카운트 재계산
   const totalCount = matchedBooks.length
-  const availableCount = matchedBooks.filter(book => 
-    book.status === '대출가능'
-  ).length
+  const availableCount = matchedBooks.filter(book => {
+    // 소장형의 경우 isLoanable 필드 확인
+    if (book.type === '소장형') {
+      return book.isLoanable === true
+    }
+    // 구독형의 경우 available 필드 확인
+    if (book.type === '구독형') {
+      return book.available === true
+    }
+    // 기존 status 필드가 있는 경우 호환성 유지
+    return book.status === '대출가능'
+  }).length
   const unavailableCount = totalCount - availableCount
   
   // 소장형과 구독형 개수 계산

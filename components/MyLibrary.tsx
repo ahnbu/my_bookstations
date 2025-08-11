@@ -24,15 +24,14 @@ const MyLibrary: React.FC = () => {
   const { session } = useAuthStore();
   const {
     myLibraryBooks,
+    sortConfig,
+    sortLibrary,
     removeFromLibrary,
     exportToCSV,
-    refreshStock,
     refreshingIsbn,
     refreshEBookInfo,
     refreshingEbookId,
     refreshAllBookInfo,
-    sortConfig,
-    sortLibrary,
     updateReadStatus,
     updateRating,
   } = useBookStore();
@@ -129,8 +128,12 @@ const MyLibrary: React.FC = () => {
     return () => window.removeEventListener('resize', updateColumns);
   }, []);
 
-  // Background refresh for books missing detailed stock info
+  // Background refresh for books missing detailed stock info - 비활성화
   useEffect(() => {
+    // 백그라운드 재고 업데이트 비활성화 - 사용자가 명시적으로 요청할 때만 실행
+    setBackgroundRefreshComplete(true);
+    
+    /* 
     if (!backgroundRefreshComplete && myLibraryBooks.length > 0) {
       const booksNeedingDetailedInfo = myLibraryBooks.filter(book => 
         book.toechonStock?.total > 0 && !book.detailedStockInfo?.gwangju_paper?.availability
@@ -155,6 +158,7 @@ const MyLibrary: React.FC = () => {
         setBackgroundRefreshComplete(true);
       }
     }
+    */
   }, [myLibraryBooks, backgroundRefreshComplete, refreshAllBookInfo]);
 
   const rowVirtualizer = useVirtualizer({

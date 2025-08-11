@@ -21,7 +21,13 @@ const APITest: React.FC = () => {
   
   // Store에서 검색 결과와 선택된 책 가져오기
   const { searchResults, selectedBook } = useBookStore();
-  const { isBookModalOpen, closeBookModal } = useUIStore();
+  const { isBookModalOpen, closeBookModal, setAPITestMode } = useUIStore();
+
+  // API 테스트 모드 활성화/비활성화
+  useEffect(() => {
+    setAPITestMode(true);
+    return () => setAPITestMode(false);
+  }, [setAPITestMode]);
 
   // 복사 기능 함수
   const copyToClipboard = async (text: string, label: string) => {
@@ -80,7 +86,7 @@ const APITest: React.FC = () => {
   const processedTitle = title ? processBookTitle(title) : '';
 
   return (
-    <div className="mt-12 animate-fade-in">
+    <div className="mt-12 animate-fade-in api-test-container">
       <h2 className="text-3xl font-bold text-white mb-6">API 테스트</h2>
       
       <div className="bg-gray-800 rounded-lg shadow-xl p-6">
@@ -95,7 +101,7 @@ const APITest: React.FC = () => {
                 {searchResults.map((book) => (
                   <div 
                     key={book.isbn13}
-                    onClick={() => useBookStore.getState().selectBook(book)}
+                    onClick={() => useBookStore.getState().selectBook(book, { scroll: false })}
                     className={`p-3 rounded cursor-pointer transition-colors ${
                       selectedBook?.isbn13 === book.isbn13 
                         ? 'bg-blue-600 text-white' 
@@ -208,7 +214,7 @@ const APITest: React.FC = () => {
                   <CopyIcon className="w-4 h-4" />
                 </button>
               </div>
-              <div className="bg-gray-800 rounded p-3 font-mono text-sm text-gray-300 overflow-auto max-h-64">
+              <div className="bg-gray-800 rounded p-3 font-mono text-sm text-gray-300 overflow-auto max-h-96">
                 <pre className="whitespace-pre-wrap break-all">{JSON.stringify(aladinResult, null, 2)}</pre>
               </div>
             </div>
@@ -230,7 +236,7 @@ const APITest: React.FC = () => {
                   <CopyIcon className="w-4 h-4" />
                 </button>
               </div>
-              <div className="bg-gray-800 rounded p-3 font-mono text-sm text-gray-300 overflow-auto max-h-64">
+              <div className="bg-gray-800 rounded p-3 font-mono text-sm text-gray-300 overflow-auto max-h-96">
                 <pre className="whitespace-pre-wrap break-all">{JSON.stringify(fullApiResult, null, 2)}</pre>
               </div>
             </div>

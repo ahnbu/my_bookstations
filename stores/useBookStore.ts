@@ -19,7 +19,7 @@ interface BookState {
 
   // Actions
   searchBooks: (query: string, searchType: string) => Promise<void>;
-  selectBook: (book: AladdinBookItem | SelectedBook) => void;
+  selectBook: (book: AladdinBookItem | SelectedBook, options?: { scroll?: boolean }) => void;
   unselectBook: () => void;
   addToLibrary: () => Promise<void>;
   removeFromLibrary: (id: number) => Promise<void>;
@@ -84,8 +84,8 @@ export const useBookStore = create<BookState>(
               .filter((book): book is SelectedBook => book !== null);
 
             set({ myLibraryBooks: libraryBooks });
-            // 라이브러리 로드 후 누락된 전자책 ISBN13 업데이트 시작
-            get().updateMissingEbookIsbn13();
+            // 자동 전자책 정보 업데이트 제거 - 사용자가 명시적으로 요청할 때만 실행
+            // get().updateMissingEbookIsbn13();
         } catch (error) {
             console.error('Error fetching user library:', error);
             setNotification({ message: '서재 정보를 불러오는 데 실패했습니다.', type: 'error' });
@@ -164,11 +164,19 @@ export const useBookStore = create<BookState>(
         }
       },
       
-      selectBook: (book) => {
+      selectBook: (book, options = { scroll: true }) => {
+        console.log('selectBook called with:', book);
         set({ selectedBook: book });
+        console.log('selectedBook set to:', book);
         useUIStore.getState().closeBookModal();
-        // Scroll to the top to see the details view
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        // API 테스트 모드에서는 스크롤하지 않음
+        const { isAPITestMode } = useUIStore.getState();
+        
+        // Scroll to the top to see the details view (선택적, API 테스트 모드 제외)
+        if (options.scroll && !isAPITestMode) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
       },
 
       unselectBook: () => {
@@ -220,8 +228,10 @@ export const useBookStore = create<BookState>(
                 myLibraryBooks: [newBookWithId, ...state.myLibraryBooks]
             }));
             
-            // After adding, trigger a background stock and ebook refresh.
-            get().refreshAllBookInfo(newBookWithId.id, newBookWithId.isbn13, newBookWithId.title);
+            // 비동기 백그라운드 재고 조회 실행 (사용자 대기 시간 최소화)
+            setTimeout(() => {
+                get().refreshAllBookInfo(newBookWithId.id, newBookWithId.isbn13, newBookWithId.title);
+            }, 100); // 100ms 지연으로 UI 응답성 보장
 
         } catch(error) {
             console.error("Error adding book to library:", error);

@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { PlusIcon, ArrowLeftIcon, BookOpenIcon, RefreshIcon } from './Icons';
 import { useBookStore } from '../stores/useBookStore';
 import { useUIStore } from '../stores/useUIStore';
@@ -17,7 +17,7 @@ const createSearchSubject = (title: string): string => {
   return chunks.slice(0, 3).join(' ');
 };
 
-const renderStockInfo = (libraryName: string, stock?: StockInfo, bookTitle: string, detailedStockInfo?: any) => {
+const renderStockInfo = (libraryName: string, stock: StockInfo | undefined, bookTitle: string, detailedStockInfo?: any) => {
     if (!stock) {
         return <div className="flex justify-between items-center"><span>{libraryName}:</span> <span className="text-gray-500">정보 없음</span></div>;
     }
@@ -86,39 +86,43 @@ const BookDetails: React.FC = () => {
     unselectBook,
     updateReadStatus,
     updateRating,
-    refreshStock,
     refreshingIsbn,
+    refreshAllBookInfo,
   } = useBookStore();
   const { session } = useAuthStore();
   const { openBookModal } = useUIStore();
+  
+  // 디버깅을 위한 로그 추가
+  useEffect(() => {
+    console.log('BookDetails - selectedBook changed:', selectedBook);
+  }, [selectedBook]);
+  
+  // 로딩 상태 추가
+  const [isAdding, setIsAdding] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   const isBookInLibrary = useMemo(() => {
     if (!selectedBook) return false;
     return myLibraryBooks.some(b => b.isbn13 === selectedBook.isbn13);
   }, [selectedBook, myLibraryBooks]);
 
-  if (!selectedBook) {
-    return (
-      <div className="text-center text-gray-500 mt-16 p-8 bg-gray-800/50 rounded-lg shadow-inner">
-        <p className="text-lg">검색 후 도서를 선택하거나, 내 서재의 도서 제목을 클릭해주세요.</p>
-        <p className="mt-2 text-sm">책 제목을 입력하고 검색 버튼을 누르면, 검색 결과가 팝업으로 표시됩니다.</p>
-      </div>
-    );
-  }
-
-  const isFromLibrary = 'id' in selectedBook;
+  const isFromLibrary = selectedBook ? 'id' in selectedBook : false;
   const bookFromLibrary = isFromLibrary ? (selectedBook as SelectedBook) : null;
-  
-  const [isAdding, setIsAdding] = useState(false);
+  const hasEbookLink = selectedBook?.subInfo?.ebookList?.[0]?.link;
 
   const handleAddClick = async () => {
-    if (isAdding || isBookInLibrary) return;
+    if (isAdding || isBookInLibrary || !selectedBook) return;
     
     setIsAdding(true);
+    setIsLoading(true);
     try {
       await addToLibrary();
+      console.log('도서가 서재에 성공적으로 추가되었습니다.');
+    } catch (error) {
+      console.error('도서 추가 중 오류 발생:', error);
     } finally {
       setIsAdding(false);
+      setIsLoading(false);
     }
   }
   
@@ -127,28 +131,161 @@ const BookDetails: React.FC = () => {
     openBookModal();
   };
 
+  // 도서가 선택되지 않은 경우
+  if (!selectedBook) {
+    return (
+      <div className="text-center text-gray-500 mt-16 p-8 bg-gray-800/50 rounded-lg shadow-inner">
+        <div className="mb-6">
+          <div className="w-16 h-16 mx-auto mb-4 bg-gray-700 rounded-full flex items-center justify-center">
+            <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 5.477 5.754 5 7.5 5s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 19 16.5 19c-1.746 0-3.332-.523-4.5-1.253" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold text-gray-300 mb-2">도서를 선택해주세요</h3>
+          <p className="text-lg text-gray-400 mb-2">검색 후 도서를 선택하거나, 내 서재의 도서 제목을 클릭해주세요.</p>
+          <p className="text-sm text-gray-500">책 제목을 입력하고 검색 버튼을 누르면, 검색 결과가 팝업으로 표시됩니다.</p>
+        </div>
+        
+
+      </div>
+    );
+  }
+
+  // selectedBook이 있지만 필수 속성이 없는 경우 처리
+  if (!selectedBook.title || !selectedBook.author) {
+    return (
+      <div className="text-center text-gray-500 mt-16 p-8 bg-gray-800/50 rounded-lg shadow-inner">
+        <div className="mb-6">
+          <div className="w-16 h-16 mx-auto mb-4 bg-red-600 rounded-full flex items-center justify-center">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold text-red-400 mb-2">도서 정보 불완전</h3>
+          <p className="text-lg text-gray-400 mb-2">선택된 도서 정보가 불완전합니다.</p>
+          <p className="text-sm text-gray-500">다른 도서를 선택하거나 다시 검색해주세요.</p>
+        </div>
+        
+        <div className="mt-6 p-4 bg-gray-700 rounded-lg text-left">
+          <p className="text-xs text-gray-400 mb-2">문제가 있는 도서 정보:</p>
+          <p className="text-xs text-gray-500">title: {selectedBook.title || '없음'}</p>
+          <p className="text-xs text-gray-500">author: {selectedBook.author || '없음'}</p>
+          <p className="text-xs text-gray-500">isbn13: {selectedBook.isbn13 || '없음'}</p>
+          <p className="text-xs text-gray-500">cover: {selectedBook.cover || '없음'}</p>
+        </div>
+        
+        <div className="mt-6 flex gap-3 justify-center">
+          <button
+            onClick={() => unselectBook()}
+            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition-colors"
+          >
+            도서 선택 해제
+          </button>
+          <button
+            onClick={() => openBookModal()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors"
+          >
+            다시 검색
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // selectedBook이 있지만 cover 이미지가 없는 경우 처리
+  if (!selectedBook.cover) {
+    return (
+      <div className="text-center text-gray-500 mt-16 p-8 bg-gray-800/50 rounded-lg shadow-inner">
+        <div className="mb-6">
+          <div className="w-16 h-16 mx-auto mb-4 bg-yellow-600 rounded-full flex items-center justify-center">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold text-yellow-400 mb-2">도서 표지 이미지 누락</h3>
+          <p className="text-lg text-gray-400 mb-2">도서 표지 이미지를 불러올 수 없습니다.</p>
+          <p className="text-sm text-gray-500">다른 도서를 선택하거나 다시 검색해주세요.</p>
+        </div>
+        
+        <div className="mt-6 p-4 bg-gray-700 rounded-lg text-left">
+          <p className="text-xs text-gray-400 mb-2">도서 정보:</p>
+          <p className="text-xs text-gray-500">제목: {selectedBook.title}</p>
+          <p className="text-xs text-gray-500">저자: {selectedBook.author}</p>
+          <p className="text-xs text-gray-500">ISBN: {selectedBook.isbn13}</p>
+        </div>
+        
+        <div className="mt-6 flex gap-3 justify-center">
+          <button
+            onClick={() => unselectBook()}
+            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition-colors"
+          >
+            도서 선택 해제
+          </button>
+          <button
+            onClick={() => openBookModal()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors"
+          >
+            다시 검색
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="mt-8 p-6 bg-gray-800 rounded-lg shadow-xl animate-fade-in">
+    <div className="relative mt-8 p-6 bg-gray-800 rounded-lg shadow-xl animate-fade-in">
+      {isLoading && (
+        <div className="absolute inset-0 bg-gray-800/80 flex items-center justify-center rounded-lg z-10">
+          <div className="text-center">
+            <Spinner className="w-8 h-8 mx-auto mb-2" />
+            <p className="text-gray-300">처리 중...</p>
+          </div>
+        </div>
+      )}
+      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1 flex justify-center items-start">
-          <img src={selectedBook.cover.replace('coversum', 'cover')} alt={selectedBook.title} className="w-48 h-auto object-cover rounded-lg shadow-lg bg-gray-700" />
+          <img 
+            src={selectedBook.cover.replace('coversum', 'cover')} 
+            alt={selectedBook.title} 
+            className="w-48 h-auto object-cover rounded-lg shadow-lg bg-gray-700"
+            onError={(e) => {
+              console.error('이미지 로딩 실패:', selectedBook.cover);
+              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjI4OCIgdmlld0JveD0iMCAwIDE5MiAyODgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMjg4IiBmaWxsPSIjMzc0MTUxIi8+CjxwYXRoIGQ9Ik05NiAxNDRDMTA2LjA1OSAxNDQgMTE0IDEzNi4wNTkgMTE0IDEyNkMxMTQgMTE1Ljk0MSAxMDYuMDU5IDEwOCA5NiAxMDhDODUuOTQxIDExMCA3OCAxMTcuOTQxIDc4IDEyOEM3OCAxMzguMDU5IDg1Ljk0MSAxNDYgOTYgMTQ2WiIgZmlsbD0iIzZCNzM4MCIvPgo8cGF0aCBkPSJNNjQgMTY4VjE5MkgxMjhWMTY4QzEyOCAxNTcuOTQxIDEyMC4wNTkgMTUwIDExMCAxNTBINzRDNjMuOTQxIDE1MCA1NiAxNTcuOTQxIDU2IDE2OFoiIGZpbGw9IiM2QjczODAiLz4KPC9zdmc+';
+            }}
+          />
         </div>
         <div className="md:col-span-2 text-gray-200">
+          
           <h2 className="text-3xl font-bold text-white mb-2">{selectedBook.title}</h2>
-          <p className="text-lg text-gray-300 mb-1"><strong>저자:</strong> {selectedBook.author.replace(/\s*\([^)]*\)/g, '')}</p>
-          <p className="text-md text-gray-400 mb-1"><strong>출판사:</strong> {selectedBook.publisher}</p>
-          <p className="text-md text-gray-400 mb-1"><strong>출간일:</strong> {selectedBook.pubDate}</p>
-          <p className="text-md text-gray-400 mb-1"><strong>ISBN:</strong> {selectedBook.isbn13}</p>
+          <p className="text-lg text-gray-300 mb-1">
+            <strong>저자:</strong> {selectedBook.author ? selectedBook.author.replace(/\s*\([^)]*\)/g, '') : '정보 없음'}
+          </p>
+          <p className="text-md text-gray-400 mb-1">
+            <strong>출판사:</strong> {selectedBook.publisher || '정보 없음'}
+          </p>
+          <p className="text-md text-gray-400 mb-1">
+            <strong>출간일:</strong> {selectedBook.pubDate || '정보 없음'}
+          </p>
+          <p className="text-md text-gray-400 mb-1">
+            <strong>ISBN:</strong> {selectedBook.isbn13 || '정보 없음'}
+          </p>
           {selectedBook.subInfo?.ebookList?.[0]?.isbn13 && (
-            <p className="text-md text-gray-400 mb-4"><strong>ISBN:</strong> {selectedBook.subInfo.ebookList[0].isbn13} (전자책)</p>
+            <p className="text-md text-gray-400 mb-4">
+              <strong>전자책 ISBN:</strong> {selectedBook.subInfo.ebookList[0].isbn13}
+            </p>
           )}
           
-          <div className="flex items-baseline mb-4">
-             <p className="text-2xl font-bold text-blue-400">{selectedBook.priceSales.toLocaleString()}원</p>
-             <p className="text-md text-gray-500 line-through ml-3">{selectedBook.priceStandard.toLocaleString()}원</p>
-          </div>
+          {selectedBook.priceSales && selectedBook.priceStandard && (
+            <div className="flex items-baseline mb-4">
+              <p className="text-2xl font-bold text-blue-400">{selectedBook.priceSales.toLocaleString()}원</p>
+              <p className="text-md text-gray-500 line-through ml-3">{selectedBook.priceStandard.toLocaleString()}원</p>
+            </div>
+          )}
 
-          <p className="text-sm text-gray-400 leading-relaxed mb-6">{selectedBook.description || "제공된 설명이 없습니다."}</p>
+          <p className="text-sm text-gray-400 leading-relaxed mb-6">
+            {selectedBook.description || "제공된 설명이 없습니다."}
+          </p>
           
           <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
             <button
@@ -188,67 +325,22 @@ const BookDetails: React.FC = () => {
               <BookOpenIcon className="w-5 h-5" />
               알라딘 보기
             </a>
-            {selectedBook.subInfo?.ebookList?.[0]?.link && (
-              <a
-                href={selectedBook.subInfo.ebookList[0].link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2 bg-sky-500 text-white font-semibold rounded-lg hover:bg-sky-600 transition-colors duration-300"
-              >
-                <BookOpenIcon className="w-5 h-5" />
-                전자책 보기
-              </a>
-            )}
+            <a
+              href={hasEbookLink || '#'}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => !hasEbookLink && e.preventDefault()}
+              className={`w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2 bg-sky-500 text-white font-semibold rounded-lg transition-colors duration-300 ${
+                !hasEbookLink ? 'opacity-50 cursor-not-allowed' : 'hover:bg-sky-600'
+              }`}
+              title={!hasEbookLink ? "알라딘에서 제공하는 전자책 정보가 없습니다" : "알라딘에서 전자책 보기"}
+            >
+              <BookOpenIcon className="w-5 h-5" />
+              전자책 보기
+            </a>
           </div>
         </div>
       </div>
-      {isFromLibrary && bookFromLibrary && (
-            <div className="mt-8 pt-6 border-t border-gray-700">
-                <h3 className="text-2xl font-bold text-white mb-4">내 서재 정보</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-900/50 rounded-lg p-6">
-                    {/* Left side: Status & Rating */}
-                    <div className="space-y-6">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2">읽음 상태</label>
-                            <select
-                                value={bookFromLibrary.readStatus}
-                                onChange={(e) => updateReadStatus(bookFromLibrary.id, e.target.value as ReadStatus)}
-                                className="bg-gray-700 border-gray-600 text-white text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-                            >
-                                <option value="읽지 않음">읽지 않음</option>
-                                <option value="읽는 중">읽는 중</option>
-                                <option value="완독">완독</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2">나의 별점</label>
-                            <StarRating
-                                rating={bookFromLibrary.rating}
-                                onRatingChange={(newRating) => updateRating(bookFromLibrary.id, newRating)}
-                            />
-                        </div>
-                    </div>
-                    {/* Right side: Stock Info */}
-                    <div>
-                        <div className="flex justify-between items-center mb-3">
-                             <h4 className="text-lg font-semibold text-white">도서관 재고 현황</h4>
-                             <button
-                                onClick={() => refreshingIsbn !== bookFromLibrary.isbn13 && refreshStock(bookFromLibrary.id, bookFromLibrary.isbn13)}
-                                disabled={refreshingIsbn === bookFromLibrary.isbn13}
-                                className="p-2 text-gray-400 hover:text-white rounded-full hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-wait"
-                                title="재고 새로고침"
-                             >
-                                {refreshingIsbn === bookFromLibrary.isbn13 ? <Spinner /> : <RefreshIcon className="w-5 h-5" />}
-                             </button>
-                        </div>
-                        <div className="space-y-2 text-sm text-gray-300 bg-gray-800 p-4 rounded-md">
-                            {renderStockInfo('퇴촌 도서관', bookFromLibrary.toechonStock, bookFromLibrary.title, bookFromLibrary.detailedStockInfo)}
-                            {renderStockInfo('기타 도서관', bookFromLibrary.otherStock, bookFromLibrary.title, bookFromLibrary.detailedStockInfo)}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )}
     </div>
   );
 };

@@ -81,7 +81,7 @@ const renderStockInfo = (libraryName: string, stock?: StockInfo, bookTitle: stri
 
 
 const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ bookId, onClose }) => {
-    const { updateReadStatus, updateRating, refreshStock, refreshingIsbn, refreshEBookInfo, refreshingEbookId, refreshAllBookInfo } = useBookStore();
+    const { updateReadStatus, updateRating, refreshingIsbn, refreshEBookInfo, refreshingEbookId, refreshAllBookInfo } = useBookStore();
     const book = useBookStore(state => state.myLibraryBooks.find(b => b.id === bookId));
 
     // If the book is deleted while the modal is open, close the modal.

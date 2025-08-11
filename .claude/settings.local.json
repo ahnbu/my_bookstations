@@ -20,7 +20,11 @@
       "Bash(curl:*)",
       "Bash(touch:*)",
       "Bash(npx wrangler dev:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(where claude)",
+      "Bash(claude config list)",
+      "Bash(claude mcp:*)",
+      "Bash(uvx:*)"
     ],
     "deny": [],
     "defaultMode": "plan"
