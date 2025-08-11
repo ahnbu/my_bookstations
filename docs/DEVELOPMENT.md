@@ -296,7 +296,8 @@ my_bookstation/
   {
     "isbn": "9788934985822",
     "title": "아몬드",
-    "gyeonggiTitle": "아몬드"
+    "gyeonggiTitle": "아몬드",
+    "siripTitle": "아몬드"
   }
   ```
 - **응답 형식**:
@@ -306,9 +307,15 @@ my_bookstation/
       "book_title": "도서 제목",
       "availability": [...]
     },
-        "gyeonggi_ebook_education": [...],
+    "gyeonggi_ebook_education": [...],
     "gyeonggi_ebook_library": {
       "library_name": "경기도 전자도서관",
+      "total_count": 1,
+      "available_count": 1,
+      "books": [...]
+    },
+    "sirip_ebook": {
+      "library_name": "광주시립중앙도서관-전자책",
       "total_count": 1,
       "available_count": 1,
       "books": [...]
@@ -355,7 +362,7 @@ function processGyeonggiEbookTitle(title: string): string {
 
 ## 📚 도서관별 검색어 처리 시스템
 
-프로젝트에서 관리하는 5개 도서관의 크롤링 및 URL 클릭시 search_term 처리 기준을 상세히 정리합니다.
+프로젝트에서 관리하는 6개 도서관의 크롤링 및 URL 클릭시 search_term 처리 기준을 상세히 정리합니다.
 
 ### 도서관 시스템 개요
 
@@ -365,9 +372,10 @@ function processGyeonggiEbookTitle(title: string): string {
 | 기타lib | ISBN 기반 | 제목 기반 | `processBookTitle()` |
 | e북.교육 | 제목 기반 | 제목 기반 | `processBookTitle()` |
 | e북.시독 | 크롤링 없음 | 특수 제목 처리 | 인라인 함수 |
+| e북.시립소장 | 제목 기반 | 특수 제목 처리 | 인라인 함수 |
 | e북.경기 | 제목 기반 | 제목 기반 | `processGyeonggiEbookTitle()` |
 
-### 1. 퇴촌lib (퇴촌도서관)
+### 1. 퇴촌lib (경기도 광주시 퇴촌도서관)
 
 #### 크롤링 처리
 ```javascript
@@ -391,13 +399,13 @@ const toechonSearchUrl = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002
 
 **참고**: `generateLibraryDetailURL` 함수는 현재 사용되지 않음
 - **이전**: `recKey`, `bookKey`, `publishFormCode`를 사용한 상세페이지 직접 접근
-- **현재**: 웹 방화벽 차단으로 인해 제목 기반 검색으로 대체
+- **현재**: 경기도 광주시 퇴촌도서관 웹 방화벽 차단으로 인해 제목 기반 검색으로 대체
 - **함수 위치**: `services/unifiedLibrary.service.ts`
 
 #### 상세페이지 URL 문제점 및 해결방안
 
 **문제 상황**:
-- 퇴촌도서관 상세페이지 URL에 직접 접근 시 웹 방화벽에 의해 차단됨
+- 경기도 광주시 퇴촌도서관 상세페이지 URL에 직접 접근 시 웹 방화벽에 의해 차단됨
 - 에러 메시지: "The request / response that are contrary to the Web firewall security policies have been blocked"
 
 **문제가 발생한 URL 패턴**:
@@ -417,21 +425,21 @@ https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcedetail/detai
 
 **최종 적용된 로직**:
 ```typescript
-// 퇴촌도서관의 경우 안정성을 위해 제목 기반 검색으로 연결
+// 경기도 광주시 퇴촌도서관의 경우 안정성을 위해 제목 기반 검색으로 연결
 // 0(0)인 경우와 동일한 로직 적용
 const toechonSearchUrl = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(subject)}`;
 ```
 
 **적용 효과**:
 - **안정성 향상**: 웹 방화벽 차단 없이 안정적으로 연결
-- **일관성**: 모든 퇴촌도서관 링크가 동일한 방식으로 처리
+- **일관성**: 모든 경기도 광주시 퇴촌도서관 링크가 동일한 방식으로 처리
 - **사용자 경험**: 검색 결과에서 해당 도서를 쉽게 찾을 수 있음
 
-### 2. 기타lib (기타 도서관)
+### 2. 기타lib (경기도 광주시 퇴촌도서관 이외 도서관)
 
 #### 크롤링 처리
 ```javascript
-// 퇴촌lib와 동일한 searchGwangjuLibrary() 함수 사용
+// 경기도 광주시 퇴촌도서관과 동일한 searchGwangjuLibrary() 함수 사용
 // ISBN 기반 검색으로 종이책 재고 확인
 ```
 
@@ -442,7 +450,7 @@ const subject = createSearchSubject(book.title); // processBookTitle() 호출
 const otherSearchUrl = `https://lib.gjcity.go.kr/lay1/program/S1T446C461/jnet/resourcessearch/resultList.do?searchType=SIMPLE&searchKey=TITLE&searchLibrary=ALL&searchKeyword=${encodeURIComponent(subject)}`;
 ```
 
-### 3. e북.교육 (경기도교육청 전자책)
+### 3. e북.교육 (경기도 교육청 전자도서관)
 
 #### 크롤링 처리
 ```javascript
@@ -460,7 +468,7 @@ async function searchGyeonggiEbookEducation(searchText, libraryCode) {
 href={`https://lib.goe.go.kr/elib/module/elib/search/index.do?menu_idx=94&search_text=${encodeURIComponent(createSearchSubject(book.title))}&sortField=book_pubdt&sortType=desc&rowCount=20`}
 ```
 
-### 4. e북.시독 (시립도서관 구독형)
+### 4. e북.시독 (경기도 광주시 시립 구독형 전자도서관)
 
 #### 크롤링 처리
 - **크롤링 없음**: 별도의 API가 없으므로 크롤링하지 않음
@@ -490,7 +498,66 @@ const renderSidokEbookCell = (book: SelectedBook) => {
 - 1단계: "해리포터와 마법사의 돌" (하이픈 이후 제거)
 - 2단계: "해리포터와 마법사의 돌" (3단어만 사용)
 
-### 5. e북.경기 (경기도 전자도서관)
+### 5. e북.시립소장 (경기도 광주시 시립 소장형 전자도서관)
+
+#### 크롤링 처리
+```javascript
+// library-checker/src/index.js
+async function searchSiripEbook(searchTitle) {
+  const encodedTitle = encodeURIComponent(searchTitle);
+  const url = `https://lib.gjcity.go.kr:444/elibrary-front/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodedTitle}`;
+  
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+    },
+    signal: AbortSignal.timeout(20000)
+  });
+  
+  return parseSiripEbookHTML(htmlContent, searchTitle);
+}
+```
+
+#### URL 클릭시 처리
+```typescript
+// components/MyLibrary.tsx - renderSiripEbookCell 함수
+const titleForSearch = (() => {
+  let titleForSearch = book.title;
+  const dashIndex = titleForSearch.indexOf('-');
+  const parenthesisIndex = titleForSearch.indexOf('(');
+  
+  // 대시(-) 또는 괄호시작("(") 중 더 앞에 있는 위치를 찾아서 그 이전까지만 사용
+  let cutIndex = -1;
+  if (dashIndex !== -1 && parenthesisIndex !== -1) {
+    cutIndex = Math.min(dashIndex, parenthesisIndex);
+  } else if (dashIndex !== -1) {
+    cutIndex = dashIndex;
+  } else if (parenthesisIndex !== -1) {
+    cutIndex = parenthesisIndex;
+  }
+  
+  if (cutIndex !== -1) {
+    titleForSearch = titleForSearch.substring(0, cutIndex).trim();
+  }
+  return titleForSearch.split(' ').slice(0, 3).join(' ');
+})();
+
+const siripUrl = `https://lib.gjcity.go.kr:444/elibrary-front/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent(titleForSearch)}`;
+```
+
+**특징:**
+- **항상 클릭 가능**: 조회 실패 또는 검색 결과 없음 시에도 직접 검색 유도
+- **제목 최적화**: 하이픈(-) 또는 괄호(() 이전 내용만 사용하여 검색 정확도 향상
+- **3단어 제한**: 검색 범위를 적절히 조절
+
+**처리 예시:**
+- 입력: "해리포터와 마법사의 돌 - 1권"
+- 1단계: "해리포터와 마법사의 돌" (하이픈 이전까지)
+- 2단계: "해리포터와 마법사의" (3단어로 제한)
+
+### 6. e북.경기 (경기도 전자도서관 : 구독형과 소장형 통합)
 
 #### 크롤링 처리
 ```javascript
@@ -569,6 +636,30 @@ const titleForSearch = (() => {
 })();
 ```
 
+#### e북.시립소장 인라인 처리
+```typescript
+// 하이픈(-) 또는 괄호(() 제거 + 3단어 제한
+const titleForSearch = (() => {
+  let titleForSearch = book.title;
+  const dashIndex = titleForSearch.indexOf('-');
+  const parenthesisIndex = titleForSearch.indexOf('(');
+  
+  let cutIndex = -1;
+  if (dashIndex !== -1 && parenthesisIndex !== -1) {
+    cutIndex = Math.min(dashIndex, parenthesisIndex);
+  } else if (dashIndex !== -1) {
+    cutIndex = dashIndex;
+  } else if (parenthesisIndex !== -1) {
+    cutIndex = parenthesisIndex;
+  }
+  
+  if (cutIndex !== -1) {
+    titleForSearch = titleForSearch.substring(0, cutIndex).trim();
+  }
+  return titleForSearch.split(' ').slice(0, 3).join(' ');
+})();
+```
+
 ### URL 패턴 정리
 
 | 도서관 | 기본 URL | 검색 파라미터 | 인코딩 방식 |
@@ -577,6 +668,7 @@ const titleForSearch = (() => {
 | 기타lib | `lib.gjcity.go.kr/lay1/program/...` | `searchKeyword` | `encodeURIComponent()` |
 | e북.교육 | `lib.goe.go.kr/elib/module/...` | `search_text` | `encodeURIComponent()` |
 | e북.시독 | `gjcitylib.dkyobobook.co.kr/search/...` | `schTxt` | `encodeURIComponent()` |
+| e북.시립소장 | `lib.gjcity.go.kr:444/elibrary-front/search/...` | `schTxt` | `encodeURIComponent()` |
 | e북.경기 | `ebook.library.kr/search` | `detailQuery=TITLE:...` | `encodeURIComponent() + replace()` |
 
 ## 🎯 최신 기능 및 개선사항
@@ -770,7 +862,7 @@ const copyToClipboard = async (text: string, label: string) => {
    wrangler dev --test-scheduled --port 8787
    ```
 
-6. **퇴촌도서관 상세페이지 웹 방화벽 차단**
+6. **경기도 광주시 퇴촌도서관 상세페이지 웹 방화벽 차단**
    - **증상**: 상세페이지 URL 접근 시 "Web firewall security policies have been blocked" 에러
    - **원인**: `resourcedetail/detail.do` 경로에 대한 직접 접근 차단
    - **해결**: 제목 기반 검색 결과 페이지로 우회 접근
@@ -816,7 +908,7 @@ const copyToClipboard = async (text: string, label: string) => {
    
    **적용 효과**:
    - **안정성 향상**: 웹 방화벽 차단 없이 안정적으로 연결
-   - **일관성**: 모든 퇴촌도서관 링크가 동일한 방식으로 처리
+   - **일관성**: 모든 경기도 광주시 퇴촌도서관 링크가 동일한 방식으로 처리
    - **사용자 경험**: 검색 결과에서 해당 도서를 쉽게 찾을 수 있음
    - **유지보수성**: 복잡한 URL 파라미터 관리 불필요
    
