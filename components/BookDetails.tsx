@@ -5,6 +5,7 @@ import { useBookStore } from '../stores/useBookStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useAuthStore } from '../stores/useAuthStore';
 import { SelectedBook, ReadStatus, StockInfo } from '../types';
+import { generateLibraryDetailURL, isLibraryStockClickable } from '../services/unifiedLibrary.service';
 import StarRating from './StarRating';
 import Spinner from './Spinner';
 
@@ -16,7 +17,7 @@ const createSearchSubject = (title: string): string => {
   return chunks.slice(0, 3).join(' ');
 };
 
-const renderStockInfo = (libraryName: string, stock?: StockInfo, bookTitle: string) => {
+const renderStockInfo = (libraryName: string, stock?: StockInfo, bookTitle: string, detailedStockInfo?: any) => {
     if (!stock) {
         return <div className="flex justify-between items-center"><span>{libraryName}:</span> <span className="text-gray-500">정보 없음</span></div>;
     }
@@ -28,9 +29,27 @@ const renderStockInfo = (libraryName: string, stock?: StockInfo, bookTitle: stri
     let searchUrl = '';
     let searchTitle = '';
     
-    if (libraryName === '퇴촌 도서관') {
-        searchUrl = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(subject)}`;
-        searchTitle = `퇴촌 도서관에서 '${subject}' 검색`;
+    // 퇴촌도서관의 경우 상세 재고 정보에서 URL 파라미터 확인
+    if (libraryName === '퇴촌 도서관' && detailedStockInfo?.gwangju_paper?.availability) {
+        const toechonItem = detailedStockInfo.gwangju_paper.availability.find((item: any) => 
+            item.소장도서관 === '퇴촌도서관' && 
+            item.recKey && 
+            item.bookKey && 
+            item.publishFormCode
+        );
+        
+        if (toechonItem) {
+            searchUrl = generateLibraryDetailURL(toechonItem.recKey, toechonItem.bookKey, toechonItem.publishFormCode);
+            searchTitle = `퇴촌도서관 상세 페이지로 이동`;
+            console.log('퇴촌도서관 상세 URL 생성:', searchUrl);
+        } else {
+            // 파라미터가 없으면 향상된 검색 URL 사용 (제목 + 저자)
+            const authorName = bookTitle.includes(' - ') ? '' : ` ${bookTitle.split(' by ')[1] || ''}`.trim();
+            const enhancedKeyword = authorName ? `${subject} ${authorName}` : subject;
+            searchUrl = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(enhancedKeyword)}`;
+            searchTitle = `퇴촌 도서관에서 '${enhancedKeyword}' 검색`;
+            console.log('퇴촌도서관 URL 파라미터 없음, 향상된 검색 URL 사용:', enhancedKeyword);
+        }
     } else if (libraryName === '기타 도서관') {
         searchUrl = `https://lib.gjcity.go.kr/lay1/program/S1T446C461/jnet/resourcessearch/resultList.do?searchType=SIMPLE&searchKey=TITLE&searchLibrary=ALL&searchKeyword=${encodeURIComponent(subject)}`;
         searchTitle = `광주시립도서관에서 '${subject}' 검색`;
@@ -209,8 +228,8 @@ const BookDetails: React.FC = () => {
                              </button>
                         </div>
                         <div className="space-y-2 text-sm text-gray-300 bg-gray-800 p-4 rounded-md">
-                            {renderStockInfo('퇴촌 도서관', bookFromLibrary.toechonStock, bookFromLibrary.title)}
-                            {renderStockInfo('기타 도서관', bookFromLibrary.otherStock, bookFromLibrary.title)}
+                            {renderStockInfo('퇴촌 도서관', bookFromLibrary.toechonStock, bookFromLibrary.title, bookFromLibrary.detailedStockInfo)}
+                            {renderStockInfo('기타 도서관', bookFromLibrary.otherStock, bookFromLibrary.title, bookFromLibrary.detailedStockInfo)}
                         </div>
                     </div>
                 </div>

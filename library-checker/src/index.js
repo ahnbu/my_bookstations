@@ -406,6 +406,44 @@ function parseGwangjuHTML(html) {
     const titleMatch = firstBookHtml.match(/<dt[^>]*class[^>]*tit[^>]*>[\s\S]*?<a[^>]*>([^<]+)<\/a>/i);
     let title = titleMatch ? titleMatch[1].trim().replace(/^\d+\.\s*/, '') : "제목 정보 없음";
     
+    // 첫 번째 항목에서 onclick 파라미터 추출 (제목 링크에서)
+    let globalRecKey = null, globalBookKey = null, globalPublishFormCode = null;
+    
+    // 여러 패턴으로 onclick 파라미터 추출 시도
+    const onclickPatterns = [
+      // 패턴 1: 기본 패턴
+      /<a[^>]*onclick\s*=\s*["']javascript:fnSearchResultDetail\(\s*(\d+)\s*,\s*(\d+)\s*,\s*['"]([^'"]+)['"][^>]*>/i,
+      // 패턴 2: dt 태그 내부 패턴 
+      /<dt[^>]*>[\s\S]*?<a[^>]*onclick\s*=\s*["']javascript:fnSearchResultDetail\(\s*(\d+)\s*,\s*(\d+)\s*,\s*['"]([^'"]+)['"][^>]*>/i,
+      // 패턴 3: 공백이 없는 패턴
+      /<a[^>]*onclick=["']javascript:fnSearchResultDetail\((\d+),(\d+),['"]([^'"]+)['"][\s\S]*?>/i
+    ];
+    
+    console.log('HTML 파싱 시작 - 첫 번째 항목에서 onclick 파라미터 검색 중...');
+    console.log('검색 대상 HTML 샘플:', firstBookHtml.substring(0, 500));
+    
+    for (let i = 0; i < onclickPatterns.length; i++) {
+      const match = firstBookHtml.match(onclickPatterns[i]);
+      if (match) {
+        globalRecKey = match[1];
+        globalBookKey = match[2]; 
+        globalPublishFormCode = match[3];
+        console.log(`✅ 패턴 ${i + 1}로 파라미터 추출 성공: recKey=${globalRecKey}, bookKey=${globalBookKey}, publishFormCode=${globalPublishFormCode}`);
+        break;
+      } else {
+        console.log(`❌ 패턴 ${i + 1} 매칭 실패`);
+      }
+    }
+    
+    if (!globalRecKey) {
+      console.log('⚠️ fnSearchResultDetail 파라미터를 찾을 수 없습니다. HTML 구조를 확인하세요.');
+      // HTML에서 fnSearchResultDetail 관련 텍스트 검색
+      const onclickSearchResult = firstBookHtml.match(/fnSearchResultDetail[^)]+\)/gi);
+      if (onclickSearchResult) {
+        console.log('발견된 fnSearchResultDetail 호출:', onclickSearchResult);
+      }
+    }
+    
     const availability = bookItems.map(item => {
         const bookHtml = item[1];
         const library = bookHtml.match(/<dd[^>]*class[^>]*site[^>]*>[\s\S]*?<span[^>]*>도서관:\s*([^<]+)<\/span>/i)?.[1].trim() || "정보 없음";
@@ -423,7 +461,25 @@ function parseGwangjuHTML(html) {
                 dueDate = statusContent.match(/반납예정일:\s*([0-9.-]+)/i)?.[1].trim() || "-";
             }
         }
-        return { '소장도서관': library, '청구기호': callNo, '기본청구기호': baseCallNo, '대출상태': status, '반납예정일': dueDate };
+        
+        // URL 파라미터 추가 - 대출 가능한 상태이고 퇴촌도서관인 경우에만
+        let urlParams = {};
+        if (status === '대출가능' && globalRecKey && globalBookKey && globalPublishFormCode) {
+          urlParams = {
+            recKey: globalRecKey,
+            bookKey: globalBookKey, 
+            publishFormCode: globalPublishFormCode
+          };
+        }
+        
+        return { 
+          '소장도서관': library, 
+          '청구기호': callNo, 
+          '기본청구기호': baseCallNo, 
+          '대출상태': status, 
+          '반납예정일': dueDate,
+          ...urlParams
+        };
     });
 
     return { book_title: title, availability: availability };

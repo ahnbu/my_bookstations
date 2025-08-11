@@ -91,6 +91,22 @@ export type BookData = AladdinBookItem & {
   toechonStock: StockInfo;
   otherStock: StockInfo;
   ebookInfo?: EBookInfo; // New ebook information
+  // 상세 재고 정보 (클릭 가능한 링크를 위한 파라미터 포함)
+  detailedStockInfo?: {
+    gwangju_paper?: {
+      book_title: string;
+      availability: {
+        소장도서관: string;
+        청구기호: string;
+        기본청구기호: string;
+        대출상태: '대출가능' | '대출불가';
+        반납예정일: string;
+        recKey?: string;
+        bookKey?: string;
+        publishFormCode?: string;
+      }[];
+    };
+  };
   addedDate: number;
   readStatus: ReadStatus;
   rating: number;

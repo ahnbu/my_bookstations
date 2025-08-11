@@ -31,7 +31,7 @@ crawling_test/
 
 ### ✅ 통합된 기능들 (library-checker에 포함됨)
 - **경기광주 시립도서관 종이책 크롤링**: `searchGwangjuLibrary()`
-- **경기도교육청 전자책 크롤링**: `searchSingleGyeonggiEbook()`
+- **경기도교육청 전자책 크롤링**: `searchGyeonggiEbookEducation()`
 - **경기도 전자도서관 크롤링**: `searchGyeonggiEbookLibrary()`
 - **Supabase Keep-Alive**: 3일마다 자동 실행
 - **CORS 헤더**: 프론트엔드 연동

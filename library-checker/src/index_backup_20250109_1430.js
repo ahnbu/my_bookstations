@@ -154,7 +154,7 @@ async function searchGwangjuLibrary(isbn) {
   return parseGwangjuHTML(htmlContent);
 }
 
-async function searchSingleGyeonggiEbook(searchText, libraryCode) {
+async function searchGyeonggiEbookEducation(searchText, libraryCode) {
   const url = new URL("https://lib.goe.go.kr/elib/module/elib/search/index.do");
   url.searchParams.set("menu_idx", "94");
   url.searchParams.set("search_text", searchText);

@@ -5,7 +5,7 @@ import { useBookStore } from '../stores/useBookStore';
 import { CloseIcon, RefreshIcon, BookOpenIcon } from './Icons';
 import Spinner from './Spinner';
 import StarRating from './StarRating';
-import { getStatusClass, getStatusEmoji, processBookTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL } from '../services/unifiedLibrary.service';
+import { getStatusClass, getStatusEmoji, processBookTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL, generateLibraryDetailURL, isLibraryStockClickable } from '../services/unifiedLibrary.service';
 import { filterGyeonggiEbookByIsbn } from '../utils/isbnMatcher';
 
 // Use the standardized title processing function from ebook.service
@@ -16,7 +16,7 @@ interface MyLibraryBookDetailModalProps {
   onClose: () => void;
 }
 
-const renderStockInfo = (libraryName: string, stock?: StockInfo, bookTitle: string) => {
+const renderStockInfo = (libraryName: string, stock?: StockInfo, bookTitle: string, detailedStockInfo?: any) => {
     if (typeof stock === 'undefined') {
         return <div className="flex justify-between items-center"><span>{libraryName}:</span> <div className="flex items-center gap-2"><Spinner /><span className="text-gray-400">확인중...</span></div></div>;
     }
@@ -31,9 +31,27 @@ const renderStockInfo = (libraryName: string, stock?: StockInfo, bookTitle: stri
     let searchUrl = '';
     let searchTitle = '';
     
-    if (libraryName === '퇴촌 도서관') {
-        searchUrl = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(subject)}`;
-        searchTitle = `퇴촌 도서관에서 '${subject}' 검색`;
+    // 퇴촌도서관의 경우 상세 재고 정보에서 URL 파라미터 확인
+    if (libraryName === '퇴촌 도서관' && detailedStockInfo?.gwangju_paper?.availability) {
+        const toechonItem = detailedStockInfo.gwangju_paper.availability.find((item: any) => 
+            item.소장도서관 === '퇴촌도서관' && 
+            item.recKey && 
+            item.bookKey && 
+            item.publishFormCode
+        );
+        
+        if (toechonItem) {
+            searchUrl = generateLibraryDetailURL(toechonItem.recKey, toechonItem.bookKey, toechonItem.publishFormCode);
+            searchTitle = `퇴촌도서관 상세 페이지로 이동`;
+            console.log('MyLibraryBookDetailModal 퇴촌도서관 상세 URL 생성:', searchUrl);
+        } else {
+            // 파라미터가 없으면 향상된 검색 URL 사용 (제목 + 저자)
+            const authorName = bookTitle.includes(' - ') ? '' : ` ${bookTitle.split(' by ')[1] || ''}`.trim();
+            const enhancedKeyword = authorName ? `${subject} ${authorName}` : subject;
+            searchUrl = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(enhancedKeyword)}`;
+            searchTitle = `퇴촌 도서관에서 '${enhancedKeyword}' 검색`;
+            console.log('MyLibraryBookDetailModal 퇴촌도서관 URL 파라미터 없음, 향상된 검색 URL 사용:', enhancedKeyword);
+        }
     } else if (libraryName === '기타 도서관') {
         searchUrl = `https://lib.gjcity.go.kr/lay1/program/S1T446C461/jnet/resourcessearch/resultList.do?searchType=SIMPLE&searchKey=TITLE&searchLibrary=ALL&searchKeyword=${encodeURIComponent(subject)}`;
         searchTitle = `광주시립도서관에서 '${subject}' 검색`;
@@ -186,8 +204,8 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                     </button>
                                 </div>
                                 <div className="space-y-2 text-sm text-gray-300 bg-gray-800 p-4 rounded-md">
-                                    {renderStockInfo('퇴촌 도서관', book.toechonStock, book.title)}
-                                    {renderStockInfo('기타 도서관', book.otherStock, book.title)}
+                                    {renderStockInfo('퇴촌 도서관', book.toechonStock, book.title, book.detailedStockInfo)}
+                                    {renderStockInfo('기타 도서관', book.otherStock, book.title, book.detailedStockInfo)}
                                     <div className="flex justify-between items-center">
                                         <span>전자책(교육):</span>
                                         {book.ebookInfo ? (
@@ -237,7 +255,7 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                                         className={`font-medium ${filteredGyeonggiInfo.available_count > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
                                                         title={`총 ${filteredGyeonggiInfo.total_count}권 (대출가능: ${filteredGyeonggiInfo.available_count}권, 소장형: ${filteredGyeonggiInfo.owned_count}권, 구독형: ${filteredGyeonggiInfo.subscription_count}권)`}
                                                     >
-                                                        {filteredGyeonggiInfo.available_count} / {filteredGyeonggiInfo.total_count}
+                                                        {filteredGyeonggiInfo.total_count} / {filteredGyeonggiInfo.available_count}
                                                     </a>
                                                 );
                                             })()

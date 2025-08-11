@@ -9,6 +9,10 @@ export interface PaperBookAvailability {
   기본청구기호: string;
   대출상태: '대출가능' | '대출불가';
   반납예정일: string;
+  // 퇴촌도서관 상세 페이지 링크용 파라미터 (대출가능 상태일 때만)
+  recKey?: string;
+  bookKey?: string;
+  publishFormCode?: string;
 }
 
 export interface EBookAvailability {
@@ -93,13 +97,13 @@ function debugLog(message: string, data?: any) {
 
 /**
  * 전자책 검색용 책 제목 처리 함수
- * 한글 외 문자를 공백으로 변경 후 3개 chunk로 제한
+ * 특수문자를 공백으로 변경 후 3개 chunk로 제한
  * @param title - 원본 제목
  * @returns 처리된 제목 (최대 3개 chunk)
  */
 export function processBookTitle(title: string): string {
-  // 한글 외의 문자(영어, 숫자, 특수문자 등)를 공백으로 변경
-  const processedTitle = title.replace(/[^가-힣\s]/g, ' ');
+  // 특수문자를 공백으로 변경
+  const processedTitle = title.replace(/[^\w\s가-힣]/g, ' ');
   
   // 공백으로 분리하고 빈 문자열 제거
   const chunks = processedTitle.split(' ').filter(chunk => chunk.trim() !== '');
@@ -305,4 +309,36 @@ export function isEBooksEmpty(ebooks: (EBookAvailability | EBookError)[]): boole
  */
 export function hasAvailableEBooks(ebooks: (EBookAvailability | EBookError)[]): boolean {
   return ebooks.some(item => !('error' in item) && item.대출상태 === '대출가능');
+}
+
+/**
+ * 경기광주 시립도서관 상세 페이지 URL 생성
+ * @param recKey - 검색 결과 키
+ * @param bookKey - 도서 키
+ * @param publishFormCode - 출판 형태 코드
+ * @returns 상세 페이지 URL
+ */
+export function generateLibraryDetailURL(recKey: string, bookKey: string, publishFormCode: string): string {
+  // 퇴촌도서관의 URL 연결 방식을 기타도서관과 동일하게 변경
+  // 안정성을 위해 제목 기반 검색 결과 페이지로 연결
+  
+  // 기타도서관과 동일한 URL 패턴 사용
+  // searchLibraryArr=MN (퇴촌도서관 코드)
+  // 제목 기반 검색으로 안정성 확보
+  const searchURL = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${recKey}`;
+  
+  return searchURL;
+}
+
+/**
+ * 퇴촌도서관 재고 클릭 가능 여부 확인
+ * @param item - 도서 재고 정보
+ * @returns boolean - 클릭 가능 여부
+ */
+export function isLibraryStockClickable(item: PaperBookAvailability): boolean {
+  return item.소장도서관 === '퇴촌도서관' && 
+         item.대출상태 === '대출가능' &&
+         !!item.recKey && 
+         !!item.bookKey && 
+         !!item.publishFormCode;
 }

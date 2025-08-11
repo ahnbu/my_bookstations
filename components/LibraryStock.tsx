@@ -1,5 +1,6 @@
 import React from 'react';
 import { LibraryStockResponse } from '../types';
+import { generateLibraryDetailURL, isLibraryStockClickable } from '../services/unifiedLibrary.service';
 import Spinner from './Spinner';
 
 interface LibraryStockProps {
@@ -9,6 +10,25 @@ interface LibraryStockProps {
 }
 
 const LibraryStock: React.FC<LibraryStockProps> = ({ stock, isLoading, error }) => {
+  // 퇴촌도서관 재고 클릭 핸들러
+  const handleLibraryStockClick = (item: any) => {
+    console.log('퇴촌도서관 재고 클릭됨:', item);
+    console.log('클릭 가능 여부:', isLibraryStockClickable(item));
+    
+    if (isLibraryStockClickable(item)) {
+      const url = generateLibraryDetailURL(item.recKey, item.bookKey, item.publishFormCode);
+      console.log('생성된 URL:', url);
+      console.log('파라미터 확인:', { recKey: item.recKey, bookKey: item.bookKey, publishFormCode: item.publishFormCode });
+      window.open(url, '_blank');
+    } else {
+      console.log('클릭 불가능한 항목입니다. 사유:', {
+        isToechon: item['소장도서관'] === '퇴촌도서관',
+        isAvailable: item['대출상태'] === '대출가능',
+        hasParams: !!item.recKey && !!item.bookKey && !!item.publishFormCode
+      });
+    }
+  };
+
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -59,6 +79,8 @@ const LibraryStock: React.FC<LibraryStockProps> = ({ stock, isLoading, error }) 
           <tbody className="divide-y divide-gray-700">
             {sortedAvailability.map((item, index) => {
               const isToechon = item['소장도서관'] === '퇴촌도서관';
+              const isClickable = isLibraryStockClickable(item);
+              
               return (
                 <tr key={index} className={isToechon ? 'bg-blue-900/30' : 'hover:bg-gray-700/50'}>
                   <td className="p-3 text-white font-semibold">
@@ -73,9 +95,19 @@ const LibraryStock: React.FC<LibraryStockProps> = ({ stock, isLoading, error }) 
                   </td>
                   <td className="p-3 text-gray-300 font-mono">{item['청구기호']}</td>
                   <td className="p-3 text-center font-bold">
-                    <span className={item['대출상태'] === '대출가능' ? 'text-green-400' : 'text-red-400'}>
-                      {item['대출상태']}
-                    </span>
+                    {isClickable ? (
+                      <button 
+                        onClick={() => handleLibraryStockClick(item)}
+                        className="text-green-400 hover:text-green-300 hover:underline cursor-pointer transition-colors duration-200"
+                        title="클릭하여 도서관 상세 페이지로 이동"
+                      >
+                        {item['대출상태']}
+                      </button>
+                    ) : (
+                      <span className={item['대출상태'] === '대출가능' ? 'text-green-400' : 'text-red-400'}>
+                        {item['대출상태']}
+                      </span>
+                    )}
                   </td>
                   <td className="p-3 text-gray-400">{item['반납예정일'] !== '-' ? item['반납예정일'] : ''}</td>
                 </tr>

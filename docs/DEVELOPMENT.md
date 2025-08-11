@@ -353,6 +353,232 @@ function processGyeonggiEbookTitle(title: string): string {
 }
 ```
 
+## 📚 도서관별 검색어 처리 시스템
+
+프로젝트에서 관리하는 5개 도서관의 크롤링 및 URL 클릭시 search_term 처리 기준을 상세히 정리합니다.
+
+### 도서관 시스템 개요
+
+| 도서관 | 크롤링 방식 | URL 생성 방식 | 제목 처리 함수 |
+|--------|-------------|---------------|----------------|
+| 퇴촌lib | ISBN 기반 | 제목 기반 | `processBookTitle()` |
+| 기타lib | ISBN 기반 | 제목 기반 | `processBookTitle()` |
+| e북.교육 | 제목 기반 | 제목 기반 | `processBookTitle()` |
+| e북.시독 | 크롤링 없음 | 특수 제목 처리 | 인라인 함수 |
+| e북.경기 | 제목 기반 | 제목 기반 | `processGyeonggiEbookTitle()` |
+
+### 1. 퇴촌lib (퇴촌도서관)
+
+#### 크롤링 처리
+```javascript
+// library-checker/src/index.js
+async function searchGwangjuLibrary(isbn) {
+  const payload = new URLSearchParams({
+    'searchType': 'DETAIL',
+    'searchKey5': 'ISBN',  // ISBN 기반 검색
+    'searchKeyword5': isbn,
+    'searchLibrary': 'ALL'
+  });
+}
+```
+
+#### URL 클릭시 처리
+```typescript
+// components/MyLibrary.tsx
+const subject = createSearchSubject(book.title); // processBookTitle() 호출
+const toechonSearchUrl = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(subject)}`;
+```
+
+**참고**: `generateLibraryDetailURL` 함수는 현재 사용되지 않음
+- **이전**: `recKey`, `bookKey`, `publishFormCode`를 사용한 상세페이지 직접 접근
+- **현재**: 웹 방화벽 차단으로 인해 제목 기반 검색으로 대체
+- **함수 위치**: `services/unifiedLibrary.service.ts`
+
+#### 상세페이지 URL 문제점 및 해결방안
+
+**문제 상황**:
+- 퇴촌도서관 상세페이지 URL에 직접 접근 시 웹 방화벽에 의해 차단됨
+- 에러 메시지: "The request / response that are contrary to the Web firewall security policies have been blocked"
+
+**문제가 발생한 URL 패턴**:
+```
+https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcedetail/detail.do?recKey=318521578&bookKey=318521581&publishFormCode=BO
+```
+
+**원인 분석**:
+1. **웹 방화벽 정책**: 직접적인 상세페이지 URL 접근을 차단
+2. **URL 구조**: `resourcedetail/detail.do` 경로가 방화벽 정책에 위배
+3. **파라미터 접근**: `recKey`, `bookKey`, `publishFormCode`를 통한 직접 접근 차단
+
+**해결 방안**:
+1. **제목 기반 검색으로 우회**: 상세페이지 대신 검색 결과 페이지를 통해 접근
+2. **안정성 우선**: 정확도보다는 연결 안정성을 우선시
+3. **일관된 처리**: 0(0)인 경우와 동일한 로직으로 모든 상태 처리
+
+**최종 적용된 로직**:
+```typescript
+// 퇴촌도서관의 경우 안정성을 위해 제목 기반 검색으로 연결
+// 0(0)인 경우와 동일한 로직 적용
+const toechonSearchUrl = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(subject)}`;
+```
+
+**적용 효과**:
+- **안정성 향상**: 웹 방화벽 차단 없이 안정적으로 연결
+- **일관성**: 모든 퇴촌도서관 링크가 동일한 방식으로 처리
+- **사용자 경험**: 검색 결과에서 해당 도서를 쉽게 찾을 수 있음
+
+### 2. 기타lib (기타 도서관)
+
+#### 크롤링 처리
+```javascript
+// 퇴촌lib와 동일한 searchGwangjuLibrary() 함수 사용
+// ISBN 기반 검색으로 종이책 재고 확인
+```
+
+#### URL 클릭시 처리
+```typescript
+// components/MyLibrary.tsx
+const subject = createSearchSubject(book.title); // processBookTitle() 호출
+const otherSearchUrl = `https://lib.gjcity.go.kr/lay1/program/S1T446C461/jnet/resourcessearch/resultList.do?searchType=SIMPLE&searchKey=TITLE&searchLibrary=ALL&searchKeyword=${encodeURIComponent(subject)}`;
+```
+
+### 3. e북.교육 (경기도교육청 전자책)
+
+#### 크롤링 처리
+```javascript
+// library-checker/src/index.js
+async function searchGyeonggiEbookEducation(searchText, libraryCode) {
+  const url = new URL("https://lib.goe.go.kr/elib/module/elib/search/index.do");
+  url.searchParams.set("search_text", searchText); // 제목 기반 검색
+  url.searchParams.set("library_code", libraryCode); // "10000004" 또는 "10000009"
+}
+```
+
+#### URL 클릭시 처리
+```typescript
+// components/MyLibraryBookDetailModal.tsx
+href={`https://lib.goe.go.kr/elib/module/elib/search/index.do?menu_idx=94&search_text=${encodeURIComponent(createSearchSubject(book.title))}&sortField=book_pubdt&sortType=desc&rowCount=20`}
+```
+
+### 4. e북.시독 (시립도서관 구독형)
+
+#### 크롤링 처리
+- **크롤링 없음**: 별도의 API가 없으므로 크롤링하지 않음
+- 항상 고정값 `1(1)` 표시
+
+#### URL 클릭시 처리
+```typescript
+// components/MyLibrary.tsx
+const renderSidokEbookCell = (book: SelectedBook) => {
+  const titleForSearch = (() => {
+    let titleForSearch = book.title;
+    // 1단계: 하이픈(-) 이후 내용 제거
+    const dashIndex = titleForSearch.indexOf('-');
+    if (dashIndex !== -1) {
+      titleForSearch = titleForSearch.substring(0, dashIndex).trim();
+    }
+    // 2단계: 공백으로 분리하여 최대 3단어만 사용
+    return titleForSearch.split(' ').slice(0, 3).join(' ');
+  })();
+
+  const sidokUrl = `https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent(titleForSearch)}`;
+}
+```
+
+**처리 예시:**
+- 입력: "해리포터와 마법사의 돌- 1권"
+- 1단계: "해리포터와 마법사의 돌" (하이픈 이후 제거)
+- 2단계: "해리포터와 마법사의 돌" (3단어만 사용)
+
+### 5. e북.경기 (경기도 전자도서관)
+
+#### 크롤링 처리
+```javascript
+// library-checker/src/index.js
+async function searchGyeonggiEbookLibrary(searchText) {
+  // 소장형과 구독형 병렬 검색
+  const [ownedResults, subscriptionResults] = await Promise.allSettled([
+    searchOwnedBooks(searchText),      // 소장형 API
+    searchSubscriptionBooks(searchText) // 구독형 API
+  ]);
+}
+```
+
+#### URL 클릭시 처리
+```typescript
+// services/unifiedLibrary.service.ts
+export function createGyeonggiEbookSearchURL(title: string): string {
+  const processedTitle = processGyeonggiEbookTitle(title);
+  const baseUrl = "https://ebook.library.kr/search";
+  const encodedTitle = encodeURIComponent(processedTitle).replace(/'/g, '%27');
+  const detailQuery = `TITLE:${encodedTitle}:true`;
+  
+  return `${baseUrl}?detailQuery=${detailQuery}&OnlyStartWith=false&searchType=all&listType=list`;
+}
+```
+
+### 검색어 처리 함수 비교
+
+#### processBookTitle() - 한글 전용
+```typescript
+// 퇴촌lib, 기타lib, e북.교육에서 사용
+function processBookTitle(title: string): string {
+  // 한글 외의 문자(영어, 숫자, 특수문자 등)를 공백으로 변경
+  const processedTitle = title.replace(/[^가-힣\s]/g, ' ');
+  
+  // 공백으로 분리하고 빈 문자열 제거
+  const chunks = processedTitle.split(' ').filter(chunk => chunk.trim() !== '');
+  
+  // 3개 이하면 그대로 반환, 3개 초과면 첫 3개만 반환
+  return chunks.length <= 3 ? chunks.join(' ') : chunks.slice(0, 3).join(' ');
+}
+```
+
+#### processGyeonggiEbookTitle() - 특수문자 제거
+```typescript
+// e북.경기에서만 사용
+function processGyeonggiEbookTitle(title: string): string {
+  // 특수문자 목록 (쉼표, 하이픈, 콜론, 세미콜론, 괄호 등)
+  const specialChars = /[,\-:;()[\]{}]/;
+  
+  // 특수문자가 있으면 그 위치까지만 추출
+  let processedTitle = title;
+  const match = title.search(specialChars);
+  if (match !== -1) {
+    processedTitle = title.substring(0, match).trim();
+  }
+  
+  // 공백으로 분리하고 빈 문자열 제거
+  const words = processedTitle.split(' ').filter(word => word.trim() !== '');
+  
+  // 최대 3단어까지만 사용
+  return words.slice(0, 3).join(' ');
+}
+```
+
+#### e북.시독 인라인 처리
+```typescript
+// 하이픈 제거 + 3단어 제한
+const titleForSearch = (() => {
+  let titleForSearch = book.title;
+  const dashIndex = titleForSearch.indexOf('-');
+  if (dashIndex !== -1) {
+    titleForSearch = titleForSearch.substring(0, dashIndex).trim();
+  }
+  return titleForSearch.split(' ').slice(0, 3).join(' ');
+})();
+```
+
+### URL 패턴 정리
+
+| 도서관 | 기본 URL | 검색 파라미터 | 인코딩 방식 |
+|--------|----------|---------------|-------------|
+| 퇴촌lib | `lib.gjcity.go.kr/tc/lay1/program/...` | `searchKeyword` | `encodeURIComponent()` |
+| 기타lib | `lib.gjcity.go.kr/lay1/program/...` | `searchKeyword` | `encodeURIComponent()` |
+| e북.교육 | `lib.goe.go.kr/elib/module/...` | `search_text` | `encodeURIComponent()` |
+| e북.시독 | `gjcitylib.dkyobobook.co.kr/search/...` | `schTxt` | `encodeURIComponent()` |
+| e북.경기 | `ebook.library.kr/search` | `detailQuery=TITLE:...` | `encodeURIComponent() + replace()` |
+
 ## 🎯 최신 기능 및 개선사항
 
 ### ISBN 필터링 시스템 (2025-01-09)
@@ -544,6 +770,61 @@ const copyToClipboard = async (text: string, label: string) => {
    wrangler dev --test-scheduled --port 8787
    ```
 
+6. **퇴촌도서관 상세페이지 웹 방화벽 차단**
+   - **증상**: 상세페이지 URL 접근 시 "Web firewall security policies have been blocked" 에러
+   - **원인**: `resourcedetail/detail.do` 경로에 대한 직접 접근 차단
+   - **해결**: 제목 기반 검색 결과 페이지로 우회 접근
+   - **적용**: `generateLibraryDetailURL` 함수 대신 `toechonSearchUrl` 사용
+
+   **상세 문제 분석**:
+   
+   **문제가 발생한 URL 패턴**:
+   ```
+   https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcedetail/detail.do?recKey=318521578&bookKey=318521581&publishFormCode=BO
+   ```
+   
+   **원인 분석**:
+   1. **웹 방화벽 정책**: 직접적인 상세페이지 URL 접근을 차단
+   2. **URL 구조**: `resourcedetail/detail.do` 경로가 방화벽 정책에 위배
+   3. **파라미터 접근**: `recKey`, `bookKey`, `publishFormCode`를 통한 직접 접근 차단
+   4. **보안 정책**: 도서관 시스템의 보안 강화로 인한 외부 직접 접근 제한
+   
+   **기존 구현 방식**:
+   ```typescript
+   // services/unifiedLibrary.service.ts (사용되지 않는 함수)
+   export function generateLibraryDetailURL(
+     recKey: string, 
+     bookKey: string, 
+     publishFormCode: string
+   ): string {
+     return `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcedetail/detail.do?recKey=${recKey}&bookKey=${bookKey}&publishFormCode=${publishFormCode}`;
+   }
+   ```
+   
+   **해결 방안**:
+   1. **제목 기반 검색으로 우회**: 상세페이지 대신 검색 결과 페이지를 통해 접근
+   2. **안정성 우선**: 정확도보다는 연결 안정성을 우선시
+   3. **일관된 처리**: 0(0)인 경우와 동일한 로직으로 모든 상태 처리
+   4. **사용자 경험 개선**: 검색 결과에서 해당 도서를 쉽게 찾을 수 있도록 안내
+   
+   **최종 적용된 로직**:
+   ```typescript
+   // components/MyLibrary.tsx
+   const subject = createSearchSubject(book.title); // processBookTitle() 호출
+   const toechonSearchUrl = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(subject)}`;
+   ```
+   
+   **적용 효과**:
+   - **안정성 향상**: 웹 방화벽 차단 없이 안정적으로 연결
+   - **일관성**: 모든 퇴촌도서관 링크가 동일한 방식으로 처리
+   - **사용자 경험**: 검색 결과에서 해당 도서를 쉽게 찾을 수 있음
+   - **유지보수성**: 복잡한 URL 파라미터 관리 불필요
+   
+   **향후 개선 방향**:
+   1. **도서관 API 연동**: 공식 API가 제공될 경우 상세페이지 직접 접근 방식 재검토
+   2. **캐싱 시스템**: 자주 검색되는 도서에 대한 검색 결과 캐싱 고려
+   3. **사용자 피드백**: 검색 결과에서 원하는 도서를 찾기 어려운 경우 개선 방안 모색
+
 ### 성능 최적화
 
 1. **번들 크기 최적화**
@@ -626,5 +907,5 @@ npm run deploy
 
 ---
 
-**문서 최종 수정일**: 2025-08-09  
+**문서 최종 수정일**: 2025-01-11  
 **작성자**: 개발팀

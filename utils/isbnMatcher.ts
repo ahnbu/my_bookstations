@@ -72,7 +72,7 @@ export function filterGyeonggiEbookByIsbn(
   // 필터링된 책들로 카운트 재계산
   const totalCount = matchedBooks.length
   const availableCount = matchedBooks.filter(book => 
-    book.isLoanable || book.available
+    book.status === '대출가능'
   ).length
   const unavailableCount = totalCount - availableCount
   

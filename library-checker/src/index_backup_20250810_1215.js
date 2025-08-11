@@ -49,8 +49,8 @@ export default {
         let gyeonggiEbookPromise = null;
         if (title) {
             promises.push(
-                searchSingleGyeonggiEbook(title, '10000004'), // 성남 (기존 title 사용)
-                searchSingleGyeonggiEbook(title, '10000009')  // 통합 (기존 title 사용)
+                searchGyeonggiEbookEducation(title, '10000004'), // 성남 (기존 title 사용)
+                searchGyeonggiEbookEducation(title, '10000004'), // 성남 (기존 title 사용)
             );
         }
         
@@ -154,7 +154,7 @@ async function searchGwangjuLibrary(isbn) {
   return parseGwangjuHTML(htmlContent);
 }
 
-async function searchSingleGyeonggiEbook(searchText, libraryCode) {
+async function searchGyeonggiEbookEducation(searchText, libraryCode) {
   const url = new URL("https://lib.goe.go.kr/elib/module/elib/search/index.do");
   url.searchParams.set("menu_idx", "94");
   url.searchParams.set("search_text", searchText);

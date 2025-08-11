@@ -9,7 +9,7 @@ import { useBookStore } from '../stores/useBookStore';
 import { useAuthStore } from '../stores/useAuthStore';
 import StarRating from './StarRating';
 import MyLibraryBookDetailModal from './MyLibraryBookDetailModal';
-import { getStatusEmoji, isEBooksEmpty, hasAvailableEBooks, processBookTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL } from '../services/unifiedLibrary.service';
+import { getStatusEmoji, isEBooksEmpty, hasAvailableEBooks, processBookTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL, generateLibraryDetailURL, isLibraryStockClickable } from '../services/unifiedLibrary.service';
 import { filterGyeonggiEbookByIsbn, debugIsbnMatching } from '../utils/isbnMatcher';
 
 const SortArrow: React.FC<{ order: 'asc' | 'desc' }> = ({ order }) => (
@@ -42,6 +42,7 @@ const MyLibrary: React.FC = () => {
   const [gridColumns, setGridColumns] = useState(5);
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
+  const [backgroundRefreshComplete, setBackgroundRefreshComplete] = useState(false);
   
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -127,6 +128,34 @@ const MyLibrary: React.FC = () => {
     window.addEventListener('resize', updateColumns);
     return () => window.removeEventListener('resize', updateColumns);
   }, []);
+
+  // Background refresh for books missing detailed stock info
+  useEffect(() => {
+    if (!backgroundRefreshComplete && myLibraryBooks.length > 0) {
+      const booksNeedingDetailedInfo = myLibraryBooks.filter(book => 
+        book.toechonStock?.total > 0 && !book.detailedStockInfo?.gwangju_paper?.availability
+      );
+      
+      console.log(`Background refresh: Found ${booksNeedingDetailedInfo.length} books needing detailed stock info`);
+      
+      if (booksNeedingDetailedInfo.length > 0) {
+        // Refresh books with staggered timing (3 second intervals)
+        booksNeedingDetailedInfo.forEach((book, index) => {
+          setTimeout(() => {
+            console.log(`Background refreshing book ${index + 1}/${booksNeedingDetailedInfo.length}: ${book.title}`);
+            refreshAllBookInfo(book.id, book.isbn13, book.title);
+            
+            // Mark as complete when last book is processed
+            if (index === booksNeedingDetailedInfo.length - 1) {
+              setTimeout(() => setBackgroundRefreshComplete(true), 1000);
+            }
+          }, index * 3000); // 3 second intervals to avoid rate limiting
+        });
+      } else {
+        setBackgroundRefreshComplete(true);
+      }
+    }
+  }, [myLibraryBooks, backgroundRefreshComplete, refreshAllBookInfo]);
 
   const rowVirtualizer = useVirtualizer({
     count: sortedLibraryBooks.length,
@@ -588,19 +617,34 @@ const MyLibrary: React.FC = () => {
                     )}
                   </div>
                   {/* Toechon Stock */}
-                  <a
-                    href={toechonSearchUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-24 p-3 text-center text-gray-300 hover:bg-gray-700 transition-colors block"
-                    title={`퇴촌 도서관에서 '${subject}' 검색`}
-                  >
-                    {refreshingIsbn === book.isbn13 ? (
-                      <div className="flex justify-center"><Spinner/></div>
-                    ) : (
-                      renderStockCell(book.toechonStock)
-                    )}
-                  </a>
+                  {(() => {
+                    // 퇴촌도서관의 경우 상세 재고 정보에서 URL 파라미터 확인
+                    // 대출가능 여부와 관계없이 재고가 있으면 상세 페이지로 연결 (1(0)인 경우에도)
+                    let toechonUrl = toechonSearchUrl;
+                    let toechonTitle = `퇴촌 도서관에서 '${subject}' 검색`;
+                    let hasDetailedInfo = false;
+                    
+                    // 퇴촌도서관의 경우 안정성을 위해 제목 기반 검색으로 연결
+                    // 0(0)인 경우와 동일한 로직 적용
+                    console.log(`퇴촌도서관 제목 기반 검색 URL 생성: ${book.title}`);
+                    toechonTitle = `퇴촌 도서관에서 '${subject}' 검색 (안정성을 위한 제목 기반 검색)`;
+                    
+                    return (
+                      <a
+                        href={toechonUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-24 p-3 text-center text-gray-300 hover:bg-gray-700 transition-colors block"
+                        title={toechonTitle}
+                      >
+                        {refreshingIsbn === book.isbn13 ? (
+                          <div className="flex justify-center"><Spinner/></div>
+                        ) : (
+                          renderStockCell(book.toechonStock)
+                        )}
+                      </a>
+                    );
+                  })()}
                   {/* Other Stock */}
                   <a
                     href={otherSearchUrl}

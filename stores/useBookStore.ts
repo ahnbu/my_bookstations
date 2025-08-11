@@ -298,6 +298,13 @@ export const useBookStore = create<BookState>(
             const availability = paperResult.availability ?? [];
             let toechonTotal = 0, toechonAvailable = 0, otherTotal = 0, otherAvailable = 0;
             
+            // 퇴촌도서관 재고가 있는지 확인하고 상세 정보 저장
+            const hasToechonStock = availability.some(item => 
+              item['소장도서관'] === '퇴촌도서관' && 
+              item['소장도서관'] !== '정보 없음' && 
+              item['소장도서관'] !== '알 수 없음'
+            );
+            
             availability.forEach(item => {
               // "정보 없음" 케이스 필터링 - 의미있는 도서관 정보가 있는 경우만 카운트
               const libraryName = item['소장도서관'];
@@ -313,6 +320,19 @@ export const useBookStore = create<BookState>(
             
             updatedBook.toechonStock = { total: toechonTotal, available: toechonAvailable };
             updatedBook.otherStock = { total: otherTotal, available: otherAvailable };
+            
+            // 퇴촌도서관에 재고가 있을 때만 상세 재고 정보 저장 (recKey, bookKey, publishFormCode 포함)
+            // 대출가능 여부와 관계없이 재고가 있으면 상세 정보 저장 (1(0)인 경우에도 상세 페이지 연결 가능)
+            if (hasToechonStock) {
+              updatedBook.detailedStockInfo = {
+                gwangju_paper: paperResult
+              };
+              console.log(`퇴촌도서관 재고 발견: ${title} - 상세 정보 저장됨 (총 ${toechonTotal}권, 대출가능 ${toechonAvailable}권)`);
+            } else {
+              // 퇴촌도서관에 재고가 없으면 기존 상세 정보 제거
+              updatedBook.detailedStockInfo = undefined;
+              console.log(`퇴촌도서관 재고 없음: ${title} - 상세 정보 제거됨`);
+            }
           }
 
           // 전자책 정보 업데이트

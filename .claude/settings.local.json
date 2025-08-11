@@ -19,7 +19,8 @@
       "Bash(wrangler:*)",
       "Bash(curl:*)",
       "Bash(touch:*)",
-      "Bash(npx wrangler dev:*)"
+      "Bash(npx wrangler dev:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "defaultMode": "plan"
