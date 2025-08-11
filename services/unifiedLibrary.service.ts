@@ -66,10 +66,38 @@ export interface GyeonggiEbookLibraryError {
   error: string;
 }
 
+// 시립도서관 전자책 관련 타입 정의
+export interface SiripEbookBook {
+  type: '전자책';
+  title: string;
+  author: string;
+  publisher: string;
+  publish_date: string;
+  loan_status: string;
+  status: '대출가능' | '대출불가';
+  total_copies: number;
+  available_copies: number;
+  available: boolean;
+  library_name: string;
+}
+
+export interface SiripEbookResult {
+  library_name: string;
+  total_count: number;
+  available_count: number;
+  unavailable_count: number;
+  books: SiripEbookBook[];
+}
+
+export interface SiripEbookError {
+  error: string;
+}
+
 export interface LibraryApiResponse {
   gwangju_paper: GwangjuPaperResult | GwangjuPaperError;
   gyeonggi_ebook_education: (EBookAvailability | EBookError)[];
   gyeonggi_ebook_library?: GyeonggiEbookLibraryResult | GyeonggiEbookLibraryError;
+  sirip_ebook?: SiripEbookResult | SiripEbookError;
 }
 
 export interface EBookSummary {
@@ -91,7 +119,7 @@ const REQUEST_TIMEOUT = 30000; // 30초
 // 디버그 정보 로깅 함수
 function debugLog(message: string, data?: any) {
   if (isDevelopment) {
-    console.log(`[UnifiedLibrary] ${message}`, data || '');
+    // console.log(`[UnifiedLibrary] ${message}`, data || ''); // 성능 개선을 위해 주석 처리
   }
 }
 
@@ -156,7 +184,7 @@ export function createGyeonggiEbookSearchURL(title: string): string {
 }
 
 /**
- * 3-Way 통합 도서관 재고 확인 API 호출
+ * 5-Way 통합 도서관 재고 확인 API 호출
  * @param isbn - 종이책 검색용 ISBN
  * @param title - 전자책 검색용 제목
  * @returns Promise<LibraryApiResponse>
@@ -171,11 +199,15 @@ export async function fetchBookAvailability(isbn: string, title: string): Promis
   // 경기도 전자도서관용 제목 처리 (숫자/영어 포함, 특수문자에서 자름)
   const gyeonggiProcessedTitle = processGyeonggiEbookTitle(title);
   
+  // 시립도서관 전자책용 제목 처리 (동일한 로직 사용)
+  const siripProcessedTitle = processGyeonggiEbookTitle(title);
+  
   // 디버그용 로그 추가
   debugLog('제목 처리:', {
     originalTitle: title,
     processedTitle: processedTitle,
-    gyeonggiProcessedTitle: gyeonggiProcessedTitle
+    gyeonggiProcessedTitle: gyeonggiProcessedTitle,
+    siripProcessedTitle: siripProcessedTitle
   });
 
   try {
@@ -183,7 +215,8 @@ export async function fetchBookAvailability(isbn: string, title: string): Promis
     debugLog('요청 데이터:', {
       isbn: isbn,
       title: processedTitle,
-      gyeonggiTitle: gyeonggiProcessedTitle
+      gyeonggiTitle: gyeonggiProcessedTitle,
+      siripTitle: siripProcessedTitle
     });
 
     const response = await fetch(API_ENDPOINT, {
@@ -195,6 +228,7 @@ export async function fetchBookAvailability(isbn: string, title: string): Promis
         isbn: isbn,
         title: processedTitle, // 기존 도서관용 (한글만)
         gyeonggiTitle: gyeonggiProcessedTitle, // 경기도 전자도서관용 (숫자/영어 포함)
+        siripTitle: siripProcessedTitle, // 시립도서관 전자책용 (숫자/영어 포함)
       }),
       signal: controller.signal,
     });

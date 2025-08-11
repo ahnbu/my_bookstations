@@ -12,20 +12,20 @@ interface LibraryStockProps {
 const LibraryStock: React.FC<LibraryStockProps> = ({ stock, isLoading, error }) => {
   // 퇴촌도서관 재고 클릭 핸들러
   const handleLibraryStockClick = (item: any) => {
-    console.log('퇴촌도서관 재고 클릭됨:', item);
-    console.log('클릭 가능 여부:', isLibraryStockClickable(item));
+    // console.log('퇴촌도서관 재고 클릭됨:', item); // 성능 개선을 위해 주석 처리
+    // console.log('클릭 가능 여부:', isLibraryStockClickable(item)); // 성능 개선을 위해 주석 처리
     
     if (isLibraryStockClickable(item)) {
       const url = generateLibraryDetailURL(item.recKey, item.bookKey, item.publishFormCode);
-      console.log('생성된 URL:', url);
-      console.log('파라미터 확인:', { recKey: item.recKey, bookKey: item.bookKey, publishFormCode: item.publishFormCode });
+      // console.log('생성된 URL:', url); // 성능 개선을 위해 주석 처리
+      // console.log('파라미터 확인:', { recKey: item.recKey, bookKey: item.bookKey, publishFormCode: item.publishFormCode }); // 성능 개선을 위해 주석 처리
       window.open(url, '_blank');
     } else {
-      console.log('클릭 불가능한 항목입니다. 사유:', {
-        isToechon: item['소장도서관'] === '퇴촌도서관',
-        isAvailable: item['대출상태'] === '대출가능',
-        hasParams: !!item.recKey && !!item.bookKey && !!item.publishFormCode
-      });
+      // console.log('클릭 불가능한 항목입니다. 사유:', {
+      //   isToechon: item['소장도서관'] === '퇴촌도서관',
+      //   isAvailable: item['대출상태'] === '대출가능',
+      //   hasParams: !!item.recKey && !!item.bookKey && !!item.publishFormCode
+      // }); // 성능 개선을 위해 주석 처리
     }
   };
 

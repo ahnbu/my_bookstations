@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { AladdinBookItem, SelectedBook, SortKey, ReadStatus, BookData, Json, EBookInfo, StockInfo } from '../types';
 import { searchAladinBooks } from '../services/aladin.service';
 import { fetchBookAvailability, summarizeEBooks, GwangjuPaperResult } from '../services/unifiedLibrary.service';
+import { filterGyeonggiEbookByIsbn } from '../utils/isbnMatcher';
 import { useUIStore } from './useUIStore';
 import { useAuthStore } from './useAuthStore';
 
@@ -113,7 +114,8 @@ export const useBookStore = create<BookState>(
                   subInfo: newSubInfo, // 새로운 subInfo로 업데이트
                 };
 
-                const { id: bookId, ...bookDataForDb } = updatedBookData;
+                // DB 저장 시 detailedStockInfo 필드 제외하여 저장공간 절약
+                const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBookData;
 
                 const { error } = await supabase
                   .from('user_library')
@@ -129,7 +131,7 @@ export const useBookStore = create<BookState>(
                   ),
                   selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === book.id ? updatedBookData : state.selectedBook
                 }));
-                console.log(`Updated ebook isbn13 for book ID: ${book.id}`);
+                // console.log(`Updated ebook isbn13 for book ID: ${book.id}`); // 성능 개선을 위해 주석 처리
               }
             } catch (error) {
               console.error(`Failed to update ebook isbn13 for book ID: ${book.id}`, error);
@@ -174,9 +176,19 @@ export const useBookStore = create<BookState>(
       },
 
       addToLibrary: async () => {
-        const { selectedBook } = get();
+        const { selectedBook, myLibraryBooks } = get();
         const { session } = useAuthStore.getState();
         if (!selectedBook || !session) return;
+
+        // ISBN 기준으로 중복 체크
+        const isDuplicate = myLibraryBooks.some(book => book.isbn13 === selectedBook.isbn13);
+        if (isDuplicate) {
+          useUIStore.getState().setNotification({ 
+            message: '이미 서재에 추가된 책입니다.', 
+            type: 'warning'
+          });
+          return;
+        }
 
         const newBookData: BookData = {
           ...selectedBook,
@@ -258,7 +270,8 @@ export const useBookStore = create<BookState>(
           };
 
           const updatedBook = { ...bookToUpdate, ebookInfo: newEBookInfo };
-          const { id: bookId, ...bookDataForDb } = updatedBook;
+          // DB 저장 시 detailedStockInfo 필드 제외하여 저장공간 절약
+          const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBook;
           
           const { error } = await supabase
             .from('user_library')
@@ -298,12 +311,7 @@ export const useBookStore = create<BookState>(
             const availability = paperResult.availability ?? [];
             let toechonTotal = 0, toechonAvailable = 0, otherTotal = 0, otherAvailable = 0;
             
-            // 퇴촌도서관 재고가 있는지 확인하고 상세 정보 저장
-            const hasToechonStock = availability.some(item => 
-              item['소장도서관'] === '퇴촌도서관' && 
-              item['소장도서관'] !== '정보 없음' && 
-              item['소장도서관'] !== '알 수 없음'
-            );
+            // hasToechonStock 변수 제거 - 상세 정보 수집이 불필요해짐
             
             availability.forEach(item => {
               // "정보 없음" 케이스 필터링 - 의미있는 도서관 정보가 있는 경우만 카운트
@@ -321,18 +329,8 @@ export const useBookStore = create<BookState>(
             updatedBook.toechonStock = { total: toechonTotal, available: toechonAvailable };
             updatedBook.otherStock = { total: otherTotal, available: otherAvailable };
             
-            // 퇴촌도서관에 재고가 있을 때만 상세 재고 정보 저장 (recKey, bookKey, publishFormCode 포함)
-            // 대출가능 여부와 관계없이 재고가 있으면 상세 정보 저장 (1(0)인 경우에도 상세 페이지 연결 가능)
-            if (hasToechonStock) {
-              updatedBook.detailedStockInfo = {
-                gwangju_paper: paperResult
-              };
-              console.log(`퇴촌도서관 재고 발견: ${title} - 상세 정보 저장됨 (총 ${toechonTotal}권, 대출가능 ${toechonAvailable}권)`);
-            } else {
-              // 퇴촌도서관에 재고가 없으면 기존 상세 정보 제거
-              updatedBook.detailedStockInfo = undefined;
-              console.log(`퇴촌도서관 재고 없음: ${title} - 상세 정보 제거됨`);
-            }
+            // detailedStockInfo 수집 제거 - 퇴촌도서관 상세페이지 연결 불가로 불필요
+            // 성능 최적화를 위해 상세 재고 정보 저장 로직 완전 제거
           }
 
           // 전자책 정보 업데이트
@@ -346,9 +344,17 @@ export const useBookStore = create<BookState>(
           // 경기도 전자도서관 정보 업데이트
           if (result.gyeonggi_ebook_library) {
             updatedBook.gyeonggiEbookInfo = result.gyeonggi_ebook_library;
+            // ISBN 필터링을 데이터 갱신 시점에 수행하여 렌더링 성능 최적화
+            updatedBook.filteredGyeonggiEbookInfo = filterGyeonggiEbookByIsbn(updatedBook, result.gyeonggi_ebook_library);
           }
 
-          const { id: bookId, ...bookDataForDb } = updatedBook;
+          // 시립도서관 전자책 정보 업데이트
+          if (result.sirip_ebook) {
+            updatedBook.siripEbookInfo = result.sirip_ebook;
+          }
+
+          // DB 저장 시 detailedStockInfo 필드 제외하여 저장공간 절약
+          const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBook;
           
           const { error } = await supabase
             .from('user_library')
@@ -376,7 +382,8 @@ export const useBookStore = create<BookState>(
         if(!bookToUpdate) return;
 
         const updatedBook = { ...bookToUpdate, readStatus: status };
-        const { id: bookId, ...bookDataForDb } = updatedBook;
+        // DB 저장 시 detailedStockInfo 필드 제외하여 저장공간 절약
+        const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBook;
 
         try {
             const { error } = await supabase
@@ -400,7 +407,8 @@ export const useBookStore = create<BookState>(
         if(!bookToUpdate) return;
         
         const updatedBook = { ...bookToUpdate, rating };
-        const { id: bookId, ...bookDataForDb } = updatedBook;
+        // DB 저장 시 detailedStockInfo 필드 제외하여 저장공간 절약
+        const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBook;
 
         try {
             const { error } = await supabase

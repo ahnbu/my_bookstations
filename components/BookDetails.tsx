@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { PlusIcon, ArrowLeftIcon, BookOpenIcon, RefreshIcon } from './Icons';
 import { useBookStore } from '../stores/useBookStore';
 import { useUIStore } from '../stores/useUIStore';
@@ -41,14 +41,14 @@ const renderStockInfo = (libraryName: string, stock?: StockInfo, bookTitle: stri
         if (toechonItem) {
             searchUrl = generateLibraryDetailURL(toechonItem.recKey, toechonItem.bookKey, toechonItem.publishFormCode);
             searchTitle = `퇴촌도서관 상세 페이지로 이동`;
-            console.log('퇴촌도서관 상세 URL 생성:', searchUrl);
+            // console.log('퇴촌도서관 상세 URL 생성:', searchUrl); // 성능 개선을 위해 주석 처리
         } else {
             // 파라미터가 없으면 향상된 검색 URL 사용 (제목 + 저자)
             const authorName = bookTitle.includes(' - ') ? '' : ` ${bookTitle.split(' by ')[1] || ''}`.trim();
             const enhancedKeyword = authorName ? `${subject} ${authorName}` : subject;
             searchUrl = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(enhancedKeyword)}`;
             searchTitle = `퇴촌 도서관에서 '${enhancedKeyword}' 검색`;
-            console.log('퇴촌도서관 URL 파라미터 없음, 향상된 검색 URL 사용:', enhancedKeyword);
+            // console.log('퇴촌도서관 URL 파라미터 없음, 향상된 검색 URL 사용:', enhancedKeyword); // 성능 개선을 위해 주석 처리
         }
     } else if (libraryName === '기타 도서관') {
         searchUrl = `https://lib.gjcity.go.kr/lay1/program/S1T446C461/jnet/resourcessearch/resultList.do?searchType=SIMPLE&searchKey=TITLE&searchLibrary=ALL&searchKeyword=${encodeURIComponent(subject)}`;
@@ -109,8 +109,17 @@ const BookDetails: React.FC = () => {
   const isFromLibrary = 'id' in selectedBook;
   const bookFromLibrary = isFromLibrary ? (selectedBook as SelectedBook) : null;
   
-  const handleAddClick = () => {
-    addToLibrary();
+  const [isAdding, setIsAdding] = useState(false);
+
+  const handleAddClick = async () => {
+    if (isAdding || isBookInLibrary) return;
+    
+    setIsAdding(true);
+    try {
+      await addToLibrary();
+    } finally {
+      setIsAdding(false);
+    }
   }
   
   const handleBackToList = () => {
@@ -144,13 +153,18 @@ const BookDetails: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
             <button
               onClick={handleAddClick}
-              disabled={!session || isBookInLibrary}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors duration-300 disabled:bg-gray-600 disabled:cursor-not-allowed"
+              disabled={!session || isBookInLibrary || isAdding}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors duration-300 disabled:bg-gray-600 disabled:cursor-wait"
             >
               {!session ? (
                 '로그인 후 추가'
               ) : isBookInLibrary ? (
                 '추가 완료'
+              ) : isAdding ? (
+                <>
+                  <Spinner className="w-5 h-5" />
+                  추가 중...
+                </>
               ) : (
                 <>
                   <PlusIcon className="w-5 h-5" />

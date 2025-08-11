@@ -1,6 +1,6 @@
 
 
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { SelectedBook, StockInfo, SortKey, ReadStatus } from '../types';
 import { DownloadIcon, TrashIcon, RefreshIcon, CheckIcon } from './Icons';
@@ -10,7 +10,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 import StarRating from './StarRating';
 import MyLibraryBookDetailModal from './MyLibraryBookDetailModal';
 import { getStatusEmoji, isEBooksEmpty, hasAvailableEBooks, processBookTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL, generateLibraryDetailURL, isLibraryStockClickable } from '../services/unifiedLibrary.service';
-import { filterGyeonggiEbookByIsbn, debugIsbnMatching } from '../utils/isbnMatcher';
+// import { filterGyeonggiEbookByIsbn, debugIsbnMatching } from '../utils/isbnMatcher'; // 성능 최적화로 사용 안함
 
 const SortArrow: React.FC<{ order: 'asc' | 'desc' }> = ({ order }) => (
   <span className="ml-1 inline-block w-3 h-3 text-xs">
@@ -136,13 +136,13 @@ const MyLibrary: React.FC = () => {
         book.toechonStock?.total > 0 && !book.detailedStockInfo?.gwangju_paper?.availability
       );
       
-      console.log(`Background refresh: Found ${booksNeedingDetailedInfo.length} books needing detailed stock info`);
+      // console.log(`Background refresh: Found ${booksNeedingDetailedInfo.length} books needing detailed stock info`); // 성능 개선을 위해 주석 처리
       
       if (booksNeedingDetailedInfo.length > 0) {
         // Refresh books with staggered timing (3 second intervals)
         booksNeedingDetailedInfo.forEach((book, index) => {
           setTimeout(() => {
-            console.log(`Background refreshing book ${index + 1}/${booksNeedingDetailedInfo.length}: ${book.title}`);
+            // console.log(`Background refreshing book ${index + 1}/${booksNeedingDetailedInfo.length}: ${book.title}`); // 성능 개선을 위해 주석 처리
             refreshAllBookInfo(book.id, book.isbn13, book.title);
             
             // Mark as complete when last book is processed
@@ -281,8 +281,20 @@ const MyLibrary: React.FC = () => {
     const titleForSearch = (() => {
       let titleForSearch = book.title;
       const dashIndex = titleForSearch.indexOf('-');
-      if (dashIndex !== -1) {
-        titleForSearch = titleForSearch.substring(0, dashIndex).trim();
+      const parenthesisIndex = titleForSearch.indexOf('(');
+      
+      // 대시(-) 또는 괄호시작("(") 중 더 앞에 있는 위치를 찾아서 그 이전까지만 사용
+      let cutIndex = -1;
+      if (dashIndex !== -1 && parenthesisIndex !== -1) {
+        cutIndex = Math.min(dashIndex, parenthesisIndex);
+      } else if (dashIndex !== -1) {
+        cutIndex = dashIndex;
+      } else if (parenthesisIndex !== -1) {
+        cutIndex = parenthesisIndex;
+      }
+      
+      if (cutIndex !== -1) {
+        titleForSearch = titleForSearch.substring(0, cutIndex).trim();
       }
       return titleForSearch.split(' ').slice(0, 3).join(' ');
     })();
@@ -302,7 +314,7 @@ const MyLibrary: React.FC = () => {
     );
   };
 
-  const renderGyeonggiEbookCell = (book: SelectedBook) => {
+  const renderGyeonggiEbookCell = useCallback((book: SelectedBook) => {
     const isRefreshing = refreshingEbookId === book.id;
     
     if (isRefreshing) {
@@ -313,7 +325,10 @@ const MyLibrary: React.FC = () => {
       );
     }
 
-    if (!book.gyeonggiEbookInfo) {
+    // 필터링된 데이터를 우선 사용하고, 없으면 원본 데이터 사용
+    const targetGyeonggiInfo = book.filteredGyeonggiEbookInfo || book.gyeonggiEbookInfo;
+
+    if (!targetGyeonggiInfo) {
       return (
         <button
           onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title)}
@@ -327,7 +342,7 @@ const MyLibrary: React.FC = () => {
 
     const gyeonggiEbookUrl = createGyeonggiEbookSearchURL(book.title);
 
-    if ('error' in book.gyeonggiEbookInfo) {
+    if ('error' in targetGyeonggiInfo) {
       return (
         <a
           href={gyeonggiEbookUrl}
@@ -341,15 +356,8 @@ const MyLibrary: React.FC = () => {
       );
     }
 
-    // ISBN 필터링 적용
-    const filteredGyeonggiInfo = filterGyeonggiEbookByIsbn(book, book.gyeonggiEbookInfo);
-    
-    // 디버깅 모드에서 매칭 정보 출력 (개발 환경에서만)
-    if (process.env.NODE_ENV === 'development' && filteredGyeonggiInfo.total_count !== book.gyeonggiEbookInfo.total_count) {
-      debugIsbnMatching(book, book.gyeonggiEbookInfo);
-    }
-    
-    const { total_count, available_count } = filteredGyeonggiInfo;
+    // 사전 필터링된 데이터 사용 - 렌더링 시 ISBN 매칭 계산 불필요
+    const { total_count, available_count } = targetGyeonggiInfo;
     
     if (total_count === 0) {
       return (
@@ -367,7 +375,7 @@ const MyLibrary: React.FC = () => {
 
     const showIcon = available_count > 0;
     const iconClass = available_count > 0 ? 'text-green-500' : 'text-gray-500 opacity-50';
-    const statusTitle = `총 ${total_count}권 (대출가능: ${available_count}권, 소장형: ${filteredGyeonggiInfo.owned_count}권, 구독형: ${filteredGyeonggiInfo.subscription_count}권)`;
+    const statusTitle = `총 ${total_count}권 (대출가능: ${available_count}권, 소장형: ${targetGyeonggiInfo.owned_count}권, 구독형: ${targetGyeonggiInfo.subscription_count}권)`;
 
     return (
       <a
@@ -381,7 +389,102 @@ const MyLibrary: React.FC = () => {
         {total_count}({available_count})
       </a>
     );
-  };
+  }, [refreshingEbookId, refreshAllBookInfo]);
+
+  const renderSiripEbookCell = useCallback((book: SelectedBook) => {
+    const isRefreshing = refreshingEbookId === book.id;
+    
+    if (isRefreshing) {
+      return (
+        <div className="flex justify-center">
+          <Spinner />
+        </div>
+      );
+    }
+
+    // 시립도서관 전자책 검색 URL 생성
+    const titleForSearch = (() => {
+      let titleForSearch = book.title;
+      const dashIndex = titleForSearch.indexOf('-');
+      const parenthesisIndex = titleForSearch.indexOf('(');
+      
+      // 대시(-) 또는 괄호시작("(") 중 더 앞에 있는 위치를 찾아서 그 이전까지만 사용
+      let cutIndex = -1;
+      if (dashIndex !== -1 && parenthesisIndex !== -1) {
+        cutIndex = Math.min(dashIndex, parenthesisIndex);
+      } else if (dashIndex !== -1) {
+        cutIndex = dashIndex;
+      } else if (parenthesisIndex !== -1) {
+        cutIndex = parenthesisIndex;
+      }
+      
+      if (cutIndex !== -1) {
+        titleForSearch = titleForSearch.substring(0, cutIndex).trim();
+      }
+      return titleForSearch.split(' ').slice(0, 3).join(' ');
+    })();
+
+    const siripUrl = `https://lib.gjcity.go.kr:444/elibrary-front/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent(titleForSearch)}`;
+
+    if (!book.siripEbookInfo) {
+      return (
+        <button
+          onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title)}
+          className="text-blue-400 hover:text-blue-300 underline"
+          title="시립도서관 전자책 정보 조회"
+        >
+          조회
+        </button>
+      );
+    }
+
+    if ('error' in book.siripEbookInfo) {
+      return (
+        <a
+          href={siripUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center whitespace-nowrap text-gray-500 opacity-50 hover:text-blue-300"
+          title="조회 실패 - 클릭하여 직접 검색"
+        >
+          0(0)
+        </a>
+      );
+    }
+
+    const { total_count, available_count } = book.siripEbookInfo;
+    
+    if (total_count === 0) {
+      return (
+        <a
+          href={siripUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center whitespace-nowrap text-gray-500 opacity-50 hover:text-blue-300"
+          title="전자책 없음 - 클릭하여 직접 검색"
+        >
+          0(0)
+        </a>
+      );
+    }
+
+    const showIcon = available_count > 0;
+    const iconClass = available_count > 0 ? 'text-green-500' : 'text-gray-500 opacity-50';
+    const statusTitle = `총 ${total_count}권 (대출가능: ${available_count}권, 대출불가: ${total_count - available_count}권)`;
+
+    return (
+      <a
+        href={siripUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center whitespace-nowrap text-blue-400 hover:text-blue-300"
+        title={statusTitle}
+      >
+        {showIcon && <CheckIcon className={`mr-1 w-3 h-3 ${iconClass}`} />}
+        {total_count}({available_count})
+      </a>
+    );
+  }, [refreshingEbookId, refreshAllBookInfo]);
   
   
   if (!session) {
@@ -531,6 +634,7 @@ const MyLibrary: React.FC = () => {
             <div className="w-24 p-4 font-semibold text-gray-300 text-center">기타lib</div>
             <div className="w-24 p-4 font-semibold text-gray-300 text-center">e북.교육</div>
             <div className="w-24 p-4 font-semibold text-gray-300 text-center">e북.시독</div>
+            <div className="w-24 p-4 font-semibold text-gray-300 text-center">e북.시립소장</div>
             <div className="w-24 p-4 font-semibold text-gray-300 text-center">e북.경기</div>
             <div className="w-24 p-4 font-semibold text-gray-300 text-center">관리</div>
           </div>
@@ -626,7 +730,7 @@ const MyLibrary: React.FC = () => {
                     
                     // 퇴촌도서관의 경우 안정성을 위해 제목 기반 검색으로 연결
                     // 0(0)인 경우와 동일한 로직 적용
-                    console.log(`퇴촌도서관 제목 기반 검색 URL 생성: ${book.title}`);
+                    // console.log(`퇴촌도서관 제목 기반 검색 URL 생성: ${book.title}`); // 성능 개선을 위해 주석 처리
                     toechonTitle = `퇴촌 도서관에서 '${subject}' 검색 (안정성을 위한 제목 기반 검색)`;
                     
                     return (
@@ -670,6 +774,10 @@ const MyLibrary: React.FC = () => {
                   {/* e북.시독 정보 */}
                   <div className="w-24 p-3 text-center text-gray-300">
                     {renderSidokEbookCell(book)}
+                  </div>
+                  {/* e북.시립소장 정보 */}
+                  <div className="w-24 p-3 text-center text-gray-300">
+                    {renderSiripEbookCell(book)}
                   </div>
                   {/* e북.경기 정보 */}
                   <div className="w-24 p-3 text-center text-gray-300">

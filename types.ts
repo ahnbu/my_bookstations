@@ -4,7 +4,11 @@ import {
   EBookAvailability, 
   EBookError, 
   EBookSummary,
-  LibraryApiResponse 
+  LibraryApiResponse,
+  SiripEbookResult,
+  SiripEbookError,
+  GyeonggiEbookLibraryResult,
+  GyeonggiEbookLibraryError
 } from './services/unifiedLibrary.service';
 
 // The 'Json' type is no longer exported from 'supabase-js'.
@@ -91,6 +95,9 @@ export type BookData = AladdinBookItem & {
   toechonStock: StockInfo;
   otherStock: StockInfo;
   ebookInfo?: EBookInfo; // New ebook information
+  gyeonggiEbookInfo?: GyeonggiEbookLibraryResult | GyeonggiEbookLibraryError; // 경기도 전자도서관 정보 (원본)
+  filteredGyeonggiEbookInfo?: GyeonggiEbookLibraryResult | GyeonggiEbookLibraryError; // ISBN 매칭 필터링된 경기도 전자도서관 정보
+  siripEbookInfo?: SiripEbookResult | SiripEbookError; // 시립도서관 전자책 정보
   // 상세 재고 정보 (클릭 가능한 링크를 위한 파라미터 포함)
   detailedStockInfo?: {
     gwangju_paper?: {
