@@ -146,7 +146,7 @@ export const useBookStore = create<BookState>(
       },
       
       searchBooks: async (query, searchType) => {
-        const { setIsLoading, setNotification, openBookModal } = useUIStore.getState();
+        const { setIsLoading, setNotification, openBookSearchListModal } = useUIStore.getState();
         setIsLoading(true);
         set({ selectedBook: null });
         try {
@@ -154,7 +154,7 @@ export const useBookStore = create<BookState>(
           // [세트] 로 시작하는 도서 제외
           const filteredResults = results.filter(book => !book.title.startsWith('[세트]'));
           set({ searchResults: filteredResults });
-          openBookModal();
+          openBookSearchListModal();
         } catch (error) {
           console.error(error);
           setNotification({ message: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.', type: 'error' });
@@ -168,7 +168,7 @@ export const useBookStore = create<BookState>(
         console.log('selectBook called with:', book);
         set({ selectedBook: book });
         console.log('selectedBook set to:', book);
-        useUIStore.getState().closeBookModal();
+        useUIStore.getState().closeBookSearchListModal();
         
         // API 테스트 모드에서는 스크롤하지 않음
         const { isAPITestMode } = useUIStore.getState();

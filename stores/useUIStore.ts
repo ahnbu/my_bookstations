@@ -8,7 +8,7 @@ interface UIState {
   notification: { message: string; type: 'success' | 'error' } | null;
   
   // Modal states
-  isBookModalOpen: boolean;
+  isBookSearchListModalOpen: boolean;
   isAuthModalOpen: boolean;
   authModalMode: 'login' | 'signup';
   
@@ -19,8 +19,8 @@ interface UIState {
   setIsLoading: (isLoading: boolean) => void;
   setNotification: (notification: { message: string; type: 'success' | 'error' } | null) => void;
   
-  openBookModal: () => void;
-  closeBookModal: () => void;
+  openBookSearchListModal: () => void;
+  closeBookSearchListModal: () => void;
   
   openAuthModal: (mode: 'login' | 'signup') => void;
   closeAuthModal: () => void;
@@ -32,7 +32,7 @@ interface UIState {
 export const useUIStore = create<UIState>((set) => ({
   isLoading: false,
   notification: null,
-  isBookModalOpen: false,
+  isBookSearchListModalOpen: false,
   isAuthModalOpen: false,
   authModalMode: 'login',
   isAPITestMode: false,
@@ -40,8 +40,8 @@ export const useUIStore = create<UIState>((set) => ({
   setIsLoading: (isLoading) => set({ isLoading }),
   setNotification: (notification) => set({ notification }),
   
-  openBookModal: () => set({ isBookModalOpen: true }),
-  closeBookModal: () => set({ isBookModalOpen: false }),
+  openBookSearchListModal: () => set({ isBookSearchListModalOpen: true }),
+  closeBookSearchListModal: () => set({ isBookSearchListModalOpen: false }),
   
   openAuthModal: (mode) => set({ isAuthModalOpen: true, authModalMode: mode }),
   closeAuthModal: () => set({ isAuthModalOpen: false }),

@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import BookModal from './components/BookModal';
+import BookSearchListModal from './components/BookSearchListModal';
 import BookDetails from './components/BookDetails';
 import MyLibrary from './components/MyLibrary';
 import SearchForm from './components/SearchForm';
@@ -65,7 +65,7 @@ const App: React.FC = () => {
 
         <APITest />
 
-        <BookModal />
+        <BookSearchListModal />
 
         <AuthModal />
       </main>

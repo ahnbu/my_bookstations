@@ -118,7 +118,7 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                 <div className="p-6 overflow-y-auto">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="md:col-span-1 flex justify-center items-start">
-                          <img src={book.cover.replace('coversum', 'cover')} alt={book.title} className="w-48 h-auto object-cover rounded-lg shadow-lg bg-gray-700" />
+                          <img src={book.cover.replace('coversum', 'cover')} alt={book.title} className="w-48 h-auto object-cover rounded-lg shadow-lg" />
                         </div>
                         <div className="md:col-span-2 text-gray-200">
                           <h3 className="text-2xl font-bold text-white mb-2">{book.title}</h3>

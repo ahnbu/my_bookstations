@@ -21,7 +21,7 @@ const APITest: React.FC = () => {
   
   // Store에서 검색 결과와 선택된 책 가져오기
   const { searchResults, selectedBook } = useBookStore();
-  const { isBookModalOpen, closeBookModal, setAPITestMode } = useUIStore();
+  const { isBookSearchListModalOpen, closeBookSearchListModal, setAPITestMode } = useUIStore();
 
   // API 테스트 모드 활성화/비활성화
   useEffect(() => {

@@ -90,7 +90,7 @@ const BookDetails: React.FC = () => {
     refreshAllBookInfo,
   } = useBookStore();
   const { session } = useAuthStore();
-  const { openBookModal } = useUIStore();
+  const { openBookSearchListModal } = useUIStore();
   
   // 디버깅을 위한 로그 추가
   useEffect(() => {
@@ -128,27 +128,12 @@ const BookDetails: React.FC = () => {
   
   const handleBackToList = () => {
     unselectBook();
-    openBookModal();
+    openBookSearchListModal();
   };
 
   // 도서가 선택되지 않은 경우
   if (!selectedBook) {
-    return (
-      <div className="text-center text-gray-500 mt-16 p-8 bg-gray-800/50 rounded-lg shadow-inner">
-        <div className="mb-6">
-          <div className="w-16 h-16 mx-auto mb-4 bg-gray-700 rounded-full flex items-center justify-center">
-            <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 5.477 5.754 5 7.5 5s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 19 16.5 19c-1.746 0-3.332-.523-4.5-1.253" />
-            </svg>
-          </div>
-          <h3 className="text-xl font-semibold text-gray-300 mb-2">도서를 선택해주세요</h3>
-          <p className="text-lg text-gray-400 mb-2">검색 후 도서를 선택하거나, 내 서재의 도서 제목을 클릭해주세요.</p>
-          <p className="text-sm text-gray-500">책 제목을 입력하고 검색 버튼을 누르면, 검색 결과가 팝업으로 표시됩니다.</p>
-        </div>
-        
-
-      </div>
-    );
+    return null; // 안내 텍스트 대신 아무것도 표시하지 않음
   }
 
   // selectedBook이 있지만 필수 속성이 없는 경우 처리
@@ -182,7 +167,7 @@ const BookDetails: React.FC = () => {
             도서 선택 해제
           </button>
           <button
-            onClick={() => openBookModal()}
+            onClick={() => openBookSearchListModal()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors"
           >
             다시 검색
@@ -222,7 +207,7 @@ const BookDetails: React.FC = () => {
             도서 선택 해제
           </button>
           <button
-            onClick={() => openBookModal()}
+            onClick={() => openBookSearchListModal()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors"
           >
             다시 검색
@@ -233,7 +218,7 @@ const BookDetails: React.FC = () => {
   }
 
   return (
-    <div className="relative mt-8 p-6 bg-gray-800 rounded-lg shadow-xl animate-fade-in">
+    <div className="relative mt-8 p-4 bg-gray-800 rounded-lg shadow-xl animate-fade-in max-w-4xl mx-auto">
       {isLoading && (
         <div className="absolute inset-0 bg-gray-800/80 flex items-center justify-center rounded-lg z-10">
           <div className="text-center">
@@ -243,12 +228,12 @@ const BookDetails: React.FC = () => {
         </div>
       )}
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-1 flex justify-center items-start">
           <img 
             src={selectedBook.cover.replace('coversum', 'cover')} 
             alt={selectedBook.title} 
-            className="w-48 h-auto object-cover rounded-lg shadow-lg bg-gray-700"
+            className="w-40 h-auto object-cover rounded-lg shadow-lg"
             onError={(e) => {
               console.error('이미지 로딩 실패:', selectedBook.cover);
               e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjI4OCIgdmlld0JveD0iMCAwIDE5MiAyODgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMjg4IiBmaWxsPSIjMzc0MTUxIi8+CjxwYXRoIGQ9Ik05NiAxNDRDMTA2LjA1OSAxNDQgMTE0IDEzNi4wNTkgMTE0IDEyNkMxMTQgMTE1Ljk0MSAxMDYuMDU5IDEwOCA5NiAxMDhDODUuOTQxIDExMCA3OCAxMTcuOTQxIDc4IDEyOEM3OCAxMzguMDU5IDg1Ljk0MSAxNDYgOTYgMTQ2WiIgZmlsbD0iIzZCNzM4MCIvPgo8cGF0aCBkPSJNNjQgMTY4VjE5MkgxMjhWMTY4QzEyOCAxNTcuOTQxIDEyMC4wNTkgMTUwIDExMCAxNTBINzRDNjMuOTQxIDE1MCA1NiAxNTcuOTQxIDU2IDE2OFoiIGZpbGw9IiM2QjczODAiLz4KPC9zdmc+';
@@ -257,29 +242,29 @@ const BookDetails: React.FC = () => {
         </div>
         <div className="md:col-span-2 text-gray-200">
           
-          <h2 className="text-3xl font-bold text-white mb-2">{selectedBook.title}</h2>
-          <p className="text-lg text-gray-300 mb-1">
+          <h2 className="text-2xl font-bold text-white mb-3">{selectedBook.title}</h2>
+          <p className="text-base text-gray-300 mb-2">
             <strong>저자:</strong> {selectedBook.author ? selectedBook.author.replace(/\s*\([^)]*\)/g, '') : '정보 없음'}
           </p>
-          <p className="text-md text-gray-400 mb-1">
+          <p className="text-sm text-gray-400 mb-2">
             <strong>출판사:</strong> {selectedBook.publisher || '정보 없음'}
           </p>
-          <p className="text-md text-gray-400 mb-1">
+          <p className="text-sm text-gray-400 mb-2">
             <strong>출간일:</strong> {selectedBook.pubDate || '정보 없음'}
           </p>
-          <p className="text-md text-gray-400 mb-1">
+          <p className="text-sm text-gray-400 mb-2">
             <strong>ISBN:</strong> {selectedBook.isbn13 || '정보 없음'}
           </p>
           {selectedBook.subInfo?.ebookList?.[0]?.isbn13 && (
-            <p className="text-md text-gray-400 mb-4">
+            <p className="text-sm text-gray-400 mb-4">
               <strong>전자책 ISBN:</strong> {selectedBook.subInfo.ebookList[0].isbn13}
             </p>
           )}
           
           {selectedBook.priceSales && selectedBook.priceStandard && (
             <div className="flex items-baseline mb-4">
-              <p className="text-2xl font-bold text-blue-400">{selectedBook.priceSales.toLocaleString()}원</p>
-              <p className="text-md text-gray-500 line-through ml-3">{selectedBook.priceStandard.toLocaleString()}원</p>
+              <p className="text-xl font-bold text-blue-400">{selectedBook.priceSales.toLocaleString()}원</p>
+              <p className="text-sm text-gray-500 line-through ml-3">{selectedBook.priceStandard.toLocaleString()}원</p>
             </div>
           )}
 
@@ -287,11 +272,11 @@ const BookDetails: React.FC = () => {
             {selectedBook.description || "제공된 설명이 없습니다."}
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
+          <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
             <button
               onClick={handleAddClick}
               disabled={!session || isBookInLibrary || isAdding}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors duration-300 disabled:bg-gray-600 disabled:cursor-wait"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors duration-300 disabled:bg-gray-600 disabled:cursor-wait text-sm"
             >
               {!session ? (
                 '로그인 후 추가'
@@ -299,30 +284,30 @@ const BookDetails: React.FC = () => {
                 '추가 완료'
               ) : isAdding ? (
                 <>
-                  <Spinner className="w-5 h-5" />
+                  <Spinner className="w-4 h-4" />
                   추가 중...
                 </>
               ) : (
                 <>
-                  <PlusIcon className="w-5 h-5" />
+                  <PlusIcon className="w-4 h-4" />
                   내 서재 추가
                 </>
               )}
             </button>
              <button
               onClick={handleBackToList}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-500 transition-colors duration-300"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-500 transition-colors duration-300 text-sm"
             >
-              <ArrowLeftIcon className="w-5 h-5" />
+              <ArrowLeftIcon className="w-4 h-4" />
               검색결과로
             </button>
             <a
               href={selectedBook.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors duration-300"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors duration-300 text-sm"
             >
-              <BookOpenIcon className="w-5 h-5" />
+              <BookOpenIcon className="w-4 h-4" />
               알라딘 보기
             </a>
             <a
@@ -330,12 +315,12 @@ const BookDetails: React.FC = () => {
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => !hasEbookLink && e.preventDefault()}
-              className={`w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2 bg-sky-500 text-white font-semibold rounded-lg transition-colors duration-300 ${
+              className={`w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-sky-500 text-white font-semibold rounded-lg transition-colors duration-300 text-sm ${
                 !hasEbookLink ? 'opacity-50 cursor-not-allowed' : 'hover:bg-sky-600'
               }`}
               title={!hasEbookLink ? "알라딘에서 제공하는 전자책 정보가 없습니다" : "알라딘에서 전자책 보기"}
             >
-              <BookOpenIcon className="w-5 h-5" />
+              <BookOpenIcon className="w-4 h-4" />
               전자책 보기
             </a>
           </div>
