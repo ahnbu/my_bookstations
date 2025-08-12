@@ -35,7 +35,7 @@ export default {
         const body = await request.json();
         const { isbn, title = '', gyeonggiTitle = '', siripTitle = '' } = body;
 
-        // 필수 디버그 로그: 수신된 ISBN과 제목 기록
+        // API 요청 정보 로그
         console.log(`Request received - ISBN: ${isbn}, Title: "${title}", GyeonggiTitle: "${gyeonggiTitle}", SiripTitle: "${siripTitle}"`);
 
         if (!isbn) {
@@ -56,19 +56,13 @@ export default {
         
         // 경기도 전자도서관은 gyeonggiTitle 사용하여 별도 처리
         if (gyeonggiTitle) {
-            console.log(`경기도 전자도서관 검색 시작: "${gyeonggiTitle}"`);
             gyeonggiEbookPromise = searchGyeonggiEbookLibrary(gyeonggiTitle);
-        } else {
-            console.log('gyeonggiTitle이 없어서 경기도 전자도서관 검색을 건너뜀');
         }
 
         // 시립도서관 전자책(소장형+구독형 통합) 검색은 siripTitle 사용하여 별도 처리  
         let siripEbookPromise = null;
         if (siripTitle) {
-            console.log(`시립도서관 통합 전자책 검색 시작: "${siripTitle}"`);
             siripEbookPromise = searchSiripEbookIntegrated(siripTitle);
-        } else {
-            console.log('siripTitle이 없어서 시립도서관 전자책 검색을 건너뜀');
         }
 
         const results = await Promise.allSettled(promises);
@@ -77,30 +71,22 @@ export default {
         let gyeonggiEbookResult = null;
         if (gyeonggiEbookPromise) {
             try {
-                console.log('경기도 전자도서관 Promise 대기 중...');
                 gyeonggiEbookResult = await gyeonggiEbookPromise;
-                console.log('경기도 전자도서관 결과 수신:', JSON.stringify(gyeonggiEbookResult, null, 2));
             } catch (error) {
                 console.error('경기도 전자도서관 검색 오류:', error.message);
                 gyeonggiEbookResult = { error: error.message };
             }
-        } else {
-            console.log('gyeonggiEbookPromise가 null이어서 검색하지 않음');
         }
 
         // 시립도서관 통합 전자책 결과 처리
         let siripEbookResult = null;
         if (siripEbookPromise) {
             try {
-                console.log('시립도서관 통합 전자책 Promise 대기 중...');
                 siripEbookResult = await siripEbookPromise;
-                console.log('시립도서관 통합 전자책 결과 수신:', JSON.stringify(siripEbookResult, null, 2));
             } catch (error) {
                 console.error('시립도서관 통합 전자책 검색 오류:', error.message);
                 siripEbookResult = { error: error.message };
             }
-        } else {
-            console.log('siripEbookPromise가 null이어서 검색하지 않음');
         }
 
         const finalResult = {
@@ -124,6 +110,9 @@ export default {
         if(results[2]?.status === 'rejected') finalResult.gyeonggi_ebook_education.push({ library: '통합도서관', error: `검색 실패: ${results[2].reason.message}` });
       }
         }
+        
+        // API 응답 결과 로그 (테스트 응답과 동일한 형태)
+        console.log('API Response:', JSON.stringify(finalResult, null, 2));
         
         return new Response(JSON.stringify(finalResult), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
@@ -199,8 +188,6 @@ async function searchSingleGyeonggiEbook(searchText, libraryCode) {
 // 새로운 경기도 전자도서관 API 함수 (검증된 코드로 교체)
 async function searchGyeonggiEbookLibrary(searchText) {
   try {
-    console.log(`경기도 전자도서관 검색 시작: ${searchText}`);
-    
     // 소장형 도서와 구독형 도서를 병렬로 검색
     const [ownedResults, subscriptionResults] = await Promise.allSettled([
       searchOwnedBooks(searchText),
@@ -213,17 +200,13 @@ async function searchGyeonggiEbookLibrary(searchText) {
     
     // 구독형 검색 실패 시 로그
     if (subscriptionResults.status === 'rejected') {
-      console.log(`❌ 구독형 검색 실패:`, subscriptionResults.reason?.message || subscriptionResults.reason);
       subscriptionBooks = [];
     }
     
     // 최종 안전장치
     if (!Array.isArray(subscriptionBooks)) {
-      console.log(`⚠️ subscriptionBooks가 배열이 아님:`, typeof subscriptionBooks, subscriptionBooks);
       subscriptionBooks = [];
     }
-    
-    console.log(`✅ 검색 완료 - 소장형: ${ownedBooks.length}권, 구독형: ${subscriptionBooks.length}권`);
     
     // 테스트 환경과 동일한 응답 구조로 변경
     const owned = ownedBooks.map(book => ({
@@ -248,9 +231,6 @@ async function searchGyeonggiEbookLibrary(searchText) {
     const subscriptionAvailableCount = subscriptionBooks.filter(book => book.available).length;
     const availableCount = ownedAvailableCount + subscriptionAvailableCount;
 
-    console.log(`✅ 검색 완료 - 총 ${totalStock}권 (소장형: ${ownedBooks.length}권, 구독형: ${subscriptionBooks.length}권)`);
-    console.log(`📊 대출가능 - 총 ${availableCount}권 (소장형: ${ownedAvailableCount}권, 구독형: ${subscriptionAvailableCount}권)`);
-
     // 프론트엔드에서 기대하는 GyeonggiEbookLibraryResult 형식으로 반환
     return {
       library_name: '경기도 전자도서관',
@@ -273,8 +253,6 @@ async function searchOwnedBooks(query) {
   const timestamp = Date.now();
   const apiUrl = `https://ebook.library.kr/api/service/search-engine?contentType=EB&searchType=all&detailQuery=TITLE:${encodedTitle}:true&sort=relevance&asc=desc&loanable=false&withFacet=true&page=1&size=20&_t=${timestamp}`;
 
-  console.log(`소장형 도서 검색: ${query} -> ${apiUrl}`);
-
   const headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Accept': 'application/json, text/plain, */*',
@@ -295,7 +273,6 @@ async function searchOwnedBooks(query) {
   }
   
   const jsonData = await response.json();
-  console.log('소장형 도서 API 응답:', JSON.stringify(jsonData, null, 2));
   
   return parseOwnedResults(jsonData);
 }
@@ -303,7 +280,6 @@ async function searchOwnedBooks(query) {
 // 구독형 도서 검색 함수 (개선된 버전)
 async function searchSubscriptionBooks(query) {
   try {
-    console.log(`=== 구독형 도서 검색 시작: ${query} ===`);
     
     // --- 1단계: 동적 인증 토큰 생성 (subscription_solution.md 권장 방식) ---
     // KST (UTC+9)를 기준으로 현재 시간 생성 - 단순화된 방식

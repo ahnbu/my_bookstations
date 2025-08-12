@@ -289,7 +289,11 @@ const MyLibrary: React.FC = () => {
   };
 
   const renderSidokEbookCell = useCallback((book: SelectedBook) => {
-    // e북.시립구독은 별도의 API가 없으므로 항상 클릭 가능한 링크로 표시
+    // e북.시립구독은 실제 API 데이터 사용
+    const siripInfo = book.siripEbookInfo;
+    const totalCount = siripInfo?.details?.subscription?.total_count || 0;
+    const availableCount = siripInfo?.details?.subscription?.available_count || 0;
+    
     const titleForSearch = (() => {
       let titleForSearch = book.title;
       const dashIndex = titleForSearch.indexOf('-');
@@ -313,15 +317,20 @@ const MyLibrary: React.FC = () => {
 
     const sidokUrl = `https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent(titleForSearch)}`;
 
+    const showIcon = availableCount > 0;
+    const iconClass = availableCount > 0 ? 'text-green-500' : 'text-gray-500 opacity-50';
+    const textClass = totalCount > 0 && availableCount > 0 ? 'text-blue-400 hover:text-blue-300' : 'text-gray-500 opacity-50 hover:text-blue-300';
+
     return (
       <a
         href={sidokUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center justify-center whitespace-nowrap text-blue-400 hover:text-blue-300"
-        title="광주시립도서관 전자책(구독) 검색"
+        className={`flex items-center justify-center whitespace-nowrap ${textClass}`}
+        title={`광주시립도서관 전자책(구독) - 총 ${totalCount}권 (대출가능: ${availableCount}권)`}
       >
-        <CheckIcon className="mr-1 w-3 h-3 text-green-500" />1(1)
+        {showIcon && <CheckIcon className={`mr-1 w-3 h-3 ${iconClass}`} />}
+        {totalCount}({availableCount})
       </a>
     );
   }, []);
@@ -829,8 +838,14 @@ const MyLibrary: React.FC = () => {
                 {/* e북.시립구독 */}
                 <LibraryTag
                   name="e북.시립구독"
-                  totalBooks={1} // 항상 1로 표시 (별도 API 없음)
-                  availableBooks={1}
+                  totalBooks={(() => {
+                    const siripInfo = book.siripEbookInfo;
+                    return siripInfo?.details?.subscription?.total_count || 0;
+                  })()}
+                  availableBooks={(() => {
+                    const siripInfo = book.siripEbookInfo;
+                    return siripInfo?.details?.subscription?.available_count || 0;
+                  })()}
                   searchUrl={(() => {
                     const titleForSearch = (() => {
                       let titleForSearch = book.title;
@@ -1053,8 +1068,14 @@ const MyLibrary: React.FC = () => {
                   />
                   <LibraryTag
                     name="e북.시립구독"
-                    totalBooks={0}
-                    availableBooks={0}
+                    totalBooks={(() => {
+                      const siripInfo = book.siripEbookInfo;
+                      return siripInfo?.details?.subscription?.total_count || 0;
+                    })()}
+                    availableBooks={(() => {
+                      const siripInfo = book.siripEbookInfo;
+                      return siripInfo?.details?.subscription?.available_count || 0;
+                    })()}
                     searchUrl={(() => {
                       let titleForSearch = book.title;
                       const dashIndex = titleForSearch.indexOf('-');
