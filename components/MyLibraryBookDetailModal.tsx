@@ -55,6 +55,20 @@ const renderStockInfo = (libraryName: string, stock?: StockInfo, bookTitle: stri
     } else if (libraryName === '기타 도서관') {
         searchUrl = `https://lib.gjcity.go.kr/lay1/program/S1T446C461/jnet/resourcessearch/resultList.do?searchType=SIMPLE&searchKey=TITLE&searchLibrary=ALL&searchKeyword=${encodeURIComponent(subject)}`;
         searchTitle = `광주시립도서관에서 '${subject}' 검색`;
+        // 기타 도서관은 툴팁 없이 표시
+        return (
+            <div className="flex justify-between items-center">
+                <span>{libraryName}:</span>
+                <a
+                    href={searchUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`font-medium ${statusColor} hover:text-blue-400 hover:underline cursor-pointer transition-colors`}
+                >
+                    {total} / {available}
+                </a>
+            </div>
+        );
     }
 
     return (
@@ -66,13 +80,13 @@ const renderStockInfo = (libraryName: string, stock?: StockInfo, bookTitle: stri
                     target="_blank"
                     rel="noopener noreferrer"
                     className={`font-medium ${statusColor} hover:text-blue-400 hover:underline cursor-pointer transition-colors`}
-                    title={`${searchTitle} - ${statusText} ${available}권, 총 ${total}권 소장`}
+                    title={`${searchTitle} - ${statusText} 총 ${total}권 소장, 대출가능 ${available}권`}
                 >
-                    {available} / {total}
+                    {total} / {available}
                 </a>
             ) : (
-                <span className={`font-medium ${statusColor}`} title={`${statusText} ${available}권, 총 ${total}권 소장`}>
-                    {available} / {total}
+                <span className={`font-medium ${statusColor}`} title={`${statusText} 총 ${total}권 소장, 대출가능 ${available}권`}>
+                    {total} / {available}
                 </span>
             )}
         </div>

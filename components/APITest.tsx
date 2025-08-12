@@ -6,6 +6,7 @@ import SearchForm from './SearchForm';
 import { fetchBookAvailability, processBookTitle, LibraryApiResponse } from '../services/unifiedLibrary.service';
 import { useBookStore } from '../stores/useBookStore';
 import { useUIStore } from '../stores/useUIStore';
+import DevNoteModal from './DevNoteModal';
 
 type TestType = 'combined';
 
@@ -18,6 +19,8 @@ const APITest: React.FC = () => {
   const [aladinResult, setAladinResult] = useState<AladdinBookItem | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [isDevNoteModalOpen, setIsDevNoteModalOpen] = useState(false);
+  const [devNoteContent, setDevNoteContent] = useState('');
   
   // Store에서 검색 결과와 선택된 책 가져오기
   const { searchResults, selectedBook } = useBookStore();
@@ -28,6 +31,28 @@ const APITest: React.FC = () => {
     setAPITestMode(true);
     return () => setAPITestMode(false);
   }, [setAPITestMode]);
+
+  // 컴포넌트 마운트 시 저장된 개발노트 로드
+  useEffect(() => {
+    const savedNote = localStorage.getItem('devNote');
+    if (savedNote) {
+      setDevNoteContent(savedNote);
+    }
+  }, []);
+
+  // 개발노트 저장 함수
+  const handleSaveDevNote = async (content: string) => {
+    try {
+      // 로컬 스토리지에 저장
+      localStorage.setItem('devNote', content);
+      setDevNoteContent(content);
+      // 성공 알림 (선택사항)
+      console.log('개발노트가 저장되었습니다.');
+    } catch (error) {
+      console.error('개발노트 저장 실패:', error);
+      throw error;
+    }
+  };
 
   // 복사 기능 함수
   const copyToClipboard = async (text: string, label: string) => {
@@ -86,8 +111,17 @@ const APITest: React.FC = () => {
   const processedTitle = title ? processBookTitle(title) : '';
 
   return (
-    <div className="mt-12 animate-fade-in api-test-container">
-      <h2 className="text-3xl font-bold text-white mb-6">API 테스트</h2>
+    <div className="mt-12 api-test-container">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-3xl font-bold text-white">API 테스트</h2>
+        <button
+          onClick={() => setIsDevNoteModalOpen(true)}
+          className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-2"
+          title="개발노트 열기"
+        >
+          📝 개발노트
+        </button>
+      </div>
       
       <div className="bg-gray-800 rounded-lg shadow-xl p-6">
         {/* 책 검색 섹션 */}
@@ -245,6 +279,14 @@ const APITest: React.FC = () => {
           
         </div>
       </div>
+
+      {/* 개발노트 모달 */}
+      <DevNoteModal
+        isOpen={isDevNoteModalOpen}
+        onClose={() => setIsDevNoteModalOpen(false)}
+        initialContent={devNoteContent}
+        onSave={handleSaveDevNote}
+      />
     </div>
   );
 };
