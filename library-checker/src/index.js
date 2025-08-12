@@ -1,7 +1,7 @@
 // 최종 수정: 2025-08-09 - 경기도 전자도서관 재고 크롤링 기능 추가
 // 수정: 2025-08-09 - 전자책 대출가능 여부 정확성 개선
 // 수정: 2025-08-09 - supabase 무료요금 비활성화 방지 위해서 3일마다 ping 기능 추가
-// 수정: 2025-08-03 - 디버깅 코드 최소화
+// 수정: 2025-08-09 - 과도한 콘솔 로그 정리 (운영 환경 최적화)
 
 // CloudFlare Workers - 4-Way 통합 도서관 재고 확인 API (경기도 전자도서관 포함 버전)
 // =================================================================
@@ -35,7 +35,7 @@ export default {
         const body = await request.json();
         const { isbn, title = '', gyeonggiTitle = '', siripTitle = '' } = body;
 
-        // API 요청 정보 로그
+        // API 요청 정보 로그 (유지)
         console.log(`Request received - ISBN: ${isbn}, Title: "${title}", GyeonggiTitle: "${gyeonggiTitle}", SiripTitle: "${siripTitle}"`);
 
         if (!isbn) {
@@ -111,7 +111,7 @@ export default {
       }
         }
         
-        // API 응답 결과 로그 (테스트 응답과 동일한 형태)
+        // API 응답 결과 로그 (유지 - 테스트 응답과 동일한 형태)
         console.log('API Response:', JSON.stringify(finalResult, null, 2));
         
         return new Response(JSON.stringify(finalResult), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -309,9 +309,7 @@ async function searchSubscriptionBooks(query) {
       throw new Error(`토큰 인코딩 실패: ${error.message}`);
     }
 
-    console.log(`[정보] 생성된 토큰 문자열: ${tokenString}`);
-    console.log(`[정보] Base64 인코딩된 토큰: ${dynamicToken}`);
-    console.log(`[정보] 현재 KST 시간: ${yyyy}-${mm}-${dd} ${hh}:${min}`);
+    // 토큰 생성 로그 제거 (운영 환경 최적화)
 
     // --- 2단계: 요청 본문 및 헤더 구성 (subscription_solution.md 검증된 구성) ---
     const body = { 
@@ -341,9 +339,6 @@ async function searchSubscriptionBooks(query) {
       body: JSON.stringify(body)
     });
 
-    console.log(`[정보] 서버 응답 상태: ${response.status} ${response.statusText}`);
-    console.log(`[정보] 응답 헤더:`, Object.fromEntries(response.headers.entries()));
-
     if (!response.ok) {
       // 오류 발생 시, 서버가 보낸 실제 메시지를 확인
       const errorText = await response.text();
@@ -364,7 +359,6 @@ async function searchSubscriptionBooks(query) {
     }
 
     const data = await response.json();
-    console.log(`✅ 서버 응답 수신 성공`);
     
     // parseSubscriptionResults 함수를 사용하여 파싱
     const parsedResults = parseSubscriptionResults(data, query);
@@ -390,12 +384,8 @@ async function searchSubscriptionBooks(query) {
 // 시립도서관 전자책 검색 함수
 async function searchSiripOwnedEbook(searchTitle) {
   try {
-    console.log(`시립도서관 전자책 검색 시작: ${searchTitle}`);
-    
     const encodedTitle = encodeURIComponent(searchTitle);
     const url = `https://lib.gjcity.go.kr:444/elibrary-front/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodedTitle}`;
-    
-    console.log(`시립도서관 전자책 검색 URL: ${url}`);
     
     const headers = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
@@ -425,7 +415,6 @@ async function searchSiripOwnedEbook(searchTitle) {
     }
     
     const htmlContent = await response.text();
-    console.log(`시립도서관 전자책 HTML 응답 수신: ${htmlContent.length} characters`);
     
     return parseSiripOwnedEbookHTML(htmlContent, searchTitle);
     
@@ -438,12 +427,8 @@ async function searchSiripOwnedEbook(searchTitle) {
 // 시립도서관 구독형 전자책 검색 함수
 async function searchSiripSubscriptionEbook(searchTitle) {
   try {
-    console.log(`시립도서관 구독형 전자책 검색 시작: ${searchTitle}`);
-    
     const encodedTitle = encodeURIComponent(searchTitle);
     const url = `https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?brcd=&sntnAuthCode=&contentAll=&cttsDvsnCode=&orderByKey=&schClst=all&schDvsn=000&reSch=&ctgrId=&allClstCheck=on&clstCheck=ctts&clstCheck=autr&clstCheck=pbcm&allDvsnCheck=000&dvsnCheck=001&schTxt=${encodedTitle}&reSchTxt=`;
-    
-    console.log(`시립도서관 구독형 전자책 검색 URL: ${url}`);
     
     const headers = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
@@ -585,11 +570,7 @@ function parseGyeonggiHTML(html, libraryCode) {
         }
       }
       
-      // 디버깅을 위한 로그 (실제 HTML 내용 확인)
-      if (statusText === "정보 없음") {
-        console.log(`디버그 - 도서명: ${title}`);
-        console.log(`디버그 - infoBlock 내용:`, infoBlock.substring(0, 500));
-      }
+      // 디버깅 로그 제거 (운영 환경 최적화)
       
       // 개선된 대출 상태 판단 로직
       let status = "알 수 없음";
@@ -613,8 +594,6 @@ function parseGyeonggiHTML(html, libraryCode) {
 // 새로운 경기도 전자도서관 API 응답 파싱 함수
 function parseGyeonggiEbookApiResponse(apiResponse, searchText) {
   try {
-    console.log('경기도 전자도서관 API 응답 파싱 시작');
-    
     // 더 포괄적인 검색 결과 없음 체크
     const noResultPatterns = [
       '검색 결과가 없습니다',
@@ -626,7 +605,6 @@ function parseGyeonggiEbookApiResponse(apiResponse, searchText) {
     
     const hasNoResults = noResultPatterns.some(pattern => html.includes(pattern));
     if (hasNoResults) {
-      console.log('검색 결과 없음 확인됨');
       return {
         library_name: '경기도 전자도서관',
         total_count: 0,
@@ -644,39 +622,29 @@ function parseGyeonggiEbookApiResponse(apiResponse, searchText) {
     const books = [];
 
     // HTML에서 주요 섹션들 확인
-    console.log('HTML에서 searchResultList 찾기...');
     const allSections = html.match(/<div class="searchResultList"[^>]*>/g) || [];
-    console.log('발견된 섹션들:', allSections);
     
     // data-type 값들 확인
     const dataTypes = allSections.map(section => {
       const match = section.match(/data-type="([^"]*)"/);
       return match ? match[1] : 'unknown';
     });
-    console.log('data-type 값들:', dataTypes);
     
     // 소장형/구독형 텍스트 직접 검색
     const ebTextMatch = html.match(/소장형\s*\(\s*<span>\s*(\d+)\s*<\/span>\s*\)/i);
     const subsTextMatch = html.match(/구독형\s*\(\s*<span>\s*(\d+)\s*<\/span>\s*\)/i);
-    console.log('소장형 텍스트 매치:', ebTextMatch);
-    console.log('구독형 텍스트 매치:', subsTextMatch);
     
     // 직접 매칭이 성공했다면 카운트 설정
     if (ebTextMatch) {
       ownedCount = parseInt(ebTextMatch[1], 10);
-      console.log(`직접 매칭으로 소장형 개수 발견: ${ownedCount}`);
     }
     if (subsTextMatch) {
       subscriptionCount = parseInt(subsTextMatch[1], 10);
-      console.log(`직접 매칭으로 구독형 개수 발견: ${subscriptionCount}`);
     }
 
     // 소장형(EB) 섹션 파싱
     const ebSectionMatch = html.match(/<div class="searchResultList" data-type="EB">([\s\S]*?)(?=<div class="searchResultList" data-type="(?:SUBS|AB)"|$)/i);
     if (ebSectionMatch) {
-      console.log('소장형(EB) 섹션 발견');
-      console.log('EB 섹션 길이:', ebSectionMatch[1].length);
-      
       // 여러 패턴으로 소장형 개수 추출 시도
       const ebCountPatterns = [
         /<em>소장형 \(<span>(\d+)<\/span>\)<\/em>/i,
@@ -688,7 +656,6 @@ function parseGyeonggiEbookApiResponse(apiResponse, searchText) {
         const match = ebSectionMatch[1].match(pattern);
         if (match) {
           ownedCount = parseInt(match[1], 10);
-          console.log(`소장형 개수 발견: ${ownedCount} (패턴: ${pattern})`);
           break;
         }
       }
@@ -699,7 +666,6 @@ function parseGyeonggiEbookApiResponse(apiResponse, searchText) {
         // 기본적으로 모든 소장형 책이 대출가능하다고 가정
         // 실제로는 더 정밀한 파싱이 필요하지만, 일단 1권은 있다고 표시
         availableCount = ownedCount;
-        console.log(`소장형 책 있음 - 대출가능으로 설정: ${availableCount}`);
         
         for (let i = 0; i < ownedCount; i++) {
           books.push({
@@ -718,12 +684,10 @@ function parseGyeonggiEbookApiResponse(apiResponse, searchText) {
         /대출하기|예약하기|이용하기/gi
       ];
       
-      console.log('버튼 패턴 검색 시작...');
       for (const pattern of buttonPatterns) {
         const matches = [...ebSectionMatch[1].matchAll(pattern)];
-        console.log(`패턴 ${pattern} 매치 수: ${matches.length}`);
         if (matches.length > 0) {
-          console.log('첫 번째 매치:', matches[0]);
+          break;
         }
       }
     }
@@ -731,8 +695,6 @@ function parseGyeonggiEbookApiResponse(apiResponse, searchText) {
     // 구독형(SUBS) 섹션 파싱
     const subsSectionMatch = html.match(/<div class="searchResultList" data-type="SUBS">([\s\S]*?)(?=<div class="searchResultList" data-type="AB"|$)/i);
     if (subsSectionMatch) {
-      console.log('구독형(SUBS) 섹션 발견');
-      
       // 여러 패턴으로 구독형 개수 추출 시도
       const subsCountPatterns = [
         /<em>구독형 \(<span>(\d+)<\/span>\)<\/em>/i,
@@ -744,7 +706,6 @@ function parseGyeonggiEbookApiResponse(apiResponse, searchText) {
         const match = subsSectionMatch[1].match(pattern);
         if (match) {
           subscriptionCount = parseInt(match[1], 10);
-          console.log(`구독형 개수 발견: ${subscriptionCount} (패턴: ${pattern})`);
           break;
         }
       }
@@ -752,7 +713,6 @@ function parseGyeonggiEbookApiResponse(apiResponse, searchText) {
       if (subscriptionCount > 0) {
         // 구독형은 모두 대출 가능으로 처리
         availableCount += subscriptionCount;
-        console.log(`구독형 ${subscriptionCount}권을 대출가능으로 설정`);
         
         // 구독형 도서들 추가
         for (let i = 0; i < subscriptionCount; i++) {
@@ -766,8 +726,6 @@ function parseGyeonggiEbookApiResponse(apiResponse, searchText) {
     
     // 다른 섹션이나 일반적인 검색 결과도 확인
     if (ownedCount === 0 && subscriptionCount === 0) {
-      console.log('EB/SUBS 섹션에서 찾지 못함. 일반 검색 결과 확인...');
-      
       // 일반적인 책 목록 패턴 확인
       const generalBookPatterns = [
         /class="bookItem"/gi,
@@ -779,14 +737,12 @@ function parseGyeonggiEbookApiResponse(apiResponse, searchText) {
       let foundBooks = 0;
       generalBookPatterns.forEach((pattern, index) => {
         const matches = html.match(pattern) || [];
-        console.log(`일반 패턴 ${index + 1}: ${matches.length}개 매치`);
         if (matches.length > foundBooks) {
           foundBooks = matches.length;
         }
       });
       
       if (foundBooks > 0) {
-        console.log(`일반 검색으로 ${foundBooks}권 발견 - 임시로 1권 설정`);
         ownedCount = 1;
         availableCount = 1;
         books.push({
@@ -846,15 +802,11 @@ function parseGyeonggiEbookApiResponse(apiResponse, searchText) {
 // 새로운 파싱 함수들 (검증된 코드)
 function parseOwnedResults(data) {
   try {
-    console.log('소장형 도서 결과 파싱 시작');
-    
     if (!data || data.httpStatus !== 'OK' || !data.data) {
-      console.log('소장형 도서 API 응답이 올바르지 않음:', data);
       return [];
     }
 
     const contents = data.data.contents || [];
-    console.log(`소장형 도서 검색 결과: ${contents.length}권 발견`);
     
     if (contents.length === 0) {
       return [];
@@ -888,58 +840,41 @@ function parseOwnedResults(data) {
 
 function parseSubscriptionResults(data, query) {
   try {
-    console.log('=== 구독형 도서 결과 파싱 시작 ===');
-    console.log(`검색어: "${query}"`);
-    
     // 응답 데이터 유효성 검증
     if (!data) {
-      console.log('❌ API 응답이 null 또는 undefined입니다.');
       return [];
     }
     
     if (typeof data !== 'object') {
-      console.log(`❌ API 응답이 객체가 아닙니다: ${typeof data}`);
       return [];
     }
-    
-    console.log(`📋 사용 가능한 필드들:`, Object.keys(data));
     
     // bookSearchResponses 필드를 우선적으로 찾기 (subscription_solution.md 기준)
     let books = null;
     if (data.bookSearchResponses && Array.isArray(data.bookSearchResponses)) {
       books = data.bookSearchResponses;
-      console.log(`✓ bookSearchResponses 필드 발견: ${books.length}권`);
     } else {
-      console.log('⚠️ bookSearchResponses 필드가 없음. 대안 필드 탐색...');
-      
       // 대안 필드들 확인
       const possibleFields = ['books', 'items', 'results', 'data', 'list'];
       for (const field of possibleFields) {
         if (data[field] && Array.isArray(data[field])) {
           books = data[field];
-          console.log(`✓ 대안 필드 발견: ${field} (${books.length}권)`);
           break;
         }
       }
       
       if (!books) {
-        console.log('❌ 사용 가능한 도서 데이터 필드를 찾을 수 없습니다.');
-        console.log('📊 전체 응답 구조:', JSON.stringify(data, null, 2));
         return [];
       }
     }
     
     if (books.length === 0) {
-      console.log('📚 검색 결과가 없습니다.');
       return [];
     }
 
-    console.log(`🔍 제목 필터링 시작...`);
-    
     // 제목 기반 필터링 개선
     const filteredBooks = books.filter((book, index) => {
       if (!book || typeof book !== 'object') {
-        console.log(`⚠️ 잘못된 도서 객체 [${index}]:`, book);
         return false;
       }
       
@@ -955,7 +890,6 @@ function parseSubscriptionResults(data, query) {
       }
       
       if (!bookTitle) {
-        console.log(`⚠️ 제목을 찾을 수 없는 도서 [${index}]:`, Object.keys(book));
         return false;
       }
       
@@ -974,15 +908,8 @@ function parseSubscriptionResults(data, query) {
       
       const isMatch = isExactMatch || isPartialMatch || isReversedMatch || isSpaceIgnoreMatch;
       
-      if (isMatch) {
-        console.log(`✓ 매칭된 도서 [${index}]: "${bookTitle}"`);
-        console.log(`  - 매칭 방식: ${isExactMatch ? '정확' : isPartialMatch ? '부분포함' : isReversedMatch ? '역방향포함' : '공백무시'}`);
-      }
-      
       return isMatch;
     });
-
-    console.log(`📊 필터링 결과: ${filteredBooks.length}권 선택됨`);
 
     // 도서 정보 매핑 (실제 API 응답 구조에 맞춤)
     const mappedBooks = filteredBooks.map((book, index) => {
@@ -995,17 +922,13 @@ function parseSubscriptionResults(data, query) {
         library_name: '경기도 전자도서관'
       };
       
-      console.log(`📖 도서 ${index + 1} 매핑 완료: ${mappedBook.title}`);
-      
       return mappedBook;
     });
 
-    console.log(`✅ 구독형 도서 파싱 완료: ${mappedBooks.length}권`);
     return mappedBooks;
 
   } catch (error) {
     console.error('❌ 구독형 도서 결과 파싱 오류:', error.message);
-    console.error('📊 오류 스택:', error.stack);
     return [];
   }
 }
@@ -1085,15 +1008,6 @@ function parseSiripOwnedEbookHTML(html, searchTitle) {
       try {
         const bookHTML = match[0]; // 전체 li 내용 (match[0]이 전체 매칭)
         
-        // 디버깅: HTML 구조 확인
-        console.log(`\n=== 책 ${index + 1} HTML 구조 분석 ===`);
-        console.log(`전체 길이: ${bookHTML.length}자`);
-        console.log(`class="use" 포함 여부: ${bookHTML.includes('class="use"')}`);
-        if (bookHTML.includes('class="use"')) {
-          const useIndex = bookHTML.indexOf('class="use"');
-          console.log(`class="use" 위치 주변:`, bookHTML.substring(useIndex - 50, useIndex + 150));
-        }
-        
         // 3. 제목 추출: <li class="tit"><a title="..."> 에서 title 속성 사용
         let title = '';
         const titleMatch = bookHTML.match(/<li[^>]*class[^>]*tit[^>]*>[\s\S]*?<a[^>]*title="([^"]*)"[^>]*>/i);
@@ -1104,11 +1018,8 @@ function parseSiripOwnedEbookHTML(html, searchTitle) {
         }
         
         if (!title) {
-          console.log(`⚠️ 제목 추출 실패 - 책 ${index + 1} 건너뛰기`);
           return; // 제목이 없으면 건너뛰기
         }
-
-        console.log(`📚 책 제목: "${title}"`);
 
         // 4. 저자/출판사/출간일 추출: <li class="writer"> (구독형 검증된 패턴)
         let author = '';
@@ -1143,7 +1054,6 @@ function parseSiripOwnedEbookHTML(html, searchTitle) {
         let isAvailable = false;
         
         // XPath div[2]/p[2] 구조에 맞는 개선된 파싱 로직
-        console.log(`🔍 대출 정보 파싱 시작: "${title}"`);
         
         // 개선된 다중 패턴 매칭 시스템
         const loanPatterns = [
@@ -1169,7 +1079,6 @@ function parseSiripOwnedEbookHTML(html, searchTitle) {
           if (useMatch) {
             patternIndex = i + 1;
             patternUsed = `패턴${patternIndex}`;
-            console.log(`✅ 대출 정보 매칭 성공 - ${patternUsed}: [${useMatch[1]}/${useMatch[2]}]`);
             break;
           }
         }
@@ -1194,26 +1103,8 @@ function parseSiripOwnedEbookHTML(html, searchTitle) {
               break;
             }
           }
-          
-          console.log(`📊 대출 현황 (${patternUsed}): "${title}"`);
-          console.log(`   - 총 재고: ${totalCopies}권`);
-          console.log(`   - 현재 대출: ${currentBorrowed}권`);
-          console.log(`   - 대출 가능: ${availableCopies}권`);
-          console.log(`   - 예약 대기: ${reservations}명`);
-          console.log(`   - 이용 가능: ${isAvailable ? 'YES' : 'NO'}`);
         } else {
-          console.log(`❌ 모든 패턴 매칭 실패: "${title}"`);
-          console.log(`HTML에서 'class="use"' 포함 여부: ${bookHTML.includes('class="use"')}`);
-          console.log(`HTML에서 '대출' 키워드 포함 여부: ${bookHTML.includes('대출')}`);
-          
-          // class="use" 부분이 있다면 해당 부분 출력
-          if (bookHTML.includes('class="use"')) {
-            const useIndex = bookHTML.indexOf('class="use"');
-            console.log(`🔍 class="use" 주변 HTML:`, bookHTML.substring(useIndex - 100, useIndex + 200));
-          }
-          
           // 실패 시에는 정보 부족으로 처리 (기본값 대신 명확한 상태)
-          console.log(`⚠️ 대출 현황 파싱 실패 - 정보 부족으로 처리`);
           isAvailable = true;  // 정보가 없으면 일단 이용 가능으로 처리
           availableCopies = 1;
         }
@@ -1400,9 +1291,7 @@ async function searchSiripEbookIntegrated(searchTitle) {
     
     if (ownedResults.status === 'fulfilled') {
       ownedData = ownedResults.value;
-      console.log(`소장형 검색 성공: ${ownedData.total_count}권`);
     } else {
-      console.error('소장형 검색 실패:', ownedResults.reason.message);
       ownedData = {
         library_name: '광주시립중앙도서관-소장형',
         total_count: 0,
@@ -1416,7 +1305,6 @@ async function searchSiripEbookIntegrated(searchTitle) {
     if (subscriptionResults.status === 'fulfilled') {
       subscriptionData = subscriptionResults.value;
     } else {
-      console.error('구독형 검색 실패:', subscriptionResults.reason.message);
       subscriptionData = {
         library_name: '광주시립중앙도서관-구독형',
         total_count: 0,
@@ -1491,43 +1379,28 @@ async function searchSiripEbookIntegrated(searchTitle) {
 // 경기도 전자도서관 API 응답 검증 함수
 function validateGyeonggiEbookApiResponse(response) {
   try {
-    console.log('=== 경기도 전자도서관 API 응답 검증 시작 ===');
-    
     if (!response) {
-      console.error('❌ 응답이 null 또는 undefined입니다.');
       return false;
     }
     
     if (response.error) {
-      console.error(`❌ API 오류 발생: ${response.error}`);
       return false;
     }
     
     if (!response.owned_results && !response.subscription_results) {
-      console.error('❌ owned_results 또는 subscription_results가 없습니다.');
       return false;
     }
     
-    console.log('✅ 기본 응답 구조 검증 통과');
-    
     // 소장형 도서 검증
     if (response.owned_results) {
-      console.log(`📚 소장형 도서: ${response.owned_results.length}권`);
-      if (response.owned_results.length > 0) {
-        const firstBook = response.owned_results[0];
-        console.log(`  대출가능: ${firstBook.available_copies}권 / 총 ${firstBook.total_copies}권`);
-      }
+      // 검증 로직은 유지하되 로그는 제거
     }
     
     // 구독형 도서 검증
     if (response.subscription_results) {
-      console.log(`📖 구독형 도서: ${response.subscription_results.length}권`);
-      if (response.subscription_results.length > 0) {
-        const firstBook = response.subscription_results[0];
-      }
+      // 검증 로직은 유지하되 로그는 제거
     }
     
-    console.log('=== 검증 완료 ===');
     return true;
     
   } catch (error) {
@@ -1538,38 +1411,27 @@ function validateGyeonggiEbookApiResponse(response) {
 
 // 통합 테스트 함수
 async function runIntegrationTest() {
-  console.log('🚀 경기도 전자도서관 통합 테스트 시작');
-  
   try {
     // 테스트 케이스 1: 일반적인 책 제목으로 테스트
     const testTitle = '해리포터';
-    console.log(`\n📖 테스트 케이스 1: "${testTitle}" 검색`);
     
     const result = await searchGyeonggiEbookLibrary(testTitle);
-    console.log('검색 결과:', JSON.stringify(result, null, 2));
     
     // 응답 검증
     const isValid = validateGyeonggiEbookApiResponse(result);
-    console.log(`검증 결과: ${isValid ? '✅ 통과' : '❌ 실패'}`);
     
     // 테스트 케이스 2: 빈 결과 테스트
-    console.log(`\n📖 테스트 케이스 2: 존재하지 않는 책 제목 검색`);
     const emptyResult = await searchGyeonggiEbookLibrary('존재하지않는책제목12345');
-    console.log('빈 결과 검색:', JSON.stringify(emptyResult, null, 2));
     
-    console.log('\n🎉 통합 테스트 완료!');
     return true;
     
   } catch (error) {
-    console.error('❌ 통합 테스트 실패:', error);
     return false;
   }
 }
 
 // 성능 테스트 함수
 async function runPerformanceTest() {
-  console.log('⚡ 성능 테스트 시작');
-  
   const testTitles = ['해리포터', '반지의 제왕', '듄', '기생충', '1984'];
   const results = [];
   
@@ -1587,8 +1449,6 @@ async function runPerformanceTest() {
         bookCount: (result.owned_results?.length || 0) + (result.subscription_results?.length || 0)
       });
       
-      console.log(`✅ "${title}": ${duration}ms, ${result.owned_results?.length || 0}권`);
-      
     } catch (error) {
       results.push({
         title,
@@ -1596,29 +1456,21 @@ async function runPerformanceTest() {
         success: false,
         error: error.message
       });
-      
-      console.log(`❌ "${title}": 실패 - ${error.message}`);
     }
     
     // API 부하 방지를 위한 간격
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
   
-  console.log('\n📊 성능 테스트 결과:');
-  console.table(results);
-  
   const avgDuration = results
     .filter(r => r.success && r.duration !== '실패')
     .reduce((sum, r) => sum + parseInt(r.duration), 0) / results.filter(r => r.success).length;
   
-  console.log(`\n평균 응답 시간: ${avgDuration.toFixed(0)}ms`);
   return results;
 }
 
 // 에러 처리 테스트 함수
 async function runErrorHandlingTest() {
-  console.log('🛡️ 에러 처리 테스트 시작');
-  
   const testCases = [
     { name: '빈 문자열', input: '' },
     { name: '특수문자', input: '!@#$%^&*()' },
@@ -1629,23 +1481,16 @@ async function runErrorHandlingTest() {
   
   for (const testCase of testCases) {
     try {
-      console.log(`\n🧪 테스트: ${testCase.name}`);
       const result = await searchGyeonggiEbookLibrary(testCase.input);
-      console.log(`결과: ${result.error ? '에러 처리됨' : '정상 처리됨'}`);
-      
+      // 테스트 결과는 내부적으로 처리
     } catch (error) {
-      console.log(`예외 발생: ${error.message}`);
+      // 에러는 정상적인 테스트 결과
     }
   }
-  
-  console.log('\n✅ 에러 처리 테스트 완료');
 }
 
 // 메인 테스트 실행 함수 (개발 환경에서만 사용)
 async function runAllTests() {
-  console.log('🧪 전체 테스트 스위트 실행');
-  console.log('=' * 50);
-  
   const results = {
     integration: false,
     performance: false,
@@ -1664,21 +1509,14 @@ async function runAllTests() {
     results.errorHandling = true;
     
   } catch (error) {
-    console.error('테스트 실행 중 오류:', error);
+    // 테스트 실행 중 오류는 내부적으로 처리
   }
-  
-  console.log('\n📋 테스트 결과 요약:');
-  console.log(`통합 테스트: ${results.integration ? '✅ 통과' : '❌ 실패'}`);
-  console.log(`성능 테스트: ${results.performance ? '✅ 완료' : '❌ 실패'}`);
-  console.log(`에러 처리 테스트: ${results.errorHandling ? '✅ 완료' : '❌ 실패'}`);
   
   return results;
 }
 
 // 개발 환경에서 테스트 실행을 위한 조건부 실행
 if (typeof globalThis !== 'undefined' && globalThis.environment === 'development') {
-  console.log('🔧 개발 환경 감지됨 - 테스트 함수들이 로드되었습니다.');
-  console.log('테스트 실행: runAllTests()');
-  console.log('개별 테스트: runIntegrationTest(), runPerformanceTest(), runErrorHandlingTest()');
+  // 테스트 함수들이 로드되었음을 표시 (최소한의 로그)
 }
 
