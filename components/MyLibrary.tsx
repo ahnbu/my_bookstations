@@ -288,8 +288,8 @@ const MyLibrary: React.FC = () => {
     );
   };
 
-  const renderSidokEbookCell = (book: SelectedBook) => {
-    // e북.시독은 별도의 API가 없으므로 항상 클릭 가능한 링크로 표시
+  const renderSidokEbookCell = useCallback((book: SelectedBook) => {
+    // e북.시립구독은 별도의 API가 없으므로 항상 클릭 가능한 링크로 표시
     const titleForSearch = (() => {
       let titleForSearch = book.title;
       const dashIndex = titleForSearch.indexOf('-');
@@ -324,7 +324,7 @@ const MyLibrary: React.FC = () => {
         <CheckIcon className="mr-1 w-3 h-3 text-green-500" />1(1)
       </a>
     );
-  };
+  }, []);
 
   const renderGyeonggiEbookCell = useCallback((book: SelectedBook) => {
     const isRefreshing = refreshingEbookId === book.id;
@@ -464,9 +464,11 @@ const MyLibrary: React.FC = () => {
       );
     }
 
-    const { total_count, available_count } = book.siripEbookInfo;
+    // owned 항목의 데이터만 사용
+    const totalCount = book.siripEbookInfo.details?.owned?.total_count || 0;
+    const availableCount = book.siripEbookInfo.details?.owned?.available_count || 0;
     
-    if (total_count === 0) {
+    if (totalCount === 0) {
       return (
         <a
           href={siripUrl}
@@ -480,9 +482,9 @@ const MyLibrary: React.FC = () => {
       );
     }
 
-    const showIcon = available_count > 0;
-    const iconClass = available_count > 0 ? 'text-green-500' : 'text-gray-500 opacity-50';
-    const statusTitle = `총 ${total_count}권 (대출가능: ${available_count}권, 대출불가: ${total_count - available_count}권)`;
+    const showIcon = availableCount > 0;
+    const iconClass = availableCount > 0 ? 'text-green-500' : 'text-gray-500 opacity-50';
+    const statusTitle = `총 ${totalCount}권 (대출가능: ${availableCount}권, 대출불가: ${totalCount - availableCount}권)`;
 
     return (
       <a
@@ -493,7 +495,7 @@ const MyLibrary: React.FC = () => {
         title={statusTitle}
       >
         {showIcon && <CheckIcon className={`mr-1 w-3 h-3 ${iconClass}`} />}
-        {total_count}({available_count})
+        {totalCount}({availableCount})
       </a>
     );
   }, [refreshingEbookId, refreshAllBookInfo]);
@@ -824,9 +826,9 @@ const MyLibrary: React.FC = () => {
                   })()}
                 />
                 
-                {/* e북.시독 */}
+                {/* e북.시립구독 */}
                 <LibraryTag
-                  name="e북.시독"
+                  name="e북.시립구독"
                   totalBooks={1} // 항상 1로 표시 (별도 API 없음)
                   availableBooks={1}
                   searchUrl={(() => {
@@ -858,11 +860,11 @@ const MyLibrary: React.FC = () => {
                   name="e북.시립소장"
                   totalBooks={(() => {
                     const siripInfo = book.siripEbookInfo;
-                    return siripInfo && 'total_count' in siripInfo ? siripInfo.total_count : 0;
+                    return siripInfo?.details?.owned?.total_count || 0;
                   })()}
                   availableBooks={(() => {
                     const siripInfo = book.siripEbookInfo;
-                    return siripInfo && 'available_count' in siripInfo ? siripInfo.available_count : 0;
+                    return siripInfo?.details?.owned?.available_count || 0;
                   })()}
                   searchUrl={(() => {
                     const titleForSearch = (() => {
@@ -1050,7 +1052,7 @@ const MyLibrary: React.FC = () => {
                     })()}
                   />
                   <LibraryTag
-                    name="e북.시독"
+                    name="e북.시립구독"
                     totalBooks={0}
                     availableBooks={0}
                     searchUrl={(() => {
@@ -1076,11 +1078,11 @@ const MyLibrary: React.FC = () => {
                     name="e북.시립소장"
                     totalBooks={(() => {
                       const siripInfo = book.siripEbookInfo;
-                      return siripInfo && 'total_count' in siripInfo ? siripInfo.total_count : 0;
+                      return siripInfo?.details?.owned?.total_count || 0;
                     })()}
                     availableBooks={(() => {
                       const siripInfo = book.siripEbookInfo;
-                      return siripInfo && 'available_count' in siripInfo ? siripInfo.available_count : 0;
+                      return siripInfo?.details?.owned?.available_count || 0;
                     })()}
                     searchUrl={(() => {
                       const processedTitle = createSearchSubject(book.title);

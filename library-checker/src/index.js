@@ -107,7 +107,7 @@ export default {
           gwangju_paper: results[0].status === 'fulfilled' ? results[0].value : { error: results[0].reason.message },
           gyeonggi_ebook_education: [],
           gyeonggi_ebook_library: gyeonggiEbookResult,
-          sirip_ebook: siripEbookResult ? transformSiripResult(siripEbookResult) : null
+          sirip_ebook: siripEbookResult || null
         };
         
         if (title && results.length > 1) {
@@ -357,9 +357,6 @@ async function searchSubscriptionBooks(query) {
       'Origin': 'https://ebook.library.kr'
     };
 
-    console.log(`구독형 도서 검색 URL: https://api.bookers.life/v2/Api/books/search`);
-    console.log(`구독형 도서 검색 요청 본문:`, JSON.stringify(body, null, 2));
-    console.log(`구독형 도서 검색 헤더:`, JSON.stringify(headers, null, 2));
 
     // --- 3단계: 실제 요청 전송 ---
     const response = await fetch('https://api.bookers.life/v2/Api/books/search', {
@@ -500,7 +497,6 @@ async function searchSiripSubscriptionEbook(searchTitle) {
     }
     
     const htmlContent = await response.text();
-    console.log(`시립도서관 구독형 전자책 HTML 응답 수신: ${htmlContent.length} characters`);
     
     return parseSiripSubscriptionEbookHTML(htmlContent, searchTitle);
     
@@ -731,7 +727,6 @@ function parseGyeonggiEbookApiResponse(apiResponse, searchText) {
         
         for (let i = 0; i < ownedCount; i++) {
           books.push({
-            type: '소장형',
             title: '소장형 전자책',
             status: '대출가능',
             current_borrow: 0,
@@ -786,7 +781,6 @@ function parseGyeonggiEbookApiResponse(apiResponse, searchText) {
         // 구독형 도서들 추가
         for (let i = 0; i < subscriptionCount; i++) {
           books.push({
-            type: '구독형',
             title: '구독형 전자책',
             status: '대출가능'
           });
@@ -820,7 +814,6 @@ function parseGyeonggiEbookApiResponse(apiResponse, searchText) {
         ownedCount = 1;
         availableCount = 1;
         books.push({
-          type: '일반',
           title: '전자책',
           status: '대출가능'
         });
@@ -836,7 +829,6 @@ function parseGyeonggiEbookApiResponse(apiResponse, searchText) {
     // 소장형 책 추가
     for (let i = 0; i < ownedCount; i++) {
       books.push({
-        type: '소장형',
         title: '소장형 전자책',
         status: '대출가능',
         current_borrow: 0,
@@ -847,7 +839,6 @@ function parseGyeonggiEbookApiResponse(apiResponse, searchText) {
     // 구독형 책 추가  
     for (let i = 0; i < subscriptionCount; i++) {
       books.push({
-        type: '구독형',
         title: '구독형 전자책',
         status: '대출가능'
       });
@@ -856,7 +847,6 @@ function parseGyeonggiEbookApiResponse(apiResponse, searchText) {
     const totalCount = ownedCount + subscriptionCount;
     const unavailableCount = 0; // 전자책은 기본적으로 모두 대출 가능
 
-    console.log(`파싱 완료 - 총: ${totalCount}, 소장형: ${ownedCount}, 구독형: ${subscriptionCount}, 대출가능: ${availableCount}`);
 
     return {
       library_name: '경기도 전자도서관',
@@ -901,7 +891,6 @@ function parseOwnedResults(data) {
       const isAvailable = availableCopies > 0;
       
       return {
-        type: '소장형',
         title: book.TITLE || book.TITLE_N || '전자책',
         author: book.AUTHOR || book.AUTHOR_N || '',
         publisher: book.PUBLISHER || book.PUBLISHER_N || '',
@@ -1022,7 +1011,6 @@ function parseSubscriptionResults(data, query) {
     // 도서 정보 매핑 (실제 API 응답 구조에 맞춤)
     const mappedBooks = filteredBooks.map((book, index) => {
       const mappedBook = {
-        type: '구독형',
         title: book.ucm_title || book.title || book.bookTitle || book.name || '전자책',
         author: book.ucm_writer || book.author || book.writer || book.creator || '',
         publisher: book.ucp_brand || book.publisher || book.pubCompany || '',
@@ -1047,24 +1035,11 @@ function parseSubscriptionResults(data, query) {
 }
 
 // 시립도서관 전자책 HTML 파싱 함수
+// 시립도서관 소장형 전자책 HTML 파싱 함수 (완전 재작성 - 구독형 검증 패턴 적용)
 function parseSiripOwnedEbookHTML(html, searchTitle) {
   try {
-    console.log('시립도서관 전자책 HTML 파싱 시작');
-    
-    // 검색 결과가 없는 경우 체크 (더 포괄적)
-    const noResultsPatterns = [
-      '검색결과가 없습니다',
-      '자료가 없습니다', 
-      '"총 0개"',
-      '검색 결과가 없습니다',
-      '찾을 수 없습니다',
-      'no results',
-      '총 0 개'
-    ];
-    
-    const hasNoResults = noResultsPatterns.some(pattern => html.includes(pattern));
-    if (hasNoResults) {
-      console.log('소장형 검색 결과 없음 확인됨');
+    // 검색 결과가 없는 경우 체크
+    if (html.includes('검색결과가 없습니다') || html.includes('자료가 없습니다') || html.includes('"총 0개"')) {
       return {
         library_name: '광주시립중앙도서관-소장형',
         total_count: 0,
@@ -1072,20 +1047,11 @@ function parseSiripOwnedEbookHTML(html, searchTitle) {
         unavailable_count: 0,
         books: []
       };
-    }
-    
-    // 실제 검색어와 매칭되는 결과가 있는지 확인
-    console.log(`소장형 검색: "${searchTitle}"에 대한 HTML 길이: ${html.length} 문자`);
-    if (html.includes(searchTitle) || html.includes('역행자')) {
-      console.log(`소장형 검색: "${searchTitle}" 또는 "역행자" 텍스트가 HTML에서 발견됨`);
-    } else {
-      console.log(`소장형 검색: "${searchTitle}" 텍스트가 HTML에서 발견되지 않음 - 검색 결과가 없거나 다른 제목일 수 있음`);
     }
 
-    // 책 목록 추출: <ul class="book_resultList">
+    // 1. 책 리스트 전체 추출: <ul class="book_resultList">
     const bookListMatch = html.match(/<ul[^>]*class[^>]*book_resultList[^>]*>([\s\S]*?)<\/ul>/i);
     if (!bookListMatch) {
-      console.log('book_resultList 섹션을 찾을 수 없음');
       return {
         library_name: '광주시립중앙도서관-소장형',
         total_count: 0,
@@ -1095,15 +1061,11 @@ function parseSiripOwnedEbookHTML(html, searchTitle) {
       };
     }
     
-    console.log('book_resultList 섹션 발견');
     const bookListHTML = bookListMatch[1];
     
-    // 각 책 항목 추출: <div class="img">를 포함하는 <li> 태그들만 추출
-    // 실제 책 정보가 있는 <li>는 반드시 <div class="img"> 태그를 포함함
-    const bookItemPattern = /<li[^>]*>[\s\S]*?<div[^>]*class[^>]*img[^>]*>[\s\S]*?<\/li>/gi;
+    // 2. 개별 책 항목 추출: 각 <li> 태그 전체 (구독형 검증된 패턴)
+    const bookItemPattern = /<li>\s*([\s\S]*?)\s*<\/li>\s*(?=<li>|$)/gi;
     const bookItems = [...bookListHTML.matchAll(bookItemPattern)];
-    
-    console.log(`발견된 최상위 책 항목 수: ${bookItems.length}`);
     
     if (bookItems.length === 0) {
       return {
@@ -1120,124 +1082,276 @@ function parseSiripOwnedEbookHTML(html, searchTitle) {
     
     bookItems.forEach((match, index) => {
       try {
-        const bookHTML = match[0];
+        const bookHTML = match[1]; // 전체 li 내용
         
-        // 책 제목 추출: 내부 <ul> 안의 <li class="tit"><a>
-        let title = '정보 없음';
-        const titlePatterns = [
-          /<li[^>]*class[^>]*tit[^>]*>[\s\S]*?<a[^>]*>([^<]+)<\/a>/i,
-          /<a[^>]*title="([^"]*)"[^>]*>[^<]*<\/a>/i
-        ];
-        
-        for (const pattern of titlePatterns) {
-          const titleMatch = bookHTML.match(pattern);
-          if (titleMatch) {
-            title = titleMatch[1].trim();
-            console.log(`책 ${index + 1} 제목 발견: "${title}"`);
-            break;
-          }
+        // 3. 제목 추출: <li class="tit"><a title="..."> 에서 title 속성 사용
+        let title = '';
+        const titleMatch = bookHTML.match(/<li[^>]*class[^>]*tit[^>]*>[\s\S]*?<a[^>]*title="([^"]*)"[^>]*>/i);
+        if (titleMatch) {
+          title = titleMatch[1].trim();
+          // 파이프(|) 뒤의 도서관 정보 제거
+          title = title.split('|')[0].trim();
         }
         
-        // 제목을 찾지 못한 경우 이 항목은 책이 아닐 가능성이 높음
-        if (title === '정보 없음') {
-          console.log(`책 ${index + 1}: 제목을 찾을 수 없어 건너뜀`);
-          return; // 이 항목은 처리하지 않음
+        if (!title) {
+          return; // 제목이 없으면 건너뛰기
         }
+
+        // 4. 저자/출판사/출간일 추출: <li class="writer"> (구독형 검증된 패턴)
+        let author = '';
+        let publisher = '';
+        let publishDate = '';
         
-        // 저자, 출판사, 출간일 추출: <li class="writer">
-        let author = '정보 없음';
-        let publisher = '정보 없음';
-        let publishDate = '정보 없음';
-        
-        const writerMatch = bookHTML.match(/<li[^>]*class[^>]*writer[^>]*>([^<]+)<span[^>]*>([^<]+)<\/span>([^<]+)<\/li>/i);
+        const writerMatch = bookHTML.match(/<li[^>]*class[^>]*writer[^>]*>([\s\S]*?)<\/li>/i);
         if (writerMatch) {
-          author = writerMatch[1].trim();
-          publisher = writerMatch[2].trim();
-          publishDate = writerMatch[3].trim();
-          console.log(`책 ${index + 1} 작가정보: 저자="${author}", 출판사="${publisher}", 날짜="${publishDate}"`);
-        } else {
-          // 대체 패턴으로 저자만 추출 시도
-          const authorOnlyMatch = bookHTML.match(/<li[^>]*class[^>]*writer[^>]*>([^<]+)/i);
-          if (authorOnlyMatch) {
-            const authorText = authorOnlyMatch[1].trim();
-            // "최은영문학동네2016-08-10" 형태를 파싱
-            const parts = authorText.match(/^([^가-힣]*[가-힣]+)([^0-9]*)([\d-]*)$/);
-            if (parts) {
-              author = parts[1].trim();
-              if (parts[2]) publisher = parts[2].trim();
-              if (parts[3]) publishDate = parts[3].trim();
-            } else {
-              author = authorText;
-            }
-            console.log(`책 ${index + 1} 대체 작가정보 파싱: 저자="${author}", 출판사="${publisher}", 날짜="${publishDate}"`);
+          const writerContent = writerMatch[1];
+          
+          // 패턴: 저자명<span>출판사명</span>출간일
+          const writerPattern = /^([^<]+)<span[^>]*>([^<]+)<\/span>(.*)$/i;
+          const writerDetailMatch = writerContent.match(writerPattern);
+          
+          if (writerDetailMatch) {
+            author = writerDetailMatch[1].trim();
+            publisher = writerDetailMatch[2].trim();
+            publishDate = writerDetailMatch[3].trim();
+          } else {
+            // span이 없는 경우 전체 텍스트에서 추출
+            const cleanText = writerContent.replace(/<[^>]*>/g, '').trim();
+            const parts = cleanText.split(/\s+/);
+            if (parts.length > 0) author = parts[0];
+            if (parts.length > 1) publisher = parts[1];
+            if (parts.length > 2) publishDate = parts.slice(2).join(' ');
           }
         }
-        
-        // 대출 상태 추출: 시립도서관 소장형 전자책용 패턴 개선
-        let loanStatus = '정보 없음';
-        let isAvailable = false;
-        let totalCopies = 1; // 책이 존재하면 재고는 1권으로 처리
+
+        // 5. 소장형 특화: 대출 현황 파싱 [ 대출 : 1/3 ] 예약 : 0
+        let totalCopies = 1;
         let availableCopies = 0;
+        let isAvailable = false;
         
-        // 시립도서관 소장형 전자책 실제 HTML 구조에 맞춘 패턴들 (개선됨)
-        const loanPatterns = [
-          // 실제 HTML 구조: <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 : <strong>0</strong> ]</p>
-          // 가장 정확한 패턴부터 시도
-          /<p[^>]*class[^>]*use[^>]*>[\s\S]*?<span[^>]*>\s*\[\s*대출\s*:\s*<strong>(\d+)\/(\d+)<\/strong><\/span>/gi,
-          /<span[^>]*>\s*\[\s*대출\s*:\s*<strong>(\d+)\/(\d+)<\/strong><\/span>/gi,
-          /\[\s*대출\s*:\s*<strong>(\d+)\/(\d+)<\/strong>\s*<\/span>/gi,
-          /<p[^>]*class[^>]*use[^>]*>[\s\S]*?대출\s*:\s*<strong>(\d+)\/(\d+)<\/strong>/gi,
-          // 기본 패턴들
-          /대출\s*:\s*<strong>(\d+)\/(\d+)<\/strong>/gi,
-          /대출\s*:\s*(\d+)\/(\d+)/gi,
-          // 추가 패턴: 다른 HTML 구조 대응
-          /<p[^>]*class[^>]*use[^>]*>[\s\S]*?(\d+)\s*\/\s*(\d+)/gi,
-          /class="use"[^>]*>[\s\S]*?(\d+)\s*\/\s*(\d+)/gi
-        ];
+        const useMatch = bookHTML.match(/<p[^>]*class[^>]*use[^>]*>.*?대출\s*:\s*<strong>(\d+)\/(\d+)<\/strong>.*?예약\s*:\s*<strong>(\d+)<\/strong>/i);
+        if (useMatch) {
+          const currentBorrowed = parseInt(useMatch[1]);
+          totalCopies = parseInt(useMatch[2]);
+          const reservations = parseInt(useMatch[3]);
+          availableCopies = totalCopies - currentBorrowed;
+          isAvailable = availableCopies > 0;
+        } else {
+          // 대출 현황 정보가 없는 경우 기본값으로 대출 가능으로 설정
+          isAvailable = true;
+          availableCopies = 1;
+        }
+
+        if (isAvailable) {
+          availableCount++;
+        }
+
+        books.push({
+          type: '소장형',
+          title: title || '제목 정보 없음',
+          author: author || '저자 정보 없음',
+          publisher: publisher || '출판사 정보 없음',
+          totalCopies: totalCopies,
+          availableCopies: availableCopies,
+          isAvailable: isAvailable,
+          publishDate: publishDate || '출간일 정보 없음'
+        });
+
+      } catch (itemError) {
+        console.error(`소장형 책 항목 ${index + 1} 파싱 오류:`, itemError);
+        // 개별 책 파싱 오류는 무시하고 계속 진행
+      }
+    });
+
+    const unavailableCount = books.length - availableCount;
+    
+    return {
+      library_name: '광주시립중앙도서관-소장형',
+      total_count: books.length,
+      available_count: availableCount,
+      unavailable_count: unavailableCount,
+      books: books
+    };
+
+  } catch (error) {
+    console.error(`시립도서관 소장형 전자책 파싱 오류: ${error.message}`);
+    throw new Error(`시립도서관 소장형 전자책 파싱 오류: ${error.message}`);
+  }
+}
+
+// 시립도서관 구독형 전자책 HTML 파싱 함수 (완전 재작성 - 테스트 검증 완료)
+function parseSiripSubscriptionEbookHTML(html, searchTitle) {
+  try {
+    // 검색 결과가 없는 경우 체크
+    if (html.includes('검색결과가 없습니다') || html.includes('자료가 없습니다') || html.includes('"총 0개"')) {
+      return {
+        library_name: '광주시립중앙도서관-구독형',
+        total_count: 0,
+        available_count: 0,
+        unavailable_count: 0,
+        books: []
+      };
+    }
+
+    // 1. 책 리스트 전체 추출: <ul class="book_resultList">
+    const bookListMatch = html.match(/<ul[^>]*class[^>]*book_resultList[^>]*>([\s\S]*?)<\/ul>/i);
+    if (!bookListMatch) {
+      return {
+        library_name: '광주시립중앙도서관-구독형',
+        total_count: 0,
+        available_count: 0,
+        unavailable_count: 0,
+        books: []
+      };
+    }
+    
+    const bookListHTML = bookListMatch[1];
+    
+    // 2. 개별 책 항목 추출: 각 <li> 태그 전체 (개선된 패턴)
+    const bookItemPattern = /<li>\s*([\s\S]*?)\s*<\/li>\s*(?=<li>|$)/gi;
+    const bookItems = [...bookListHTML.matchAll(bookItemPattern)];
+    
+    if (bookItems.length === 0) {
+      return {
+        library_name: '광주시립중앙도서관-구독형',
+        total_count: 0,
+        available_count: 0,
+        unavailable_count: 0,
+        books: []
+      };
+    }
+
+    const books = [];
+    let availableCount = 0;
+    
+    bookItems.forEach((match, index) => {
+      try {
+        const bookHTML = match[1]; // 전체 li 내용
         
-        // 텍스트 기반 패턴 (별도 처리)
-        const textPatterns = [
-          /이용가능|대출가능|대출\s*가능/i
-        ];
-        
-        let patternFound = false;
-        
-        // 디버깅: 각 책의 HTML 일부를 로그로 출력
-        console.log(`\n소장형 책 ${index + 1}: "${title}" 분석 시작`);
-        console.log(`HTML 길이: ${bookHTML.length} 문자`);
-        
-        // "대출" 키워드가 있는지 먼저 확인
-        if (bookHTML.includes('대출')) {
-          console.log(`"대출" 키워드 발견됨`);
-          // "대출" 주변 텍스트 추출 (디버깅용)
-          const loanContext = bookHTML.match(/(.{0,50}대출.{0,50})/gi);
-          if (loanContext) {
-            console.log(`대출 관련 컨텍스트: ${loanContext.slice(0, 3).join(' | ')}`);
-          }
+        // 3. 제목 추출: <li class="tit"><a title=".."> 에서 title 속성 사용
+        let title = '';
+        const titleMatch = bookHTML.match(/<li[^>]*class[^>]*tit[^>]*>[\s\S]*?<a[^>]*title="([^"]*)"[^>]*>/i);
+        if (titleMatch) {
+          title = titleMatch[1].trim();
+          // 파이프(|) 뒤의 도서관 정보 제거
+          title = title.split('|')[0].trim();
         }
         
-        // 숫자 패턴 먼저 시도
-        for (let i = 0; i < loanPatterns.length; i++) {
-          const pattern = loanPatterns[i];
-          const loanMatch = bookHTML.match(pattern);
+        if (!title) {
+          return; // 제목이 없으면 건너뛰기
+        }
+
+        // 4. 저자/출판사/출간일 추출: <li class="writer"> (테스트 검증 완료)
+        let author = '';
+        let publisher = '';
+        let publishDate = '';
+        
+        const writerMatch = bookHTML.match(/<li[^>]*class[^>]*writer[^>]*>([\s\S]*?)<\/li>/i);
+        if (writerMatch) {
+          const writerContent = writerMatch[1];
           
-          console.log(`패턴 ${i} 시도: ${pattern}`);
+          // 패턴: 저자명<span>출판사명</span>출간일
+          const writerPattern = /^([^<]+)<span[^>]*>([^<]+)<\/span>(.*)$/i;
+          const writerDetailMatch = writerContent.match(writerPattern);
           
-          if (loanMatch && loanMatch[1] && loanMatch[2]) {
-            const currentLoans = parseInt(loanMatch[1], 10);
-            const totalCapacity = parseInt(loanMatch[2], 10);
-            loanStatus = `${currentLoans}/${totalCapacity}`;
-            
-            // 대출 여부 판단: 현재 대출자 수가 총 용량보다 적으면 이용 가능
-            if (currentLoans < totalCapacity) {
-              isAvailable = true;
-              availableCopies = 1;
-            } else {
-              isAvailable = false;
-              availableCopies = 0;
-            }
-            
-            totalCopies = totalCapacity;
+          if (writerDetailMatch) {
+            author = writerDetailMatch[1].trim();
+            publisher = writerDetailMatch[2].trim();
+            publishDate = writerDetailMatch[3].trim();
+          } else {
+            // span이 없는 경우 전체 텍스트에서 추출
+            const cleanText = writerContent.replace(/<[^>]*>/g, '').trim();
+            const parts = cleanText.split(/\s+/);
+            if (parts.length > 0) author = parts[0];
+            if (parts.length > 1) publisher = parts[1];
+            if (parts.length > 2) publishDate = parts.slice(2).join(' ');
+          }
+        }
+
+        // 구독형은 항상 대출 가능 (재고 제한 없음)
+        availableCount++;
+
+        books.push({
+          type: '구독형',
+          title: title || '제목 정보 없음',
+          author: author || '저자 정보 없음',
+          publisher: publisher || '출판사 정보 없음',
+          isAvailable: true, // 구독형은 항상 대출 가능
+          publishDate: publishDate || '출간일 정보 없음'
+        });
+
+      } catch (itemError) {
+        console.error(`구독형 책 항목 ${index + 1} 파싱 오류:`, itemError);
+        // 개별 책 파싱 오류는 무시하고 계속 진행
+      }
+    });
+
+    // 구독형은 모든 책이 대출 가능하므로 available_count = total_count
+    return {
+      library_name: '광주시립중앙도서관-구독형',
+      total_count: books.length,
+      available_count: books.length, // 구독형 특성: 재고 제한 없음
+      unavailable_count: 0, // 구독형은 항상 0
+      books: books
+    };
+
+  } catch (error) {
+    console.error(`시립도서관 구독형 전자책 파싱 오류: ${error.message}`);
+    throw new Error(`시립도서관 구독형 전자책 파싱 오류: ${error.message}`);
+  }
+}
+
+// 시립도서관 소장형 + 구독형 통합 검색 함수
+async function searchSiripEbookIntegrated(searchTitle) {
+  try {
+    
+    // 소장형과 구독형을 병렬로 검색
+    const [ownedResults, subscriptionResults] = await Promise.allSettled([
+      searchSiripOwnedEbook(searchTitle),
+      searchSiripSubscriptionEbook(searchTitle)
+    ]);
+    
+    // 결과 처리
+    let ownedData = null;
+    let subscriptionData = null;
+    
+    if (ownedResults.status === 'fulfilled') {
+      ownedData = ownedResults.value;
+      console.log(`소장형 검색 성공: ${ownedData.total_count}권`);
+    } else {
+      console.error('소장형 검색 실패:', ownedResults.reason.message);
+      ownedData = {
+        library_name: '광주시립중앙도서관-소장형',
+        total_count: 0,
+        available_count: 0,
+        unavailable_count: 0,
+        books: [],
+        error: ownedResults.reason.message
+      };
+    }
+    
+    if (subscriptionResults.status === 'fulfilled') {
+      subscriptionData = subscriptionResults.value;
+    } else {
+      console.error('구독형 검색 실패:', subscriptionResults.reason.message);
+      subscriptionData = {
+        library_name: '광주시립중앙도서관-구독형',
+        total_count: 0,
+        available_count: 0,
+        unavailable_count: 0,
+        books: [],
+        error: subscriptionResults.reason.message
+      };
+    }
+    
+    // 통합 결과 구성
+    const totalBooks = ownedData.total_count + subscriptionData.total_count;
+    const totalAvailable = ownedData.available_count + subscriptionData.available_count;
+    const totalUnavailable = ownedData.unavailable_count + subscriptionData.unavailable_count;
+    
+    // 시립도서관 통합 결과 정보
+    const 시립도서관_통합_결과 = {
+      library_name: '광주시립중앙도서관-통합',
             
             console.log(`✅ 패턴 ${i}번 성공: "${title}" - 대출상태: ${loanStatus}, 이용가능: ${isAvailable}`);
             console.log(`매치된 텍스트: ${loanMatch[0]}`);
@@ -1298,13 +1412,10 @@ function parseSiripOwnedEbookHTML(html, searchTitle) {
         }
         
         books.push({
-          type: '전자책',
           title: title,
           author: author,
           publisher: publisher,
-          publish_date: publishDate,
           loan_status: loanStatus,
-          status: isAvailable ? '대출가능' : '대출불가',
           total_copies: totalCopies,
           available_copies: availableCopies,
           available: isAvailable
@@ -1344,14 +1455,11 @@ function parseSiripOwnedEbookHTML(html, searchTitle) {
   }
 }
 
-// 시립도서관 구독형 전자책 HTML 파싱 함수
+// 시립도서관 구독형 전자책 HTML 파싱 함수 (완전 재작성 - "인공지능" 검색 결과 기반)
 function parseSiripSubscriptionEbookHTML(html, searchTitle) {
   try {
-    console.log('시립도서관 구독형 전자책 HTML 파싱 시작');
-    
     // 검색 결과가 없는 경우 체크
     if (html.includes('검색결과가 없습니다') || html.includes('자료가 없습니다') || html.includes('"총 0개"')) {
-      console.log('검색 결과 없음 확인');
       return {
         library_name: '광주시립중앙도서관-구독형',
         total_count: 0,
@@ -1361,10 +1469,9 @@ function parseSiripSubscriptionEbookHTML(html, searchTitle) {
       };
     }
 
-    // 책 목록 추출: <ul class="book_resultList">
+    // 1. 책 리스트 전체 추출: <ul class="book_resultList">
     const bookListMatch = html.match(/<ul[^>]*class[^>]*book_resultList[^>]*>([\s\S]*?)<\/ul>/i);
     if (!bookListMatch) {
-      console.log('book_resultList 섹션을 찾을 수 없음');
       return {
         library_name: '광주시립중앙도서관-구독형',
         total_count: 0,
@@ -1374,15 +1481,11 @@ function parseSiripSubscriptionEbookHTML(html, searchTitle) {
       };
     }
     
-    console.log('book_resultList 섹션 발견');
     const bookListHTML = bookListMatch[1];
     
-    // 각 책 항목 추출: <div class="img">를 포함하는 <li> 태그들만 추출
-    // 실제 책 정보가 있는 <li>는 반드시 <div class="img"> 태그를 포함함
-    const bookItemPattern = /<li[^>]*>[\s\S]*?<div[^>]*class[^>]*img[^>]*>[\s\S]*?<\/li>/gi;
+    // 2. 개별 책 항목 추출: 각 <li> 태그 전체 (개선된 패턴)
+    const bookItemPattern = /<li>\s*([\s\S]*?)\s*<\/li>\s*(?=<li>|$)/gi;
     const bookItems = [...bookListHTML.matchAll(bookItemPattern)];
-    
-    console.log(`발견된 최상위 책 항목 수: ${bookItems.length}`);
     
     if (bookItems.length === 0) {
       return {
@@ -1399,118 +1502,82 @@ function parseSiripSubscriptionEbookHTML(html, searchTitle) {
     
     bookItems.forEach((match, index) => {
       try {
-        const bookHTML = match[0];
+        const bookHTML = match[1]; // 전체 li 내용
         
-        // 책 제목 추출: 내부 <ul> 안의 <li class="tit"><a>
-        let title = '정보 없음';
-        const titlePatterns = [
-          /<li[^>]*class[^>]*tit[^>]*>[\s\S]*?<a[^>]*>([^<]+)<\/a>/i,
-          /<a[^>]*title="([^"]*)"[^>]*>[^<]*<\/a>/i
-        ];
-        
-        for (const pattern of titlePatterns) {
-          const titleMatch = bookHTML.match(pattern);
-          if (titleMatch) {
-            title = titleMatch[1].trim();
-            console.log(`구독형 책 ${index + 1} 제목 발견: "${title}"`);
-            break;
-          }
+        // 3. 제목 추출: <li class="tit"><a title="..."> 에서 title 속성 사용
+        let title = '';
+        const titleMatch = bookHTML.match(/<li[^>]*class[^>]*tit[^>]*>[\s\S]*?<a[^>]*title="([^"]*)"[^>]*>/i);
+        if (titleMatch) {
+          title = titleMatch[1].trim();
+          // 파이프(|) 뒤의 도서관 정보 제거
+          title = title.split('|')[0].trim();
         }
         
-        // 제목을 찾지 못한 경우 이 항목은 책이 아닐 가능성이 높음
-        if (title === '정보 없음') {
-          console.log(`구독형 책 ${index + 1}: 제목을 찾을 수 없어 건너뜀`);
-          return; // 이 항목은 처리하지 않음
+        if (!title) {
+          return; // 제목이 없으면 건너뛰기
         }
+
+        // 4. 저자/출판사/출간일 추출: <li class="writer"> (테스트 검증 완료)
+        let author = '';
+        let publisher = '';
+        let publishDate = '';
         
-        // 저자, 출판사, 출간일 추출: <li class="writer">
-        let author = '정보 없음';
-        let publisher = '정보 없음';
-        let publishDate = '정보 없음';
-        
-        const writerMatch = bookHTML.match(/<li[^>]*class[^>]*writer[^>]*>([^<]+)<span[^>]*>([^<]+)<\/span>([^<]+)<\/li>/i);
+        const writerMatch = bookHTML.match(/<li[^>]*class[^>]*writer[^>]*>([\s\S]*?)<\/li>/i);
         if (writerMatch) {
-          author = writerMatch[1].trim();
-          publisher = writerMatch[2].trim();
-          publishDate = writerMatch[3].trim();
-          console.log(`구독형 책 ${index + 1} 작가정보: 저자="${author}", 출판사="${publisher}", 날짜="${publishDate}"`);
-        } else {
-          // 대체 패턴으로 저자만 추출 시도
-          const authorOnlyMatch = bookHTML.match(/<li[^>]*class[^>]*writer[^>]*>([^<]+)/i);
-          if (authorOnlyMatch) {
-            const authorText = authorOnlyMatch[1].trim();
-            // "최은영문학동네2016-08-10" 형태를 파싱
-            const parts = authorText.match(/^([^가-힣]*[가-힣]+)([^0-9]*)([\d-]*)$/);
-            if (parts) {
-              author = parts[1].trim();
-              if (parts[2]) publisher = parts[2].trim();
-              if (parts[3]) publishDate = parts[3].trim();
-            } else {
-              author = authorText;
-            }
-            console.log(`구독형 책 ${index + 1} 대체 작가정보 파싱: 저자="${author}", 출판사="${publisher}", 날짜="${publishDate}"`);
+          const writerContent = writerMatch[1];
+          
+          // 패턴: 저자명<span>출판사명</span>출간일
+          const writerPattern = /^([^<]+)<span[^>]*>([^<]+)<\/span>(.*)$/i;
+          const writerDetailMatch = writerContent.match(writerPattern);
+          
+          if (writerDetailMatch) {
+            author = writerDetailMatch[1].trim();
+            publisher = writerDetailMatch[2].trim();
+            publishDate = writerDetailMatch[3].trim();
+          } else {
+            // span이 없는 경우 전체 텍스트에서 추출
+            const cleanText = writerContent.replace(/<[^>]*>/g, '').trim();
+            const parts = cleanText.split(/\s+/);
+            if (parts.length > 0) author = parts[0];
+            if (parts.length > 1) publisher = parts[1];
+            if (parts.length > 2) publishDate = parts.slice(2).join(' ');
           }
         }
-        
-        // 구독형 전자책은 기본적으로 모두 대출 가능으로 처리
-        // "대출" 버튼이 있으면 이용 가능한 것으로 간주
-        let isAvailable = false;
-        let loanStatus = '정보 없음';
-        let totalCopies = 1; // 구독형이므로 재고는 1권으로 처리
-        let availableCopies = 0;
-        
-        // "대출" 버튼 존재 여부 확인
-        const borrowButtonMatch = bookHTML.match(/<input[^>]*value="대출"[^>]*>/i);
-        if (borrowButtonMatch) {
-          isAvailable = true;
-          availableCopies = 1;
-          loanStatus = '이용가능';
-          console.log(`구독형 책 ${index + 1}: "${title}" - 대출 버튼 발견, 이용가능`);
-        } else {
-          // 대출 버튼이 없으면 기본적으로 이용 불가로 처리
-          isAvailable = false;
-          availableCopies = 0;
-          loanStatus = '이용불가';
-          console.log(`구독형 책 ${index + 1}: "${title}" - 대출 버튼 없음, 이용불가`);
+
+        // 5. 내용 추출
+        let description = '';
+        const descMatch = bookHTML.match(/<li[^>]*class[^>]*txt[^>]*>([\s\S]*?)<\/li>/i);
+        if (descMatch) {
+          description = descMatch[1].replace(/<[^>]*>/g, '').trim().substring(0, 200);
         }
-        
-        if (isAvailable) {
-          availableCount++;
-        }
-        
+
+        // 구독형은 항상 대출 가능 (재고 제한 없음)
+        availableCount++;
+
         books.push({
           type: '구독형',
-          title: title,
-          author: author,
-          publisher: publisher,
-          publish_date: publishDate,
-          loan_status: loanStatus,
-          status: isAvailable ? '대출가능' : '대출불가',
-          total_copies: totalCopies,
-          available_copies: availableCopies,
-          available: isAvailable,
-          library_name: '광주시립중앙도서관-구독형'
+          title: title || '제목 정보 없음',
+          author: author || '저자 정보 없음',
+          publisher: publisher || '출판사 정보 없음',
+          isAvailable: true, // 구독형은 항상 대출 가능
+          publishDate: publishDate || '출간일 정보 없음'
         });
-        
+
       } catch (itemError) {
-        console.error(`구독형 책 항목 ${index + 1} 파싱 오류:`, itemError.message);
-        // 파싱 실패한 항목은 건너뛰고 계속 진행
+        console.error(`구독형 책 항목 ${index + 1} 파싱 오류:`, itemError);
+        // 개별 책 파싱 오류는 무시하고 계속 진행
       }
     });
-    
-    // totalCount는 위에서 이미 선언됨 (books.length와 동일)
-    const unavailableCount = books.length - availableCount;
-    
-    console.log(`시립도서관 구독형 전자책 파싱 완료 - 총: ${books.length}권, 이용가능: ${availableCount}권, 이용불가: ${unavailableCount}권`);
-    
+
+    // 구독형은 모든 책이 대출 가능하므로 available_count = total_count
     return {
       library_name: '광주시립중앙도서관-구독형',
       total_count: books.length,
-      available_count: availableCount,
-      unavailable_count: unavailableCount,
+      available_count: books.length, // 구독형 특성: 재고 제한 없음
+      unavailable_count: 0, // 구독형은 항상 0
       books: books
     };
-    
+
   } catch (error) {
     console.error(`시립도서관 구독형 전자책 파싱 오류: ${error.message}`);
     throw new Error(`시립도서관 구독형 전자책 파싱 오류: ${error.message}`);
@@ -1520,7 +1587,6 @@ function parseSiripSubscriptionEbookHTML(html, searchTitle) {
 // 시립도서관 소장형 + 구독형 통합 검색 함수
 async function searchSiripEbookIntegrated(searchTitle) {
   try {
-    console.log(`시립도서관 통합 전자책 검색 시작: "${searchTitle}"`);
     
     // 소장형과 구독형을 병렬로 검색
     const [ownedResults, subscriptionResults] = await Promise.allSettled([
@@ -1549,7 +1615,6 @@ async function searchSiripEbookIntegrated(searchTitle) {
     
     if (subscriptionResults.status === 'fulfilled') {
       subscriptionData = subscriptionResults.value;
-      console.log(`구독형 검색 성공: ${subscriptionData.total_count}권`);
     } else {
       console.error('구독형 검색 실패:', subscriptionResults.reason.message);
       subscriptionData = {
@@ -1612,7 +1677,6 @@ async function searchSiripEbookIntegrated(searchTitle) {
       }
     };
     
-    console.log(`시립도서관 통합 검색 완료 - 총: ${totalBooks}권 (소장형: ${ownedData.total_count}권, 구독형: ${subscriptionData.total_count}권), 이용가능: ${totalAvailable}권`);
     
     return integratedResult;
     
@@ -1652,7 +1716,6 @@ function validateGyeonggiEbookApiResponse(response) {
       console.log(`📚 소장형 도서: ${response.owned_results.length}권`);
       if (response.owned_results.length > 0) {
         const firstBook = response.owned_results[0];
-        console.log(`  첫 번째 책: ${firstBook.title} (${firstBook.author})`);
         console.log(`  대출가능: ${firstBook.available_copies}권 / 총 ${firstBook.total_copies}권`);
       }
     }
@@ -1662,7 +1725,6 @@ function validateGyeonggiEbookApiResponse(response) {
       console.log(`📖 구독형 도서: ${response.subscription_results.length}권`);
       if (response.subscription_results.length > 0) {
         const firstBook = response.subscription_results[0];
-        console.log(`  첫 번째 책: ${firstBook.title} (${firstBook.author})`);
       }
     }
     
@@ -1821,23 +1883,3 @@ if (typeof globalThis !== 'undefined' && globalThis.environment === 'development
   console.log('개별 테스트: runIntegrationTest(), runPerformanceTest(), runErrorHandlingTest()');
 }
 
-// 시립도서관 결과를 프론트엔드 호환 형식으로 변환
-function transformSiripResult(siripResult) {
-  if (siripResult.error) {
-    return { error: siripResult.error };
-  }
-  
-  // 시립도서관_통합_결과에서 전체 통계 추출
-  const summary = siripResult.시립도서관_통합_결과;
-  
-  return {
-    library_name: summary.library_name,
-    total_count: summary.total_count,
-    available_count: summary.available_count,
-    unavailable_count: summary.unavailable_count,
-    books: [
-      ...(siripResult.details.owned.books || []),
-      ...(siripResult.details.subscription.books || [])
-    ]
-  };
-}

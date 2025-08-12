@@ -87,6 +87,35 @@ export interface SiripEbookResult {
   available_count: number;
   unavailable_count: number;
   books: SiripEbookBook[];
+  // 새로운 통합 구조 지원
+  details?: {
+    owned: {
+      library_name: string;
+      total_count: number;
+      available_count: number;
+      unavailable_count: number;
+      books: SiripEbookBook[];
+      error?: string;
+    };
+    subscription: {
+      library_name: string;
+      total_count: number;
+      available_count: number;
+      unavailable_count: number;
+      books: SiripEbookBook[];
+      error?: string;
+    };
+  };
+  // 통합 결과 정보
+  시립도서관_통합_결과?: {
+    library_name: string;
+    total_count: number;
+    available_count: number;
+    unavailable_count: number;
+    owned_count: number;
+    subscription_count: number;
+    search_query: string;
+  };
 }
 
 export interface SiripEbookError {
