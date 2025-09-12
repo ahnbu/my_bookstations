@@ -1,6 +1,6 @@
 import { AladdinAPIResponseSchema, AladdinAPIResponse, AladdinBookItem } from '../types';
 
-const TTB_KEY = 'ttbbyungwook.an1357001';
+const TTB_KEY = process.env.ALADIN_TTB_KEY;
 const ALADIN_API_BASE_URL = 'http://www.aladin.co.kr/ttb/api/ItemSearch.aspx';
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
