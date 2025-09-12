@@ -1,6 +1,6 @@
 import { AladdinAPIResponseSchema, AladdinAPIResponse, AladdinBookItem } from '../types';
 
-const TTB_KEY = import.meta.env.VITE_ALADIN_API_KEY;
+const TTB_KEY = import.meta.env.VITE_ALADIN_TTB_KEY;
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 // 로컬에서는 Vite 프록시를 통해 직접 알라딘 API를 호출하고,

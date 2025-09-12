@@ -37,7 +37,7 @@ const Auth: React.FC = () => {
                 </div>
                 <button
                     onClick={handleLogout}
-                    className="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors duration-300 text-sm"
+                    className="px-4 py-2 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors duration-300 text-sm"
                 >
                     로그아웃
                 </button>

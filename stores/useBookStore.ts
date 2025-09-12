@@ -165,9 +165,7 @@ export const useBookStore = create<BookState>(
       },
       
       selectBook: (book, options = { scroll: true }) => {
-        console.log('selectBook called with:', book);
         set({ selectedBook: book });
-        console.log('selectedBook set to:', book);
         useUIStore.getState().closeBookSearchListModal();
         
         // API 테스트 모드에서는 스크롤하지 않음

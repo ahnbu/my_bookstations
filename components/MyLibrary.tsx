@@ -98,16 +98,14 @@ const MyLibrary: React.FC = () => {
     };
   }, [sortDropdownOpen]);
   
-  // Responsive grid columns
+  // Responsive grid columns (optimized for max-w-4xl container)
   useEffect(() => {
     const updateColumns = () => {
       const width = window.innerWidth;
-      if (width < 640) setGridColumns(2);
-      else if (width < 768) setGridColumns(3);
-      else if (width < 1024) setGridColumns(4);
-      else if (width < 1280) setGridColumns(5);
-      else if (width < 1536) setGridColumns(6);
-      else setGridColumns(7);
+      if (width < 640) setGridColumns(2);        // 모바일: 2개 (~320px/카드)
+      else if (width < 768) setGridColumns(3);   // 태블릿: 3개 (~256px/카드)
+      else if (width < 1024) setGridColumns(3);  // 소형 데스크톱: 3개 (~298px/카드)
+      else setGridColumns(4);                    // 중형 이상: 4개 (~224px/카드)
     };
 
     updateColumns();
@@ -925,7 +923,7 @@ const MyLibrary: React.FC = () => {
         </div>
       ) : (
         /* Grid View */
-        <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${gridColumns}, 1fr)` }}>
+        <div className="grid gap-4 max-w-4xl mx-auto" style={{ gridTemplateColumns: `repeat(${gridColumns}, 1fr)` }}>
           {sortedLibraryBooks.map(book => (
             <div key={book.id} className="bg-gray-800 rounded-lg p-3 hover:bg-gray-700 transition-colors relative">
               {/* Checkbox */}

@@ -4,7 +4,7 @@ import BookSearchListModal from './components/BookSearchListModal';
 import BookDetails from './components/BookDetails';
 import MyLibrary from './components/MyLibrary';
 import SearchForm from './components/SearchForm';
-import APITest from './components/APITest';
+import DevToolsFloat from './components/DevToolsFloat';
 import AuthModal from './components/AuthModal';
 import Notification from './components/Notification';
 import Header from './components/layout/Header';
@@ -54,7 +54,7 @@ const App: React.FC = () => {
           onClose={() => setNotification(null)}
         />
       )}
-      <main className="container mx-auto px-4 py-8">
+      <main className="max-w-4xl mx-auto px-4 py-8">
         <Header />
 
         <SearchForm />
@@ -63,13 +63,14 @@ const App: React.FC = () => {
         
         <MyLibrary />
 
-        <APITest />
-
         <BookSearchListModal />
 
         <AuthModal />
       </main>
       <Footer />
+      
+      {/* 개발환경에서만 개발자 도구 표시 */}
+      {import.meta.env.DEV && <DevToolsFloat />}
     </div>
   );
 };
