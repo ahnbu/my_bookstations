@@ -11,6 +11,8 @@ temp
 node_modules
 dist
 dist-ssr
+book_list_save
+working_code
 *.local
 
 # Editor directories and files

@@ -45,7 +45,7 @@ const LibraryTag: React.FC<LibraryTagProps> = ({ name, totalBooks, availableBook
       href={searchUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className={`inline-block px-2 py-1 text-xs rounded-md ${statusStyles} hover:opacity-80 transition-all hover:scale-105`}
+      className={`inline-block px-2 py-1 text-xs rounded-md ${statusStyles} hover:opacity-80 transition-all hover:scale-105 truncate`}
       title={`${name} - 총 ${totalBooks}권 (대출가능: ${availableBooks}권)`}
     >
       {name} ({totalBooks}/{availableBooks})
@@ -743,15 +743,15 @@ const MyLibrary: React.FC = () => {
             </div>
             
             {/* Right Column: Book Information */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-w-0">
               {/* "상단 정보 블록" (이 블록의 높이가 이미지 높이의 기준이 됨) */}
               <div className="space-y-3">
                 {/* Title with Refresh Icon */}
                 <div className="flex justify-between items-start">
                   <h2 
-                    className="text-lg font-bold text-white leading-tight flex-1 pr-2 cursor-pointer hover:text-blue-400 transition-colors"
+                    className="text-lg font-bold text-white leading-tight flex-1 pr-2 cursor-pointer hover:text-blue-400 transition-colors whitespace-nowrap overflow-hidden text-ellipsis"
                     onClick={() => setDetailModalBookId(book.id)}
-                    title="상세 정보 보기"
+                    title={book.title.replace(/^\[\w+\]\s*/, '')} // title 속성에 전체 제목 표시
                   >
                     {book.title.replace(/^\[\w+\]\s*/, '')}
                   </h2>
