@@ -5,15 +5,9 @@ import { useUIStore } from '../stores/useUIStore';
 import { SettingsIcon } from './Icons';
 
 const Auth: React.FC = () => {
-    const { session, signOut } = useAuthStore();
+    const { session } = useAuthStore();
     const { openAuthModal, openProfileModal, openSettingsModal } = useUIStore();
     const [loading, setLoading] = useState(false);
-
-    const handleLogout = async () => {
-        setLoading(true);
-        await signOut();
-        setLoading(false);
-    };
 
     if (loading) {
         return (
@@ -51,12 +45,6 @@ const Auth: React.FC = () => {
                     title="맞춤 설정"
                 >
                     <SettingsIcon className="w-5 h-5 text-gray-300 hover:text-white" />
-                </button>
-                <button
-                    onClick={handleLogout}
-                    className="px-4 py-2 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors duration-300 text-sm"
-                >
-                    로그아웃
                 </button>
             </div>
         );

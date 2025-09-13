@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { SelectedBook, StockInfo, SortKey, ReadStatus } from '../types';
-import { DownloadIcon, TrashIcon, RefreshIcon, CheckIcon } from './Icons';
+import { DownloadIcon, TrashIcon, RefreshIcon, CheckIcon, SearchIcon, CloseIcon } from './Icons';
 import Spinner from './Spinner';
 import { useBookStore } from '../stores/useBookStore';
 import { useAuthStore } from '../stores/useAuthStore';
@@ -72,6 +72,8 @@ const MyLibrary: React.FC = () => {
     refreshAllBookInfo,
     updateReadStatus,
     updateRating,
+    librarySearchQuery,
+    setLibrarySearchQuery,
   } = useBookStore();
   
   const [detailModalBookId, setDetailModalBookId] = useState<number | null>(null);
@@ -82,7 +84,17 @@ const MyLibrary: React.FC = () => {
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
   const [backgroundRefreshComplete, setBackgroundRefreshComplete] = useState(false);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(librarySearchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [librarySearchQuery]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -133,10 +145,22 @@ const MyLibrary: React.FC = () => {
   // Use the standardized title processing function from ebook.service
   const createSearchSubject = processBookTitle;
 
-  const sortedLibraryBooks = useMemo(() => {
+  const sortedAndFilteredLibraryBooks = useMemo(() => {
     const readStatusOrder: Record<ReadStatus, number> = { '완독': 0, '읽는 중': 1, '읽지 않음': 2 };
 
-    return [...myLibraryBooks].sort((a, b) => {
+    // First filter by search query
+    let filteredBooks = [...myLibraryBooks];
+    
+    if (debouncedSearchQuery.trim() && debouncedSearchQuery.trim().length >= 2) {
+      const query = debouncedSearchQuery.toLowerCase().trim();
+      filteredBooks = myLibraryBooks.filter(book => 
+        book.title.toLowerCase().includes(query) ||
+        book.author.toLowerCase().includes(query)
+      );
+    }
+
+    // Then sort the filtered books
+    return filteredBooks.sort((a, b) => {
         if (!sortConfig.key) return 0;
         
         let aVal = a[sortConfig.key as keyof SelectedBook];
@@ -162,7 +186,7 @@ const MyLibrary: React.FC = () => {
         }
         return 0;
     });
-  }, [myLibraryBooks, sortConfig]);
+  }, [myLibraryBooks, sortConfig, debouncedSearchQuery]);
   
 
   // Background refresh for books missing detailed stock info - 비활성화
@@ -534,9 +558,30 @@ const MyLibrary: React.FC = () => {
     <div className="mt-12 animate-fade-in">
       {/* Header - Two Row Layout */}
       <div className="mb-6 space-y-4 max-w-4xl mx-auto">
-        {/* First Row: Book Count + Sort/View Controls */}
+        {/* First Row: Search + Sort/View Controls */}
         <div className="flex justify-between items-center">
-          <span className="text-lg font-medium text-white">{sortedLibraryBooks.length}권</span>
+          {/* Search Input */}
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <SearchIcon className="h-4 w-4 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              value={librarySearchQuery}
+              onChange={(e) => setLibrarySearchQuery(e.target.value)}
+              placeholder="책 제목, 저자명으로 검색..."
+              className="block w-80 pl-10 pr-10 py-2 border border-gray-600 rounded-md bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            />
+            {librarySearchQuery && (
+              <button 
+                onClick={() => setLibrarySearchQuery('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                title="검색어 지우기"
+              >
+                <CloseIcon className="h-4 w-4 text-gray-400 hover:text-white" />
+              </button>
+            )}
+          </div>
           <div className="flex items-center gap-4">
             {/* Sort Dropdown */}
             <div className="relative" ref={sortDropdownRef}>
@@ -642,7 +687,7 @@ const MyLibrary: React.FC = () => {
                 onChange={(e) => {
                   setSelectAll(e.target.checked);
                   if (e.target.checked) {
-                    setSelectedBooks(new Set(sortedLibraryBooks.map(book => book.id)));
+                    setSelectedBooks(new Set(sortedAndFilteredLibraryBooks.map(book => book.id)));
                   } else {
                     setSelectedBooks(new Set());
                   }
@@ -652,7 +697,7 @@ const MyLibrary: React.FC = () => {
               />
             </label>
             <span className="text-sm text-gray-400">
-              {selectedBooks.size}개 선택됨
+              {selectedBooks.size}개 선택됨(총 {sortedAndFilteredLibraryBooks.length}권)
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -666,19 +711,20 @@ const MyLibrary: React.FC = () => {
                 }
               }}
               disabled={selectedBooks.size === 0}
-              className="px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="선택된 책 삭제"
             >
-              삭제
+              <TrashIcon className="w-4 h-4" />
             </button>
             <button
               onClick={() => {
-                const selectedBooksList = sortedLibraryBooks.filter(book => selectedBooks.has(book.id));
-                exportToCSV(selectedBooksList.length > 0 ? selectedBooksList : sortedLibraryBooks);
+                const selectedBooksList = sortedAndFilteredLibraryBooks.filter(book => selectedBooks.has(book.id));
+                exportToCSV(selectedBooksList.length > 0 ? selectedBooksList : sortedAndFilteredLibraryBooks);
               }}
-              className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
+              className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              title="CSV로 내보내기"
             >
               <DownloadIcon className="w-4 h-4" />
-              내보내기
             </button>
           </div>
         </div>
@@ -688,7 +734,14 @@ const MyLibrary: React.FC = () => {
       {viewType === 'card' ? (
         /* Card View */
         <div className="space-y-4 max-w-4xl mx-auto">
-        {sortedLibraryBooks.map(book => (
+        {sortedAndFilteredLibraryBooks.length === 0 && debouncedSearchQuery.trim().length >= 2 ? (
+          <div className="text-center text-gray-400 p-8 bg-gray-800 rounded-lg shadow-inner">
+            <h3 className="text-lg font-medium mb-2">검색 결과가 없습니다</h3>
+            <p className="text-sm">'{debouncedSearchQuery}' 에 대한 검색 결과를 찾을 수 없습니다.</p>
+            <p className="text-sm mt-1">다른 키워드로 검색해보세요.</p>
+          </div>
+        ) : (
+          sortedAndFilteredLibraryBooks.map(book => (
           <div key={book.id} className="flex items-start gap-4 p-4 mb-4 bg-gray-800 rounded-lg shadow-md hover:bg-gray-750 transition-colors">
             {/* Checkbox Column */}
             <div className="flex items-center justify-center">
@@ -703,7 +756,7 @@ const MyLibrary: React.FC = () => {
                     newSelection.delete(book.id);
                   }
                   setSelectedBooks(newSelection);
-                  setSelectAll(newSelection.size === sortedLibraryBooks.length);
+                  setSelectAll(newSelection.size === sortedAndFilteredLibraryBooks.length);
                 }}
                 className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
               />
@@ -720,25 +773,36 @@ const MyLibrary: React.FC = () => {
               />
               
               {/* Action Buttons */}
-              <div className="flex flex-col gap-1 mt-2">
-                <a 
-                  href={book.link} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="px-2 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-600 transition-colors text-center"
-                >
-                  종이책
-                </a>
-                {book.subInfo?.ebookList?.[0]?.isbn13 && (
-                  <a 
-                    href={book.subInfo.ebookList[0].link} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="px-2 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-600 transition-colors text-center"
-                  >
-                    전자책
-                  </a>
-                )}
+              <div className="flex gap-1 mt-2">
+                {(() => {
+                  const hasEbook = book.subInfo?.ebookList?.[0]?.isbn13;
+                  const buttonClass = hasEbook 
+                    ? "flex-1 px-1 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-600 transition-colors text-center whitespace-nowrap"
+                    : "w-full px-2 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-600 transition-colors text-center";
+                  
+                  return (
+                    <>
+                      <a 
+                        href={book.link} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className={buttonClass}
+                      >
+                        종이책
+                      </a>
+                      {hasEbook && (
+                        <a 
+                          href={book.subInfo.ebookList[0].link} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="flex-1 px-1 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-600 transition-colors text-center whitespace-nowrap"
+                        >
+                          전자책
+                        </a>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </div>
             
@@ -800,7 +864,7 @@ const MyLibrary: React.FC = () => {
               <hr className="my-3 border-gray-600" />
               
               {/* Library Inventory Grid */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {/* 퇴촌lib */}
                 <LibraryTag
                   name="퇴촌"
@@ -920,12 +984,19 @@ const MyLibrary: React.FC = () => {
               </div>
             </div>
           </div>
-        ))}
+        )))}
         </div>
       ) : (
         /* Grid View */
         <div className="grid gap-4 max-w-4xl mx-auto" style={{ gridTemplateColumns: `repeat(${gridColumns}, 1fr)` }}>
-          {sortedLibraryBooks.map(book => (
+          {sortedAndFilteredLibraryBooks.length === 0 && debouncedSearchQuery.trim().length >= 2 ? (
+            <div className="col-span-full text-center text-gray-400 p-8 bg-gray-800 rounded-lg shadow-inner">
+              <h3 className="text-lg font-medium mb-2">검색 결과가 없습니다</h3>
+              <p className="text-sm">'{debouncedSearchQuery}' 에 대한 검색 결과를 찾을 수 없습니다.</p>
+              <p className="text-sm mt-1">다른 키워드로 검색해보세요.</p>
+            </div>
+          ) : (
+            sortedAndFilteredLibraryBooks.map(book => (
             <div key={book.id} className="bg-gray-800 rounded-lg p-3 hover:bg-gray-700 transition-colors relative">
               {/* Checkbox */}
               <div className="absolute top-2 left-2">
@@ -940,7 +1011,7 @@ const MyLibrary: React.FC = () => {
                       newSelection.delete(book.id);
                     }
                     setSelectedBooks(newSelection);
-                    setSelectAll(newSelection.size === sortedLibraryBooks.length);
+                    setSelectAll(newSelection.size === sortedAndFilteredLibraryBooks.length);
                   }}
                   className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
                 />
@@ -1131,7 +1202,7 @@ const MyLibrary: React.FC = () => {
                 </div>
               </div>
             </div>
-          ))}
+          )))}
         </div>
       )}
       {detailModalBookId && (

@@ -16,6 +16,7 @@ interface BookState {
   sortConfig: { key: SortKey; order: 'asc' | 'desc' };
   refreshingIsbn: string | null;
   refreshingEbookId: number | null;
+  librarySearchQuery: string;
 
   // Actions
   searchBooks: (query: string, searchType: string) => Promise<void>;
@@ -32,6 +33,7 @@ interface BookState {
   updateReadStatus: (id: number, status: ReadStatus) => Promise<void>;
   updateRating: (id: number, rating: number) => Promise<void>;
   updateMissingEbookIsbn13: () => Promise<void>;
+  setLibrarySearchQuery: (query: string) => void;
 }
 
 const escapeCsvField = (field: string | number | undefined): string => {
@@ -51,6 +53,7 @@ export const useBookStore = create<BookState>(
       sortConfig: { key: 'addedDate', order: 'desc' },
       refreshingIsbn: null,
       refreshingEbookId: null,
+      librarySearchQuery: '',
 
       // Actions
       fetchUserLibrary: async () => {
@@ -490,6 +493,10 @@ export const useBookStore = create<BookState>(
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+      },
+
+      setLibrarySearchQuery: (query: string) => {
+        set({ librarySearchQuery: query });
       },
     })
 );
