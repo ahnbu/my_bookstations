@@ -27,3 +27,6 @@ working_code
 *.sln
 *.sw?
 *.env
+
+# Claude Code settings
+.claude/settings.local.json
