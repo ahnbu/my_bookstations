@@ -30,3 +30,5 @@ working_code
 
 # Claude Code settings
 .claude/settings.local.json
+.claude/*
+
