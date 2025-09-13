@@ -25,7 +25,7 @@ const SearchForm: React.FC = () => {
           <select
             value={searchType}
             onChange={(e) => setSearchType(e.target.value)}
-            className="h-full py-3 pl-4 pr-10 bg-gray-800 border border-gray-600 rounded-full text-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none transition-shadow duration-300"
+            className="h-full py-3 pl-4 pr-10 bg-elevated border-primary rounded-full text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none transition-shadow duration-300"
             disabled={isLoading}
             aria-label="Search Type"
           >
@@ -34,7 +34,7 @@ const SearchForm: React.FC = () => {
             <option value="Author">저자</option>
             <option value="Publisher">출판사</option>
           </select>
-           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-tertiary">
             <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
           </div>
         </div>
@@ -44,12 +44,12 @@ const SearchForm: React.FC = () => {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="책 제목, 저자, 출판사를 입력하세요..."
-              className="w-full pl-4 pr-12 py-3 bg-gray-800 border border-gray-600 rounded-full text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow duration-300"
+              className="input-base w-full pl-4 pr-12 py-3 rounded-full focus:ring-2 focus:ring-blue-500 transition-shadow duration-300"
               disabled={isLoading}
             />
             <button
               type="submit"
-              className="absolute inset-y-0 right-0 flex items-center justify-center px-4 text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="absolute inset-y-0 right-0 flex items-center justify-center px-4 text-tertiary hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isLoading}
               aria-label="Search"
             >

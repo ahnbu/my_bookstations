@@ -1,19 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
+import { useBookStore } from '../stores/useBookStore';
+import type { CustomTag, TagColor } from '../types';
+import CustomTagComponent from './CustomTag';
 
 const SettingsModal: React.FC = () => {
   const { isSettingsModalOpen, closeSettingsModal, setNotification } = useUIStore();
-  const { settings, loading, updateUserSettings } = useSettingsStore();
-  
+  const { settings, loading, updateUserSettings, createTag, updateTag, deleteTag, getTagUsageCount, exportToCSV, setTheme } = useSettingsStore();
+  const { myLibraryBooks } = useBookStore();
+
   const [localSettings, setLocalSettings] = useState(settings);
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<'display' | 'tags' | 'data'>('display');
+  const [editingTag, setEditingTag] = useState<CustomTag | null>(null);
+  const [newTagName, setNewTagName] = useState('');
+  const [newTagColor, setNewTagColor] = useState<TagColor>('blue');
 
   useEffect(() => {
     if (isSettingsModalOpen) {
       setLocalSettings(settings);
     }
   }, [isSettingsModalOpen, settings]);
+
+  // 컴포넌트 마운트 시 테마 적용
+  useEffect(() => {
+    const { applyTheme } = useSettingsStore.getState();
+    applyTheme(settings.theme);
+  }, [settings.theme]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -30,6 +44,10 @@ const SettingsModal: React.FC = () => {
 
   const handleClose = () => {
     setLocalSettings(settings); // Reset to original settings
+    setActiveTab('display');
+    setEditingTag(null);
+    setNewTagName('');
+    setNewTagColor('blue');
     closeSettingsModal();
   };
 
@@ -40,18 +58,116 @@ const SettingsModal: React.FC = () => {
     }));
   };
 
+  // Tag Management Functions
+  const handleCreateTag = async () => {
+    if (!newTagName.trim()) return;
+
+    try {
+      await createTag(newTagName.trim(), newTagColor);
+      setNewTagName('');
+      setNewTagColor('blue');
+      setNotification({ message: '태그가 추가되었습니다.', type: 'success' });
+    } catch (error) {
+      setNotification({ message: '태그 추가에 실패했습니다.', type: 'error' });
+    }
+  };
+
+  const handleUpdateTag = async (tagId: string, updates: Partial<Pick<CustomTag, 'name' | 'color'>>) => {
+    try {
+      await updateTag(tagId, updates);
+      setEditingTag(null);
+      setNotification({ message: '태그가 수정되었습니다.', type: 'success' });
+    } catch (error) {
+      setNotification({ message: '태그 수정에 실패했습니다.', type: 'error' });
+    }
+  };
+
+  const handleDeleteTag = async (tag: CustomTag) => {
+    const usageCount = getTagUsageCount(tag.id, myLibraryBooks);
+
+    if (usageCount > 0) {
+      const confirmed = window.confirm(
+        `'${tag.name}' 태그는 현재 ${usageCount}권의 책에 사용 중입니다.\n` +
+        `태그를 삭제하면 모든 책에서 이 태그가 제거됩니다.\n\n` +
+        `정말 삭제하시겠습니까?`
+      );
+
+      if (!confirmed) return;
+    }
+
+    try {
+      await deleteTag(tag.id);
+      setNotification({ message: '태그가 삭제되었습니다.', type: 'success' });
+    } catch (error) {
+      setNotification({ message: '태그 삭제에 실패했습니다.', type: 'error' });
+    }
+  };
+
+  const handleExportCSV = () => {
+    try {
+      exportToCSV(myLibraryBooks);
+      setNotification({ message: 'CSV 파일이 다운로드됩니다.', type: 'success' });
+    } catch (error) {
+      setNotification({ message: 'CSV 내보내기에 실패했습니다.', type: 'error' });
+    }
+  };
+
+  const colorOptions: { value: TagColor; label: string; class: string }[] = [
+    { value: 'blue', label: '파랑', class: 'bg-blue-500' },
+    { value: 'green', label: '초록', class: 'bg-green-500' },
+    { value: 'yellow', label: '노랑', class: 'bg-yellow-500' },
+    { value: 'red', label: '빨강', class: 'bg-red-500' },
+    { value: 'purple', label: '보라', class: 'bg-purple-500' },
+    { value: 'pink', label: '분홍', class: 'bg-pink-500' },
+    { value: 'gray', label: '회색', class: 'bg-gray-500' },
+  ];
+
   if (!isSettingsModalOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-96 max-w-[90vw]">
+    <div className="fixed inset-0 bg-overlay flex items-center justify-center z-50" style={{ backgroundColor: 'var(--color-bg-overlay)' }}>
+      <div className="bg-elevated shadow-2xl rounded-lg p-6 w-[600px] max-w-[90vw] max-h-[80vh] overflow-hidden flex flex-col">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-gray-800">맞춤 설정</h2>
+          <h2 className="text-xl font-bold text-primary">맞춤 설정</h2>
           <button
             onClick={handleClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl"
+            className="text-secondary hover:text-primary text-2xl"
           >
             ×
+          </button>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="flex border-b border-secondary mb-6">
+          <button
+            onClick={() => setActiveTab('display')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${
+              activeTab === 'display'
+                ? 'border-focus text-blue-600'
+                : 'border-transparent text-secondary hover:text-primary'
+            }`}
+          >
+            표시 옵션
+          </button>
+          <button
+            onClick={() => setActiveTab('tags')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${
+              activeTab === 'tags'
+                ? 'border-focus text-blue-600'
+                : 'border-transparent text-secondary hover:text-primary'
+            }`}
+          >
+            태그 관리
+          </button>
+          <button
+            onClick={() => setActiveTab('data')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${
+              activeTab === 'data'
+                ? 'border-focus text-blue-600'
+                : 'border-transparent text-secondary hover:text-primary'
+            }`}
+          >
+            데이터 관리
           </button>
         </div>
 
@@ -60,76 +176,285 @@ const SettingsModal: React.FC = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         ) : (
-          <div className="space-y-6">
-            {/* Show Read Status Toggle */}
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  완독여부 표시
-                </label>
-                <p className="text-xs text-gray-500 mt-1">
-                  내 서재에서 읽기 상태를 표시합니다.
-                </p>
-              </div>
-              <button
-                onClick={() => handleToggle('showReadStatus')}
-                disabled={saving}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
-                  localSettings.showReadStatus ? 'bg-blue-600' : 'bg-gray-200'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    localSettings.showReadStatus ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
+          <div className="flex-1 overflow-y-auto">
+            {/* Display Options Tab */}
+            {activeTab === 'display' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-primary">
+                      완독여부 표시
+                    </label>
+                    <p className="text-xs text-secondary mt-1">
+                      내 서재에서 읽기 상태를 표시합니다.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleToggle('showReadStatus')}
+                    disabled={saving}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
+                      localSettings.showReadStatus ? 'bg-blue-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        localSettings.showReadStatus ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
 
-            {/* Show Rating Toggle */}
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  별표 표시
-                </label>
-                <p className="text-xs text-gray-500 mt-1">
-                  내 서재에서 별점 평가를 표시합니다.
-                </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-primary">
+                      별표 표시
+                    </label>
+                    <p className="text-xs text-secondary mt-1">
+                      내 서재에서 별점 평가를 표시합니다.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleToggle('showRating')}
+                    disabled={saving}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
+                      localSettings.showRating ? 'bg-blue-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        localSettings.showRating ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-primary">
+                      테마
+                    </label>
+                    <p className="text-xs text-secondary mt-1">
+                      애플리케이션의 외관을 설정합니다.
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {[
+                      { value: 'light', label: '라이트', icon: '☀️' },
+                      { value: 'dark', label: '다크', icon: '🌙' },
+                      { value: 'system', label: '시스템', icon: '⚙️' }
+                    ].map((theme) => (
+                      <button
+                        key={theme.value}
+                        onClick={async () => {
+                          const newTheme = theme.value as Theme;
+                          setLocalSettings(prev => ({ ...prev, theme: newTheme }));
+                          try {
+                            await setTheme(newTheme);
+                          } catch (error) {
+                            setNotification({ message: '테마 설정에 실패했습니다.', type: 'error' });
+                          }
+                        }}
+                        disabled={saving}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors disabled:opacity-50 ${
+                          localSettings.theme === theme.value
+                            ? 'btn-base btn-primary'
+                            : 'bg-elevated text-primary border-primary hover-surface'
+                        }`}
+                      >
+                        <span className="mr-1">{theme.icon}</span>
+                        {theme.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <button
-                onClick={() => handleToggle('showRating')}
-                disabled={saving}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
-                  localSettings.showRating ? 'bg-blue-600' : 'bg-gray-200'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    localSettings.showRating ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
+            )}
+
+            {/* Tag Management Tab */}
+            {activeTab === 'tags' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-medium text-primary mb-3">
+                    내 태그 ({settings.tagSettings?.tags?.length || 0}개)
+                  </h3>
+
+                  {/* Tag List */}
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {settings.tagSettings?.tags?.map((tag) => (
+                      <div key={tag.id} className="flex items-center justify-between p-3 border border-secondary rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <CustomTagComponent tag={tag} size="sm" />
+                          <span className="text-sm text-secondary">
+                            ({getTagUsageCount(tag.id, myLibraryBooks)}권)
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setEditingTag(tag)}
+                            className="text-xs text-blue-600 hover:text-blue-700 underline"
+                          >
+                            수정
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTag(tag)}
+                            className="text-xs text-red-600 hover:text-red-700 underline"
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Add New Tag */}
+                  <div className="mt-4 p-4 border border-secondary rounded-lg bg-secondary">
+                    <h4 className="text-sm font-medium text-primary mb-3">새 태그 추가</h4>
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        value={newTagName}
+                        onChange={(e) => setNewTagName(e.target.value)}
+                        placeholder="태그 이름"
+                        className="input-base w-full"
+                        maxLength={20}
+                      />
+                      <div>
+                        <label className="block text-xs text-secondary mb-2">색상</label>
+                        <div className="flex gap-2">
+                          {colorOptions.map((color) => (
+                            <button
+                              key={color.value}
+                              onClick={() => setNewTagColor(color.value)}
+                              className={`w-6 h-6 rounded-full ${color.class} ${
+                                newTagColor === color.value
+                                  ? 'ring-2 ring-gray-800 ring-offset-2'
+                                  : 'hover:ring-2 hover:ring-gray-400 hover:ring-offset-1'
+                              }`}
+                              title={color.label}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleCreateTag}
+                        disabled={!newTagName.trim()}
+                        className="btn-base btn-primary w-full"
+                      >
+                        태그 추가
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Data Management Tab */}
+            {activeTab === 'data' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-medium text-primary mb-3">내보내기</h3>
+                  <div className="p-4 border border-secondary rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="text-sm font-medium text-primary">
+                          CSV로 내보내기
+                        </label>
+                        <p className="text-xs text-secondary mt-1">
+                          내 서재의 모든 책 정보를 CSV 파일로 다운로드합니다.
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleExportCSV}
+                        className="btn-base btn-success"
+                      >
+                        내보내기
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        <div className="flex gap-2 pt-6 mt-6 border-t border-gray-200">
+        {/* Footer Buttons */}
+        <div className="flex gap-2 pt-6 mt-6 border-t border-secondary">
           <button
             type="button"
             onClick={handleClose}
             disabled={saving}
-            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="btn-base btn-secondary flex-1"
           >
             취소
           </button>
-          <button
-            onClick={handleSave}
-            disabled={saving || loading}
-            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-          >
-            {saving ? '저장 중...' : '저장'}
-          </button>
+          {activeTab === 'display' && (
+            <button
+              onClick={handleSave}
+              disabled={saving || loading}
+              className="btn-base btn-primary flex-1"
+            >
+              {saving ? '저장 중...' : '저장'}
+            </button>
+          )}
         </div>
+
+        {/* Edit Tag Modal */}
+        {editingTag && (
+          <div className="fixed inset-0 flex items-center justify-center z-60" style={{ backgroundColor: 'var(--color-bg-overlay)' }}>
+            <div className="bg-elevated shadow-xl rounded-lg p-6 w-96">
+              <h3 className="text-lg font-bold text-primary mb-4">태그 수정</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-secondary mb-2">태그 이름</label>
+                  <input
+                    type="text"
+                    defaultValue={editingTag.name}
+                    ref={(input) => {
+                      if (input) {
+                        input.focus();
+                        input.select();
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleUpdateTag(editingTag.id, { name: e.currentTarget.value.trim() });
+                      } else if (e.key === 'Escape') {
+                        setEditingTag(null);
+                      }
+                    }}
+                    className="input-base w-full"
+                    maxLength={20}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-secondary mb-2">색상</label>
+                  <div className="flex gap-2">
+                    {colorOptions.map((color) => (
+                      <button
+                        key={color.value}
+                        onClick={() => handleUpdateTag(editingTag.id, { color: color.value })}
+                        className={`w-8 h-8 rounded-full ${color.class} ${
+                          editingTag.color === color.value
+                            ? 'ring-2 ring-gray-800 ring-offset-2'
+                            : 'hover:ring-2 hover:ring-gray-400 hover:ring-offset-1'
+                        }`}
+                        title={color.label}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2 mt-6">
+                <button
+                  onClick={() => setEditingTag(null)}
+                  className="btn-base btn-secondary flex-1"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

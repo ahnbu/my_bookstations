@@ -1,3 +1,122 @@
+/* OKLCH 기반 전문 테마 시스템 */
+:root {
+  /* Light theme - OKLCH color space */
+  --background: oklch(0.9842 0.0034 247.8575);
+  --foreground: oklch(0.2795 0.0368 260.0310);
+  --card: oklch(1.0000 0 0);
+  --card-foreground: oklch(0.2795 0.0368 260.0310);
+  --popover: oklch(1.0000 0 0);
+  --popover-foreground: oklch(0.2795 0.0368 260.0310);
+  --primary: oklch(0.5854 0.2041 277.1173);
+  --primary-foreground: oklch(1.0000 0 0);
+  --secondary: oklch(0.9276 0.0058 264.5313);
+  --secondary-foreground: oklch(0.3729 0.0306 259.7328);
+  --muted: oklch(0.9670 0.0029 264.5419);
+  --muted-foreground: oklch(0.5510 0.0234 264.3637);
+  --accent: oklch(0.9299 0.0334 272.7879);
+  --accent-foreground: oklch(0.3729 0.0306 259.7328);
+  --destructive: oklch(0.6368 0.2078 25.3313);
+  --destructive-foreground: oklch(1.0000 0 0);
+  --border: oklch(0.8717 0.0093 258.3382);
+  --input: oklch(0.8717 0.0093 258.3382);
+  --ring: oklch(0.5854 0.2041 277.1173);
+
+  /* Semantic color mappings */
+  --color-bg-primary: var(--background);
+  --color-bg-secondary: var(--muted);
+  --color-bg-tertiary: var(--secondary);
+  --color-bg-elevated: var(--card);
+  --color-bg-overlay: oklch(0 0 0 / 0.5);
+
+  --color-text-primary: var(--foreground);
+  --color-text-secondary: var(--muted-foreground);
+  --color-text-tertiary: oklch(0.6510 0.0184 264.3637);
+  --color-text-inverse: var(--primary-foreground);
+  --color-text-placeholder: var(--muted-foreground);
+
+  --color-border-primary: var(--border);
+  --color-border-secondary: var(--input);
+  --color-border-focus: var(--ring);
+
+  --color-surface-hover: var(--accent);
+  --color-surface-active: var(--secondary);
+
+  /* Button colors */
+  --color-button-primary: var(--primary);
+  --color-button-primary-hover: oklch(0.5354 0.2241 277.1173);
+  --color-button-secondary: var(--muted-foreground);
+  --color-button-secondary-hover: oklch(0.4510 0.0334 264.3637);
+  --color-button-danger: var(--destructive);
+  --color-button-danger-hover: oklch(0.5868 0.2278 25.3313);
+  --color-button-success: oklch(0.5569 0.1872 165.3313);
+  --color-button-success-hover: oklch(0.5069 0.1972 165.3313);
+
+  /* Shadows */
+  --shadow-2xs: 0px 4px 8px -1px oklch(0 0 0 / 0.05);
+  --shadow-xs: 0px 4px 8px -1px oklch(0 0 0 / 0.05);
+  --shadow-sm: 0px 4px 8px -1px oklch(0 0 0 / 0.10), 0px 1px 2px -2px oklch(0 0 0 / 0.10);
+  --shadow: 0px 4px 8px -1px oklch(0 0 0 / 0.10), 0px 1px 2px -2px oklch(0 0 0 / 0.10);
+  --shadow-md: 0px 4px 8px -1px oklch(0 0 0 / 0.10), 0px 2px 4px -2px oklch(0 0 0 / 0.10);
+  --shadow-lg: 0px 4px 8px -1px oklch(0 0 0 / 0.10), 0px 4px 6px -2px oklch(0 0 0 / 0.10);
+  --shadow-xl: 0px 4px 8px -1px oklch(0 0 0 / 0.10), 0px 8px 10px -2px oklch(0 0 0 / 0.10);
+  --shadow-2xl: 0px 4px 8px -1px oklch(0 0 0 / 0.25);
+
+  --radius: 0.5rem;
+}
+
+/* Dark theme - OKLCH color space */
+.dark {
+  --background: oklch(0.2077 0.0398 265.7549);
+  --foreground: oklch(0.9288 0.0126 255.5078);
+  --card: oklch(0.2795 0.0368 260.0310);
+  --card-foreground: oklch(0.9288 0.0126 255.5078);
+  --popover: oklch(0.2795 0.0368 260.0310);
+  --popover-foreground: oklch(0.9288 0.0126 255.5078);
+  --primary: oklch(0.6801 0.1583 276.9349);
+  --primary-foreground: oklch(0.2077 0.0398 265.7549);
+  --secondary: oklch(0.3351 0.0331 260.9120);
+  --secondary-foreground: oklch(0.8717 0.0093 258.3382);
+  --muted: oklch(0.2795 0.0368 260.0310);
+  --muted-foreground: oklch(0.7137 0.0192 261.3246);
+  --accent: oklch(0.3729 0.0306 259.7328);
+  --accent-foreground: oklch(0.8717 0.0093 258.3382);
+  --destructive: oklch(0.6368 0.2078 25.3313);
+  --destructive-foreground: oklch(0.2077 0.0398 265.7549);
+  --border: oklch(0.4461 0.0263 256.8018);
+  --input: oklch(0.4461 0.0263 256.8018);
+  --ring: oklch(0.6801 0.1583 276.9349);
+
+  /* Semantic color mappings for dark theme */
+  --color-bg-primary: var(--background);
+  --color-bg-secondary: var(--muted);
+  --color-bg-tertiary: var(--secondary);
+  --color-bg-elevated: var(--card);
+  --color-bg-overlay: oklch(0 0 0 / 0.75);
+
+  --color-text-primary: var(--foreground);
+  --color-text-secondary: var(--muted-foreground);
+  --color-text-tertiary: oklch(0.6137 0.0292 261.3246);
+  --color-text-inverse: var(--primary-foreground);
+  --color-text-placeholder: var(--muted-foreground);
+
+  --color-border-primary: var(--border);
+  --color-border-secondary: var(--input);
+  --color-border-focus: var(--ring);
+
+  --color-surface-hover: var(--accent);
+  --color-surface-active: var(--secondary);
+
+  /* Button colors for dark theme */
+  --color-button-primary: var(--primary);
+  --color-button-primary-hover: oklch(0.7301 0.1783 276.9349);
+  --color-button-secondary: var(--muted-foreground);
+  --color-button-secondary-hover: oklch(0.7637 0.0193 261.3246);
+  --color-button-danger: var(--destructive);
+  --color-button-danger-hover: oklch(0.5868 0.2278 25.3313);
+  --color-button-success: oklch(0.5569 0.1872 165.3313);
+  --color-button-success-hover: oklch(0.6069 0.1772 165.3313);
+}
+
 /* CSS 파일에 추가 */
 .my-library-table {
   width: 100%;
@@ -13,17 +132,17 @@
 }
 
 .my-library-table::-webkit-scrollbar-track {
-  background: #374151;
+  background: var(--color-bg-secondary);
   border-radius: 4px;
 }
 
 .my-library-table::-webkit-scrollbar-thumb {
-  background: #6B7280;
+  background: var(--color-border-primary);
   border-radius: 4px;
 }
 
 .my-library-table::-webkit-scrollbar-thumb:hover {
-  background: #9CA3AF;
+  background: var(--color-text-secondary);
 }
 
 /* Line clamp utility for text truncation */
@@ -48,4 +167,263 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Custom tag component styling */
+.custom-tag {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  border-width: 1px;
+  transition: all 0.2s ease-in-out;
+  white-space: nowrap;
+}
+
+.custom-tag:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.custom-tag.clickable {
+  cursor: pointer;
+}
+
+/* 테마 기반 유틸리티 클래스 */
+.bg-primary {
+  background-color: var(--color-bg-primary);
+}
+
+.bg-secondary {
+  background-color: var(--color-bg-secondary);
+}
+
+.bg-tertiary {
+  background-color: var(--color-bg-tertiary);
+}
+
+.bg-elevated {
+  background-color: var(--color-bg-elevated);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Shadow utility classes */
+.shadow-sm {
+  box-shadow: var(--shadow-sm);
+}
+
+.shadow {
+  box-shadow: var(--shadow);
+}
+
+.shadow-md {
+  box-shadow: var(--shadow-md);
+}
+
+.shadow-lg {
+  box-shadow: var(--shadow-lg);
+}
+
+.shadow-xl {
+  box-shadow: var(--shadow-xl);
+}
+
+.shadow-2xl {
+  box-shadow: var(--shadow-2xl);
+}
+
+.text-primary {
+  color: var(--color-text-primary);
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.text-tertiary {
+  color: var(--color-text-tertiary);
+}
+
+.text-inverse {
+  color: var(--color-text-inverse);
+}
+
+.border-primary {
+  border-color: var(--color-border-primary);
+}
+
+.border-secondary {
+  border-color: var(--color-border-secondary);
+}
+
+.border-focus {
+  border-color: var(--color-border-focus);
+}
+
+.hover-surface:hover {
+  background-color: var(--color-surface-hover);
+}
+
+.active-surface:active {
+  background-color: var(--color-surface-active);
+}
+
+/* 공통 입력 요소 스타일 */
+.input-base {
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-primary);
+  color: var(--color-text-primary);
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.input-base:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px oklch(from var(--ring) l c h / 0.1);
+}
+
+.input-base::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+/* 버튼 기본 스타일 */
+.btn-base {
+  font-weight: 500;
+  border-radius: 0.375rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease-in-out;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-primary {
+  background-color: var(--color-button-primary);
+  color: var(--color-text-inverse);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--color-button-primary-hover);
+}
+
+.btn-secondary {
+  background-color: var(--color-button-secondary);
+  color: var(--color-text-inverse);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--color-button-secondary-hover);
+}
+
+.btn-danger {
+  background-color: var(--color-button-danger);
+  color: var(--color-text-inverse);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: var(--color-button-danger-hover);
+}
+
+.btn-success {
+  background-color: var(--color-button-success);
+  color: var(--color-text-inverse);
+}
+
+.btn-success:hover:not(:disabled) {
+  background-color: var(--color-button-success-hover);
+}
+
+.btn-base:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Tag color variants - light theme for better contrast in dark UI */
+.tag-blue-base {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-color: rgb(59, 130, 246);
+  color: rgb(59, 130, 246);
+}
+
+.tag-blue-active {
+  background-color: rgb(59, 130, 246);
+  border-color: rgb(59, 130, 246);
+  color: white;
+}
+
+.tag-green-base {
+  background-color: rgba(16, 185, 129, 0.1);
+  border-color: rgb(16, 185, 129);
+  color: rgb(16, 185, 129);
+}
+
+.tag-green-active {
+  background-color: rgb(16, 185, 129);
+  border-color: rgb(16, 185, 129);
+  color: white;
+}
+
+.tag-yellow-base {
+  background-color: rgba(245, 158, 11, 0.1);
+  border-color: rgb(245, 158, 11);
+  color: rgb(245, 158, 11);
+}
+
+.tag-yellow-active {
+  background-color: rgb(245, 158, 11);
+  border-color: rgb(245, 158, 11);
+  color: white;
+}
+
+.tag-red-base {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: rgb(239, 68, 68);
+  color: rgb(239, 68, 68);
+}
+
+.tag-red-active {
+  background-color: rgb(239, 68, 68);
+  border-color: rgb(239, 68, 68);
+  color: white;
+}
+
+.tag-purple-base {
+  background-color: rgba(139, 92, 246, 0.1);
+  border-color: rgb(139, 92, 246);
+  color: rgb(139, 92, 246);
+}
+
+.tag-purple-active {
+  background-color: rgb(139, 92, 246);
+  border-color: rgb(139, 92, 246);
+  color: white;
+}
+
+.tag-pink-base {
+  background-color: rgba(236, 72, 153, 0.1);
+  border-color: rgb(236, 72, 153);
+  color: rgb(236, 72, 153);
+}
+
+.tag-pink-active {
+  background-color: rgb(236, 72, 153);
+  border-color: rgb(236, 72, 153);
+  color: white;
+}
+
+.tag-gray-base {
+  background-color: rgba(107, 114, 128, 0.1);
+  border-color: rgb(107, 114, 128);
+  color: rgb(107, 114, 128);
+}
+
+.tag-gray-active {
+  background-color: rgb(107, 114, 128);
+  border-color: rgb(107, 114, 128);
+  color: white;
 }

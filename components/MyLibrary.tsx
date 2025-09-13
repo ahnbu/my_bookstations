@@ -9,6 +9,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import StarRating from './StarRating';
 import MyLibraryBookDetailModal from './MyLibraryBookDetailModal';
+import TagFilter from './TagFilter';
 import { getStatusEmoji, isEBooksEmpty, hasAvailableEBooks, processBookTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL, generateLibraryDetailURL, isLibraryStockClickable } from '../services/unifiedLibrary.service';
 // import { filterGyeonggiEbookByIsbn, debugIsbnMatching } from '../utils/isbnMatcher'; // 성능 최적화로 사용 안함
 
@@ -38,7 +39,7 @@ const LibraryTag: React.FC<LibraryTagProps> = ({ name, totalBooks, availableBook
   const statusStyles = {
     available: 'bg-green-600/20 text-green-400',
     unavailable: 'bg-red-600/20 text-red-400',
-    none: 'bg-gray-600/20 text-gray-500'
+    none: 'bg-tertiary/20 text-tertiary'
   }[status];
 
   return (
@@ -65,7 +66,6 @@ const MyLibrary: React.FC = () => {
     sortConfig,
     sortLibrary,
     removeFromLibrary,
-    exportToCSV,
     refreshingIsbn,
     refreshEBookInfo,
     refreshingEbookId,
@@ -85,6 +85,7 @@ const MyLibrary: React.FC = () => {
   const sortDropdownRef = useRef<HTMLDivElement>(null);
   const [backgroundRefreshComplete, setBackgroundRefreshComplete] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
   
   // Debounce search query
   useEffect(() => {
@@ -145,17 +146,39 @@ const MyLibrary: React.FC = () => {
   // Use the standardized title processing function from ebook.service
   const createSearchSubject = processBookTitle;
 
+  // Tag filtering handlers
+  const handleTagClick = (tagId: string) => {
+    const newActiveTags = new Set(activeTags);
+    if (newActiveTags.has(tagId)) {
+      newActiveTags.delete(tagId);
+    } else {
+      newActiveTags.add(tagId);
+    }
+    setActiveTags(newActiveTags);
+  };
+
+  const handleClearAllTags = () => {
+    setActiveTags(new Set());
+  };
+
   const sortedAndFilteredLibraryBooks = useMemo(() => {
     const readStatusOrder: Record<ReadStatus, number> = { '완독': 0, '읽는 중': 1, '읽지 않음': 2 };
 
     // First filter by search query
     let filteredBooks = [...myLibraryBooks];
-    
+
     if (debouncedSearchQuery.trim() && debouncedSearchQuery.trim().length >= 2) {
       const query = debouncedSearchQuery.toLowerCase().trim();
-      filteredBooks = myLibraryBooks.filter(book => 
+      filteredBooks = filteredBooks.filter(book =>
         book.title.toLowerCase().includes(query) ||
         book.author.toLowerCase().includes(query)
+      );
+    }
+
+    // Then filter by active tags
+    if (activeTags.size > 0) {
+      filteredBooks = filteredBooks.filter(book =>
+        book.customTags?.some(tagId => activeTags.has(tagId))
       );
     }
 
@@ -186,7 +209,7 @@ const MyLibrary: React.FC = () => {
         }
         return 0;
     });
-  }, [myLibraryBooks, sortConfig, debouncedSearchQuery]);
+  }, [myLibraryBooks, sortConfig, debouncedSearchQuery, activeTags]);
   
 
   // Background refresh for books missing detailed stock info - 비활성화
@@ -225,12 +248,12 @@ const MyLibrary: React.FC = () => {
 
   const renderStockCell = (stock?: StockInfo) => {
     if (typeof stock === 'undefined') {
-      return <span className="text-xs text-gray-500">확인중...</span>;
+      return <span className="text-xs text-secondary">확인중...</span>;
     }
     const { total, available } = stock;
     const showIcon = available > 0;
-    const iconClass = available > 0 ? 'text-green-500' : 'text-gray-500 opacity-50';
-    const textClass = available > 0 ? '' : 'text-gray-500 opacity-50';
+    const iconClass = available > 0 ? 'text-green-500' : 'text-tertiary opacity-50';
+    const textClass = available > 0 ? '' : 'text-tertiary opacity-50';
     return (
       <span className="flex items-center justify-center whitespace-nowrap">
         {showIcon && <CheckIcon title="대출가능" className={`mr-1 w-3 h-3 ${iconClass}`} />}
@@ -273,7 +296,7 @@ const MyLibrary: React.FC = () => {
           href={ebookEduUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center whitespace-nowrap text-gray-500 opacity-50 hover:text-blue-300"
+          className="flex items-center justify-center whitespace-nowrap text-tertiary opacity-50 hover:text-blue-300"
           title="조회 실패 - 클릭하여 직접 검색"
         >
           0(0)
@@ -287,7 +310,7 @@ const MyLibrary: React.FC = () => {
           href={ebookEduUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center whitespace-nowrap text-gray-500 opacity-50 hover:text-blue-300"
+          className="flex items-center justify-center whitespace-nowrap text-tertiary opacity-50 hover:text-blue-300"
           title="전자책 없음 - 클릭하여 직접 검색"
         >
           0(0)
@@ -296,7 +319,7 @@ const MyLibrary: React.FC = () => {
     }
 
     const showIcon = summary.대출가능 > 0;
-    const iconClass = summary.대출가능 > 0 ? 'text-green-500' : 'text-gray-500 opacity-50';
+    const iconClass = summary.대출가능 > 0 ? 'text-green-500' : 'text-tertiary opacity-50';
     const statusTitle = `총 ${summary.총개수}권 (대출가능: ${summary.대출가능}권, 대출불가: ${summary.대출불가}권)`;
 
     return (
@@ -342,8 +365,8 @@ const MyLibrary: React.FC = () => {
     const sidokUrl = `https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent(titleForSearch)}`;
 
     const showIcon = availableCount > 0;
-    const iconClass = availableCount > 0 ? 'text-green-500' : 'text-gray-500 opacity-50';
-    const textClass = totalCount > 0 && availableCount > 0 ? 'text-blue-400 hover:text-blue-300' : 'text-gray-500 opacity-50 hover:text-blue-300';
+    const iconClass = availableCount > 0 ? 'text-green-500' : 'text-tertiary opacity-50';
+    const textClass = totalCount > 0 && availableCount > 0 ? 'text-blue-400 hover:text-blue-300' : 'text-tertiary opacity-50 hover:text-blue-300';
 
     return (
       <a
@@ -393,7 +416,7 @@ const MyLibrary: React.FC = () => {
           href={gyeonggiEbookUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center whitespace-nowrap text-gray-500 opacity-50 hover:text-blue-300"
+          className="flex items-center justify-center whitespace-nowrap text-tertiary opacity-50 hover:text-blue-300"
           title="조회 실패 - 클릭하여 직접 검색"
         >
           0(0)
@@ -410,7 +433,7 @@ const MyLibrary: React.FC = () => {
           href={gyeonggiEbookUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center whitespace-nowrap text-gray-500 opacity-50 hover:text-blue-300"
+          className="flex items-center justify-center whitespace-nowrap text-tertiary opacity-50 hover:text-blue-300"
           title="전자책 없음 - 클릭하여 직접 검색"
         >
           0(0)
@@ -419,7 +442,7 @@ const MyLibrary: React.FC = () => {
     }
 
     const showIcon = available_count > 0;
-    const iconClass = available_count > 0 ? 'text-green-500' : 'text-gray-500 opacity-50';
+    const iconClass = available_count > 0 ? 'text-green-500' : 'text-tertiary opacity-50';
     const statusTitle = `총 ${total_count}권 (대출가능: ${available_count}권, 소장형: ${targetGyeonggiInfo.owned_count}권, 구독형: ${targetGyeonggiInfo.subscription_count}권)`;
 
     return (
@@ -489,7 +512,7 @@ const MyLibrary: React.FC = () => {
           href={siripUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center whitespace-nowrap text-gray-500 opacity-50 hover:text-blue-300"
+          className="flex items-center justify-center whitespace-nowrap text-tertiary opacity-50 hover:text-blue-300"
           title="조회 실패 - 클릭하여 직접 검색"
         >
           0(0)
@@ -507,7 +530,7 @@ const MyLibrary: React.FC = () => {
           href={siripUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center whitespace-nowrap text-gray-500 opacity-50 hover:text-blue-300"
+          className="flex items-center justify-center whitespace-nowrap text-tertiary opacity-50 hover:text-blue-300"
           title="전자책 없음 - 클릭하여 직접 검색"
         >
           0(0)
@@ -516,7 +539,7 @@ const MyLibrary: React.FC = () => {
     }
 
     const showIcon = availableCount > 0;
-    const iconClass = availableCount > 0 ? 'text-green-500' : 'text-gray-500 opacity-50';
+    const iconClass = availableCount > 0 ? 'text-green-500' : 'text-tertiary opacity-50';
     const statusTitle = `총 ${totalCount}권 (대출가능: ${availableCount}권, 대출불가: ${totalCount - availableCount}권)`;
 
     return (
@@ -536,8 +559,8 @@ const MyLibrary: React.FC = () => {
   
   if (!session) {
     return (
-      <div className="mt-12 animate-fade-in text-center text-gray-400 p-8 bg-gray-800 rounded-lg shadow-inner">
-        <h2 className="text-2xl font-bold mb-4 text-white">내 서재</h2>
+      <div className="mt-12 animate-fade-in text-center text-secondary p-8 bg-elevated rounded-lg shadow-inner">
+        <h2 className="text-2xl font-bold mb-4 text-primary">내 서재</h2>
         <p>로그인 후 '내 서재' 기능을 사용해보세요.</p>
         <p className="text-sm mt-2">관심있는 책을 저장하고, 여러 기기에서 확인하세요.</p>
       </div>
@@ -546,8 +569,8 @@ const MyLibrary: React.FC = () => {
   
   if (myLibraryBooks.length === 0) {
     return (
-       <div className="mt-12 animate-fade-in text-center text-gray-400 p-8 bg-gray-800 rounded-lg shadow-inner">
-        <h2 className="text-2xl font-bold mb-4 text-white">내 서재</h2>
+       <div className="mt-12 animate-fade-in text-center text-secondary p-8 bg-elevated rounded-lg shadow-inner">
+        <h2 className="text-2xl font-bold mb-4 text-primary">내 서재</h2>
         <p>서재가 비어있습니다.</p>
         <p className="text-sm mt-2">책을 검색하고 '내 서재에 추가' 버튼을 눌러 관리해보세요.</p>
       </div>
@@ -556,21 +579,21 @@ const MyLibrary: React.FC = () => {
 
   return (
     <div className="mt-12 animate-fade-in">
-      {/* Header - Unified Two Row Layout */}
+      {/* Header - Three Row Layout */}
       <div className="mb-6 space-y-3 max-w-4xl mx-auto">
         {/* First Row: Search + View Controls */}
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center gap-3">
           {/* Search Input */}
           <div className="relative flex-1 sm:flex-initial">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <SearchIcon className="h-4 w-4 text-gray-400" />
+              <SearchIcon className="h-4 w-4 text-tertiary" />
             </div>
             <input
               type="text"
               value={librarySearchQuery}
               onChange={(e) => setLibrarySearchQuery(e.target.value)}
               placeholder="책 제목, 저자명으로 검색..."
-              className="block w-full sm:w-80 pl-10 pr-10 py-2 border border-gray-600 rounded-md bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              className="input-base block w-full sm:w-80 pl-10 pr-10 py-2 text-sm"
             />
             {librarySearchQuery && (
               <button
@@ -578,19 +601,19 @@ const MyLibrary: React.FC = () => {
                 className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 title="검색어 지우기"
               >
-                <CloseIcon className="h-4 w-4 text-gray-400 hover:text-white" />
+                <CloseIcon className="h-4 w-4 text-tertiary hover:text-primary" />
               </button>
             )}
           </div>
 
           {/* View Toggle */}
-          <div className="flex items-center gap-1 bg-gray-700 rounded-lg p-1 flex-shrink-0">
+          <div className="flex items-center gap-1 bg-tertiary rounded-lg p-1 flex-shrink-0">
             <button
               onClick={() => setViewType('card')}
               className={`p-2 rounded transition-colors duration-200 ${
                 viewType === 'card'
                   ? 'bg-blue-600 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                  : 'text-tertiary hover:text-primary hover-surface'
               }`}
               title="카드 보기"
             >
@@ -603,7 +626,7 @@ const MyLibrary: React.FC = () => {
               className={`p-2 rounded transition-colors duration-200 ${
                 viewType === 'grid'
                   ? 'bg-blue-600 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                  : 'text-tertiary hover:text-primary hover-surface'
               }`}
               title="그리드 보기"
             >
@@ -614,7 +637,16 @@ const MyLibrary: React.FC = () => {
           </div>
         </div>
 
-        {/* Second Row: Selection Info + Sort + Action Buttons */}
+        {/* Second Row: Tag Filter */}
+        <TagFilter
+          tags={settings.tagSettings?.tags || []}
+          books={myLibraryBooks}
+          activeTags={activeTags}
+          onTagClick={handleTagClick}
+          onClearAll={handleClearAllTags}
+        />
+
+        {/* Third Row: Selection Info + Sort + Action Buttons */}
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
             <label className="flex items-center">
@@ -629,11 +661,11 @@ const MyLibrary: React.FC = () => {
                     setSelectedBooks(new Set());
                   }
                 }}
-                className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                className="w-4 h-4 text-blue-600 bg-tertiary border-primary rounded focus:ring-blue-500"
                 title="전체 선택"
               />
             </label>
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-secondary">
               {selectedBooks.size}개 선택됨(총 {sortedAndFilteredLibraryBooks.length}권)
             </span>
           </div>
@@ -651,7 +683,7 @@ const MyLibrary: React.FC = () => {
                     setSortDropdownOpen(false);
                   }
                 }}
-                className="flex items-center gap-2 px-3 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors duration-200 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="flex items-center gap-2 px-3 py-2 bg-tertiary text-primary rounded-lg hover-surface transition-colors duration-200 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 aria-expanded={sortDropdownOpen}
                 aria-haspopup="true"
                 aria-label="정렬 방식 선택"
@@ -669,7 +701,7 @@ const MyLibrary: React.FC = () => {
               </button>
 
               {sortDropdownOpen && (
-                <div className="absolute top-full right-0 mt-1 w-36 bg-gray-700 border border-gray-600 rounded-lg shadow-lg z-20 animate-in fade-in duration-200">
+                <div className="absolute top-full right-0 mt-1 w-36 bg-elevated border border-secondary rounded-lg shadow-xl z-20 animate-in fade-in duration-200">
                   {(Object.entries(sortOptions) as [SortKey, string][]).map(([key, label]) => (
                     <button
                       key={key}
@@ -689,7 +721,7 @@ const MyLibrary: React.FC = () => {
                       className={`w-full text-left px-3 py-2 text-sm transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg focus:ring-2 focus:ring-blue-500 focus:outline-none ${
                         sortConfig.key === key
                           ? 'bg-blue-600 text-white'
-                          : 'text-gray-300 hover:bg-gray-600 hover:text-white focus:bg-gray-600'
+                          : 'text-primary hover-surface hover:text-primary focus-surface'
                       }`}
                       aria-label={`${label}로 정렬`}
                     >
@@ -714,20 +746,23 @@ const MyLibrary: React.FC = () => {
                 }
               }}
               disabled={selectedBooks.size === 0}
-              className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 btn-base btn-danger rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
               title="선택된 책 삭제"
             >
               <TrashIcon className="w-4 h-4" />
             </button>
             <button
               onClick={() => {
-                const selectedBooksList = sortedAndFilteredLibraryBooks.filter(book => selectedBooks.has(book.id));
-                exportToCSV(selectedBooksList.length > 0 ? selectedBooksList : sortedAndFilteredLibraryBooks);
+                // 태그 관리 모달 열기 (나중에 구현)
+                console.log('태그 관리 모달 열기');
               }}
-              className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              title="CSV로 내보내기"
+              disabled={selectedBooks.size === 0}
+              className="p-2 btn-base btn-primary rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              title="선택된 책에 태그 관리"
             >
-              <DownloadIcon className="w-4 h-4" />
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd" />
+              </svg>
             </button>
           </div>
         </div>
@@ -738,14 +773,14 @@ const MyLibrary: React.FC = () => {
         /* Card View */
         <div className="space-y-4 max-w-4xl mx-auto">
         {sortedAndFilteredLibraryBooks.length === 0 && debouncedSearchQuery.trim().length >= 2 ? (
-          <div className="text-center text-gray-400 p-8 bg-gray-800 rounded-lg shadow-inner">
+          <div className="text-center text-secondary p-8 bg-secondary rounded-lg shadow-md">
             <h3 className="text-lg font-medium mb-2">검색 결과가 없습니다</h3>
             <p className="text-sm">'{debouncedSearchQuery}' 에 대한 검색 결과를 찾을 수 없습니다.</p>
             <p className="text-sm mt-1">다른 키워드로 검색해보세요.</p>
           </div>
         ) : (
           sortedAndFilteredLibraryBooks.map(book => (
-          <div key={book.id} className="flex items-start gap-4 p-4 mb-4 bg-gray-800 rounded-lg shadow-md hover:bg-gray-750 transition-colors">
+          <div key={book.id} className="flex items-start gap-4 p-4 mb-4 bg-elevated rounded-lg hover-surface transition-colors">
             {/* Checkbox Column */}
             <div className="flex items-center justify-center">
               <input 
@@ -761,7 +796,7 @@ const MyLibrary: React.FC = () => {
                   setSelectedBooks(newSelection);
                   setSelectAll(newSelection.size === sortedAndFilteredLibraryBooks.length);
                 }}
-                className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                className="w-4 h-4 text-blue-600 bg-tertiary border-primary rounded focus:ring-blue-500"
               />
             </div>
             
@@ -780,8 +815,8 @@ const MyLibrary: React.FC = () => {
                 {(() => {
                   const hasEbook = book.subInfo?.ebookList?.[0]?.isbn13;
                   const buttonClass = hasEbook 
-                    ? "flex-1 px-1 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-600 transition-colors text-center whitespace-nowrap"
-                    : "w-full px-2 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-600 transition-colors text-center";
+                    ? "flex-1 px-1 py-1 bg-elevated border border-secondary text-secondary text-xs rounded hover:bg-secondary hover:text-primary transition-colors text-center whitespace-nowrap"
+                    : "w-full px-2 py-1 bg-elevated border border-secondary text-secondary text-xs rounded hover:bg-secondary hover:text-primary transition-colors text-center";
                   
                   return (
                     <>
@@ -798,7 +833,7 @@ const MyLibrary: React.FC = () => {
                           href={book.subInfo.ebookList[0].link} 
                           target="_blank" 
                           rel="noopener noreferrer" 
-                          className="flex-1 px-1 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-600 transition-colors text-center whitespace-nowrap"
+                          className="flex-1 px-1 py-1 bg-elevated border border-secondary text-secondary text-xs rounded hover:bg-secondary hover:text-primary transition-colors text-center whitespace-nowrap"
                         >
                           전자책
                         </a>
@@ -816,7 +851,7 @@ const MyLibrary: React.FC = () => {
                 {/* Title with Refresh Icon */}
                 <div className="flex justify-between items-start">
                   <h2 
-                    className="text-lg font-bold text-white leading-tight flex-1 pr-2 cursor-pointer hover:text-blue-400 transition-colors whitespace-nowrap overflow-hidden text-ellipsis"
+                    className="text-lg font-bold text-primary leading-tight flex-1 pr-2 cursor-pointer hover:text-blue-400 transition-colors whitespace-nowrap overflow-hidden text-ellipsis"
                     onClick={() => setDetailModalBookId(book.id)}
                     title={book.title.replace(/^\[\w+\]\s*/, '')} // title 속성에 전체 제목 표시
                   >
@@ -825,7 +860,7 @@ const MyLibrary: React.FC = () => {
                   <button
                     onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title)}
                     disabled={refreshingIsbn === book.isbn13 || refreshingEbookId === book.id}
-                    className="flex-shrink-0 p-1 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-wait"
+                    className="flex-shrink-0 p-1 text-tertiary hover:text-primary hover-surface rounded transition-colors disabled:opacity-50 disabled:cursor-wait"
                     title="재고 정보 갱신"
                   >
                     {refreshingIsbn === book.isbn13 || refreshingEbookId === book.id ? (
@@ -837,7 +872,7 @@ const MyLibrary: React.FC = () => {
                 </div>
                 
                 {/* Author and Publication Date */}
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-secondary">
                   {book.author.replace(/\s*\([^)]*\)/g, '').split(',')[0]} | {book.pubDate.substring(0, 7).replace('-', '년 ')}월
                 </p>
                 
@@ -847,7 +882,7 @@ const MyLibrary: React.FC = () => {
                     <select
                       value={book.readStatus}
                       onChange={(e) => updateReadStatus(book.id, e.target.value as ReadStatus)}
-                      className="bg-gray-700 border-gray-600 text-white text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 px-3 py-2"
+                      className="input-base text-sm px-3 py-2"
                     >
                       <option value="읽지 않음">읽지 않음</option>
                       <option value="읽는 중">읽는 중</option>
@@ -864,7 +899,7 @@ const MyLibrary: React.FC = () => {
               </div>
               
               {/* 구분선 및 "하단 재고 블록" */}
-              <hr className="my-3 border-gray-600" />
+              <hr className="my-3 border-secondary" />
               
               {/* Library Inventory Grid */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -993,14 +1028,14 @@ const MyLibrary: React.FC = () => {
         /* Grid View */
         <div className="grid gap-4 max-w-4xl mx-auto" style={{ gridTemplateColumns: `repeat(${gridColumns}, 1fr)` }}>
           {sortedAndFilteredLibraryBooks.length === 0 && debouncedSearchQuery.trim().length >= 2 ? (
-            <div className="col-span-full text-center text-gray-400 p-8 bg-gray-800 rounded-lg shadow-inner">
+            <div className="col-span-full text-center text-secondary p-8 bg-secondary rounded-lg shadow-md">
               <h3 className="text-lg font-medium mb-2">검색 결과가 없습니다</h3>
               <p className="text-sm">'{debouncedSearchQuery}' 에 대한 검색 결과를 찾을 수 없습니다.</p>
               <p className="text-sm mt-1">다른 키워드로 검색해보세요.</p>
             </div>
           ) : (
             sortedAndFilteredLibraryBooks.map(book => (
-            <div key={book.id} className="bg-gray-800 rounded-lg p-3 hover:bg-gray-700 transition-colors relative">
+            <div key={book.id} className="bg-elevated rounded-lg p-3 hover-surface transition-colors relative">
               {/* Checkbox */}
               <div className="absolute top-2 left-2">
                 <input 
@@ -1016,7 +1051,7 @@ const MyLibrary: React.FC = () => {
                     setSelectedBooks(newSelection);
                     setSelectAll(newSelection.size === sortedAndFilteredLibraryBooks.length);
                   }}
-                  className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-blue-600 bg-tertiary border-primary rounded focus:ring-blue-500"
                 />
               </div>
               
@@ -1036,7 +1071,7 @@ const MyLibrary: React.FC = () => {
                     href={book.link} 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="px-2 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-600 transition-colors"
+                    className="px-2 py-1 bg-elevated border border-secondary text-secondary text-xs rounded hover:bg-secondary hover:text-primary transition-colors"
                   >
                     종이책
                   </a>
@@ -1045,7 +1080,7 @@ const MyLibrary: React.FC = () => {
                       href={book.subInfo.ebookList[0].link} 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="px-2 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-600 transition-colors"
+                      className="px-2 py-1 bg-elevated border border-secondary text-secondary text-xs rounded hover:bg-secondary hover:text-primary transition-colors"
                     >
                       전자책
                     </a>
@@ -1058,7 +1093,7 @@ const MyLibrary: React.FC = () => {
                 {/* Title with Refresh Icon */}
                 <div className="flex justify-between items-start gap-1">
                   <h3 
-                    className="text-sm font-bold text-white line-clamp-2 flex-1 cursor-pointer hover:text-blue-400 transition-colors" 
+                    className="text-sm font-bold text-primary line-clamp-2 flex-1 cursor-pointer hover:text-blue-400 transition-colors" 
                     title={book.title}
                     onClick={() => setDetailModalBookId(book.id)}
                   >
@@ -1067,7 +1102,7 @@ const MyLibrary: React.FC = () => {
                   <button
                     onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title)}
                     disabled={refreshingIsbn === book.isbn13 || refreshingEbookId === book.id}
-                    className="flex-shrink-0 p-0.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-wait"
+                    className="flex-shrink-0 p-0.5 text-tertiary hover:text-primary hover-surface rounded transition-colors disabled:opacity-50 disabled:cursor-wait"
                     title="재고 정보 갱신"
                   >
                     {refreshingIsbn === book.isbn13 || refreshingEbookId === book.id ? (
@@ -1081,12 +1116,12 @@ const MyLibrary: React.FC = () => {
                 </div>
                 
                 {/* Author */}
-                <p className="text-xs text-gray-400 truncate">
+                <p className="text-xs text-secondary truncate">
                   {book.author.replace(/\s*\([^)]*\)/g, '').split(',')[0]}
                 </p>
                 
                 {/* Publication Date */}
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-secondary">
                   {book.pubDate.substring(0, 7).replace('-', '년 ')}월
                 </p>
                 
@@ -1106,7 +1141,7 @@ const MyLibrary: React.FC = () => {
                   <select
                     value={book.readStatus}
                     onChange={(e) => updateReadStatus(book.id, e.target.value as ReadStatus)}
-                    className="w-full bg-gray-700 border-gray-600 text-white text-xs rounded-md focus:ring-blue-500 focus:border-blue-500 px-2 py-1"
+                    className="w-full input-base text-xs px-2 py-1"
                   >
                     <option value="읽지 않음">읽지 않음</option>
                     <option value="읽는 중">읽는 중</option>

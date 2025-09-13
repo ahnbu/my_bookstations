@@ -117,6 +117,7 @@ export type BookData = AladdinBookItem & {
   addedDate: number;
   readStatus: ReadStatus;
   rating: number;
+  customTags?: string[]; // 태그 ID 배열
 };
 
 // This represents a book object within the application's state, including its database ID.
@@ -141,10 +142,31 @@ export type BulkSearchResult = {
   originalInputTitle?: string; // 편집 전 원본 제목 보관
 };
 
+// Custom Tag Types
+export type TagColor = 'blue' | 'green' | 'yellow' | 'red' | 'purple' | 'pink' | 'gray';
+
+export type CustomTag = {
+  id: string;
+  name: string;
+  color: TagColor;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type UserTagSettings = {
+  tags: CustomTag[];
+  maxTags: number;
+};
+
+// Theme Types
+export type Theme = 'light' | 'dark' | 'system';
+
 // User Settings Types
 export type UserSettings = {
   showReadStatus: boolean;
   showRating: boolean;
+  tagSettings: UserTagSettings;
+  theme: Theme;
 };
 
 

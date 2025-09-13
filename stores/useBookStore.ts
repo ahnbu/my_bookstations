@@ -27,7 +27,6 @@ interface BookState {
   refreshEBookInfo: (id: number, isbn: string, title: string) => Promise<void>;
   refreshAllBookInfo: (id: number, isbn13: string, title: string) => Promise<void>;
   sortLibrary: (key: SortKey) => void;
-  exportToCSV: (books: SelectedBook[]) => void;
   fetchUserLibrary: () => Promise<void>;
   clearLibrary: () => void;
   updateReadStatus: (id: number, status: ReadStatus) => Promise<void>;
@@ -36,13 +35,6 @@ interface BookState {
   setLibrarySearchQuery: (query: string) => void;
 }
 
-const escapeCsvField = (field: string | number | undefined): string => {
-    const stringField = String(field ?? '');
-    if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
-        return `"${stringField.replace(/"/g, '""')}"`;
-    }
-    return stringField;
-};
 
 export const useBookStore = create<BookState>(
     (set, get) => ({
@@ -452,48 +444,6 @@ export const useBookStore = create<BookState>(
         }
       },
 
-      exportToCSV: (books) => {
-        if (books.length === 0) return; 
-        
-        const headers = ['Title', 'Author', 'Publisher', 'PublicationDate', 'ISBN13', 'PriceStandard', 'PriceSales', 'ReadStatus', 'Rating', 'EbookAvailable', 'EbookLink', 'Link', 'ToechonStockTotal', 'OtherStockTotal', 'EbookStock', 'AddedDate'];
-        const rows = books.map(book => {
-          const ebookAvailable = (book.subInfo?.ebookList && book.subInfo.ebookList.length > 0) ? 'Yes' : 'No';
-          const ebookLink = book.subInfo?.ebookList?.[0]?.link ?? '';
-          const addedDate = new Date(book.addedDate).toISOString().split('T')[0];
-          const ebookStock = book.ebookInfo ? book.ebookInfo.summary.총개수 : 0;
-          return [
-            escapeCsvField(book.title), 
-            escapeCsvField(book.author), 
-            escapeCsvField(book.publisher), 
-            escapeCsvField(book.pubDate.split(' ')[0]), 
-            `="${book.isbn13}"`, 
-            escapeCsvField(book.priceStandard), 
-            escapeCsvField(book.priceSales),
-            escapeCsvField(book.readStatus),
-            escapeCsvField(book.rating),
-            escapeCsvField(ebookAvailable), 
-            escapeCsvField(ebookLink), 
-            escapeCsvField(book.link), 
-            escapeCsvField(book.toechonStock.total), 
-            escapeCsvField(book.otherStock.total), 
-            escapeCsvField(ebookStock), 
-            escapeCsvField(addedDate)
-        ].join(',');
-        });
-        const csvContent = "\uFEFF" + headers.join(",") + "\n" + rows.join("\n");
-        const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
-        const dd = String(today.getDate()).padStart(2, '0');
-        const dateSuffix = `_${yyyy}${mm}${dd}`;
-        link.setAttribute("download", `my_library${dateSuffix}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      },
 
       setLibrarySearchQuery: (query: string) => {
         set({ librarySearchQuery: query });

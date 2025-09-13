@@ -24,6 +24,8 @@ const App: React.FC = () => {
   const fetchUserLibrary = useBookStore(state => state.fetchUserLibrary);
   const clearLibrary = useBookStore(state => state.clearLibrary);
   const fetchUserSettings = useSettingsStore(state => state.fetchUserSettings);
+  const applyTheme = useSettingsStore(state => state.applyTheme);
+  const settings = useSettingsStore(state => state.settings);
 
   useEffect(() => {
     const unsubscribe = initializeAuthListener();
@@ -39,6 +41,13 @@ const App: React.FC = () => {
     }
   }, [session, fetchUserLibrary, clearLibrary, fetchUserSettings]);
 
+  // 설정이 로드되면 테마 적용
+  useEffect(() => {
+    if (settings.theme) {
+      applyTheme(settings.theme);
+    }
+  }, [settings.theme, applyTheme]);
+
   useEffect(() => {
     const hash = window.location.hash;
     if (hash.includes('type=signup')) {
@@ -51,7 +60,7 @@ const App: React.FC = () => {
   }, [setNotification]);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white font-sans">
+    <div className="min-h-screen bg-primary text-primary font-sans">
       {notification && (
         <Notification
           message={notification.message}
