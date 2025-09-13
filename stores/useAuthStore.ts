@@ -7,6 +7,7 @@ import { useUIStore } from './useUIStore';
 interface AuthState {
   session: Session | null;
   signOut: () => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
   initializeAuthListener: () => () => void;
 }
 
@@ -17,6 +18,17 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (error) {
       console.error('Error logging out:', error.message);
     }
+  },
+  updatePassword: async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+    
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    
+    return { success: true };
   },
   initializeAuthListener: () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {

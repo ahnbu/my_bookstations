@@ -11,6 +11,8 @@ interface UIState {
   isBookSearchListModalOpen: boolean;
   isAuthModalOpen: boolean;
   authModalMode: 'login' | 'signup';
+  isProfileModalOpen: boolean;
+  isSettingsModalOpen: boolean;
   
   // Context state
   isAPITestMode: boolean;
@@ -26,6 +28,12 @@ interface UIState {
   closeAuthModal: () => void;
   switchAuthMode: (mode: 'login' | 'signup') => void;
   
+  openProfileModal: () => void;
+  closeProfileModal: () => void;
+  
+  openSettingsModal: () => void;
+  closeSettingsModal: () => void;
+  
   setAPITestMode: (isAPITestMode: boolean) => void;
 }
 
@@ -35,6 +43,8 @@ export const useUIStore = create<UIState>((set) => ({
   isBookSearchListModalOpen: false,
   isAuthModalOpen: false,
   authModalMode: 'login',
+  isProfileModalOpen: false,
+  isSettingsModalOpen: false,
   isAPITestMode: false,
 
   setIsLoading: (isLoading) => set({ isLoading }),
@@ -46,6 +56,12 @@ export const useUIStore = create<UIState>((set) => ({
   openAuthModal: (mode) => set({ isAuthModalOpen: true, authModalMode: mode }),
   closeAuthModal: () => set({ isAuthModalOpen: false }),
   switchAuthMode: (mode) => set({ authModalMode: mode }),
+  
+  openProfileModal: () => set({ isProfileModalOpen: true }),
+  closeProfileModal: () => set({ isProfileModalOpen: false }),
+  
+  openSettingsModal: () => set({ isSettingsModalOpen: true }),
+  closeSettingsModal: () => set({ isSettingsModalOpen: false }),
   
   setAPITestMode: (isAPITestMode) => set({ isAPITestMode }),
 }));

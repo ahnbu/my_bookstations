@@ -32,7 +32,8 @@
       "mcp__serena__search_for_pattern",
       "Bash(grep:*)",
       "Bash(sed:*)",
-      "Read(//d/**)"
+      "Read(//d/**)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "defaultMode": "plan"

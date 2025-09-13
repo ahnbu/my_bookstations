@@ -186,7 +186,7 @@ export const useBookStore = create<BookState>(
         const { session } = useAuthStore.getState();
         if (!selectedBook || !session) return;
 
-        // ISBN 기준으로 중복 체크
+        // ISBN 기준으로 중복 체크 (이중 안전장치)
         const isDuplicate = myLibraryBooks.some(book => book.isbn13 === selectedBook.isbn13);
         if (isDuplicate) {
           useUIStore.getState().setNotification({ 
@@ -225,6 +225,10 @@ export const useBookStore = create<BookState>(
             set(state => ({
                 myLibraryBooks: [newBookWithId, ...state.myLibraryBooks]
             }));
+            
+            // 책 추가 성공 후 모달 닫기 및 선택된 책 초기화
+            useUIStore.getState().closeBookSearchListModal();
+            set({ selectedBook: null });
             
             // 비동기 백그라운드 재고 조회 실행 (사용자 대기 시간 최소화)
             setTimeout(() => {

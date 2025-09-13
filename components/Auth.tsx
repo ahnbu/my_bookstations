@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import Spinner from './Spinner';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useUIStore } from '../stores/useUIStore';
+import { SettingsIcon } from './Icons';
 
 const Auth: React.FC = () => {
     const { session, signOut } = useAuthStore();
-    const { openAuthModal } = useUIStore();
+    const { openAuthModal, openProfileModal, openSettingsModal } = useUIStore();
     const [loading, setLoading] = useState(false);
 
     const handleLogout = async () => {
@@ -28,13 +29,29 @@ const Auth: React.FC = () => {
         const userEmail = user.email;
 
         return (
-            <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                    {userAvatar && (
+            <div className="flex items-center gap-2">
+                <button
+                    onClick={openProfileModal}
+                    className="flex items-center gap-2 hover:bg-gray-800 p-2 rounded-lg transition-colors duration-200"
+                    title="프로필 설정"
+                >
+                    {userAvatar ? (
                         <img src={userAvatar} alt="User avatar" className="w-8 h-8 rounded-full" />
+                    ) : (
+                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+                            <span className="text-white text-sm font-semibold">
+                                {userEmail?.charAt(0).toUpperCase()}
+                            </span>
+                        </div>
                     )}
-                    <span className="text-sm text-gray-300 hidden sm:inline">{userEmail}</span>
-                </div>
+                </button>
+                <button
+                    onClick={openSettingsModal}
+                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors duration-200"
+                    title="맞춤 설정"
+                >
+                    <SettingsIcon className="w-5 h-5 text-gray-300 hover:text-white" />
+                </button>
                 <button
                     onClick={handleLogout}
                     className="px-4 py-2 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors duration-300 text-sm"

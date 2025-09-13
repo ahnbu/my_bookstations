@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { PlusIcon, ArrowLeftIcon, BookOpenIcon, RefreshIcon } from './Icons';
+import { PlusIcon, BookOpenIcon, RefreshIcon } from './Icons';
 import { useBookStore } from '../stores/useBookStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useAuthStore } from '../stores/useAuthStore';
@@ -90,7 +90,6 @@ const BookDetails: React.FC = () => {
     refreshAllBookInfo,
   } = useBookStore();
   const { session } = useAuthStore();
-  const { openBookSearchListModal } = useUIStore();
   
   // 디버깅을 위한 로그 추가
   useEffect(() => {
@@ -126,10 +125,6 @@ const BookDetails: React.FC = () => {
     }
   }
   
-  const handleBackToList = () => {
-    unselectBook();
-    openBookSearchListModal();
-  };
 
   // 도서가 선택되지 않은 경우
   if (!selectedBook) {
@@ -167,10 +162,10 @@ const BookDetails: React.FC = () => {
             도서 선택 해제
           </button>
           <button
-            onClick={() => openBookSearchListModal()}
+            onClick={() => unselectBook()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors"
           >
-            다시 검색
+            닫기
           </button>
         </div>
       </div>
@@ -207,10 +202,10 @@ const BookDetails: React.FC = () => {
             도서 선택 해제
           </button>
           <button
-            onClick={() => openBookSearchListModal()}
+            onClick={() => unselectBook()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors"
           >
-            다시 검색
+            닫기
           </button>
         </div>
       </div>
@@ -293,13 +288,6 @@ const BookDetails: React.FC = () => {
                   내 서재 추가
                 </>
               )}
-            </button>
-             <button
-              onClick={handleBackToList}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-500 transition-colors duration-300 text-sm"
-            >
-              <ArrowLeftIcon className="w-4 h-4" />
-              검색결과로
             </button>
             <a
               href={selectedBook.link}

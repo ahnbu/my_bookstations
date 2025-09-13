@@ -11,10 +11,10 @@ const Notification: React.FC<NotificationProps> = ({ message, type, onClose }) =
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose();
-    }, 5000); // Auto-close after 5 seconds
+    }, type === 'success' ? 2000 : 4000); // Auto-close after 2 seconds for success, 4 seconds for error
 
     return () => clearTimeout(timer);
-  }, [onClose]);
+  }, [onClose, type]);
 
   const bgColor = type === 'success' ? 'bg-green-600' : 'bg-red-600';
   const Icon = type === 'success' ? CheckCircleIcon : XCircleIcon;

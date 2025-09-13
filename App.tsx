@@ -6,6 +6,8 @@ import MyLibrary from './components/MyLibrary';
 import SearchForm from './components/SearchForm';
 import DevToolsFloat from './components/DevToolsFloat';
 import AuthModal from './components/AuthModal';
+import ProfileSettingsModal from './components/ProfileSettingsModal';
+import SettingsModal from './components/SettingsModal';
 import Notification from './components/Notification';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
@@ -13,6 +15,7 @@ import Footer from './components/layout/Footer';
 import { useUIStore } from './stores/useUIStore';
 import { useAuthStore } from './stores/useAuthStore';
 import { useBookStore } from './stores/useBookStore';
+import { useSettingsStore } from './stores/useSettingsStore';
 
 const App: React.FC = () => {
   const { notification, setNotification } = useUIStore();
@@ -20,6 +23,7 @@ const App: React.FC = () => {
   const session = useAuthStore(state => state.session);
   const fetchUserLibrary = useBookStore(state => state.fetchUserLibrary);
   const clearLibrary = useBookStore(state => state.clearLibrary);
+  const fetchUserSettings = useSettingsStore(state => state.fetchUserSettings);
 
   useEffect(() => {
     const unsubscribe = initializeAuthListener();
@@ -29,10 +33,11 @@ const App: React.FC = () => {
   useEffect(() => {
     if (session) {
       fetchUserLibrary();
+      fetchUserSettings();
     } else {
       clearLibrary();
     }
-  }, [session, fetchUserLibrary, clearLibrary]);
+  }, [session, fetchUserLibrary, clearLibrary, fetchUserSettings]);
 
   useEffect(() => {
     const hash = window.location.hash;
@@ -66,6 +71,10 @@ const App: React.FC = () => {
         <BookSearchListModal />
 
         <AuthModal />
+        
+        <ProfileSettingsModal />
+        
+        <SettingsModal />
       </main>
       <Footer />
       

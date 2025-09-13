@@ -126,6 +126,12 @@ export type SelectedBook = BookData & {
 
 export type SortKey = 'title' | 'author' | 'addedDate' | 'rating' | 'readStatus' | 'pubDate';
 
+// User Settings Types
+export type UserSettings = {
+  showReadStatus: boolean;
+  showRating: boolean;
+};
+
 
 // Supabase Types
 export interface Database {
@@ -149,6 +155,29 @@ export interface Database {
           created_at?: string;
           user_id?: string;
           book_data?: Json;
+        };
+      };
+      user_settings: {
+        Row: {
+          id: number;
+          created_at: string;
+          updated_at: string;
+          user_id: string;
+          settings: UserSettings;
+        };
+        Insert: {
+          id?: number;
+          created_at?: string;
+          updated_at?: string;
+          user_id: string;
+          settings: UserSettings;
+        };
+        Update: {
+          id?: number;
+          created_at?: string;
+          updated_at?: string;
+          user_id?: string;
+          settings?: UserSettings;
         };
       };
     };

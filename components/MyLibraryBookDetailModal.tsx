@@ -220,147 +220,151 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                 <div className="space-y-2 text-sm text-gray-300 bg-gray-800 p-4 rounded-md">
                                     {renderStockInfo('퇴촌 도서관', book.toechonStock, book.title, book.detailedStockInfo)}
                                     {renderStockInfo('기타 도서관', book.otherStock, book.title, book.detailedStockInfo)}
-                                    <div className="flex justify-between items-center">
-                                        <span>전자책(교육):</span>
-                                        {book.ebookInfo ? (
-                                            <a
-                                                href={`https://lib.goe.go.kr/elib/module/elib/search/index.do?menu_idx=94&author_name=&viewPage=1&search_text=${encodeURIComponent(createSearchSubject(book.title))}&sortField=book_pubdt&sortType=desc&rowCount=20`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className={`font-medium ${book.ebookInfo.summary.대출가능 > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
-                                                title={`총 재고: ${book.ebookInfo.summary.총개수}권, 대출가능: ${book.ebookInfo.summary.대출가능}권`}
-                                            >
-                                                {book.ebookInfo.summary.총개수} / {book.ebookInfo.summary.대출가능}
-                                            </a>
-                                        ) : (
-                                            <span className="text-gray-500">정보 없음</span>
-                                        )}
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span>전자책(시립구독):</span>
-                                        {(() => {
-                                            const siripInfo = book.siripEbookInfo;
-                                            const subscriptionTotalCount = siripInfo?.details?.subscription?.total_count || 0;
-                                            const subscriptionAvailableCount = siripInfo?.details?.subscription?.available_count || 0;
-                                            
-                                            if (!siripInfo) {
-                                                return (
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            refreshAllBookInfo(book.id, book.isbn13, book.title);
-                                                        }}
-                                                        className="font-medium text-blue-400 hover:text-blue-300"
-                                                        disabled={refreshingEbookId === book.id}
-                                                    >
-                                                        {refreshingEbookId === book.id ? '로딩...' : '조회'}
-                                                    </button>
-                                                );
-                                            }
-                                            
-                                            if ('error' in siripInfo) {
-                                                return <span className="font-medium text-gray-500">정보 없음</span>;
-                                            }
-
-                                            return (
-                                                <a
-                                                    href={`https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent((() => {
-                                                        let titleForSearch = book.title;
-                                                        const dashIndex = titleForSearch.indexOf('-');
-                                                        if (dashIndex !== -1) {
-                                                            titleForSearch = titleForSearch.substring(0, dashIndex).trim();
-                                                        }
-                                                        return titleForSearch.split(' ').slice(0, 3).join(' ');
-                                                    })())}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className={`font-medium ${subscriptionAvailableCount > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
-                                                    title={`총 ${subscriptionTotalCount}권 (대출가능: ${subscriptionAvailableCount}권)`}
-                                                >
-                                                    {subscriptionTotalCount} / {subscriptionAvailableCount}
-                                                </a>
-                                            );
-                                        })()}
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span>전자책(시립소장):</span>
-                                        {(() => {
-                                            const siripInfo = book.siripEbookInfo;
-                                            const ownedTotalCount = siripInfo?.details?.owned?.total_count || 0;
-                                            const ownedAvailableCount = siripInfo?.details?.owned?.available_count || 0;
-                                            
-                                            if (!siripInfo) {
-                                                return (
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            refreshAllBookInfo(book.id, book.isbn13, book.title);
-                                                        }}
-                                                        className="font-medium text-blue-400 hover:text-blue-300"
-                                                        disabled={refreshingEbookId === book.id}
-                                                    >
-                                                        {refreshingEbookId === book.id ? '로딩...' : '조회'}
-                                                    </button>
-                                                );
-                                            }
-                                            
-                                            if ('error' in siripInfo) {
-                                                return <span className="font-medium text-gray-500">정보 없음</span>;
-                                            }
-
-                                            return (
-                                                <a
-                                                    href={`https://lib.gjcity.go.kr:444/elibrary-front/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent((() => {
-                                                        let titleForSearch = book.title;
-                                                        const dashIndex = titleForSearch.indexOf('-');
-                                                        if (dashIndex !== -1) {
-                                                            titleForSearch = titleForSearch.substring(0, dashIndex).trim();
-                                                        }
-                                                        return titleForSearch.split(' ').slice(0, 3).join(' ');
-                                                    })())}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className={`font-medium ${ownedAvailableCount > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
-                                                    title={`총 ${ownedTotalCount}권 (대출가능: ${ownedAvailableCount}권)`}
-                                                >
-                                                    {ownedTotalCount} / {ownedAvailableCount}
-                                                </a>
-                                            );
-                                        })()}
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span>전자책(경기):</span>
-                                        {book.gyeonggiEbookInfo ? (
-                                            'error' in book.gyeonggiEbookInfo ? (
-                                                <span className="font-medium text-gray-500">정보 없음</span>
-                                            ) : (() => {
-                                                // ISBN 필터링 적용
-                                                const filteredGyeonggiInfo = filterGyeonggiEbookByIsbn(book, book.gyeonggiEbookInfo);
-                                                return (
+                                    {book.subInfo?.ebookList?.[0]?.link && (
+                                        <>
+                                            <div className="flex justify-between items-center">
+                                                <span>전자책(교육):</span>
+                                                {book.ebookInfo ? (
                                                     <a
-                                                        href={createGyeonggiEbookSearchURL(book.title)}
+                                                        href={`https://lib.goe.go.kr/elib/module/elib/search/index.do?menu_idx=94&author_name=&viewPage=1&search_text=${encodeURIComponent(createSearchSubject(book.title))}&sortField=book_pubdt&sortType=desc&rowCount=20`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className={`font-medium ${filteredGyeonggiInfo.available_count > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
-                                                        title={`총 ${filteredGyeonggiInfo.total_count}권 (대출가능: ${filteredGyeonggiInfo.available_count}권, 소장형: ${filteredGyeonggiInfo.owned_count}권, 구독형: ${filteredGyeonggiInfo.subscription_count}권)`}
+                                                        className={`font-medium ${book.ebookInfo.summary.대출가능 > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
+                                                        title={`총 재고: ${book.ebookInfo.summary.총개수}권, 대출가능: ${book.ebookInfo.summary.대출가능}권`}
                                                     >
-                                                        {filteredGyeonggiInfo.total_count} / {filteredGyeonggiInfo.available_count}
+                                                        {book.ebookInfo.summary.총개수} / {book.ebookInfo.summary.대출가능}
                                                     </a>
-                                                );
-                                            })()
-                                        ) : (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    refreshAllBookInfo(book.id, book.isbn13, book.title);
-                                                }}
-                                                className="font-medium text-blue-400 hover:text-blue-300"
-                                                disabled={refreshingEbookId === book.id}
-                                            >
-                                                {refreshingEbookId === book.id ? '로딩...' : '조회'}
-                                            </button>
-                                        )}
-                                    </div>
+                                                ) : (
+                                                    <span className="text-gray-500">정보 없음</span>
+                                                )}
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span>전자책(시립구독):</span>
+                                                {(() => {
+                                                    const siripInfo = book.siripEbookInfo;
+                                                    const subscriptionTotalCount = siripInfo?.details?.subscription?.total_count || 0;
+                                                    const subscriptionAvailableCount = siripInfo?.details?.subscription?.available_count || 0;
+                                                    
+                                                    if (!siripInfo) {
+                                                        return (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    refreshAllBookInfo(book.id, book.isbn13, book.title);
+                                                                }}
+                                                                className="font-medium text-blue-400 hover:text-blue-300"
+                                                                disabled={refreshingEbookId === book.id}
+                                                            >
+                                                                {refreshingEbookId === book.id ? '로딩...' : '조회'}
+                                                            </button>
+                                                        );
+                                                    }
+                                                    
+                                                    if ('error' in siripInfo) {
+                                                        return <span className="font-medium text-gray-500">정보 없음</span>;
+                                                    }
+
+                                                    return (
+                                                        <a
+                                                            href={`https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent((() => {
+                                                                let titleForSearch = book.title;
+                                                                const dashIndex = titleForSearch.indexOf('-');
+                                                                if (dashIndex !== -1) {
+                                                                    titleForSearch = titleForSearch.substring(0, dashIndex).trim();
+                                                                }
+                                                                return titleForSearch.split(' ').slice(0, 3).join(' ');
+                                                            })())}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className={`font-medium ${subscriptionAvailableCount > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
+                                                            title={`총 ${subscriptionTotalCount}권 (대출가능: ${subscriptionAvailableCount}권)`}
+                                                        >
+                                                            {subscriptionTotalCount} / {subscriptionAvailableCount}
+                                                        </a>
+                                                    );
+                                                })()}
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span>전자책(시립소장):</span>
+                                                {(() => {
+                                                    const siripInfo = book.siripEbookInfo;
+                                                    const ownedTotalCount = siripInfo?.details?.owned?.total_count || 0;
+                                                    const ownedAvailableCount = siripInfo?.details?.owned?.available_count || 0;
+                                                    
+                                                    if (!siripInfo) {
+                                                        return (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    refreshAllBookInfo(book.id, book.isbn13, book.title);
+                                                                }}
+                                                                className="font-medium text-blue-400 hover:text-blue-300"
+                                                                disabled={refreshingEbookId === book.id}
+                                                            >
+                                                                {refreshingEbookId === book.id ? '로딩...' : '조회'}
+                                                            </button>
+                                                        );
+                                                    }
+                                                    
+                                                    if ('error' in siripInfo) {
+                                                        return <span className="font-medium text-gray-500">정보 없음</span>;
+                                                    }
+
+                                                    return (
+                                                        <a
+                                                            href={`https://lib.gjcity.go.kr:444/elibrary-front/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent((() => {
+                                                                let titleForSearch = book.title;
+                                                                const dashIndex = titleForSearch.indexOf('-');
+                                                                if (dashIndex !== -1) {
+                                                                    titleForSearch = titleForSearch.substring(0, dashIndex).trim();
+                                                                }
+                                                                return titleForSearch.split(' ').slice(0, 3).join(' ');
+                                                            })())}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className={`font-medium ${ownedAvailableCount > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
+                                                            title={`총 ${ownedTotalCount}권 (대출가능: ${ownedAvailableCount}권)`}
+                                                        >
+                                                            {ownedTotalCount} / {ownedAvailableCount}
+                                                        </a>
+                                                    );
+                                                })()}
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span>전자책(경기):</span>
+                                                {book.gyeonggiEbookInfo ? (
+                                                    'error' in book.gyeonggiEbookInfo ? (
+                                                        <span className="font-medium text-gray-500">정보 없음</span>
+                                                    ) : (() => {
+                                                        // ISBN 필터링 적용
+                                                        const filteredGyeonggiInfo = filterGyeonggiEbookByIsbn(book, book.gyeonggiEbookInfo);
+                                                        return (
+                                                            <a
+                                                                href={createGyeonggiEbookSearchURL(book.title)}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className={`font-medium ${filteredGyeonggiInfo.available_count > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
+                                                                title={`총 ${filteredGyeonggiInfo.total_count}권 (대출가능: ${filteredGyeonggiInfo.available_count}권, 소장형: ${filteredGyeonggiInfo.owned_count}권, 구독형: ${filteredGyeonggiInfo.subscription_count}권)`}
+                                                            >
+                                                                {filteredGyeonggiInfo.total_count} / {filteredGyeonggiInfo.available_count}
+                                                            </a>
+                                                        );
+                                                    })()
+                                                ) : (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            refreshAllBookInfo(book.id, book.isbn13, book.title);
+                                                        }}
+                                                        className="font-medium text-blue-400 hover:text-blue-300"
+                                                        disabled={refreshingEbookId === book.id}
+                                                    >
+                                                        {refreshingEbookId === book.id ? '로딩...' : '조회'}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                                 {/* 시간 정보 유지 */}
                                 {book.ebookInfo && (

@@ -6,6 +6,7 @@ import { DownloadIcon, TrashIcon, RefreshIcon, CheckIcon } from './Icons';
 import Spinner from './Spinner';
 import { useBookStore } from '../stores/useBookStore';
 import { useAuthStore } from '../stores/useAuthStore';
+import { useSettingsStore } from '../stores/useSettingsStore';
 import StarRating from './StarRating';
 import MyLibraryBookDetailModal from './MyLibraryBookDetailModal';
 import { getStatusEmoji, isEBooksEmpty, hasAvailableEBooks, processBookTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL, generateLibraryDetailURL, isLibraryStockClickable } from '../services/unifiedLibrary.service';
@@ -58,6 +59,7 @@ type ViewType = 'card' | 'grid';
 
 const MyLibrary: React.FC = () => {
   const { session } = useAuthStore();
+  const { settings } = useSettingsStore();
   const {
     myLibraryBooks,
     sortConfig,
@@ -767,31 +769,30 @@ const MyLibrary: React.FC = () => {
                   </button>
                 </div>
                 
-                {/* Author */}
+                {/* Author and Publication Date */}
                 <p className="text-sm text-gray-400">
-                  {book.author.replace(/\s*\([^)]*\)/g, '').split(',')[0]}
-                </p>
-                
-                {/* Publisher and Publication Date */}
-                <p className="text-sm text-gray-400">
-                  {book.publisher} | {book.pubDate.substring(0, 7).replace('-', '년 ')}월
+                  {book.author.replace(/\s*\([^)]*\)/g, '').split(',')[0]} | {book.pubDate.substring(0, 7).replace('-', '년 ')}월
                 </p>
                 
                 {/* Read Status and Star Rating */}
                 <div className="flex items-center gap-4 flex-wrap">
-                  <select
-                    value={book.readStatus}
-                    onChange={(e) => updateReadStatus(book.id, e.target.value as ReadStatus)}
-                    className="bg-gray-700 border-gray-600 text-white text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 px-3 py-2"
-                  >
-                    <option value="읽지 않음">읽지 않음</option>
-                    <option value="읽는 중">읽는 중</option>
-                    <option value="완독">완독</option>
-                  </select>
-                  <StarRating
-                    rating={book.rating}
-                    onRatingChange={(newRating) => updateRating(book.id, newRating)}
-                  />
+                  {settings.showReadStatus && (
+                    <select
+                      value={book.readStatus}
+                      onChange={(e) => updateReadStatus(book.id, e.target.value as ReadStatus)}
+                      className="bg-gray-700 border-gray-600 text-white text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 px-3 py-2"
+                    >
+                      <option value="읽지 않음">읽지 않음</option>
+                      <option value="읽는 중">읽는 중</option>
+                      <option value="완독">완독</option>
+                    </select>
+                  )}
+                  {settings.showRating && (
+                    <StarRating
+                      rating={book.rating}
+                      onRatingChange={(newRating) => updateRating(book.id, newRating)}
+                    />
+                  )}
                 </div>
               </div>
               
@@ -802,7 +803,7 @@ const MyLibrary: React.FC = () => {
               <div className="grid grid-cols-3 gap-2">
                 {/* 퇴촌lib */}
                 <LibraryTag
-                  name="퇴촌lib"
+                  name="퇴촌"
                   totalBooks={book.toechonStock?.total || 0}
                   availableBooks={book.toechonStock?.available || 0}
                   searchUrl={(() => {
@@ -813,7 +814,7 @@ const MyLibrary: React.FC = () => {
                 
                 {/* 기타lib */}
                 <LibraryTag
-                  name="기타lib"
+                  name="기타"
                   totalBooks={book.otherStock?.total || 0}
                   availableBooks={book.otherStock?.available || 0}
                   searchUrl={(() => {
@@ -824,7 +825,7 @@ const MyLibrary: React.FC = () => {
                 
                 {/* e북.교육 */}
                 <LibraryTag
-                  name="e북.교육"
+                  name="e교육"
                   totalBooks={book.ebookInfo?.summary.총개수 || 0}
                   availableBooks={book.ebookInfo?.summary.대출가능 || 0}
                   searchUrl={(() => {
@@ -835,7 +836,7 @@ const MyLibrary: React.FC = () => {
                 
                 {/* e북.시립구독 */}
                 <LibraryTag
-                  name="e북.시립구독"
+                  name="e시립구독"
                   totalBooks={(() => {
                     const siripInfo = book.siripEbookInfo;
                     return siripInfo?.details?.subscription?.total_count || 0;
@@ -870,7 +871,7 @@ const MyLibrary: React.FC = () => {
                 
                 {/* e북.시립소장 */}
                 <LibraryTag
-                  name="e북.시립소장"
+                  name="e시립소장"
                   totalBooks={(() => {
                     const siripInfo = book.siripEbookInfo;
                     return siripInfo?.details?.owned?.total_count || 0;
@@ -905,7 +906,7 @@ const MyLibrary: React.FC = () => {
                 
                 {/* e북.경기 */}
                 <LibraryTag
-                  name="e북.경기"
+                  name="e경기"
                   totalBooks={(() => {
                     const targetGyeonggiInfo = book.filteredGyeonggiEbookInfo || book.gyeonggiEbookInfo;
                     return targetGyeonggiInfo && 'total_count' in targetGyeonggiInfo ? targetGyeonggiInfo.total_count : 0;
@@ -1016,29 +1017,33 @@ const MyLibrary: React.FC = () => {
                 </p>
                 
                 {/* Star Rating */}
-                <div className="flex justify-start">
-                  <StarRating
-                    rating={book.rating}
-                    onRatingChange={(newRating) => updateRating(book.id, newRating)}
-                    size="sm"
-                  />
-                </div>
+                {settings.showRating && (
+                  <div className="flex justify-start">
+                    <StarRating
+                      rating={book.rating}
+                      onRatingChange={(newRating) => updateRating(book.id, newRating)}
+                      size="sm"
+                    />
+                  </div>
+                )}
                 
                 {/* Read Status */}
-                <select
-                  value={book.readStatus}
-                  onChange={(e) => updateReadStatus(book.id, e.target.value as ReadStatus)}
-                  className="w-full bg-gray-700 border-gray-600 text-white text-xs rounded-md focus:ring-blue-500 focus:border-blue-500 px-2 py-1"
-                >
-                  <option value="읽지 않음">읽지 않음</option>
-                  <option value="읽는 중">읽는 중</option>
-                  <option value="완독">완독</option>
-                </select>
+                {settings.showReadStatus && (
+                  <select
+                    value={book.readStatus}
+                    onChange={(e) => updateReadStatus(book.id, e.target.value as ReadStatus)}
+                    className="w-full bg-gray-700 border-gray-600 text-white text-xs rounded-md focus:ring-blue-500 focus:border-blue-500 px-2 py-1"
+                  >
+                    <option value="읽지 않음">읽지 않음</option>
+                    <option value="읽는 중">읽는 중</option>
+                    <option value="완독">완독</option>
+                  </select>
+                )}
                 
                 {/* All Library Stock Info */}
                 <div className="grid grid-cols-2 gap-1 text-xs">
                   <LibraryTag
-                    name="퇴촌lib"
+                    name="퇴촌"
                     totalBooks={book.toechonStock?.total || 0}
                     availableBooks={book.toechonStock?.available || 0}
                     searchUrl={(() => {
@@ -1047,7 +1052,7 @@ const MyLibrary: React.FC = () => {
                     })()}
                   />
                   <LibraryTag
-                    name="기타lib"
+                    name="기타"
                     totalBooks={book.otherStock?.total || 0}
                     availableBooks={book.otherStock?.available || 0}
                     searchUrl={(() => {
@@ -1056,7 +1061,7 @@ const MyLibrary: React.FC = () => {
                     })()}
                   />
                   <LibraryTag
-                    name="e북.교육"
+                    name="e교육"
                     totalBooks={book.ebookInfo?.summary.총개수 || 0}
                     availableBooks={book.ebookInfo?.summary.대출가능 || 0}
                     searchUrl={(() => {
@@ -1065,7 +1070,7 @@ const MyLibrary: React.FC = () => {
                     })()}
                   />
                   <LibraryTag
-                    name="e북.시립구독"
+                    name="e시립구독"
                     totalBooks={(() => {
                       const siripInfo = book.siripEbookInfo;
                       return siripInfo?.details?.subscription?.total_count || 0;
@@ -1094,7 +1099,7 @@ const MyLibrary: React.FC = () => {
                     })()}
                   />
                   <LibraryTag
-                    name="e북.시립소장"
+                    name="e시립소장"
                     totalBooks={(() => {
                       const siripInfo = book.siripEbookInfo;
                       return siripInfo?.details?.owned?.total_count || 0;
@@ -1109,7 +1114,7 @@ const MyLibrary: React.FC = () => {
                     })()}
                   />
                   <LibraryTag
-                    name="e북.경기"
+                    name="e경기"
                     totalBooks={(() => {
                       const targetGyeonggiInfo = book.filteredGyeonggiEbookInfo || book.gyeonggiEbookInfo;
                       return targetGyeonggiInfo && 'total_count' in targetGyeonggiInfo ? targetGyeonggiInfo.total_count : 0;

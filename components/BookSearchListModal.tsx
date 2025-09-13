@@ -4,8 +4,24 @@ import { useBookStore } from '../stores/useBookStore';
 import { useUIStore } from '../stores/useUIStore';
 
 const BookSearchListModal: React.FC = () => {
-  const { isBookSearchListModalOpen, closeBookSearchListModal } = useUIStore();
-  const { searchResults, selectBook } = useBookStore();
+  const { isBookSearchListModalOpen, closeBookSearchListModal, setNotification } = useUIStore();
+  const { searchResults, selectBook, myLibraryBooks } = useBookStore();
+
+  const handleBookClick = (book: any) => {
+    // 중복 책 체크
+    const isDuplicate = myLibraryBooks.some(libraryBook => libraryBook.isbn13 === book.isbn13);
+    
+    if (isDuplicate) {
+      setNotification({
+        message: '이미 서재에 추가된 책입니다. 다른 책을 선택해주세요.',
+        type: 'warning'
+      });
+      return; // 모달은 열어둔 채로 중복 책 선택 차단
+    }
+
+    // 중복이 아닌 경우에만 책 선택
+    selectBook(book);
+  };
 
   if (!isBookSearchListModalOpen) return null;
 
@@ -21,17 +37,31 @@ const BookSearchListModal: React.FC = () => {
         <div className="p-6 overflow-y-auto">
           {searchResults.length > 0 ? (
             <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {searchResults.map((book) => (
+              {searchResults.map((book) => {
+                const isDuplicate = myLibraryBooks.some(libraryBook => libraryBook.isbn13 === book.isbn13);
+                
+                return (
                 <li
                   key={book.isbn13}
-                  onClick={() => selectBook(book)}
-                  className="bg-gray-700 rounded-lg p-4 flex flex-col items-center text-center cursor-pointer hover:bg-gray-600 hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300"
+                  onClick={() => handleBookClick(book)}
+                  className={`bg-gray-700 rounded-lg p-4 flex flex-col items-center text-center cursor-pointer transition-all duration-300 relative ${
+                    isDuplicate 
+                      ? 'opacity-60 hover:bg-gray-700' 
+                      : 'hover:bg-gray-600 hover:shadow-lg transform hover:-translate-y-1'
+                  }`}
+                  title={isDuplicate ? '이미 서재에 추가된 책입니다' : ''}
                 >
+                  {isDuplicate && (
+                    <div className="absolute top-2 right-2 bg-yellow-500 text-black text-xs px-2 py-1 rounded-full font-semibold">
+                      추가됨
+                    </div>
+                  )}
                   <img src={book.cover.replace('coversum', 'cover')} alt={book.title} className="w-32 h-48 object-cover rounded shadow-md mb-4" />
                   <h3 className="text-sm font-semibold text-white mb-1 line-clamp-2">{book.title}</h3>
                   <p className="text-xs text-gray-400 line-clamp-2">{book.author.replace(/\s*\([^)]*\)/g, '')}</p>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           ) : (
             <p className="text-center text-gray-400 py-8">검색 결과가 없습니다.</p>
