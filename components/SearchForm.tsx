@@ -44,7 +44,7 @@ const SearchForm: React.FC = () => {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="책 제목, 저자, 출판사를 입력하세요..."
-              className="input-base w-full pl-4 pr-12 py-3 rounded-full focus:ring-2 focus:ring-blue-500 transition-shadow duration-300"
+              className="h-full py-3 pl-4 pr-12 w-full bg-elevated border-primary rounded-full text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none transition-shadow duration-300"
               disabled={isLoading}
             />
             <button

@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { PlusIcon, BookOpenIcon, RefreshIcon } from './Icons';
+import { PlusIcon, BookOpenIcon, RefreshIcon, CloseIcon } from './Icons';
 import { useBookStore } from '../stores/useBookStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useAuthStore } from '../stores/useAuthStore';
@@ -214,6 +214,14 @@ const BookDetails: React.FC = () => {
 
   return (
     <div className="relative mt-8 p-4 bg-gray-800 rounded-lg shadow-xl animate-fade-in max-w-4xl mx-auto">
+      <button
+        onClick={() => unselectBook()}
+        className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors z-20"
+        title="닫기"
+      >
+        <CloseIcon className="w-6 h-6" />
+      </button>
+
       {isLoading && (
         <div className="absolute inset-0 bg-gray-800/80 flex items-center justify-center rounded-lg z-10">
           <div className="text-center">
@@ -222,7 +230,7 @@ const BookDetails: React.FC = () => {
           </div>
         </div>
       )}
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-1 flex justify-center items-start">
           <img 
