@@ -43,9 +43,9 @@ const TagFilter: React.FC<TagFilterProps> = ({
   }
 
   return (
-    <div className="mb-4 p-3 bg-gray-800 rounded-lg border border-gray-700">
+    <div className="mb-4 p-3 bg-secondary rounded-lg border border-primary">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-gray-400 mr-2">인기 태그:</span>
+        <span className="text-sm text-secondary mr-2">인기 태그:</span>
 
         {tagUsageStats.map(({ tag, count }) => (
           <CustomTagComponent
@@ -61,7 +61,7 @@ const TagFilter: React.FC<TagFilterProps> = ({
         {activeTags.size > 0 && (
           <button
             onClick={onClearAll}
-            className="ml-3 px-2 py-1 text-xs text-gray-400 hover:text-white transition-colors underline"
+            className="ml-3 px-2 py-1 text-xs text-secondary hover:text-primary transition-colors underline"
             title="모든 태그 필터 해제"
           >
             전체 해제
@@ -70,8 +70,8 @@ const TagFilter: React.FC<TagFilterProps> = ({
       </div>
 
       {activeTags.size > 0 && (
-        <div className="mt-2 pt-2 border-t border-gray-700">
-          <span className="text-xs text-gray-500">
+        <div className="mt-2 pt-2 border-t border-primary">
+          <span className="text-xs text-tertiary">
             {activeTags.size}개 태그로 필터링됨
           </span>
         </div>

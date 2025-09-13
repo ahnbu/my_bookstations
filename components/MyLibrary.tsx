@@ -1,7 +1,7 @@
 
 
 import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
-import { SelectedBook, StockInfo, SortKey, ReadStatus } from '../types';
+import { SelectedBook, StockInfo, SortKey, ReadStatus, CustomTag } from '../types';
 import { DownloadIcon, TrashIcon, RefreshIcon, CheckIcon, SearchIcon, CloseIcon } from './Icons';
 import Spinner from './Spinner';
 import { useBookStore } from '../stores/useBookStore';
@@ -10,6 +10,7 @@ import { useSettingsStore } from '../stores/useSettingsStore';
 import StarRating from './StarRating';
 import MyLibraryBookDetailModal from './MyLibraryBookDetailModal';
 import TagFilter from './TagFilter';
+import CustomTagComponent from './CustomTag';
 import { getStatusEmoji, isEBooksEmpty, hasAvailableEBooks, processBookTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL, generateLibraryDetailURL, isLibraryStockClickable } from '../services/unifiedLibrary.service';
 // import { filterGyeonggiEbookByIsbn, debugIsbnMatching } from '../utils/isbnMatcher'; // 성능 최적화로 사용 안함
 
@@ -57,6 +58,185 @@ const LibraryTag: React.FC<LibraryTagProps> = ({ name, totalBooks, availableBook
 
 type ViewType = 'card' | 'grid';
 
+// Bulk Tag Management Modal Component
+interface BulkTagModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  selectedBooks: SelectedBook[];
+  availableTags: CustomTag[];
+  onAddTag: (bookId: number, tagId: string) => Promise<void>;
+  onRemoveTag: (bookId: number, tagId: string) => Promise<void>;
+  onClearSelection: () => void;
+}
+
+const BulkTagModal: React.FC<BulkTagModalProps> = ({
+  isOpen,
+  onClose,
+  selectedBooks,
+  availableTags,
+  onAddTag,
+  onRemoveTag,
+  onClearSelection
+}) => {
+  const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set());
+  const [processing, setProcessing] = useState(false);
+
+  // 모든 선택된 책에 공통으로 적용된 태그들 찾기
+  const commonTags = useMemo(() => {
+    if (selectedBooks.length === 0) return new Set<string>();
+
+    const firstBookTags = new Set(selectedBooks[0].customTags || []);
+    return selectedBooks.slice(1).reduce((common, book) => {
+      const bookTags = new Set(book.customTags || []);
+      return new Set([...common].filter(tagId => bookTags.has(tagId)));
+    }, firstBookTags);
+  }, [selectedBooks]);
+
+  const handleTagClick = (tagId: string) => {
+    const newSelection = new Set(selectedTagIds);
+    if (newSelection.has(tagId)) {
+      newSelection.delete(tagId);
+    } else {
+      newSelection.add(tagId);
+    }
+    setSelectedTagIds(newSelection);
+  };
+
+  const handleApplyTags = async () => {
+    if (selectedTagIds.size === 0) return;
+
+    setProcessing(true);
+    try {
+      for (const book of selectedBooks) {
+        for (const tagId of selectedTagIds) {
+          if (!book.customTags?.includes(tagId)) {
+            await onAddTag(book.id, tagId);
+          }
+        }
+      }
+      onClearSelection();
+    } catch (error) {
+      console.error('일괄 태그 적용 실패:', error);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleRemoveCommonTag = async (tagId: string) => {
+    setProcessing(true);
+    try {
+      for (const book of selectedBooks) {
+        if (book.customTags?.includes(tagId)) {
+          await onRemoveTag(book.id, tagId);
+        }
+      }
+    } catch (error) {
+      console.error('공통 태그 제거 실패:', error);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 p-4">
+      <div className="bg-elevated rounded-lg shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+        <div className="flex justify-between items-center p-4 border-b border-primary">
+          <h2 className="text-xl font-bold text-primary">일괄 태그 관리</h2>
+          <button onClick={onClose} className="text-secondary hover:text-primary">
+            <CloseIcon className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="p-6 overflow-y-auto flex-1">
+          <div className="space-y-6">
+            {/* 선택된 책 정보 */}
+            <div>
+              <h3 className="text-lg font-semibold text-primary mb-3">
+                선택된 책 ({selectedBooks.length}권)
+              </h3>
+              <div className="max-h-32 overflow-y-auto bg-secondary rounded-md p-3">
+                {selectedBooks.map(book => (
+                  <div key={book.id} className="text-sm text-secondary mb-1">
+                    {book.title.replace(/^\[\w+\]\s*/, '')}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 공통 태그 */}
+            {commonTags.size > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold text-primary mb-3">
+                  모든 책에 적용된 태그
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {Array.from(commonTags).map(tagId => {
+                    const tag = availableTags.find(t => t.id === tagId);
+                    return tag ? (
+                      <div key={tag.id} className="flex items-center gap-2">
+                        <CustomTagComponent tag={tag} isActive={false} onClick={() => {}} size="sm" />
+                        <button
+                          onClick={() => handleRemoveCommonTag(tag.id)}
+                          disabled={processing}
+                          className="text-red-500 hover:text-red-600 text-sm"
+                          title="모든 책에서 제거"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 태그 추가 */}
+            <div>
+              <h3 className="text-lg font-semibold text-primary mb-3">
+                추가할 태그 선택
+              </h3>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {availableTags.map(tag => (
+                  <CustomTagComponent
+                    key={tag.id}
+                    tag={tag}
+                    isActive={selectedTagIds.has(tag.id)}
+                    onClick={() => handleTagClick(tag.id)}
+                    size="sm"
+                  />
+                ))}
+              </div>
+              {selectedTagIds.size > 0 && (
+                <div className="text-sm text-secondary mb-4">
+                  {selectedTagIds.size}개 태그를 {selectedBooks.length}권의 책에 추가합니다.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-3 p-4 border-t border-primary">
+          <button
+            onClick={onClose}
+            disabled={processing}
+            className="btn-base btn-secondary flex-1"
+          >
+            취소
+          </button>
+          <button
+            onClick={handleApplyTags}
+            disabled={processing || selectedTagIds.size === 0}
+            className="btn-base btn-primary flex-1"
+          >
+            {processing ? '적용 중...' : `선택된 태그 적용 (${selectedTagIds.size}개)`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const MyLibrary: React.FC = () => {
   const { session } = useAuthStore();
@@ -74,6 +254,8 @@ const MyLibrary: React.FC = () => {
     updateRating,
     librarySearchQuery,
     setLibrarySearchQuery,
+    addTagToBook,
+    removeTagFromBook,
   } = useBookStore();
   
   const [detailModalBookId, setDetailModalBookId] = useState<number | null>(null);
@@ -86,6 +268,7 @@ const MyLibrary: React.FC = () => {
   const [backgroundRefreshComplete, setBackgroundRefreshComplete] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
+  const [bulkTagModalOpen, setBulkTagModalOpen] = useState(false);
   
   // Debounce search query
   useEffect(() => {
@@ -752,10 +935,7 @@ const MyLibrary: React.FC = () => {
               <TrashIcon className="w-4 h-4" />
             </button>
             <button
-              onClick={() => {
-                // 태그 관리 모달 열기 (나중에 구현)
-                console.log('태그 관리 모달 열기');
-              }}
+              onClick={() => setBulkTagModalOpen(true)}
               disabled={selectedBooks.size === 0}
               className="p-2 btn-base btn-primary rounded-lg"
               title="선택된 책에 태그 관리"
@@ -896,6 +1076,24 @@ const MyLibrary: React.FC = () => {
                     />
                   )}
                 </div>
+
+                {/* Custom Tags */}
+                {book.customTags && book.customTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {book.customTags.map(tagId => {
+                      const tag = settings.tagSettings.tags.find(t => t.id === tagId);
+                      return tag ? (
+                        <CustomTagComponent
+                          key={tag.id}
+                          tag={tag}
+                          isActive={false}
+                          onClick={() => {}}
+                          size="sm"
+                        />
+                      ) : null;
+                    })}
+                  </div>
+                )}
               </div>
               
               {/* 구분선 및 "하단 재고 블록" */}
@@ -1148,6 +1346,24 @@ const MyLibrary: React.FC = () => {
                     <option value="완독">완독</option>
                   </select>
                 )}
+
+                {/* Custom Tags */}
+                {book.customTags && book.customTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {book.customTags.map(tagId => {
+                      const tag = settings.tagSettings.tags.find(t => t.id === tagId);
+                      return tag ? (
+                        <CustomTagComponent
+                          key={tag.id}
+                          tag={tag}
+                          isActive={false}
+                          onClick={() => {}}
+                          size="xs"
+                        />
+                      ) : null;
+                    })}
+                  </div>
+                )}
                 
                 {/* All Library Stock Info */}
                 <div className="grid grid-cols-2 gap-1 text-xs">
@@ -1244,9 +1460,26 @@ const MyLibrary: React.FC = () => {
         </div>
       )}
       {detailModalBookId && (
-        <MyLibraryBookDetailModal 
+        <MyLibraryBookDetailModal
             bookId={detailModalBookId}
             onClose={() => setDetailModalBookId(null)}
+        />
+      )}
+
+      {/* Bulk Tag Management Modal */}
+      {bulkTagModalOpen && (
+        <BulkTagModal
+          isOpen={bulkTagModalOpen}
+          onClose={() => setBulkTagModalOpen(false)}
+          selectedBooks={Array.from(selectedBooks).map(id => myLibraryBooks.find(book => book.id === id)!).filter(Boolean)}
+          availableTags={settings.tagSettings?.tags || []}
+          onAddTag={(bookId, tagId) => addTagToBook(bookId, tagId)}
+          onRemoveTag={(bookId, tagId) => removeTagFromBook(bookId, tagId)}
+          onClearSelection={() => {
+            setSelectedBooks(new Set());
+            setSelectAll(false);
+            setBulkTagModalOpen(false);
+          }}
         />
       )}
     </div>

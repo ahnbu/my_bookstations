@@ -27,10 +27,10 @@ const BookSearchListModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 p-4 transition-opacity duration-300">
-      <div className="bg-gray-800 rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-        <div className="flex justify-between items-center p-4 border-b border-gray-700">
-          <h2 className="text-xl font-bold text-white">도서 검색 결과</h2>
-          <button onClick={closeBookSearchListModal} className="text-gray-400 hover:text-white">
+      <div className="bg-elevated rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+        <div className="flex justify-between items-center p-4 border-b border-primary">
+          <h2 className="text-xl font-bold text-primary">도서 검색 결과</h2>
+          <button onClick={closeBookSearchListModal} className="text-secondary hover:text-primary">
             <CloseIcon className="w-6 h-6" />
           </button>
         </div>
@@ -44,10 +44,10 @@ const BookSearchListModal: React.FC = () => {
                 <li
                   key={book.isbn13}
                   onClick={() => handleBookClick(book)}
-                  className={`bg-gray-700 rounded-lg p-4 flex flex-col items-center text-center cursor-pointer transition-all duration-300 relative ${
+                  className={`bg-secondary rounded-lg p-4 flex flex-col items-center text-center cursor-pointer transition-all duration-300 relative ${
                     isDuplicate 
-                      ? 'opacity-60 hover:bg-gray-700' 
-                      : 'hover:bg-gray-600 hover:shadow-lg transform hover:-translate-y-1'
+                      ? 'opacity-60 hover:bg-secondary'
+                      : 'hover:bg-tertiary hover:shadow-lg transform hover:-translate-y-1'
                   }`}
                   title={isDuplicate ? '이미 서재에 추가된 책입니다' : ''}
                 >
@@ -57,14 +57,14 @@ const BookSearchListModal: React.FC = () => {
                     </div>
                   )}
                   <img src={book.cover.replace('coversum', 'cover')} alt={book.title} className="w-32 h-48 object-cover rounded shadow-md mb-4" />
-                  <h3 className="text-sm font-semibold text-white mb-1 line-clamp-2">{book.title}</h3>
-                  <p className="text-xs text-gray-400 line-clamp-2">{book.author.replace(/\s*\([^)]*\)/g, '')}</p>
+                  <h3 className="text-sm font-semibold text-primary mb-1 line-clamp-2">{book.title}</h3>
+                  <p className="text-xs text-tertiary line-clamp-2">{book.author.replace(/\s*\([^)]*\)/g, '')}</p>
                 </li>
                 );
               })}
             </ul>
           ) : (
-            <p className="text-center text-gray-400 py-8">검색 결과가 없습니다.</p>
+            <p className="text-center text-tertiary py-8">검색 결과가 없습니다.</p>
           )}
         </div>
       </div>

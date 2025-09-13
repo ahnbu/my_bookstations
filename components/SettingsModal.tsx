@@ -126,7 +126,7 @@ const SettingsModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 bg-overlay flex items-center justify-center z-50" style={{ backgroundColor: 'var(--color-bg-overlay)' }}>
-      <div className="bg-elevated shadow-2xl rounded-lg p-6 w-[600px] max-w-[90vw] max-h-[80vh] overflow-hidden flex flex-col">
+      <div className="bg-elevated shadow-2xl rounded-lg p-6 w-[600px] max-w-[90vw] max-h-[85vh] overflow-hidden flex flex-col">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-primary">맞춤 설정</h2>
           <button
@@ -176,7 +176,7 @@ const SettingsModal: React.FC = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 min-h-0">
             {/* Display Options Tab */}
             {activeTab === 'display' && (
               <div className="space-y-6">
@@ -272,76 +272,80 @@ const SettingsModal: React.FC = () => {
 
             {/* Tag Management Tab */}
             {activeTab === 'tags' && (
-              <div className="space-y-6">
-                <div>
+              <div className="flex flex-col h-full">
+                <div className="flex-shrink-0">
                   <h3 className="text-sm font-medium text-primary mb-3">
                     내 태그 ({settings.tagSettings?.tags?.length || 0}개)
                   </h3>
+                </div>
 
-                  {/* Tag List */}
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {settings.tagSettings?.tags?.map((tag) => (
-                      <div key={tag.id} className="flex items-center justify-between p-3 border border-secondary rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <CustomTagComponent tag={tag} size="sm" />
-                          <span className="text-sm text-secondary">
-                            ({getTagUsageCount(tag.id, myLibraryBooks)}권)
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setEditingTag(tag)}
-                            className="text-xs text-blue-600 hover:text-blue-700 underline"
-                          >
-                            수정
-                          </button>
-                          <button
-                            onClick={() => handleDeleteTag(tag)}
-                            className="text-xs text-red-600 hover:text-red-700 underline"
-                          >
-                            삭제
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Add New Tag */}
-                  <div className="mt-4 p-4 border border-secondary rounded-lg bg-secondary">
-                    <h4 className="text-sm font-medium text-primary mb-3">새 태그 추가</h4>
-                    <div className="space-y-3">
-                      <input
-                        type="text"
-                        value={newTagName}
-                        onChange={(e) => setNewTagName(e.target.value)}
-                        placeholder="태그 이름"
-                        className="input-base w-full"
-                        maxLength={20}
-                      />
-                      <div>
-                        <label className="block text-xs text-secondary mb-2">색상</label>
-                        <div className="flex gap-2">
-                          {colorOptions.map((color) => (
+                <div className="flex-1 overflow-y-auto min-h-0">
+                  <div className="space-y-6">
+                    {/* Tag List */}
+                    <div className="space-y-2">
+                      {settings.tagSettings?.tags?.map((tag) => (
+                        <div key={tag.id} className="flex items-center justify-between p-3 border border-secondary rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <CustomTagComponent tag={tag} size="sm" />
+                            <span className="text-sm text-secondary">
+                              ({getTagUsageCount(tag.id, myLibraryBooks)}권)
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
                             <button
-                              key={color.value}
-                              onClick={() => setNewTagColor(color.value)}
-                              className={`w-6 h-6 rounded-full ${color.class} ${
-                                newTagColor === color.value
-                                  ? 'ring-2 ring-gray-800 ring-offset-2'
-                                  : 'hover:ring-2 hover:ring-gray-400 hover:ring-offset-1'
-                              }`}
-                              title={color.label}
-                            />
-                          ))}
+                              onClick={() => setEditingTag(tag)}
+                              className="text-xs text-blue-600 hover:text-blue-700 underline"
+                            >
+                              수정
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTag(tag)}
+                              className="text-xs text-red-600 hover:text-red-700 underline"
+                            >
+                              삭제
+                            </button>
+                          </div>
                         </div>
+                      ))}
+                    </div>
+
+                    {/* Add New Tag */}
+                    <div className="p-4 border border-secondary rounded-lg bg-secondary">
+                      <h4 className="text-sm font-medium text-primary mb-3">새 태그 추가</h4>
+                      <div className="space-y-3">
+                        <input
+                          type="text"
+                          value={newTagName}
+                          onChange={(e) => setNewTagName(e.target.value)}
+                          placeholder="태그 이름"
+                          className="input-base w-full"
+                          maxLength={20}
+                        />
+                        <div>
+                          <label className="block text-xs text-secondary mb-2">색상</label>
+                          <div className="flex gap-2">
+                            {colorOptions.map((color) => (
+                              <button
+                                key={color.value}
+                                onClick={() => setNewTagColor(color.value)}
+                                className={`w-6 h-6 rounded-full ${color.class} ${
+                                  newTagColor === color.value
+                                    ? 'ring-2 ring-gray-800 ring-offset-2'
+                                    : 'hover:ring-2 hover:ring-gray-400 hover:ring-offset-1'
+                                }`}
+                                title={color.label}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <button
+                          onClick={handleCreateTag}
+                          disabled={!newTagName.trim()}
+                          className="btn-base btn-primary w-full"
+                        >
+                          태그 추가
+                        </button>
                       </div>
-                      <button
-                        onClick={handleCreateTag}
-                        disabled={!newTagName.trim()}
-                        className="btn-base btn-primary w-full"
-                      >
-                        태그 추가
-                      </button>
                     </div>
                   </div>
                 </div>

@@ -1,10 +1,12 @@
 
-import React, { useEffect } from 'react';
-import { ReadStatus, StockInfo } from '../types';
+import React, { useEffect, useState } from 'react';
+import { ReadStatus, StockInfo, CustomTag } from '../types';
 import { useBookStore } from '../stores/useBookStore';
+import { useSettingsStore } from '../stores/useSettingsStore';
 import { CloseIcon, RefreshIcon, BookOpenIcon } from './Icons';
 import Spinner from './Spinner';
 import StarRating from './StarRating';
+import CustomTagComponent from './CustomTag';
 import { getStatusClass, getStatusEmoji, processBookTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL, generateLibraryDetailURL, isLibraryStockClickable } from '../services/unifiedLibrary.service';
 import { filterGyeonggiEbookByIsbn } from '../utils/isbnMatcher';
 
@@ -18,10 +20,10 @@ interface MyLibraryBookDetailModalProps {
 
 const renderStockInfo = (libraryName: string, stock?: StockInfo, bookTitle: string, detailedStockInfo?: any) => {
     if (typeof stock === 'undefined') {
-        return <div className="flex justify-between items-center"><span>{libraryName}:</span> <div className="flex items-center gap-2"><Spinner /><span className="text-gray-400">확인중...</span></div></div>;
+        return <div className="flex justify-between items-center"><span>{libraryName}:</span> <div className="flex items-center gap-2"><Spinner /><span className="text-tertiary">확인중...</span></div></div>;
     }
     if (!stock) {
-        return <div className="flex justify-between items-center"><span>{libraryName}:</span> <span className="text-gray-500">정보 없음</span></div>;
+        return <div className="flex justify-between items-center"><span>{libraryName}:</span> <span className="text-tertiary">정보 없음</span></div>;
     }
     const { total, available } = stock;
     const statusColor = available > 0 ? 'text-green-400' : 'text-red-400';
@@ -95,8 +97,10 @@ const renderStockInfo = (libraryName: string, stock?: StockInfo, bookTitle: stri
 
 
 const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ bookId, onClose }) => {
-    const { updateReadStatus, updateRating, refreshingIsbn, refreshEBookInfo, refreshingEbookId, refreshAllBookInfo } = useBookStore();
+    const { updateReadStatus, updateRating, refreshingIsbn, refreshEBookInfo, refreshingEbookId, refreshAllBookInfo, addTagToBook, removeTagFromBook } = useBookStore();
     const book = useBookStore(state => state.myLibraryBooks.find(b => b.id === bookId));
+    const { settings } = useSettingsStore();
+    const [isAddingTag, setIsAddingTag] = useState(false);
 
     // If the book is deleted while the modal is open, close the modal.
     useEffect(() => {
@@ -121,10 +125,10 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 p-4 transition-opacity duration-300">
-            <div className="bg-gray-800 rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col relative animate-fade-in">
-                <div className="flex justify-between items-center p-4 border-b border-gray-700">
-                  <h2 className="text-xl font-bold text-white truncate pr-8">도서 상세 정보</h2>
-                  <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white">
+            <div className="bg-elevated rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col relative animate-fade-in">
+                <div className="flex justify-between items-center p-4 border-b border-primary">
+                  <h2 className="text-xl font-bold text-primary truncate pr-8">도서 상세 정보</h2>
+                  <button onClick={onClose} className="absolute top-4 right-4 text-secondary hover:text-primary">
                     <CloseIcon className="w-6 h-6" />
                   </button>
                 </div>
@@ -134,22 +138,22 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                         <div className="md:col-span-1 flex justify-center items-start">
                           <img src={book.cover.replace('coversum', 'cover')} alt={book.title} className="w-48 h-auto object-cover rounded-lg shadow-lg" />
                         </div>
-                        <div className="md:col-span-2 text-gray-200">
-                          <h3 className="text-2xl font-bold text-white mb-2">{book.title}</h3>
-                          <p className="text-lg text-gray-300 mb-1"><strong>저자:</strong> {book.author.replace(/\s*\([^)]*\)/g, '')}</p>
-                          <p className="text-md text-gray-400 mb-1"><strong>출판사:</strong> {book.publisher}</p>
-                          <p className="text-md text-gray-400 mb-1"><strong>출간일:</strong> {book.pubDate}</p>
-                          <p className="text-md text-gray-400 mb-1"><strong>ISBN:</strong> {book.isbn13}</p>
+                        <div className="md:col-span-2 text-secondary">
+                          <h3 className="text-2xl font-bold text-primary mb-2">{book.title}</h3>
+                          <p className="text-lg text-secondary mb-1"><strong>저자:</strong> {book.author.replace(/\s*\([^)]*\)/g, '')}</p>
+                          <p className="text-md text-tertiary mb-1"><strong>출판사:</strong> {book.publisher}</p>
+                          <p className="text-md text-tertiary mb-1"><strong>출간일:</strong> {book.pubDate}</p>
+                          <p className="text-md text-tertiary mb-1"><strong>ISBN:</strong> {book.isbn13}</p>
                           {book.subInfo?.ebookList?.[0]?.isbn13 && (
-                            <p className="text-md text-gray-400 mb-4"><strong>ISBN:</strong> {book.subInfo.ebookList[0].isbn13} (전자책)</p>
+                            <p className="text-md text-tertiary mb-4"><strong>ISBN:</strong> {book.subInfo.ebookList[0].isbn13} (전자책)</p>
                           )}
                           
                           <div className="flex items-baseline mb-4">
                              <p className="text-2xl font-bold text-blue-400">{book.priceSales.toLocaleString()}원</p>
-                             <p className="text-md text-gray-500 line-through ml-3">{book.priceStandard.toLocaleString()}원</p>
+                             <p className="text-md text-tertiary line-through ml-3">{book.priceStandard.toLocaleString()}원</p>
                           </div>
 
-                          <p className="text-sm text-gray-400 leading-relaxed mb-6 line-clamp-4">{book.description || "제공된 설명이 없습니다."}</p>
+                          <p className="text-sm text-tertiary leading-relaxed mb-6 line-clamp-4">{book.description || "제공된 설명이 없습니다."}</p>
                           
                           <div className="flex flex-wrap gap-4">
                             <a
@@ -178,46 +182,108 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                         </div>
                     </div>
                     
-                    <div className="mt-6 pt-6 border-t border-gray-700">
-                        <h3 className="text-2xl font-bold text-white mb-4">내 서재 정보</h3>
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-gray-900/50 rounded-lg p-6">
+                    <div className="mt-6 pt-6 border-t border-primary">
+                        <h3 className="text-2xl font-bold text-primary mb-4">내 서재 정보</h3>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-secondary rounded-lg p-6">
                             {/* Left side: Status & Rating */}
                             <div className="space-y-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">나의 별점</label>
+                                    <label className="block text-sm font-medium text-secondary mb-2">나의 별점</label>
                                     <StarRating
                                         rating={book.rating}
                                         onRatingChange={(newRating) => updateRating(book.id, newRating)}
                                     />
                                 </div>
                                 <div className="w-32">
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">읽음 상태</label>
+                                    <label className="block text-sm font-medium text-secondary mb-2">읽음 상태</label>
                                     <select
                                         value={book.readStatus}
                                         onChange={(e) => updateReadStatus(book.id, e.target.value as ReadStatus)}
-                                        className="bg-gray-700 border-gray-600 text-white text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                                        className="input-base text-sm rounded-md block w-full p-2.5"
                                     >
                                         <option value="읽지 않음">읽지 않음</option>
                                         <option value="읽는 중">읽는 중</option>
                                         <option value="완독">완독</option>
                                     </select>
                                 </div>
+
+                                {/* 태그 관리 섹션 */}
+                                <div>
+                                    <label className="block text-sm font-medium text-secondary mb-2">태그</label>
+                                    <div className="space-y-3">
+                                        {/* 현재 태그 표시 */}
+                                        <div className="flex flex-wrap gap-2">
+                                            {book.customTags && book.customTags.length > 0 ? (
+                                                book.customTags.map(tagId => {
+                                                    const tag = settings.tagSettings.tags.find(t => t.id === tagId);
+                                                    return tag ? (
+                                                        <CustomTagComponent
+                                                            key={tag.id}
+                                                            tag={tag}
+                                                            isActive={false}
+                                                            onClick={() => removeTagFromBook(book.id, tag.id)}
+                                                            showClose={true}
+                                                            size="sm"
+                                                        />
+                                                    ) : null;
+                                                })
+                                            ) : (
+                                                <span className="text-tertiary text-sm">태그가 없습니다</span>
+                                            )}
+                                        </div>
+
+                                        {/* 태그 추가 버튼 */}
+                                        <button
+                                            onClick={() => setIsAddingTag(!isAddingTag)}
+                                            className="inline-flex items-center px-3 py-1 text-sm bg-primary text-white rounded-md hover:bg-primary/80 transition-colors"
+                                        >
+                                            + 태그 추가
+                                        </button>
+
+                                        {/* 태그 추가 드롭다운 */}
+                                        {isAddingTag && (
+                                            <div className="bg-elevated border border-primary rounded-md p-3 space-y-2">
+                                                <div className="text-sm text-secondary mb-2">추가할 태그 선택:</div>
+                                                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                                                    {settings.tagSettings.tags
+                                                        .filter(tag => !book.customTags?.includes(tag.id))
+                                                        .map(tag => (
+                                                            <CustomTagComponent
+                                                                key={tag.id}
+                                                                tag={tag}
+                                                                isActive={false}
+                                                                onClick={() => {
+                                                                    addTagToBook(book.id, tag.id);
+                                                                    setIsAddingTag(false);
+                                                                }}
+                                                                size="sm"
+                                                            />
+                                                        ))
+                                                    }
+                                                </div>
+                                                {settings.tagSettings.tags.filter(tag => !book.customTags?.includes(tag.id)).length === 0 && (
+                                                    <div className="text-tertiary text-sm">추가할 수 있는 태그가 없습니다</div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                             
                             {/* Combined Library Stock */}
                             <div>
                                 <div className="flex justify-between items-center mb-3">
-                                    <h4 className="text-lg font-semibold text-white">도서관 재고</h4>
+                                    <h4 className="text-lg font-semibold text-primary">도서관 재고</h4>
                                     <button
                                         onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title)}
                                         disabled={refreshingIsbn === book.isbn13 || refreshingEbookId === book.id}
-                                        className="p-2 text-gray-400 hover:text-white rounded-full hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-wait"
+                                        className="p-2 text-secondary hover:text-primary rounded-full hover-surface transition-colors disabled:opacity-50 disabled:cursor-wait"
                                         title="모든 재고 정보 새로고침"
                                     >
                                         {(refreshingIsbn === book.isbn13 || refreshingEbookId === book.id) ? <Spinner /> : <RefreshIcon className="w-5 h-5" />}
                                     </button>
                                 </div>
-                                <div className="space-y-2 text-sm text-gray-300 bg-gray-800 p-4 rounded-md">
+                                <div className="space-y-2 text-sm text-secondary bg-elevated p-4 rounded-md">
                                     {renderStockInfo('퇴촌 도서관', book.toechonStock, book.title, book.detailedStockInfo)}
                                     {renderStockInfo('기타 도서관', book.otherStock, book.title, book.detailedStockInfo)}
                                     {book.subInfo?.ebookList?.[0]?.link && (
@@ -235,7 +301,7 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                                         {book.ebookInfo.summary.총개수} / {book.ebookInfo.summary.대출가능}
                                                     </a>
                                                 ) : (
-                                                    <span className="text-gray-500">정보 없음</span>
+                                                    <span className="text-tertiary">정보 없음</span>
                                                 )}
                                             </div>
                                             <div className="flex justify-between items-center">
@@ -261,7 +327,7 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                                     }
                                                     
                                                     if ('error' in siripInfo) {
-                                                        return <span className="font-medium text-gray-500">정보 없음</span>;
+                                                        return <span className="font-medium text-tertiary">정보 없음</span>;
                                                     }
 
                                                     return (
@@ -307,7 +373,7 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                                     }
                                                     
                                                     if ('error' in siripInfo) {
-                                                        return <span className="font-medium text-gray-500">정보 없음</span>;
+                                                        return <span className="font-medium text-tertiary">정보 없음</span>;
                                                     }
 
                                                     return (
@@ -334,7 +400,7 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                                 <span>전자책(경기):</span>
                                                 {book.gyeonggiEbookInfo ? (
                                                     'error' in book.gyeonggiEbookInfo ? (
-                                                        <span className="font-medium text-gray-500">정보 없음</span>
+                                                        <span className="font-medium text-tertiary">정보 없음</span>
                                                     ) : (() => {
                                                         // ISBN 필터링 적용
                                                         const filteredGyeonggiInfo = filterGyeonggiEbookByIsbn(book, book.gyeonggiEbookInfo);
@@ -368,7 +434,7 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                 </div>
                                 {/* 시간 정보 유지 */}
                                 {book.ebookInfo && (
-                                    <div className="text-xs text-gray-500 pt-2 mt-2">
+                                    <div className="text-xs text-tertiary pt-2 mt-2">
                                         {formatDate(book.ebookInfo.lastUpdated)} 기준
                                     </div>
                                 )}

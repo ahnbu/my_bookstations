@@ -33,6 +33,9 @@ interface BookState {
   updateRating: (id: number, rating: number) => Promise<void>;
   updateMissingEbookIsbn13: () => Promise<void>;
   setLibrarySearchQuery: (query: string) => void;
+  addTagToBook: (id: number, tagId: string) => Promise<void>;
+  removeTagFromBook: (id: number, tagId: string) => Promise<void>;
+  updateBookTags: (id: number, tagIds: string[]) => Promise<void>;
 }
 
 
@@ -449,6 +452,93 @@ export const useBookStore = create<BookState>(
 
       setLibrarySearchQuery: (query: string) => {
         set({ librarySearchQuery: query });
+      },
+
+      addTagToBook: async (id, tagId) => {
+        const bookToUpdate = get().myLibraryBooks.find(b => b.id === id);
+        if (!bookToUpdate) return;
+
+        const currentTags = bookToUpdate.customTags || [];
+        if (currentTags.includes(tagId)) return; // 이미 있는 태그는 추가하지 않음
+
+        const updatedTags = [...currentTags, tagId];
+        const updatedBook = { ...bookToUpdate, customTags: updatedTags };
+
+        // DB 저장 시 detailedStockInfo 필드 제외하여 저장공간 절약
+        const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBook;
+
+        try {
+          const { error } = await supabase
+            .from('user_library')
+            .update({ book_data: bookDataForDb as Json })
+            .eq('id', id);
+
+          if (error) throw error;
+
+          set(state => ({
+            myLibraryBooks: state.myLibraryBooks.map(b => b.id === id ? updatedBook : b),
+            selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBook : state.selectedBook
+          }));
+        } catch (error) {
+          console.error('Error adding tag to book:', error);
+          useUIStore.getState().setNotification({ message: '태그 추가에 실패했습니다.', type: 'error' });
+        }
+      },
+
+      removeTagFromBook: async (id, tagId) => {
+        const bookToUpdate = get().myLibraryBooks.find(b => b.id === id);
+        if (!bookToUpdate) return;
+
+        const currentTags = bookToUpdate.customTags || [];
+        const updatedTags = currentTags.filter(t => t !== tagId);
+        const updatedBook = { ...bookToUpdate, customTags: updatedTags };
+
+        // DB 저장 시 detailedStockInfo 필드 제외하여 저장공간 절약
+        const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBook;
+
+        try {
+          const { error } = await supabase
+            .from('user_library')
+            .update({ book_data: bookDataForDb as Json })
+            .eq('id', id);
+
+          if (error) throw error;
+
+          set(state => ({
+            myLibraryBooks: state.myLibraryBooks.map(b => b.id === id ? updatedBook : b),
+            selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBook : state.selectedBook
+          }));
+        } catch (error) {
+          console.error('Error removing tag from book:', error);
+          useUIStore.getState().setNotification({ message: '태그 제거에 실패했습니다.', type: 'error' });
+        }
+      },
+
+      updateBookTags: async (id, tagIds) => {
+        const bookToUpdate = get().myLibraryBooks.find(b => b.id === id);
+        if (!bookToUpdate) return;
+
+        const updatedBook = { ...bookToUpdate, customTags: tagIds };
+
+        // DB 저장 시 detailedStockInfo 필드 제외하여 저장공간 절약
+        const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBook;
+
+        try {
+          const { error } = await supabase
+            .from('user_library')
+            .update({ book_data: bookDataForDb as Json })
+            .eq('id', id);
+
+          if (error) throw error;
+
+          set(state => ({
+            myLibraryBooks: state.myLibraryBooks.map(b => b.id === id ? updatedBook : b),
+            selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBook : state.selectedBook
+          }));
+        } catch (error) {
+          console.error('Error updating book tags:', error);
+          useUIStore.getState().setNotification({ message: '태그 업데이트에 실패했습니다.', type: 'error' });
+        }
       },
     })
 );
