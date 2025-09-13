@@ -26,7 +26,6 @@ interface BookState {
   removeFromLibrary: (id: number) => Promise<void>;
   refreshEBookInfo: (id: number, isbn: string, title: string) => Promise<void>;
   refreshAllBookInfo: (id: number, isbn13: string, title: string) => Promise<void>;
-  refreshAllBookInfoWithRetry: (id: number, isbn13: string, title: string, retryCount?: number) => Promise<void>;
   sortLibrary: (key: SortKey) => void;
   fetchUserLibrary: () => Promise<void>;
   clearLibrary: () => void;
@@ -36,23 +35,6 @@ interface BookState {
   setLibrarySearchQuery: (query: string) => void;
 }
 
-// 에러 타입별 메시지 분류 함수
-const getErrorMessage = (error: Error): string => {
-  const message = error.message.toLowerCase();
-
-  // 네트워크 연결 문제
-  if (message.includes('fetch') || message.includes('failed to fetch') || message.includes('network')) {
-    return '네트워크 연결 문제 때문에 재고 조회에 실패했습니다';
-  }
-
-  // HTTP 상태 오류 (4xx, 5xx)
-  if (message.includes('api 호출 실패') && message.match(/[45]\d{2}/)) {
-    return '도서관 서버 오류 때문에 재고 조회에 실패했습니다';
-  }
-
-  // 기타 모든 경우 (타임아웃 포함)
-  return '재고 조회에 실패했습니다';
-};
 
 export const useBookStore = create<BookState>(
     (set, get) => ({
@@ -246,7 +228,7 @@ export const useBookStore = create<BookState>(
             // 비동기 백그라운드 재고 조회 실행 (환경별 지연 시간 적용)
             const delay = window.location.hostname === 'localhost' ? 100 : 800;
             setTimeout(() => {
-                get().refreshAllBookInfoWithRetry(newBookWithId.id, newBookWithId.isbn13, newBookWithId.title);
+                get().refreshAllBookInfo(newBookWithId.id, newBookWithId.isbn13, newBookWithId.title);
             }, delay);
 
         } catch(error) {
@@ -320,30 +302,6 @@ export const useBookStore = create<BookState>(
         }
       },
 
-      refreshAllBookInfoWithRetry: async (id, isbn13, title, retryCount = 0) => {
-        const maxRetries = 1; // 총 2회 시도 (0: 1차, 1: 2차)
-
-        try {
-          await get().refreshAllBookInfo(id, isbn13, title);
-        } catch (error) {
-          console.error(`재고 조회 실패 (${retryCount + 1}/${maxRetries + 1}차):`, error);
-
-          if (retryCount < maxRetries) {
-            // 재시도 (3초 후)
-            setTimeout(() => {
-              get().refreshAllBookInfoWithRetry(id, isbn13, title, retryCount + 1);
-            }, 3000);
-          } else {
-            // 최종 실패 - 사용자에게 알림
-            const errorMessage = getErrorMessage(error as Error);
-            const fullMessage = `${errorMessage}. 재고 조회를 다시 시도하거나 관리자에게 문의하세요`;
-            useUIStore.getState().setNotification({
-              message: fullMessage,
-              type: 'error'
-            });
-          }
-        }
-      },
 
       refreshAllBookInfo: async (id, isbn13, title) => {
         set({ refreshingIsbn: isbn13, refreshingEbookId: id });
