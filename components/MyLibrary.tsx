@@ -37,17 +37,17 @@ const LibraryTag: React.FC<LibraryTagProps> = ({ name, totalBooks, availableBook
   const status = getStatus();
 
   const statusStyles = {
-    available: 'bg-green-600/20 text-green-400',
-    unavailable: 'bg-red-600/20 text-red-400',
-    none: 'bg-tertiary/20 text-tertiary'
+    available: 'bg-green-600/20 text-green-400 border-green-400/50',
+    unavailable: 'bg-red-600/20 text-red-400 border-red-400/50',
+    none: 'bg-tertiary/20 text-tertiary border-secondary'
   }[status];
 
   return (
-    <a 
+    <a
       href={searchUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className={`inline-block px-2 py-1 text-xs rounded-md ${statusStyles} hover:opacity-80 transition-all hover:scale-105 truncate`}
+      className={`inline-block px-2 py-1 text-xs rounded-md border ${statusStyles} hover:opacity-80 transition-opacity truncate`}
       title={`${name} - 총 ${totalBooks}권 (대출가능: ${availableBooks}권)`}
     >
       {name} ({totalBooks}/{availableBooks})
@@ -585,20 +585,20 @@ const MyLibrary: React.FC = () => {
         <div className="flex justify-between items-center gap-3">
           {/* Search Input */}
           <div className="relative flex-1 sm:flex-initial">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <SearchIcon className="h-4 w-4 text-tertiary" />
-            </div>
             <input
               type="text"
               value={librarySearchQuery}
               onChange={(e) => setLibrarySearchQuery(e.target.value)}
               placeholder="책 제목, 저자명으로 검색..."
-              className="input-base block w-full sm:w-80 pl-10 pr-10 py-2 text-sm"
+              className="input-base block w-full sm:w-80 pl-3 pr-10 py-2 text-sm"
             />
+            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+              <SearchIcon className="h-4 w-4 text-tertiary" />
+            </div>
             {librarySearchQuery && (
               <button
                 onClick={() => setLibrarySearchQuery('')}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                className="absolute inset-y-0 right-0 pr-9 flex items-center"
                 title="검색어 지우기"
               >
                 <CloseIcon className="h-4 w-4 text-tertiary hover:text-primary" />
@@ -746,7 +746,7 @@ const MyLibrary: React.FC = () => {
                 }
               }}
               disabled={selectedBooks.size === 0}
-              className="p-2 btn-base btn-danger rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 btn-base btn-danger rounded-lg"
               title="선택된 책 삭제"
             >
               <TrashIcon className="w-4 h-4" />
@@ -757,7 +757,7 @@ const MyLibrary: React.FC = () => {
                 console.log('태그 관리 모달 열기');
               }}
               disabled={selectedBooks.size === 0}
-              className="p-2 btn-base btn-primary rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 btn-base btn-primary rounded-lg"
               title="선택된 책에 태그 관리"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
