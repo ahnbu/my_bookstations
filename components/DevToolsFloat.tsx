@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useUIStore } from '../stores/useUIStore';
 import APITestContent from './APITestContent';
 import DevNoteContent from './DevNoteContent';
+import BulkBookSearchContent from './BulkBookSearchContent';
 
 // DevTools 모달 컴포넌트
 interface DevToolsModalProps {
@@ -10,7 +11,7 @@ interface DevToolsModalProps {
 }
 
 const DevToolsModal: React.FC<DevToolsModalProps> = ({ isOpen, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'apiTest' | 'devNote'>('apiTest');
+  const [activeTab, setActiveTab] = useState<'apiTest' | 'devNote' | 'bulkSearch'>('bulkSearch');
   const { setAPITestMode } = useUIStore();
 
   // 모달이 열릴 때 API 테스트 모드 활성화, 닫힐 때 비활성화
@@ -26,7 +27,7 @@ const DevToolsModal: React.FC<DevToolsModalProps> = ({ isOpen, onClose }) => {
   }, [isOpen, activeTab, setAPITestMode]);
 
   // 탭이 변경될 때 API 테스트 모드 설정
-  const handleTabChange = (tab: 'apiTest' | 'devNote') => {
+  const handleTabChange = (tab: 'apiTest' | 'devNote' | 'bulkSearch') => {
     setActiveTab(tab);
     if (tab === 'apiTest') {
       setAPITestMode(true);
@@ -70,6 +71,16 @@ const DevToolsModal: React.FC<DevToolsModalProps> = ({ isOpen, onClose }) => {
         {/* 탭 헤더 */}
         <div className="flex border-b border-gray-600">
           <button
+            onClick={() => handleTabChange('bulkSearch')}
+            className={`px-6 py-3 font-medium transition-colors ${
+              activeTab === 'bulkSearch'
+                ? 'text-blue-400 border-b-2 border-blue-400 bg-gray-700/50'
+                : 'text-gray-300 hover:text-white hover:bg-gray-700/30'
+            }`}
+          >
+            📚 대량조회
+          </button>
+          <button
             onClick={() => handleTabChange('apiTest')}
             className={`px-6 py-3 font-medium transition-colors ${
               activeTab === 'apiTest'
@@ -93,12 +104,18 @@ const DevToolsModal: React.FC<DevToolsModalProps> = ({ isOpen, onClose }) => {
 
         {/* 탭 컨텐츠 */}
         <div className="flex-1 overflow-hidden">
+          {activeTab === 'bulkSearch' && (
+            <div className="h-full overflow-y-auto p-6">
+              <BulkBookSearchContent />
+            </div>
+          )}
+
           {activeTab === 'apiTest' && (
             <div className="h-full overflow-y-auto p-6">
               <APITestContent />
             </div>
           )}
-          
+
           {activeTab === 'devNote' && (
             <div className="h-full p-6">
               <DevNoteContent />

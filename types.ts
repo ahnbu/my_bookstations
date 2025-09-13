@@ -126,6 +126,21 @@ export type SelectedBook = BookData & {
 
 export type SortKey = 'title' | 'author' | 'addedDate' | 'rating' | 'readStatus' | 'pubDate';
 
+// Bulk Search Types
+export type BulkSearchStatus = 'pending' | 'searching' | 'found' | 'multiple' | 'none' | 'error';
+
+export type BulkSearchResult = {
+  id: string;
+  inputTitle: string;
+  searchQuery: string; // 실제 검색에 사용된 쿼리 (앞 2개 단어)
+  searchResults: AladdinBookItem[];
+  selectedBook: AladdinBookItem | null;
+  status: BulkSearchStatus;
+  errorMessage?: string;
+  isEditing?: boolean; // 현재 편집 중인지 여부
+  originalInputTitle?: string; // 편집 전 원본 제목 보관
+};
+
 // User Settings Types
 export type UserSettings = {
   showReadStatus: boolean;

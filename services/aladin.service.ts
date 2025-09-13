@@ -64,7 +64,11 @@ export const searchAladinBooks = async (query: string, searchType: string): Prom
     }
     
     if (data.item) {
-      return data.item.filter(book => !book.title.startsWith('[큰글자도서]') && !book.title.startsWith('[큰글자책]'));
+      return data.item.filter(book =>
+        !book.title.startsWith('[큰글자도서]') &&
+        !book.title.startsWith('[큰글자책]') &&
+        !book.title.startsWith('[세트]')
+      );
     }
 
     return [];

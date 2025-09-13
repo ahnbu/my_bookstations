@@ -3,7 +3,7 @@
  * 경기도 전자도서관 크롤링 결과와 도서 ISBN을 비교하여 정확한 매칭을 수행
  */
 
-import { BookData } from '../types/aladin'
+import { BookData } from '../types'
 import { GyeonggiEbookLibraryResult } from '../services/unifiedLibrary.service'
 
 /**
@@ -72,15 +72,7 @@ export function filterGyeonggiEbookByIsbn(
   // 필터링된 책들로 카운트 재계산
   const totalCount = matchedBooks.length
   const availableCount = matchedBooks.filter(book => {
-    // 소장형의 경우 isLoanable 필드 확인
-    if (book.type === '소장형') {
-      return book.isLoanable === true
-    }
-    // 구독형의 경우 available 필드 확인
-    if (book.type === '구독형') {
-      return book.available === true
-    }
-    // 기존 status 필드가 있는 경우 호환성 유지
+    // status 필드로 대출 가능 여부 확인
     return book.status === '대출가능'
   }).length
   const unavailableCount = totalCount - availableCount

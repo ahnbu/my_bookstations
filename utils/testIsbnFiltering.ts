@@ -3,7 +3,7 @@
  */
 
 import { filterGyeonggiEbookByIsbn } from './isbnMatcher'
-import { BookData } from '../types/aladin'
+import { BookData } from '../types'
 import { GyeonggiEbookLibraryResult } from '../services/unifiedLibrary.service'
 
 /**
@@ -39,9 +39,7 @@ export function testRealWorldExample() {
         author: '이다',
         publisher: '미술문화',
         isbn: '9791192768236', // 매칭됨!
-        totalCopies: 5,
-        availableCopies: 0,
-        isLoanable: false,
+        status: '대출불가',
         type: '소장형',
         library: '경기도전자도서관',
         detailUrl: 'https://ebook.library.kr/detail?contentType=EB&id='
@@ -52,7 +50,7 @@ export function testRealWorldExample() {
         author: '유미영',
         publisher: '작가와',
         isbn: '9791142109089', // 매칭되지 않음
-        available: true,
+        status: '대출가능',
         library_name: '경기도 전자도서관'
       },
       {
@@ -61,7 +59,7 @@ export function testRealWorldExample() {
         author: '달빛서랍',
         publisher: '작가와',
         isbn: '9791193102077', // 매칭되지 않음
-        available: true,
+        status: '대출가능',
         library_name: '경기도 전자도서관'
       },
       {
@@ -70,7 +68,7 @@ export function testRealWorldExample() {
         author: '박선민',
         publisher: '휴머니스트',
         isbn: '9791160808254', // 매칭되지 않음
-        available: true,
+        status: '대출가능',
         library_name: '경기도 전자도서관'
       }
     ]

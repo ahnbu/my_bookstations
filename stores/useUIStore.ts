@@ -5,7 +5,7 @@ interface UIState {
   isLoading: boolean;
   
   // Notification state
-  notification: { message: string; type: 'success' | 'error' } | null;
+  notification: { message: string; type: 'success' | 'error' | 'warning' } | null;
   
   // Modal states
   isBookSearchListModalOpen: boolean;
@@ -19,7 +19,7 @@ interface UIState {
 
   // Actions
   setIsLoading: (isLoading: boolean) => void;
-  setNotification: (notification: { message: string; type: 'success' | 'error' } | null) => void;
+  setNotification: (notification: { message: string; type: 'success' | 'error' | 'warning' } | null) => void;
   
   openBookSearchListModal: () => void;
   closeBookSearchListModal: () => void;

@@ -556,12 +556,12 @@ const MyLibrary: React.FC = () => {
 
   return (
     <div className="mt-12 animate-fade-in">
-      {/* Header - Two Row Layout */}
-      <div className="mb-6 space-y-4 max-w-4xl mx-auto">
-        {/* First Row: Search + Sort/View Controls */}
+      {/* Header - Unified Two Row Layout */}
+      <div className="mb-6 space-y-3 max-w-4xl mx-auto">
+        {/* First Row: Search + View Controls */}
         <div className="flex justify-between items-center">
           {/* Search Input */}
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-initial">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <SearchIcon className="h-4 w-4 text-gray-400" />
             </div>
@@ -570,10 +570,10 @@ const MyLibrary: React.FC = () => {
               value={librarySearchQuery}
               onChange={(e) => setLibrarySearchQuery(e.target.value)}
               placeholder="책 제목, 저자명으로 검색..."
-              className="block w-80 pl-10 pr-10 py-2 border border-gray-600 rounded-md bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              className="block w-full sm:w-80 pl-10 pr-10 py-2 border border-gray-600 rounded-md bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
             />
             {librarySearchQuery && (
-              <button 
+              <button
                 onClick={() => setLibrarySearchQuery('')}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 title="검색어 지우기"
@@ -582,107 +582,44 @@ const MyLibrary: React.FC = () => {
               </button>
             )}
           </div>
-          <div className="flex items-center gap-4">
-            {/* Sort Dropdown */}
-            <div className="relative" ref={sortDropdownRef}>
-              <button
-                onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setSortDropdownOpen(!sortDropdownOpen);
-                  } else if (e.key === 'Escape') {
-                    setSortDropdownOpen(false);
-                  }
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors duration-200 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                aria-expanded={sortDropdownOpen}
-                aria-haspopup="true"
-                aria-label="정렬 방식 선택"
-              >
-                <span>{getCurrentSortName()}</span>
-                <svg
-                  className={`w-4 h-4 transition-transform duration-200 ${sortDropdownOpen ? 'rotate-180' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              
-              {sortDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg shadow-lg z-20 animate-in fade-in duration-200">
-                  {(Object.entries(sortOptions) as [SortKey, string][]).map(([key, label]) => (
-                    <button
-                      key={key}
-                      onClick={() => {
-                        sortLibrary(key);
-                        setSortDropdownOpen(false);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          sortLibrary(key);
-                          setSortDropdownOpen(false);
-                        } else if (e.key === 'Escape') {
-                          setSortDropdownOpen(false);
-                        }
-                      }}
-                      className={`w-full text-left px-3 py-2 text-sm transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg focus:ring-2 focus:ring-blue-500 focus:outline-none ${
-                        sortConfig.key === key 
-                          ? 'bg-blue-600 text-white' 
-                          : 'text-gray-300 hover:bg-gray-600 hover:text-white focus:bg-gray-600'
-                      }`}
-                      aria-label={`${label}로 정렬`}
-                    >
-                      <span className="flex items-center justify-between">
-                        {label}
-                        {sortConfig.key === key && <SortArrow order={sortConfig.order} />}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            {/* View Toggle */}
-            <div className="flex items-center gap-1 bg-gray-700 rounded-lg p-1">
-              <button
-                onClick={() => setViewType('card')}
-                className={`p-2 rounded transition-colors duration-200 ${
-                  viewType === 'card'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-600'
-                }`}
-                title="카드 보기"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M3 4a1 1 0 000 2h14a1 1 0 100-2H3zM3 8a1 1 0 000 2h14a1 1 0 100-2H3zM3 12a1 1 0 100 2h14a1 1 0 100-2H3z" clipRule="evenodd" />
-                </svg>
-              </button>
-              <button
-                onClick={() => setViewType('grid')}
-                className={`p-2 rounded transition-colors duration-200 ${
-                  viewType === 'grid'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-600'
-                }`}
-                title="그리드 보기"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
-              </button>
-            </div>
+
+          {/* View Toggle */}
+          <div className="flex items-center gap-1 bg-gray-700 rounded-lg p-1 flex-shrink-0">
+            <button
+              onClick={() => setViewType('card')}
+              className={`p-2 rounded transition-colors duration-200 ${
+                viewType === 'card'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-600'
+              }`}
+              title="카드 보기"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3 4a1 1 0 000 2h14a1 1 0 100-2H3zM3 8a1 1 0 000 2h14a1 1 0 100-2H3zM3 12a1 1 0 100 2h14a1 1 0 100-2H3z" clipRule="evenodd" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewType('grid')}
+              className={`p-2 rounded transition-colors duration-200 ${
+                viewType === 'grid'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-600'
+              }`}
+              title="그리드 보기"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+            </button>
           </div>
         </div>
-        
-        {/* Second Row: Select All + Action Buttons */}
+
+        {/* Second Row: Selection Info + Sort + Action Buttons */}
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
             <label className="flex items-center">
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 checked={selectAll}
                 onChange={(e) => {
                   setSelectAll(e.target.checked);
@@ -700,7 +637,73 @@ const MyLibrary: React.FC = () => {
               {selectedBooks.size}개 선택됨(총 {sortedAndFilteredLibraryBooks.length}권)
             </span>
           </div>
+
           <div className="flex items-center gap-3">
+            {/* Sort Dropdown */}
+            <div className="relative" ref={sortDropdownRef}>
+              <button
+                onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSortDropdownOpen(!sortDropdownOpen);
+                  } else if (e.key === 'Escape') {
+                    setSortDropdownOpen(false);
+                  }
+                }}
+                className="flex items-center gap-2 px-3 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors duration-200 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                aria-expanded={sortDropdownOpen}
+                aria-haspopup="true"
+                aria-label="정렬 방식 선택"
+              >
+                <span className="hidden sm:inline">{getCurrentSortName()}</span>
+                <span className="sm:hidden">{getCurrentSortName().substring(0, 2)}</span>
+                <svg
+                  className={`w-4 h-4 transition-transform duration-200 ${sortDropdownOpen ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {sortDropdownOpen && (
+                <div className="absolute top-full right-0 mt-1 w-36 bg-gray-700 border border-gray-600 rounded-lg shadow-lg z-20 animate-in fade-in duration-200">
+                  {(Object.entries(sortOptions) as [SortKey, string][]).map(([key, label]) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        sortLibrary(key);
+                        setSortDropdownOpen(false);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          sortLibrary(key);
+                          setSortDropdownOpen(false);
+                        } else if (e.key === 'Escape') {
+                          setSortDropdownOpen(false);
+                        }
+                      }}
+                      className={`w-full text-left px-3 py-2 text-sm transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg focus:ring-2 focus:ring-blue-500 focus:outline-none ${
+                        sortConfig.key === key
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-300 hover:bg-gray-600 hover:text-white focus:bg-gray-600'
+                      }`}
+                      aria-label={`${label}로 정렬`}
+                    >
+                      <span className="flex items-center justify-between">
+                        {label}
+                        {sortConfig.key === key && <SortArrow order={sortConfig.order} />}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
             <button
               onClick={() => {
                 // Delete selected books logic
