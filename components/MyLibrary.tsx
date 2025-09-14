@@ -1142,7 +1142,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                 aria-haspopup="true"
                 aria-label="정렬 방식 선택"
               >
-                <span>{getCurrentSortName().substring(0, 2)}</span>
+                <span>{getCurrentSortName()}</span>
                 <svg
                   className={`w-4 h-4 transition-transform duration-200 ${sortDropdownOpen ? 'rotate-180' : ''}`}
                   fill="none"
