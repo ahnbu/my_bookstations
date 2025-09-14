@@ -42,11 +42,11 @@ const TagFilter: React.FC<TagFilterProps> = ({
     return null; // 태그가 없으면 필터 영역을 표시하지 않음
   }
 
+  // <span className="text-sm text-secondary mr-2">인기 태그:</span>
+  //         <span className="text-sm text-secondary mr-2"></span> 
   return (
     <div className="mb-4 p-3 bg-secondary rounded-lg border border-primary">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-secondary mr-2">인기 태그:</span>
-
         {tagUsageStats.map(({ tag, count }) => (
           <CustomTagComponent
             key={tag!.id}
