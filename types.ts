@@ -118,6 +118,7 @@ export type BookData = AladdinBookItem & {
   readStatus: ReadStatus;
   rating: number;
   customTags?: string[]; // 태그 ID 배열
+  isFavorite: boolean;
 };
 
 // This represents a book object within the application's state, including its database ID.

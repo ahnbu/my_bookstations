@@ -50,7 +50,7 @@ const SearchForm: React.FC = () => {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="책 제목, 저자, 출판사를 입력하세요..."
+              placeholder="도서관 책을 찾고, 내 서재에 추가하세요 (제목, 저자명 검색)"
               className="h-full py-3 pl-4 pr-12 w-full bg-elevated border-primary rounded-full text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none transition-shadow duration-300"
               disabled={isLoading}
             />

@@ -93,6 +93,7 @@ interface BookState {
   removeTagFromBook: (id: number, tagId: string) => Promise<void>;
   updateBookTags: (id: number, tagIds: string[]) => Promise<void>;
   updateMultipleBookTags: (bookUpdates: Array<{id: number, tagIds: string[]}>) => Promise<void>;
+  toggleFavorite: (id: number) => Promise<void>;
 }
 
 
@@ -257,6 +258,7 @@ export const useBookStore = create<BookState>(
             otherStock: { total: 0, available: 0 },
             readStatus: '읽지 않음' as ReadStatus,
             rating: 0,
+            isFavorite: false,
             // subInfo가 selectedBook에 있다면 명시적으로 포함
             ...(selectedBook.subInfo && { subInfo: selectedBook.subInfo }),
           };
@@ -554,6 +556,17 @@ export const useBookStore = create<BookState>(
           failed: failures.length,
           failures
         };
+      },
+
+      toggleFavorite: async (id) => {
+        const { myLibraryBooks } = get();
+        const book = myLibraryBooks.find(b => b.id === id);
+        if (!book) return;
+
+        // Handle undefined isFavorite as false (for existing books)
+        const currentFavorite = book.isFavorite || false;
+        const newIsFavorite = !currentFavorite;
+        await updateBookInStoreAndDB(id, { isFavorite: newIsFavorite }, '좋아요 상태 변경에 실패했습니다.');
       },
     })
 );
