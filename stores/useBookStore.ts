@@ -8,6 +8,62 @@ import { filterGyeonggiEbookByIsbn } from '../utils/isbnMatcher';
 import { useUIStore } from './useUIStore';
 import { useAuthStore } from './useAuthStore';
 
+/**
+ * 특정 책의 데이터를 업데이트하고, 로컬 상태와 Supabase DB를 동기화하는 헬퍼 함수
+ * @param id 업데이트할 책의 ID
+ * @param updates BookData 객체의 일부. 변경할 내용만 담습니다.
+ * @param errorMessage DB 업데이트 실패 시 보여줄 알림 메시지
+ */
+
+async function updateBookInStoreAndDB(
+  id: number,
+  updates: Partial<Omit<BookData, 'id'>>,
+  errorMessage: string = '책 정보 업데이트에 실패했습니다.'
+): Promise<void> {
+  const { myLibraryBooks } = useBookStore.getState();
+  const originalBook = myLibraryBooks.find(b => b.id === id);
+
+  if (!originalBook) {
+    console.warn(`[updateBook] Book with id ${id} not found.`);
+    return;
+  }
+
+  // 1. 낙관적 업데이트: UI 상태를 즉시 변경
+  const updatedBook: SelectedBook = { ...originalBook, ...updates };
+  useBookStore.setState(state => ({
+    myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? updatedBook : b)),
+    selectedBook:
+      state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
+        ? updatedBook
+        : state.selectedBook,
+  }));
+
+  // 2. DB 업데이트: 백그라운드에서 실행
+  // DB에 저장할 때는 id, detailedStockInfo 등 불필요한 속성을 제외합니다.
+  const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBook;
+  try {
+    const { error } = await supabase
+      .from('user_library')
+      .update({ book_data: bookDataForDb as Json })
+      .eq('id', id);
+    if (error) throw error;
+  } catch (error) {
+    // 3. 롤백: DB 업데이트 실패 시 UI 상태를 원래대로 되돌림
+
+    console.error(`[updateBook] Failed to update book (id: ${id}) in DB:`, error);
+    useUIStore.getState().setNotification({
+      message: `${errorMessage} 변경사항이 저장되지 않았을 수 있습니다.`,
+      type: 'error',
+    });
+    useBookStore.setState(state => ({
+      myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? originalBook : b)),
+      selectedBook:
+        state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
+          ? originalBook
+          : state.selectedBook,
+    }));
+  }
+}
 
 interface BookState {
   searchResults: AladdinBookItem[];
@@ -142,9 +198,9 @@ export const useBookStore = create<BookState>(
       clearLibrary: () => {
         set({ myLibraryBooks: [], selectedBook: null });
       },
-      
+
       searchBooks: async (query, searchType) => {
-        const { setIsLoading, setNotification, openBookSearchListModal } = useUIStore.getState();
+        const { setIsLoading, setNotification } = useUIStore.getState();
         setIsLoading(true);
         set({ selectedBook: null });
         try {
@@ -152,7 +208,6 @@ export const useBookStore = create<BookState>(
           // [세트] 로 시작하는 도서 제외
           const filteredResults = results.filter(book => !book.title.startsWith('[세트]'));
           set({ searchResults: filteredResults });
-          openBookSearchListModal();
         } catch (error) {
           console.error(error);
           setNotification({ message: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.', type: 'error' });
@@ -180,64 +235,56 @@ export const useBookStore = create<BookState>(
       },
 
       addToLibrary: async () => {
-        const { selectedBook, myLibraryBooks } = get();
-        const { session } = useAuthStore.getState();
-        if (!selectedBook || !session) return;
+          const { selectedBook, myLibraryBooks } = get();
+          const { session } = useAuthStore.getState();
+          if (!selectedBook || !session) return;
 
-        // ISBN 기준으로 중복 체크 (이중 안전장치)
-        const isDuplicate = myLibraryBooks.some(book => book.isbn13 === selectedBook.isbn13);
-        if (isDuplicate) {
-          useUIStore.getState().setNotification({ 
-            message: '이미 서재에 추가된 책입니다.', 
-            type: 'warning'
-          });
-          return;
-        }
+          // ISBN 기준으로 중복 체크 (이중 안전장치)
+          const isDuplicate = myLibraryBooks.some(book => book.isbn13 === selectedBook.isbn13);
+          if (isDuplicate) {
+            useUIStore.getState().setNotification({ 
+              message: '이미 서재에 추가된 책입니다.', 
+              type: 'warning'
+            });
+            return;
+          }
 
-        const newBookData: BookData = {
-          ...selectedBook,
-          addedDate: Date.now(),
-          toechonStock: { total: 0, available: 0 },
-          otherStock: { total: 0, available: 0 },
-          readStatus: '읽지 않음' as ReadStatus,
-          rating: 0,
-          // subInfo가 selectedBook에 있다면 명시적으로 포함
-          ...(selectedBook.subInfo && { subInfo: selectedBook.subInfo }),
-        };
-        
-        try {
-            const { data, error } = await supabase
-                .from('user_library')
-                .insert([{ user_id: session.user.id, book_data: newBookData as Json }])
-                .select('id, book_data')
-                .single();
+          const newBookData: BookData = {
+            ...selectedBook,
+            addedDate: Date.now(),
+            toechonStock: { total: 0, available: 0 },
+            otherStock: { total: 0, available: 0 },
+            readStatus: '읽지 않음' as ReadStatus,
+            rating: 0,
+            // subInfo가 selectedBook에 있다면 명시적으로 포함
+            ...(selectedBook.subInfo && { subInfo: selectedBook.subInfo }),
+          };
+          
+          try {
+              const { data, error } = await supabase
+                  .from('user_library')
+                  .insert([{ user_id: session.user.id, book_data: newBookData as Json }])
+                  .select('id, book_data')
+                  .single();
+              
+              if (error) throw error;
+              if (!data || !data.book_data) throw new Error("Failed to add book: No data returned.");
+
+              const newBookWithId: SelectedBook = { ...(data.book_data as BookData), id: data.id };
+
+              set(state => ({ myLibraryBooks: [newBookWithId, ...state.myLibraryBooks] }));
+              // 책 추가 성공 후 모달 닫기 및 선택된 책 초기화
+              // useUIStore.getState().closeBookSearchListModal();
+              set({ selectedBook: null });
             
-            if (error) throw error;
-            if (!data || !data.book_data) throw new Error("Failed to add book: No data returned.");
+              // 비동기 백그라운드 재고 조회 실행 (환경별 지연 시간 적용)
+              const delay = window.location.hostname === 'localhost' ? 100 : 800;
+              setTimeout(() => { get().refreshAllBookInfo(newBookWithId.id, newBookWithId.isbn13, newBookWithId.title); }, delay);
 
-            const newBookWithId: SelectedBook = {
-                ...(data.book_data as BookData),
-                id: data.id,
-            };
-
-            set(state => ({
-                myLibraryBooks: [newBookWithId, ...state.myLibraryBooks]
-            }));
-            
-            // 책 추가 성공 후 모달 닫기 및 선택된 책 초기화
-            useUIStore.getState().closeBookSearchListModal();
-            set({ selectedBook: null });
-            
-            // 비동기 백그라운드 재고 조회 실행 (환경별 지연 시간 적용)
-            const delay = window.location.hostname === 'localhost' ? 100 : 800;
-            setTimeout(() => {
-                get().refreshAllBookInfo(newBookWithId.id, newBookWithId.isbn13, newBookWithId.title);
-            }, delay);
-
-        } catch(error) {
-            console.error("Error adding book to library:", error);
-            useUIStore.getState().setNotification({ message: '서재에 책을 추가하는 데 실패했습니다.', type: 'error'});
-        }
+          } catch(error) {
+              console.error("Error adding book to library:", error);
+              useUIStore.getState().setNotification({ message: '서재에 책을 추가하는 데 실패했습니다.', type: 'error'});
+          }
       },
 
       removeFromLibrary: async (id: number) => {
@@ -390,53 +437,11 @@ export const useBookStore = create<BookState>(
       },
 
       updateReadStatus: async (id, status) => {
-        const bookToUpdate = get().myLibraryBooks.find(b => b.id === id);
-        if(!bookToUpdate) return;
-
-        const updatedBook = { ...bookToUpdate, readStatus: status };
-        // DB 저장 시 detailedStockInfo 필드 제외하여 저장공간 절약
-        const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBook;
-
-        try {
-            const { error } = await supabase
-                .from('user_library')
-                .update({ book_data: bookDataForDb as Json })
-                .eq('id', id);
-
-            if (error) throw error;
-            set(state => ({
-                myLibraryBooks: state.myLibraryBooks.map(b => b.id === id ? updatedBook : b),
-                selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBook : state.selectedBook
-            }));
-        } catch (error) {
-            console.error('Error updating read status:', error);
-            useUIStore.getState().setNotification({ message: '읽음 상태 변경에 실패했습니다.', type: 'error' });
-        }
+        await updateBookInStoreAndDB(id, { readStatus: status }, '읽음 상태 변경에 실패했습니다.');
       },
 
       updateRating: async (id, rating) => {
-        const bookToUpdate = get().myLibraryBooks.find(b => b.id === id);
-        if(!bookToUpdate) return;
-        
-        const updatedBook = { ...bookToUpdate, rating };
-        // DB 저장 시 detailedStockInfo 필드 제외하여 저장공간 절약
-        const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBook;
-
-        try {
-            const { error } = await supabase
-                .from('user_library')
-                .update({ book_data: bookDataForDb as Json })
-                .eq('id', id);
-
-            if (error) throw error;
-            set(state => ({
-                myLibraryBooks: state.myLibraryBooks.map(b => b.id === id ? updatedBook : b),
-                selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBook : state.selectedBook
-            }));
-        } catch (error) {
-            console.error('Error updating rating:', error);
-            useUIStore.getState().setNotification({ message: '별점 변경에 실패했습니다.', type: 'error' });
-        }
+        await updateBookInStoreAndDB(id, { rating }, '별점 변경에 실패했습니다.');
       },
 
       sortLibrary: (key) => {
@@ -449,96 +454,26 @@ export const useBookStore = create<BookState>(
         }
       },
 
-
       setLibrarySearchQuery: (query: string) => {
         set({ librarySearchQuery: query });
       },
 
       addTagToBook: async (id, tagId) => {
-        const bookToUpdate = get().myLibraryBooks.find(b => b.id === id);
-        if (!bookToUpdate) return;
-
-        const currentTags = bookToUpdate.customTags || [];
-        if (currentTags.includes(tagId)) return; // 이미 있는 태그는 추가하지 않음
-
-        const updatedTags = [...currentTags, tagId];
-        const updatedBook = { ...bookToUpdate, customTags: updatedTags };
-
-        // DB 저장 시 detailedStockInfo 필드 제외하여 저장공간 절약
-        const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBook;
-
-        try {
-          const { error } = await supabase
-            .from('user_library')
-            .update({ book_data: bookDataForDb as Json })
-            .eq('id', id);
-
-          if (error) throw error;
-
-          set(state => ({
-            myLibraryBooks: state.myLibraryBooks.map(b => b.id === id ? updatedBook : b),
-            selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBook : state.selectedBook
-          }));
-        } catch (error) {
-          console.error('Error adding tag to book:', error);
-          useUIStore.getState().setNotification({ message: '태그 추가에 실패했습니다.', type: 'error' });
-        }
+        const book = get().myLibraryBooks.find(b => b.id === id);
+        if (!book) return;
+        const currentTags = book.customTags || [];
+        if (currentTags.includes(tagId)) return;
+        await updateBookInStoreAndDB(id, { customTags: [...currentTags, tagId] }, '태그 추가에 실패했습니다.');
       },
-
       removeTagFromBook: async (id, tagId) => {
-        const bookToUpdate = get().myLibraryBooks.find(b => b.id === id);
-        if (!bookToUpdate) return;
-
-        const currentTags = bookToUpdate.customTags || [];
-        const updatedTags = currentTags.filter(t => t !== tagId);
-        const updatedBook = { ...bookToUpdate, customTags: updatedTags };
-
-        // DB 저장 시 detailedStockInfo 필드 제외하여 저장공간 절약
-        const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBook;
-
-        try {
-          const { error } = await supabase
-            .from('user_library')
-            .update({ book_data: bookDataForDb as Json })
-            .eq('id', id);
-
-          if (error) throw error;
-
-          set(state => ({
-            myLibraryBooks: state.myLibraryBooks.map(b => b.id === id ? updatedBook : b),
-            selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBook : state.selectedBook
-          }));
-        } catch (error) {
-          console.error('Error removing tag from book:', error);
-          useUIStore.getState().setNotification({ message: '태그 제거에 실패했습니다.', type: 'error' });
-        }
+        const book = get().myLibraryBooks.find(b => b.id === id);
+        if (!book) return;
+        const updatedTags = (book.customTags || []).filter(t => t !== tagId);
+        await updateBookInStoreAndDB(id, { customTags: updatedTags }, '태그 제거에 실패했습니다.');
       },
 
       updateBookTags: async (id, tagIds) => {
-        const bookToUpdate = get().myLibraryBooks.find(b => b.id === id);
-        if (!bookToUpdate) return;
-
-        const updatedBook = { ...bookToUpdate, customTags: tagIds };
-
-        // DB 저장 시 detailedStockInfo 필드 제외하여 저장공간 절약
-        const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBook;
-
-        try {
-          const { error } = await supabase
-            .from('user_library')
-            .update({ book_data: bookDataForDb as Json })
-            .eq('id', id);
-
-          if (error) throw error;
-
-          set(state => ({
-            myLibraryBooks: state.myLibraryBooks.map(b => b.id === id ? updatedBook : b),
-            selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBook : state.selectedBook
-          }));
-        } catch (error) {
-          console.error('Error updating book tags:', error);
-          useUIStore.getState().setNotification({ message: '태그 업데이트에 실패했습니다.', type: 'error' });
-        }
+        await updateBookInStoreAndDB(id, { customTags: tagIds }, '태그 업데이트에 실패했습니다.');
       },
     })
 );

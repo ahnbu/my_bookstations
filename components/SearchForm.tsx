@@ -7,14 +7,21 @@ import { useUIStore } from '../stores/useUIStore';
 const SearchForm: React.FC = () => {
   const [query, setQuery] = useState('');
   const [searchType, setSearchType] = useState('Keyword');
-  
+
+  // 1. searchBooks 액션만 구독
   const searchBooks = useBookStore((state) => state.searchBooks);
   const isLoading = useUIStore((state) => state.isLoading);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  // 2. handleSubmit 함수 교체
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (query.trim()) {
-      searchBooks(query.trim(), searchType);
+      await searchBooks(query.trim(), searchType);
+
+      // 검색 완료 후, store의 최신 상태를 직접 조회하여 모달을 엽니다.
+      if (useBookStore.getState().searchResults.length > 0) {
+        useUIStore.getState().openBookSearchListModal();
+      }
     }
   };
 

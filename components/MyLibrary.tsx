@@ -12,6 +12,80 @@ import CustomTagComponent from './CustomTag';
 import { getStatusEmoji, isEBooksEmpty, hasAvailableEBooks, processBookTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL, generateLibraryDetailURL, isLibraryStockClickable } from '../services/unifiedLibrary.service';
 // import { filterGyeonggiEbookByIsbn, debugIsbnMatching } from '../utils/isbnMatcher'; // 성능 최적화로 사용 안함
 
+
+// --- START: ReadStatusDropdown 로컬 컴포넌트 추가 ---
+interface CustomReadStatusDropdownProps {
+  value: ReadStatus;
+  onChange: (newStatus: ReadStatus) => void;
+  size?: 'sm' | 'md';
+}
+
+const ReadStatusDropdown: React.FC<CustomReadStatusDropdownProps> = ({
+  value,
+  onChange,
+  size = 'md',
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const options: ReadStatus[] = ['읽지 않음', '읽는 중', '완독'];
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const sizeClasses = {
+    sm: 'text-xs px-2 py-1',
+    md: 'text-sm px-3 py-2',
+  };
+
+  const widthClass = size === 'sm' ? 'w-full' : '';
+
+  return (
+    <div ref={dropdownRef} className={`relative inline-block text-left ${widthClass}`}>
+      <button
+        type="button"
+        className={`input-base inline-flex w-full justify-between items-center gap-x-1.5 ${sizeClasses[size]}`}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        {value}
+        <svg className={`-mr-1 h-5 w-5 text-gray-400 transform transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 z-10 mt-2 w-full origin-top-right rounded-md bg-elevated shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+          <div className="py-1">
+            {options.map((option) => (
+              <button
+                key={option}
+                onClick={() => {
+                  onChange(option);
+                  setIsOpen(false);
+                }}
+                className={`block w-full text-left px-4 py-2 text-sm ${
+                  option === value ? 'bg-accent text-primary' : 'text-secondary hover-surface'
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+// --- END: ReadStatusDropdown 로컬 컴포넌트 ---
+
 const SortArrow: React.FC<{ order: 'asc' | 'desc' }> = ({ order }) => (
   <span className="ml-1 inline-block w-3 h-3 text-xs">
     {order === 'asc' ? '▲' : '▼'}
@@ -1075,20 +1149,17 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                 {/* Read Status and Star Rating */}
                 <div className="flex items-center gap-4 flex-wrap">
                   {settings.showReadStatus && (
-                    <select
+                    <ReadStatusDropdown
                       value={book.readStatus}
-                      onChange={(e) => updateReadStatus(book.id, e.target.value as ReadStatus)}
-                      className="input-base text-sm px-3 py-2"
-                    >
-                      <option value="읽지 않음">읽지 않음</option>
-                      <option value="읽는 중">읽는 중</option>
-                      <option value="완독">완독</option>
-                    </select>
+                      onChange={(newStatus) => updateReadStatus(book.id, newStatus)}
+                      size="sm"
+                    />
                   )}
                   {settings.showRating && (
                     <StarRating
                       rating={book.rating}
                       onRatingChange={(newRating) => updateRating(book.id, newRating)}
+                      size="sm"
                     />
                   )}
                 </div>
@@ -1348,22 +1419,18 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                     <StarRating
                       rating={book.rating}
                       onRatingChange={(newRating) => updateRating(book.id, newRating)}
-                      size="md"
+                      size="sm"
                     />
                   </div>
                 )}
                 
                 {/* Read Status */}
                 {settings.showReadStatus && (
-                  <select
+                  <ReadStatusDropdown
                     value={book.readStatus}
-                    onChange={(e) => updateReadStatus(book.id, e.target.value as ReadStatus)}
-                    className="w-full input-base text-xs px-2 py-1"
-                  >
-                    <option value="읽지 않음">읽지 않음</option>
-                    <option value="읽는 중">읽는 중</option>
-                    <option value="완독">완독</option>
-                  </select>
+                    onChange={(newStatus) => updateReadStatus(book.id, newStatus)}
+                    size="sm"
+                  />
                 )}
 
                 {/* Custom Tags */}

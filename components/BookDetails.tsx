@@ -89,6 +89,7 @@ const BookDetails: React.FC = () => {
     refreshingIsbn,
     refreshAllBookInfo,
   } = useBookStore();
+  const { closeBookSearchListModal } = useUIStore();
   const { session } = useAuthStore();
   
   // 디버깅을 위한 로그 추가
@@ -116,6 +117,8 @@ const BookDetails: React.FC = () => {
     setIsLoading(true);
     try {
       await addToLibrary();
+      // 책 추가 성공 후 모달 닫기
+      closeBookSearchListModal();
       console.log('도서가 서재에 성공적으로 추가되었습니다.');
     } catch (error) {
       console.error('도서 추가 중 오류 발생:', error);
@@ -124,7 +127,6 @@ const BookDetails: React.FC = () => {
       setIsLoading(false);
     }
   }
-  
 
   // 도서가 선택되지 않은 경우
   if (!selectedBook) {
