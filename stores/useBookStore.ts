@@ -92,6 +92,7 @@ interface BookState {
   addTagToBook: (id: number, tagId: string) => Promise<void>;
   removeTagFromBook: (id: number, tagId: string) => Promise<void>;
   updateBookTags: (id: number, tagIds: string[]) => Promise<void>;
+  updateMultipleBookTags: (bookUpdates: Array<{id: number, tagIds: string[]}>) => Promise<void>;
 }
 
 
@@ -474,6 +475,85 @@ export const useBookStore = create<BookState>(
 
       updateBookTags: async (id, tagIds) => {
         await updateBookInStoreAndDB(id, { customTags: tagIds }, '태그 업데이트에 실패했습니다.');
+      },
+
+      updateMultipleBookTags: async (bookUpdates) => {
+        const { myLibraryBooks } = get();
+
+        // 1. 낙관적 업데이트: UI 상태를 먼저 업데이트
+        const updatedBooks = new Map<number, SelectedBook>();
+        bookUpdates.forEach(({ id, tagIds }) => {
+          const book = myLibraryBooks.find(b => b.id === id);
+          if (book) {
+            updatedBooks.set(id, { ...book, customTags: tagIds });
+          }
+        });
+
+        useBookStore.setState(state => ({
+          myLibraryBooks: state.myLibraryBooks.map(book =>
+            updatedBooks.has(book.id) ? updatedBooks.get(book.id)! : book
+          )
+        }));
+
+        // 2. 배치 DB 업데이트 (병렬 처리)
+        const updatePromises = bookUpdates.map(async ({ id, tagIds }) => {
+          const book = myLibraryBooks.find(b => b.id === id);
+          if (!book) return { success: false, id, error: 'Book not found' };
+
+          try {
+            const { id: bookId, detailedStockInfo, ...bookDataForDb } = { ...book, customTags: tagIds };
+            const { error } = await supabase
+              .from('user_library')
+              .update({ book_data: bookDataForDb as Json })
+              .eq('id', id);
+
+            if (error) throw error;
+            return { success: true, id };
+          } catch (error) {
+            console.error(`Failed to update book ${id}:`, error);
+            return { success: false, id, error };
+          }
+        });
+
+        // 3. 결과 처리
+        const results = await Promise.allSettled(updatePromises);
+        const failures: number[] = [];
+
+        results.forEach((result, index) => {
+          if (result.status === 'fulfilled' && !result.value.success) {
+            failures.push(result.value.id);
+          } else if (result.status === 'rejected') {
+            failures.push(bookUpdates[index].id);
+          }
+        });
+
+        // 4. 실패한 항목들 롤백
+        if (failures.length > 0) {
+          const originalBooks = new Map<number, SelectedBook>();
+          failures.forEach(id => {
+            const originalBook = myLibraryBooks.find(b => b.id === id);
+            if (originalBook) {
+              originalBooks.set(id, originalBook);
+            }
+          });
+
+          useBookStore.setState(state => ({
+            myLibraryBooks: state.myLibraryBooks.map(book =>
+              originalBooks.has(book.id) ? originalBooks.get(book.id)! : book
+            )
+          }));
+
+          useUIStore.getState().setNotification({
+            message: `${failures.length}개 책의 태그 업데이트에 실패했습니다. 변경사항이 저장되지 않았을 수 있습니다.`,
+            type: 'error',
+          });
+        }
+
+        return {
+          success: bookUpdates.length - failures.length,
+          failed: failures.length,
+          failures
+        };
       },
     })
 );

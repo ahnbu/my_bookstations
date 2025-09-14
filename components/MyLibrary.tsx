@@ -138,6 +138,7 @@ interface BulkTagModalProps {
   availableTags: CustomTag[];
   onAddTag: (bookId: number, tagId: string) => Promise<void>;
   onRemoveTag: (bookId: number, tagId: string) => Promise<void>;
+  onUpdateMultipleBookTags: (bookUpdates: Array<{id: number, tagIds: string[]}>) => Promise<void>;
   onClearSelection: () => void;
 }
 
@@ -148,10 +149,17 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
   availableTags,
   onAddTag,
   onRemoveTag,
+  onUpdateMultipleBookTags,
   onClearSelection
 }) => {
   const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set());
   const [processing, setProcessing] = useState(false);
+  const [progress, setProgress] = useState<{
+    current: number;
+    total: number;
+    currentOperation?: string;
+    startTime?: number;
+  }>({ current: 0, total: 0 });
 
   // 모든 선택된 책에 공통으로 적용된 태그들 찾기
   const commonTags = useMemo(() => {
@@ -178,34 +186,174 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
     if (selectedTagIds.size === 0) return;
 
     setProcessing(true);
+
+    // 책별로 추가할 태그들을 계산하고 배치 업데이트 데이터 준비
+    const bookUpdates = selectedBooks
+      .map(book => {
+        const currentTags = book.customTags || [];
+        const newTags = Array.from(selectedTagIds).filter(tagId => !currentTags.includes(tagId));
+        if (newTags.length > 0) {
+          return {
+            id: book.id,
+            tagIds: [...currentTags, ...newTags],
+            title: book.title
+          };
+        }
+        return null;
+      })
+      .filter(Boolean) as Array<{id: number, tagIds: string[], title: string}>;
+
+    if (bookUpdates.length === 0) {
+      setProcessing(false);
+      return;
+    }
+
+    // 청킹 설정 (50개씩 처리)
+    const CHUNK_SIZE = 50;
+    const chunks = [];
+    for (let i = 0; i < bookUpdates.length; i += CHUNK_SIZE) {
+      chunks.push(bookUpdates.slice(i, i + CHUNK_SIZE));
+    }
+
+    setProgress({
+      current: 0,
+      total: bookUpdates.length,
+      startTime: Date.now(),
+      currentOperation: '태그 추가 준비 중...'
+    });
+
     try {
-      for (const book of selectedBooks) {
-        for (const tagId of selectedTagIds) {
-          if (!book.customTags?.includes(tagId)) {
-            await onAddTag(book.id, tagId);
-          }
+      let processedCount = 0;
+
+      // 청크별로 배치 처리
+      for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
+        const chunk = chunks[chunkIndex];
+
+        setProgress(prev => ({
+          ...prev,
+          currentOperation: `배치 ${chunkIndex + 1}/${chunks.length} 처리 중... (${chunk.length}권)`
+        }));
+
+        // 배치 업데이트 실행
+        const chunkUpdates = chunk.map(({ id, tagIds }) => ({ id, tagIds }));
+        await onUpdateMultipleBookTags(chunkUpdates);
+
+        processedCount += chunk.length;
+        setProgress(prev => ({
+          ...prev,
+          current: processedCount
+        }));
+
+        // 서버 부하 방지를 위한 짧은 대기 (마지막 청크 제외)
+        if (chunkIndex < chunks.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
-      onClearSelection();
+
+      setProgress(prev => ({
+        ...prev,
+        currentOperation: `완료! ${processedCount}권의 책에 태그가 추가되었습니다.`
+      }));
+
+      // 잠시 완료 상태를 보여준 후 모달 닫기
+      setTimeout(() => {
+        onClearSelection();
+      }, 1000);
     } catch (error) {
       console.error('일괄 태그 적용 실패:', error);
+      setProgress(prev => ({
+        ...prev,
+        currentOperation: '오류가 발생했습니다. 일부 변경사항이 저장되지 않았을 수 있습니다.'
+      }));
     } finally {
-      setProcessing(false);
+      setTimeout(() => {
+        setProcessing(false);
+        setProgress({ current: 0, total: 0 });
+      }, 2000);
     }
   };
 
   const handleRemoveCommonTag = async (tagId: string) => {
     setProcessing(true);
+
+    // 태그를 제거할 책들 계산하고 배치 업데이트 데이터 준비
+    const booksToUpdate = selectedBooks
+      .filter(book => book.customTags?.includes(tagId))
+      .map(book => ({
+        id: book.id,
+        tagIds: (book.customTags || []).filter(t => t !== tagId),
+        title: book.title
+      }));
+
+    const tagName = availableTags.find(tag => tag.id === tagId)?.name || '태그';
+
+    if (booksToUpdate.length === 0) {
+      setProcessing(false);
+      return;
+    }
+
+    // 청킹 설정 (50개씩 처리)
+    const CHUNK_SIZE = 50;
+    const chunks = [];
+    for (let i = 0; i < booksToUpdate.length; i += CHUNK_SIZE) {
+      chunks.push(booksToUpdate.slice(i, i + CHUNK_SIZE));
+    }
+
+    setProgress({
+      current: 0,
+      total: booksToUpdate.length,
+      startTime: Date.now(),
+      currentOperation: `"${tagName}" 태그 제거 준비 중...`
+    });
+
     try {
-      for (const book of selectedBooks) {
-        if (book.customTags?.includes(tagId)) {
-          await onRemoveTag(book.id, tagId);
+      let processedCount = 0;
+
+      // 청크별로 배치 처리
+      for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
+        const chunk = chunks[chunkIndex];
+
+        setProgress(prev => ({
+          ...prev,
+          currentOperation: `배치 ${chunkIndex + 1}/${chunks.length}에서 "${tagName}" 태그 제거 중... (${chunk.length}권)`
+        }));
+
+        // 배치 업데이트 실행
+        const chunkUpdates = chunk.map(({ id, tagIds }) => ({ id, tagIds }));
+        await onUpdateMultipleBookTags(chunkUpdates);
+
+        processedCount += chunk.length;
+        setProgress(prev => ({
+          ...prev,
+          current: processedCount
+        }));
+
+        // 서버 부하 방지를 위한 짧은 대기 (마지막 청크 제외)
+        if (chunkIndex < chunks.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
+
+      setProgress(prev => ({
+        ...prev,
+        currentOperation: `완료! ${processedCount}권의 책에서 "${tagName}" 태그가 제거되었습니다.`
+      }));
+
+      // 잠시 완료 상태를 보여준 후
+      setTimeout(() => {
+        setProgress({ current: 0, total: 0 });
+      }, 1000);
     } catch (error) {
       console.error('공통 태그 제거 실패:', error);
+      setProgress(prev => ({
+        ...prev,
+        currentOperation: '오류가 발생했습니다. 일부 변경사항이 저장되지 않았을 수 있습니다.'
+      }));
     } finally {
-      setProcessing(false);
+      setTimeout(() => {
+        setProcessing(false);
+        setProgress({ current: 0, total: 0 });
+      }, 2000);
     }
   };
 
@@ -289,6 +437,48 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
           </div>
         </div>
 
+        {/* Progress Bar */}
+        {processing && progress.total > 0 && (
+          <div className="px-6 pb-4">
+            <div className="bg-secondary rounded-lg p-4 space-y-3">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-primary font-medium">
+                  {progress.currentOperation || '처리 중...'}
+                </span>
+                <span className="text-secondary">
+                  {progress.current}/{progress.total} ({Math.round((progress.current / progress.total) * 100)}%)
+                </span>
+              </div>
+
+              {/* Progress bar */}
+              <div className="w-full bg-tertiary rounded-full h-2">
+                <div
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${(progress.current / progress.total) * 100}%` }}
+                />
+              </div>
+
+              {/* Estimated time */}
+              {progress.startTime && progress.current > 0 && (
+                <div className="text-xs text-secondary">
+                  {(() => {
+                    const elapsed = Date.now() - progress.startTime;
+                    const avgTimePerItem = elapsed / progress.current;
+                    const remainingItems = progress.total - progress.current;
+                    const estimatedRemaining = Math.round((avgTimePerItem * remainingItems) / 1000);
+
+                    if (estimatedRemaining > 60) {
+                      return `예상 완료까지 약 ${Math.round(estimatedRemaining / 60)}분 ${estimatedRemaining % 60}초`;
+                    } else {
+                      return `예상 완료까지 약 ${estimatedRemaining}초`;
+                    }
+                  })()}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-3 p-4 border-t border-primary">
           <button
             onClick={onClose}
@@ -328,6 +518,7 @@ const MyLibrary: React.FC = () => {
     setLibrarySearchQuery,
     addTagToBook,
     removeTagFromBook,
+    updateMultipleBookTags,
   } = useBookStore();
   
   const [detailModalBookId, setDetailModalBookId] = useState<number | null>(null);
@@ -1573,6 +1764,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
           availableTags={settings.tagSettings?.tags || []}
           onAddTag={(bookId, tagId) => addTagToBook(bookId, tagId)}
           onRemoveTag={(bookId, tagId) => removeTagFromBook(bookId, tagId)}
+          onUpdateMultipleBookTags={updateMultipleBookTags}
           onClearSelection={() => {
             setSelectedBooks(new Set());
             setSelectAll(false);

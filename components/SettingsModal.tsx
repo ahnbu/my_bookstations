@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useBookStore } from '../stores/useBookStore';
@@ -116,6 +116,23 @@ const SettingsModal: React.FC = () => {
     { value: 'primary', label: '기본', class: 'tag-primary' },
     { value: 'secondary', label: '보조', class: 'tag-secondary' },
   ];
+
+  // 태그 정렬: 1차-색상별(기본>보조), 2차-사용량별(많은순)
+  const sortedTags = useMemo(() => {
+    if (!settings.tagSettings?.tags) return [];
+
+    return [...settings.tagSettings.tags].sort((a, b) => {
+      // 1차 정렬: 색상별 (기본색상 > 보조색상)
+      const colorOrder = { 'primary': 0, 'secondary': 1 };
+      const colorDiff = colorOrder[a.color] - colorOrder[b.color];
+      if (colorDiff !== 0) return colorDiff;
+
+      // 2차 정렬: 사용량별 (많이 사용 > 적게 사용)
+      const aUsage = getTagUsageCount(a.id, myLibraryBooks);
+      const bUsage = getTagUsageCount(b.id, myLibraryBooks);
+      return bUsage - aUsage;
+    });
+  }, [settings.tagSettings?.tags, myLibraryBooks, getTagUsageCount]);
 
   if (!isSettingsModalOpen) return null;
 
@@ -318,79 +335,77 @@ const SettingsModal: React.FC = () => {
               <div className="flex flex-col h-full">
                 <div className="flex-shrink-0">
                   <h3 className="text-sm font-medium text-primary mb-3">
-                    내 태그 ({settings.tagSettings?.tags?.length || 0}개)
+                    내 태그 ({sortedTags.length}개)
                   </h3>
                 </div>
 
-                <div className="flex-1 overflow-y-auto min-h-0">
-                  <div className="space-y-6">
-                    {/* Tag List */}
-                    <div className="space-y-2">
-                      {settings.tagSettings?.tags?.map((tag) => (
-                        <div key={tag.id} className="flex items-center justify-between p-3 border border-secondary rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <CustomTagComponent tag={tag} size="sm" />
-                            <span className="text-sm text-secondary">
-                              ({getTagUsageCount(tag.id, myLibraryBooks)}권)
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => setEditingTag(tag)}
-                              className="text-xs text-blue-600 hover:text-blue-700 underline"
-                            >
-                              수정
-                            </button>
-                            <button
-                              onClick={() => handleDeleteTag(tag)}
-                              className="text-xs text-red-600 hover:text-red-700 underline"
-                            >
-                              삭제
-                            </button>
-                          </div>
+                {/* Tag List - 스크롤 가능 영역 */}
+                <div className="flex-1 min-h-0">
+                  <div className="max-h-[300px] overflow-y-auto space-y-2 mb-6">
+                    {sortedTags.map((tag) => (
+                      <div key={tag.id} className="flex items-center justify-between p-3 border border-secondary rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <CustomTagComponent tag={tag} size="sm" />
+                          <span className="text-sm text-secondary">
+                            ({getTagUsageCount(tag.id, myLibraryBooks)}권)
+                          </span>
                         </div>
-                      ))}
-                    </div>
-
-                    {/* Add New Tag */}
-                    <div className="p-4 border border-secondary rounded-lg bg-secondary">
-                      <h4 className="text-sm font-medium text-primary mb-3">새 태그 추가</h4>
-                      <div className="space-y-3">
-                        <input
-                          type="text"
-                          value={newTagName}
-                          onChange={(e) => setNewTagName(e.target.value)}
-                          placeholder="태그 이름"
-                          className="input-base w-full"
-                          maxLength={20}
-                        />
-                        <div>
-                          <label className="block text-xs text-secondary mb-2">색상</label>
-                          <div className="flex gap-2">
-                            {colorOptions.map((color) => (
-                              <button
-                                key={color.value}
-                                onClick={() => setNewTagColor(color.value)}
-                                className={`px-3 py-1 text-xs font-semibold rounded-md border ${color.class} ${
-                                  newTagColor === color.value
-                                    ? 'ring-2 ring-ring ring-offset-2'
-                                    : 'opacity-70 hover:opacity-100'
-                                }`}
-                                title={color.label}
-                              >
-                                {color.label}
-                              </button>
-                            ))}
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setEditingTag(tag)}
+                            className="text-xs text-blue-600 hover:text-blue-700 underline"
+                          >
+                            수정
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTag(tag)}
+                            className="text-xs text-red-600 hover:text-red-700 underline"
+                          >
+                            삭제
+                          </button>
                         </div>
-                        <button
-                          onClick={handleCreateTag}
-                          disabled={!newTagName.trim()}
-                          className="btn-base btn-primary w-full"
-                        >
-                          태그 추가
-                        </button>
                       </div>
+                    ))}
+                  </div>
+
+                  {/* Add New Tag - 항상 하단 고정 */}
+                  <div className="flex-shrink-0 p-4 border border-secondary rounded-lg bg-secondary">
+                    <h4 className="text-sm font-medium text-primary mb-3">새 태그 추가</h4>
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        value={newTagName}
+                        onChange={(e) => setNewTagName(e.target.value)}
+                        placeholder="태그 이름"
+                        className="input-base w-full"
+                        maxLength={20}
+                      />
+                      <div>
+                        <label className="block text-xs text-secondary mb-2">색상</label>
+                        <div className="flex gap-2">
+                          {colorOptions.map((color) => (
+                            <button
+                              key={color.value}
+                              onClick={() => setNewTagColor(color.value)}
+                              className={`px-3 py-1 text-xs font-semibold rounded-md border ${color.class} ${
+                                newTagColor === color.value
+                                  ? 'ring-2 ring-ring ring-offset-2'
+                                  : 'opacity-70 hover:opacity-100'
+                              }`}
+                              title={color.label}
+                            >
+                              {color.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleCreateTag}
+                        disabled={!newTagName.trim()}
+                        className="btn-base btn-primary w-full"
+                      >
+                        태그 추가
+                      </button>
                     </div>
                   </div>
                 </div>
