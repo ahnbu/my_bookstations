@@ -490,3 +490,23 @@
 .tag-secondary:hover {
   background-color: oklch(from var(--secondary) calc(l * 0.9) c h);
 }
+
+/* Item-level dropdown for book controls */
+.item-dropdown-btn {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.5rem; /* 정렬보다 작게 조정 */
+  font-size: 0.75rem; /* 태그와 동일 */
+  transition: background-color 0.2s ease-in-out,
+              transform 0.2s ease-in-out;
+}
+
+.item-dropdown-btn:hover {
+  background-color: var(--color-surface-hover);
+}
+
+.item-dropdown-btn:focus {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}

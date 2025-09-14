@@ -42,17 +42,21 @@ const ReadStatusDropdown: React.FC<CustomReadStatusDropdownProps> = ({
   }, []);
 
   const sizeClasses = {
+    xs: 'text-xs px-2 py-1',
     sm: 'text-xs px-2 py-1',
     md: 'text-sm px-3 py-2',
   };
 
-  const widthClass = size === 'sm' ? 'w-full' : '';
+  // [핵심 수정] 반응형 너비 클래스를 적용
+  const widthClass = size === 'sm' 
+    ? 'w-full sm:w-24' // 기본은 w-full, sm(640px) 이상일 때만 w-24
+    : ''; // md 사이즈는 너비를 직접 제어하지 않음
 
   return (
     <div ref={dropdownRef} className={`relative inline-block text-left ${widthClass}`}>
       <button
         type="button"
-        className={`input-base inline-flex w-full justify-between items-center gap-x-1.5 ${sizeClasses[size]}`}
+        className={`${size === 'sm' ? 'item-dropdown-btn' : 'input-base'} inline-flex ${size === 'sm' ? 'items-center gap-2' : 'w-full justify-between items-center gap-x-1.5'} ${sizeClasses[size]}`}
         onClick={() => setIsOpen(!isOpen)}
       >
         {value}
@@ -1048,7 +1052,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
         ) : (
           // (수정이전 원본) sortedAndFilteredLibraryBooks.map(book => (
           selectedBooksArray.map(book => (
-          <div key={book.id} className="flex items-start gap-4 p-4 mb-4 bg-elevated rounded-lg hover-surface transition-colors">
+          <div key={book.id} className="flex items-start gap-4 p-4 mb-4 bg-elevated rounded-lg">
             {/* Checkbox Column */}
             <div className="flex items-center justify-center">
               <input 
@@ -1159,7 +1163,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                     <StarRating
                       rating={book.rating}
                       onRatingChange={(newRating) => updateRating(book.id, newRating)}
-                      size="sm"
+                      size="md"
                     />
                   )}
                 </div>
@@ -1321,11 +1325,14 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
           ) : (
             // sortedAndFilteredLibraryBooks.map(book => (
             selectedBooksArray.map(book => (
-            <div key={book.id} className="bg-elevated rounded-lg p-3 hover-surface transition-colors relative">
+            <div key={book.id} className="bg-elevated rounded-lg p-3 relative">
               {/* Checkbox */}
-              <div className="absolute top-2 left-2">
-                <input 
-                  type="checkbox" 
+              <div
+                className="absolute top-2 left-2 z-20 p-1 -m-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <input
+                  type="checkbox"
                   // checked={selectedBooks.has(book.id)}
                   checked={book.isSelected}
                   /* onChange={(e) => {
@@ -1338,8 +1345,11 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                     setSelectedBooks(newSelection);
                     setSelectAll(newSelection.size === sortedAndFilteredLibraryBooks.length);
                   }} */
-                  onChange={(e) => handleBookSelection(book.id, e.target.checked)}
-                  className="w-4 h-4 text-blue-600 bg-tertiary border-primary rounded focus:ring-blue-500"
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    handleBookSelection(book.id, e.target.checked);
+                  }}
+                  className="w-4 h-4 text-blue-600 bg-tertiary border-primary rounded focus:ring-blue-500 cursor-pointer relative z-20"
                 />
               </div>
               
@@ -1380,12 +1390,14 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
               <div className="space-y-2">
                 {/* Title with Refresh Icon */}
                 <div className="flex justify-between items-start gap-1">
-                  <h3 
-                    className="text-sm font-bold text-primary line-clamp-2 flex-1 cursor-pointer hover:text-blue-400 transition-colors" 
-                    title={book.title}
-                    onClick={() => setDetailModalBookId(book.id)}
-                  >
-                    {book.title.replace(/^\[\w+\]\s*/, '')}
+                  <h3 className="text-sm font-bold text-primary line-clamp-2 flex-1">
+                    <span
+                      className="cursor-pointer hover:text-blue-400 transition-colors"
+                      onClick={() => setDetailModalBookId(book.id)}
+                      title={book.title}
+                    >
+                      {book.title.replace(/^\[\w+\]\s*/, '')}
+                    </span>
                   </h3>
                   <button
                     onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title)}
@@ -1419,7 +1431,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                     <StarRating
                       rating={book.rating}
                       onRatingChange={(newRating) => updateRating(book.id, newRating)}
-                      size="sm"
+                      size="md"
                     />
                   </div>
                 )}
