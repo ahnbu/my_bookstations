@@ -1169,7 +1169,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                 </div>
 
                 {/* Custom Tags */}
-                {book.customTags && book.customTags.length > 0 && (
+                {settings.showTags && book.customTags && book.customTags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {book.customTags.map(tagId => {
                       const tag = settings.tagSettings.tags.find(t => t.id === tagId);
@@ -1188,10 +1188,10 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
               </div>
               
               {/* 구분선 및 "하단 재고 블록" */}
-              <hr className="my-3 border-secondary" />
-              
+              {settings.showLibraryStock && <hr className="my-3 border-secondary" />}
+
               {/* Library Inventory Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {settings.showLibraryStock && <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {/* 퇴촌lib */}
                 <LibraryTag
                   name="퇴촌"
@@ -1308,7 +1308,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                   })()}
                   searchUrl={createGyeonggiEbookSearchURL(book.title)}
                 />
-              </div>
+              </div>}
             </div>
           </div>
         )))}
@@ -1355,10 +1355,10 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
               
               {/* Book Cover */}
               <div className="text-center mb-3">
-                <img 
-                  src={book.cover} 
-                  alt={book.title} 
-                  className="w-full h-32 object-contain rounded mb-2 cursor-pointer hover:opacity-80 transition-opacity"
+                <img
+                  src={book.cover}
+                  alt={book.title}
+                  className="w-full h-40 object-contain rounded mb-2 cursor-pointer hover:opacity-80 transition-opacity"
                   onClick={() => setDetailModalBookId(book.id)}
                   title="상세 정보 보기"
                 />
@@ -1446,7 +1446,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                 )}
 
                 {/* Custom Tags */}
-                {book.customTags && book.customTags.length > 0 && (
+                {settings.showTags && book.customTags && book.customTags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {book.customTags.map(tagId => {
                       const tag = settings.tagSettings.tags.find(t => t.id === tagId);
@@ -1464,7 +1464,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                 )}
                 
                 {/* All Library Stock Info */}
-                <div className="grid grid-cols-2 gap-1 text-xs">
+                {settings.showLibraryStock && <div className="grid grid-cols-2 gap-1 text-xs">
                   <LibraryTag
                     name="퇴촌"
                     totalBooks={book.toechonStock?.total || 0}
@@ -1551,7 +1551,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                       return `https://ebook.library.go.kr/search/searchList.ink?searchType=SimpleSearch&searchKeyword=${encodeURIComponent(processedTitle)}&searchCategoryCode=all&reSch=true&currentPageNo=1`;
                     })()}
                   />
-                </div>
+                </div>}
               </div>
             </div>
           )))}

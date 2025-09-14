@@ -166,6 +166,8 @@ export type Theme = 'light' | 'dark' | 'system';
 export type UserSettings = {
   showReadStatus: boolean;
   showRating: boolean;
+  showTags: boolean;
+  showLibraryStock: boolean;
   tagSettings: UserTagSettings;
   theme: Theme;
 };

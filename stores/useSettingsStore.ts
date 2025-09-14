@@ -27,6 +27,8 @@ interface SettingsState {
 const defaultSettings: UserSettings = {
   showReadStatus: true,
   showRating: true,
+  showTags: true,
+  showLibraryStock: true,
   tagSettings: {
     tags: [],
     maxTags: 5,

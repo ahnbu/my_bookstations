@@ -226,6 +226,54 @@ const SettingsModal: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <label className="text-sm font-medium text-primary">
+                      태그 보기
+                    </label>
+                    <p className="text-xs text-secondary mt-1">
+                      내 서재에서 책별 태그를 표시합니다.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleToggle('showTags')}
+                    disabled={saving}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
+                      localSettings.showTags ? 'bg-blue-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        localSettings.showTags ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-primary">
+                      도서관별 재고 보기
+                    </label>
+                    <p className="text-xs text-secondary mt-1">
+                      내 서재에서 도서관별 재고 정보를 표시합니다.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleToggle('showLibraryStock')}
+                    disabled={saving}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
+                      localSettings.showLibraryStock ? 'bg-blue-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        localSettings.showLibraryStock ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-primary">
                       테마
                     </label>
                     <p className="text-xs text-secondary mt-1">
