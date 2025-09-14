@@ -100,7 +100,6 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
     const { updateReadStatus, updateRating, refreshingIsbn, refreshEBookInfo, refreshingEbookId, refreshAllBookInfo, addTagToBook, removeTagFromBook } = useBookStore();
     const book = useBookStore(state => state.myLibraryBooks.find(b => b.id === bookId));
     const { settings } = useSettingsStore();
-    const [isAddingTag, setIsAddingTag] = useState(false);
 
     // If the book is deleted while the modal is open, close the modal.
     useEffect(() => {
@@ -209,9 +208,9 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
 
                                 {/* 태그 관리 섹션 */}
                                 <div>
-                                    <label className="block text-sm font-medium text-secondary mb-2">태그</label>
-                                    <div className="space-y-3">
-                                        {/* 현재 태그 표시 */}
+                                    <label className="block text-sm font-medium text-secondary mb-3">선택된 태그</label>
+                                    <div className="space-y-4">
+                                        {/* 현재 등록된 태그들 (primary 색상, X 버튼) */}
                                         <div className="flex flex-wrap gap-2">
                                             {book.customTags && book.customTags.length > 0 ? (
                                                 book.customTags.map(tagId => {
@@ -219,52 +218,37 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                                     return tag ? (
                                                         <CustomTagComponent
                                                             key={tag.id}
-                                                            tag={tag}
-                                                            isActive={false}
-                                                            onClick={() => removeTagFromBook(book.id, tag.id)}
+                                                            tag={{...tag, color: 'primary'}}
                                                             showClose={true}
+                                                            onClose={() => removeTagFromBook(book.id, tag.id)}
                                                             size="sm"
                                                         />
                                                     ) : null;
                                                 })
                                             ) : (
-                                                <span className="text-tertiary text-sm">태그가 없습니다</span>
+                                                <span className="text-tertiary text-sm">선택된 태그가 없습니다</span>
                                             )}
                                         </div>
 
-                                        {/* 태그 추가 버튼 */}
-                                        <button
-                                            onClick={() => setIsAddingTag(!isAddingTag)}
-                                            className="inline-flex items-center px-3 py-1 text-sm bg-primary text-white rounded-md hover:bg-primary/80 transition-colors"
-                                        >
-                                            + 태그 추가
-                                        </button>
-
-                                        {/* 태그 추가 드롭다운 */}
-                                        {isAddingTag && (
-                                            <div className="bg-elevated border border-primary rounded-md p-3 space-y-2">
-                                                <div className="text-sm text-secondary mb-2">추가할 태그 선택:</div>
-                                                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                                        {/* 추가 가능한 태그들 (secondary 색상, + 버튼) */}
+                                        {settings.tagSettings.tags.filter(tag => !book.customTags?.includes(tag.id)).length > 0 && (
+                                            <>
+                                                <div className="text-sm text-secondary">사용 가능한 태그</div>
+                                                <div className="flex flex-wrap gap-2">
                                                     {settings.tagSettings.tags
                                                         .filter(tag => !book.customTags?.includes(tag.id))
                                                         .map(tag => (
                                                             <CustomTagComponent
                                                                 key={tag.id}
-                                                                tag={tag}
-                                                                isActive={false}
-                                                                onClick={() => {
-                                                                    addTagToBook(book.id, tag.id);
-                                                                    setIsAddingTag(false);
-                                                                }}
+                                                                tag={{...tag, color: 'secondary'}}
+                                                                showAdd={true}
+                                                                onAdd={() => addTagToBook(book.id, tag.id)}
                                                                 size="sm"
                                                             />
                                                         ))
                                                     }
                                                 </div>
-                                                {settings.tagSettings.tags.filter(tag => !book.customTags?.includes(tag.id)).length === 0 && (
-                                                    <div className="text-tertiary text-sm">추가할 수 있는 태그가 없습니다</div>
-                                                )}
-                                            </div>
+                                            </>
                                         )}
                                     </div>
                                 </div>

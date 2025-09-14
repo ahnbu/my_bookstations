@@ -15,7 +15,7 @@ const SettingsModal: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'display' | 'tags' | 'data'>('display');
   const [editingTag, setEditingTag] = useState<CustomTag | null>(null);
   const [newTagName, setNewTagName] = useState('');
-  const [newTagColor, setNewTagColor] = useState<TagColor>('blue');
+  const [newTagColor, setNewTagColor] = useState<TagColor>('primary');
 
   useEffect(() => {
     if (isSettingsModalOpen) {
@@ -65,7 +65,7 @@ const SettingsModal: React.FC = () => {
     try {
       await createTag(newTagName.trim(), newTagColor);
       setNewTagName('');
-      setNewTagColor('blue');
+      setNewTagColor('primary');
       setNotification({ message: '태그가 추가되었습니다.', type: 'success' });
     } catch (error) {
       setNotification({ message: '태그 추가에 실패했습니다.', type: 'error' });
@@ -113,13 +113,8 @@ const SettingsModal: React.FC = () => {
   };
 
   const colorOptions: { value: TagColor; label: string; class: string }[] = [
-    { value: 'blue', label: '파랑', class: 'bg-blue-500' },
-    { value: 'green', label: '초록', class: 'bg-green-500' },
-    { value: 'yellow', label: '노랑', class: 'bg-yellow-500' },
-    { value: 'red', label: '빨강', class: 'bg-red-500' },
-    { value: 'purple', label: '보라', class: 'bg-purple-500' },
-    { value: 'pink', label: '분홍', class: 'bg-pink-500' },
-    { value: 'gray', label: '회색', class: 'bg-gray-500' },
+    { value: 'primary', label: '기본', class: 'tag-primary' },
+    { value: 'secondary', label: '보조', class: 'tag-secondary' },
   ];
 
   if (!isSettingsModalOpen) return null;
@@ -328,13 +323,15 @@ const SettingsModal: React.FC = () => {
                               <button
                                 key={color.value}
                                 onClick={() => setNewTagColor(color.value)}
-                                className={`w-6 h-6 rounded-full ${color.class} ${
+                                className={`px-3 py-1 text-xs font-semibold rounded-md border ${color.class} ${
                                   newTagColor === color.value
-                                    ? 'ring-2 ring-gray-800 ring-offset-2'
-                                    : 'hover:ring-2 hover:ring-gray-400 hover:ring-offset-1'
+                                    ? 'ring-2 ring-ring ring-offset-2'
+                                    : 'opacity-70 hover:opacity-100'
                                 }`}
                                 title={color.label}
-                              />
+                              >
+                                {color.label}
+                              </button>
                             ))}
                           </div>
                         </div>
@@ -437,13 +434,15 @@ const SettingsModal: React.FC = () => {
                       <button
                         key={color.value}
                         onClick={() => handleUpdateTag(editingTag.id, { color: color.value })}
-                        className={`w-8 h-8 rounded-full ${color.class} ${
+                        className={`px-3 py-1 text-xs font-semibold rounded-md border ${color.class} ${
                           editingTag.color === color.value
-                            ? 'ring-2 ring-gray-800 ring-offset-2'
-                            : 'hover:ring-2 hover:ring-gray-400 hover:ring-offset-1'
+                            ? 'ring-2 ring-ring ring-offset-2'
+                            : 'opacity-70 hover:opacity-100'
                         }`}
                         title={color.label}
-                      />
+                      >
+                        {color.label}
+                      </button>
                     ))}
                   </div>
                 </div>

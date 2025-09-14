@@ -1,43 +1,30 @@
+// CustomTag_작업후문제있는코드.tsx
+
 import React from 'react';
 import type { CustomTag, TagColor } from '../types';
+import { CloseIcon, PlusIcon } from './Icons';
 
 interface CustomTagProps {
-  tag: CustomTag;
+  tag: CustomTag; // 이 부분이 undefined일 수 있습니다.
   isActive?: boolean;
   onClick?: () => void;
   showCount?: number;
   size?: 'sm' | 'md';
   className?: string;
+  showClose?: boolean;
+  onClose?: () => void;
+  showAdd?: boolean;
+  onAdd?: () => void;
 }
 
 const colorStyles: Record<TagColor, { base: string; active: string }> = {
-  blue: {
-    base: 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200',
-    active: 'bg-blue-600 border-blue-600 text-white'
+  primary: {
+    base: 'tag-primary',
+    active: 'tag-primary opacity-90'
   },
-  green: {
-    base: 'bg-green-100 border-green-300 text-green-700 hover:bg-green-200',
-    active: 'bg-green-600 border-green-600 text-white'
-  },
-  yellow: {
-    base: 'bg-yellow-100 border-yellow-300 text-yellow-700 hover:bg-yellow-200',
-    active: 'bg-yellow-600 border-yellow-600 text-white'
-  },
-  red: {
-    base: 'bg-red-100 border-red-300 text-red-700 hover:bg-red-200',
-    active: 'bg-red-600 border-red-600 text-white'
-  },
-  purple: {
-    base: 'bg-purple-100 border-purple-300 text-purple-700 hover:bg-purple-200',
-    active: 'bg-purple-600 border-purple-600 text-white'
-  },
-  pink: {
-    base: 'bg-pink-100 border-pink-300 text-pink-700 hover:bg-pink-200',
-    active: 'bg-pink-600 border-pink-600 text-white'
-  },
-  gray: {
-    base: 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200',
-    active: 'bg-gray-600 border-gray-600 text-white'
+  secondary: {
+    base: 'tag-secondary',
+    active: 'tag-secondary opacity-90'
   }
 };
 
@@ -47,24 +34,40 @@ const CustomTagComponent: React.FC<CustomTagProps> = ({
   onClick,
   showCount,
   size = 'md',
-  className = ''
+  className = '',
+  showClose = false,
+  onClose,
+  showAdd = false,
+  onAdd
 }) => {
+  // --- Start: 방어 코드 추가 ---
+  if (!tag || !tag.color) {
+    // tag prop이 없거나 color 속성이 없는 비정상적인 경우,
+    // 렌더링을 시도하지 않거나 기본값으로 렌더링합니다.
+    // 여기서는 null을 반환하여 아무것도 그리지 않도록 합니다.
+    console.warn('CustomTagComponent received invalid tag prop:', tag);
+    return null; 
+  }
+
+  const isValidColor = tag.color === 'primary' || tag.color === 'secondary';
+  const tagColor = isValidColor ? tag.color : 'secondary'; // 유효하지 않은 색상 값일 경우 'secondary'를 기본값으로 사용
+  // --- End: 방어 코드 추가 ---
+
   const sizeClasses = {
-    sm: 'px-2 py-1 text-xs',
-    md: 'px-3 py-1 text-sm'
+    sm: 'px-2 py-0.5 text-xs',
+    md: 'px-2.5 py-0.5 text-xs'
   };
 
   const colorClass = isActive
-    ? colorStyles[tag.color].active
-    : colorStyles[tag.color].base;
+    ? colorStyles[tagColor].active // 수정: tagColor 사용
+    : colorStyles[tagColor].base;   // 수정: tagColor 사용
 
   const baseClasses = `
-    inline-flex items-center
-    border rounded-md font-medium
-    transition-all duration-200
+    inline-flex items-center rounded-md
+    focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2
     ${sizeClasses[size]}
     ${colorClass}
-    ${onClick ? 'cursor-pointer hover:shadow-sm' : ''}
+    ${onClick ? 'cursor-pointer' : ''}
     ${className}
   `.trim().replace(/\s+/g, ' ');
 
@@ -79,6 +82,30 @@ const CustomTagComponent: React.FC<CustomTagProps> = ({
         <span className="ml-1 opacity-75">
           ({showCount})
         </span>
+      )}
+      {showClose && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose?.();
+          }}
+          className="ml-1 p-0.5 text-current hover:text-red-400 transition-colors rounded"
+          title="태그 제거"
+        >
+          <CloseIcon className="w-3 h-3" />
+        </button>
+      )}
+      {showAdd && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onAdd?.();
+          }}
+          className="ml-1 p-0.5 text-current hover:text-green-400 transition-colors rounded"
+          title="태그 추가"
+        >
+          <PlusIcon className="w-3 h-3" />
+        </button>
       )}
     </span>
   );

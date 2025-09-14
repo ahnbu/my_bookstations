@@ -342,87 +342,151 @@
   cursor: not-allowed;
 }
 
-/* Tag color variants - light theme for better contrast in dark UI */
-.tag-blue-base {
-  background-color: rgba(59, 130, 246, 0.1);
-  border-color: rgb(59, 130, 246);
-  color: rgb(59, 130, 246);
+/* Library stock button styles with status indicators */
+.library-tag {
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+  border: 1px solid var(--border);
+  transition: background-color 0.2s ease-in-out,
+              transform 0.2s ease-in-out,
+              box-shadow 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: var(--shadow-2xs);
+  will-change: transform;
 }
 
-.tag-blue-active {
-  background-color: rgb(59, 130, 246);
-  border-color: rgb(59, 130, 246);
-  color: white;
+.library-tag:hover {
+  background-color: oklch(from var(--secondary) calc(l * 0.95) c h);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
-.tag-green-base {
-  background-color: rgba(16, 185, 129, 0.1);
-  border-color: rgb(16, 185, 129);
-  color: rgb(16, 185, 129);
+.library-tag:focus {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
 
-.tag-green-active {
-  background-color: rgb(16, 185, 129);
-  border-color: rgb(16, 185, 129);
-  color: white;
+.library-tag:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-2xs);
 }
 
-.tag-yellow-base {
-  background-color: rgba(245, 158, 11, 0.1);
-  border-color: rgb(245, 158, 11);
-  color: rgb(245, 158, 11);
+.library-tag.status-available {
+  /* 대출가능 - 초록색 동그라미 */
 }
 
-.tag-yellow-active {
-  background-color: rgb(245, 158, 11);
-  border-color: rgb(245, 158, 11);
-  color: white;
+.library-tag.status-unavailable {
+  /* 재고있지만 대출불가 - 빨간색 동그라미 */
 }
 
-.tag-red-base {
-  background-color: rgba(239, 68, 68, 0.1);
-  border-color: rgb(239, 68, 68);
-  color: rgb(239, 68, 68);
+.library-tag.status-none {
+  color: var(--muted-foreground);
+  opacity: 0.7;
+  /* 책없음 - 회색 동그라미, 연한 텍스트 */
 }
 
-.tag-red-active {
-  background-color: rgb(239, 68, 68);
-  border-color: rgb(239, 68, 68);
-  color: white;
+.library-tag.status-none:hover {
+  background-color: var(--secondary);
+  transform: none;
+  box-shadow: var(--shadow-2xs);
+  opacity: 0.7;
 }
 
-.tag-purple-base {
-  background-color: rgba(139, 92, 246, 0.1);
-  border-color: rgb(139, 92, 246);
-  color: rgb(139, 92, 246);
+.status-indicator {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid oklch(from var(--background) calc(l * 0.9) c h);
 }
 
-.tag-purple-active {
-  background-color: rgb(139, 92, 246);
-  border-color: rgb(139, 92, 246);
-  color: white;
+.status-indicator.available {
+  background-color: var(--color-button-success);
+  border-color: oklch(from var(--color-button-success) calc(l * 0.8) c h);
+  box-shadow: 0 0 0 1px oklch(from var(--color-button-success) l c h / 0.2);
 }
 
-.tag-pink-base {
-  background-color: rgba(236, 72, 153, 0.1);
-  border-color: rgb(236, 72, 153);
-  color: rgb(236, 72, 153);
+.status-indicator.unavailable {
+  background-color: var(--color-button-danger);
+  border-color: oklch(from var(--color-button-danger) calc(l * 0.8) c h);
+  box-shadow: 0 0 0 1px oklch(from var(--color-button-danger) l c h / 0.2);
 }
 
-.tag-pink-active {
-  background-color: rgb(236, 72, 153);
-  border-color: rgb(236, 72, 153);
-  color: white;
+.status-indicator.none {
+  background-color: var(--muted-foreground);
+  border-color: oklch(from var(--muted-foreground) calc(l * 0.8) c h);
 }
 
-.tag-gray-base {
-  background-color: rgba(107, 114, 128, 0.1);
-  border-color: rgb(107, 114, 128);
-  color: rgb(107, 114, 128);
+/* Small variant for grid view */
+.library-tag-sm {
+  gap: 0.2rem;
+  padding: 0.15rem 0.35rem;
+  font-size: 0.65rem;
+  line-height: 1.2;
 }
 
-.tag-gray-active {
-  background-color: rgb(107, 114, 128);
-  border-color: rgb(107, 114, 128);
-  color: white;
+.library-tag-sm .status-indicator {
+  width: 0.35rem;
+  height: 0.35rem;
+}
+
+/* Responsive adjustments for library tags */
+@media (max-width: 640px) {
+  .library-tag {
+    gap: 0.25rem;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
+  }
+
+  .status-indicator {
+    width: 0.4rem;
+    height: 0.4rem;
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .library-tag {
+    transition: none;
+  }
+
+  .library-tag:hover {
+    transform: none;
+  }
+
+  .library-tag:active {
+    transform: none;
+  }
+}
+
+/* Unified tag styles using design system colors */
+.tag-primary {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border: 1px solid transparent;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease-in-out;
+}
+
+.tag-primary:hover {
+  background-color: oklch(from var(--primary) calc(l * 0.9) c h);
+}
+
+.tag-secondary {
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+  border: 1px solid transparent;
+  transition: all 0.2s ease-in-out;
+}
+
+.tag-secondary:hover {
+  background-color: oklch(from var(--secondary) calc(l * 0.9) c h);
 }

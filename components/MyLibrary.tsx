@@ -26,9 +26,10 @@ interface LibraryTagProps {
   totalBooks: number;
   availableBooks: number;
   searchUrl: string;
+  size?: 'sm' | 'md';
 }
 
-const LibraryTag: React.FC<LibraryTagProps> = ({ name, totalBooks, availableBooks, searchUrl }) => {
+const LibraryTag: React.FC<LibraryTagProps> = ({ name, totalBooks, availableBooks, searchUrl, size = 'md' }) => {
   const getStatus = () => {
     if (availableBooks > 0) return 'available';
     if (totalBooks > 0) return 'unavailable';
@@ -37,21 +38,16 @@ const LibraryTag: React.FC<LibraryTagProps> = ({ name, totalBooks, availableBook
 
   const status = getStatus();
 
-  const statusStyles = {
-    available: 'bg-green-600/20 text-green-400 border-green-400/50',
-    unavailable: 'bg-red-600/20 text-red-400 border-red-400/50',
-    none: 'bg-tertiary/20 text-tertiary border-secondary'
-  }[status];
-
   return (
     <a
       href={searchUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className={`inline-block px-2 py-1 text-xs rounded-md border ${statusStyles} hover:opacity-80 transition-opacity truncate`}
+      className={`library-tag ${size === 'sm' ? 'library-tag-sm' : ''} status-${status} truncate`}
       title={`${name} - 총 ${totalBooks}권 (대출가능: ${availableBooks}권)`}
     >
-      {name} ({totalBooks}/{availableBooks})
+      <div className={`status-indicator ${status}`}></div>
+      <span>{name} ({totalBooks}/{availableBooks})</span>
     </a>
   );
 };
