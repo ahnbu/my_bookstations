@@ -32,7 +32,7 @@ const SearchForm: React.FC = () => {
           <select
             value={searchType}
             onChange={(e) => setSearchType(e.target.value)}
-            className="h-full py-3 pl-4 pr-10 bg-elevated border-primary rounded-full text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none transition-shadow duration-300"
+            className="h-12 py-3 pl-4 pr-10 bg-elevated border-primary rounded-full text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none transition-shadow duration-300"
             disabled={isLoading}
             aria-label="Search Type"
           >
@@ -51,7 +51,7 @@ const SearchForm: React.FC = () => {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="도서관 책을 찾고, 내 서재에 추가하세요 (제목, 저자명 검색)"
-              className="h-full py-3 pl-4 pr-12 w-full bg-elevated border-primary rounded-full text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none transition-shadow duration-300"
+              className="h-12 py-3 pl-4 pr-12 w-full bg-elevated border-primary rounded-full text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none transition-shadow duration-300"
               disabled={isLoading}
             />
             <button
