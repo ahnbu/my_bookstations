@@ -1,5 +1,3 @@
-
-
 import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { SelectedBook, StockInfo, SortKey, ReadStatus, CustomTag } from '../types';
 import { DownloadIcon, TrashIcon, RefreshIcon, CheckIcon, SearchIcon, CloseIcon } from './Icons';
@@ -266,6 +264,19 @@ const MyLibrary: React.FC = () => {
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
   const [bulkTagModalOpen, setBulkTagModalOpen] = useState(false);
   
+  // MyLibrary 컴포넌트 내부 최상단 (useState 훅들 아래)
+const handleBookSelection = useCallback((bookId: number, isSelected: boolean) => {
+  setSelectedBooks(prev => {
+    const newSelection = new Set(prev);
+    if (isSelected) {
+      newSelection.add(bookId);
+    } else {
+      newSelection.delete(bookId);
+    }
+    return newSelection;
+  });
+}, []); // 의존성 배열이 비어있으므로 이 함수는 단 한 번만 생성됩니다.
+
   // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -390,6 +401,12 @@ const MyLibrary: React.FC = () => {
     });
   }, [myLibraryBooks, sortConfig, debouncedSearchQuery, activeTags]);
   
+  const selectedBooksArray = useMemo(() => {
+    return sortedAndFilteredLibraryBooks.map(book => ({
+      ...book,
+      isSelected: selectedBooks.has(book.id)
+    }));
+  }, [sortedAndFilteredLibraryBooks, selectedBooks]);
 
   // Background refresh for books missing detailed stock info - 비활성화
   useEffect(() => {
@@ -955,14 +972,16 @@ const MyLibrary: React.FC = () => {
             <p className="text-sm mt-1">다른 키워드로 검색해보세요.</p>
           </div>
         ) : (
-          sortedAndFilteredLibraryBooks.map(book => (
+          // (수정이전 원본) sortedAndFilteredLibraryBooks.map(book => (
+          selectedBooksArray.map(book => (
           <div key={book.id} className="flex items-start gap-4 p-4 mb-4 bg-elevated rounded-lg hover-surface transition-colors">
             {/* Checkbox Column */}
             <div className="flex items-center justify-center">
               <input 
                 type="checkbox" 
-                checked={selectedBooks.has(book.id)}
-                onChange={(e) => {
+                // (수정이전 원본) checked={selectedBooks.has(book.id)}
+                checked={book.isSelected} 
+                /* (수정이전 원본) onChange={(e) => {
                   const newSelection = new Set(selectedBooks);
                   if (e.target.checked) {
                     newSelection.add(book.id);
@@ -971,7 +990,8 @@ const MyLibrary: React.FC = () => {
                   }
                   setSelectedBooks(newSelection);
                   setSelectAll(newSelection.size === sortedAndFilteredLibraryBooks.length);
-                }}
+                }} */
+                onChange={(e) => handleBookSelection(book.id, e.target.checked)} 
                 className="w-4 h-4 text-blue-600 bg-tertiary border-primary rounded focus:ring-blue-500"
               />
             </div>
@@ -1228,14 +1248,16 @@ const MyLibrary: React.FC = () => {
               <p className="text-sm mt-1">다른 키워드로 검색해보세요.</p>
             </div>
           ) : (
-            sortedAndFilteredLibraryBooks.map(book => (
+            // sortedAndFilteredLibraryBooks.map(book => (
+            selectedBooksArray.map(book => (
             <div key={book.id} className="bg-elevated rounded-lg p-3 hover-surface transition-colors relative">
               {/* Checkbox */}
               <div className="absolute top-2 left-2">
                 <input 
                   type="checkbox" 
-                  checked={selectedBooks.has(book.id)}
-                  onChange={(e) => {
+                  // checked={selectedBooks.has(book.id)}
+                  checked={book.isSelected}
+                  /* onChange={(e) => {
                     const newSelection = new Set(selectedBooks);
                     if (e.target.checked) {
                       newSelection.add(book.id);
@@ -1244,7 +1266,8 @@ const MyLibrary: React.FC = () => {
                     }
                     setSelectedBooks(newSelection);
                     setSelectAll(newSelection.size === sortedAndFilteredLibraryBooks.length);
-                  }}
+                  }} */
+                  onChange={(e) => handleBookSelection(book.id, e.target.checked)}
                   className="w-4 h-4 text-blue-600 bg-tertiary border-primary rounded focus:ring-blue-500"
                 />
               </div>
@@ -1325,7 +1348,7 @@ const MyLibrary: React.FC = () => {
                     <StarRating
                       rating={book.rating}
                       onRatingChange={(newRating) => updateRating(book.id, newRating)}
-                      size="sm"
+                      size="md"
                     />
                   </div>
                 )}
@@ -1354,7 +1377,7 @@ const MyLibrary: React.FC = () => {
                           tag={tag}
                           isActive={false}
                           onClick={() => {}}
-                          size="xs"
+                          size="sm"
                         />
                       ) : null;
                     })}

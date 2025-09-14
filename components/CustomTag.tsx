@@ -9,7 +9,8 @@ interface CustomTagProps {
   isActive?: boolean;
   onClick?: () => void;
   showCount?: number;
-  size?: 'sm' | 'md';
+  // size?: 'sm' | 'md';
+  size?: 'xs' | 'sm' | 'md';
   className?: string;
   showClose?: boolean;
   onClose?: () => void;
@@ -33,7 +34,7 @@ const CustomTagComponent: React.FC<CustomTagProps> = ({
   isActive = false,
   onClick,
   showCount,
-  size = 'md',
+  size = 'sm', // 기존에는 기본값 'md'였음
   className = '',
   showClose = false,
   onClose,
@@ -54,6 +55,7 @@ const CustomTagComponent: React.FC<CustomTagProps> = ({
   // --- End: 방어 코드 추가 ---
 
   const sizeClasses = {
+    xs: 'px-1.5 py-0 text-[10px] leading-4',
     sm: 'px-2 py-0.5 text-xs',
     md: 'px-2.5 py-0.5 text-xs'
   };
