@@ -275,9 +275,11 @@ const BookDetails: React.FC = () => {
             </div>
           )}
 
+          {/*
           <p className="text-sm text-tertiary leading-relaxed mb-6">
             {selectedBook.description || "제공된 설명이 없습니다."}
           </p>
+          */}
           
           <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
             <button
