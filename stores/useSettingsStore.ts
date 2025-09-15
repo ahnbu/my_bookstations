@@ -42,6 +42,7 @@ const getDefaultSettings = (): UserSettings => {
     showTags: true,
     showLibraryStock: true,
     showFavorites: true,
+    defaultPageSize: 50,
     tagSettings: {
       tags: [
         {

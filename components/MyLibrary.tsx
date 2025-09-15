@@ -534,6 +534,7 @@ const MyLibrary: React.FC = () => {
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
   const [bulkTagModalOpen, setBulkTagModalOpen] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [showAllBooks, setShowAllBooks] = useState(false);
   
   // MyLibrary 컴포넌트 내부 최상단 (useState 훅들 아래)
 const handleBookSelection = useCallback((bookId: number, isSelected: boolean) => {
@@ -622,6 +623,25 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
     setActiveTags(new Set());
   };
 
+  // 그리드 컬럼별 완전한 행을 위한 사전 계산 테이블
+  const GRID_PAGE_SIZES = {
+    25: { 2: 24, 3: 24, 4: 24 },    // 25 설정시 -> 12행/8행/6행
+    50: { 2: 50, 3: 48, 4: 48 },    // 50 설정시 -> 25행/16행/12행
+    100: { 2: 100, 3: 99, 4: 100 }, // 100 설정시 -> 50행/33행/25행
+    200: { 2: 200, 3: 198, 4: 200 } // 200 설정시 -> 100행/66행/50행
+  } as const;
+
+  const getGridPageSize = (pageSize: number, columns: number): number => {
+    return GRID_PAGE_SIZES[pageSize as keyof typeof GRID_PAGE_SIZES]?.[columns as keyof typeof GRID_PAGE_SIZES[25]] || pageSize;
+  };
+
+  // 필터링 상태 감지 함수
+  const hasActiveFilters = useCallback(() => {
+    return debouncedSearchQuery.trim().length >= 2 ||
+           activeTags.size > 0 ||
+           showFavoritesOnly;
+  }, [debouncedSearchQuery, activeTags, showFavoritesOnly]);
+
   const sortedAndFilteredLibraryBooks = useMemo(() => {
     const readStatusOrder: Record<ReadStatus, number> = { '완독': 0, '읽는 중': 1, '읽지 않음': 2 };
 
@@ -676,13 +696,32 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
         return 0;
     });
   }, [myLibraryBooks, sortConfig, debouncedSearchQuery, activeTags, showFavoritesOnly]);
-  
+
+  // 페이지네이션이 적용된 표시할 책 목록 계산
+  const displayedBooks = useMemo(() => {
+    // 필터링이 있거나 전체보기 모드면 모든 책 표시
+    if (showAllBooks || hasActiveFilters()) {
+      return sortedAndFilteredLibraryBooks;
+    }
+
+    const pageSize = settings.defaultPageSize;
+
+    if (viewType === 'grid') {
+      // 그리드: 사전 계산된 룩업 테이블 사용
+      const actualPageSize = getGridPageSize(pageSize, gridColumns);
+      return sortedAndFilteredLibraryBooks.slice(0, actualPageSize);
+    } else {
+      // 카드뷰: 정확히 pageSize만큼
+      return sortedAndFilteredLibraryBooks.slice(0, pageSize);
+    }
+  }, [sortedAndFilteredLibraryBooks, showAllBooks, hasActiveFilters, viewType, gridColumns, settings.defaultPageSize]);
+
   const selectedBooksArray = useMemo(() => {
-    return sortedAndFilteredLibraryBooks.map(book => ({
+    return displayedBooks.map(book => ({
       ...book,
       isSelected: selectedBooks.has(book.id)
     }));
-  }, [sortedAndFilteredLibraryBooks, selectedBooks]);
+  }, [displayedBooks, selectedBooks]);
 
   // Background refresh for books missing detailed stock info - 비활성화
   useEffect(() => {
@@ -1123,7 +1162,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
           {/* Mobile: First Row - Book count + Sort */}
           <div className="flex justify-between items-center md:hidden">
             <span className="text-sm text-secondary font-medium">
-              총 {sortedAndFilteredLibraryBooks.length}권
+              총 {sortedAndFilteredLibraryBooks.length}권{!showAllBooks && !hasActiveFilters() && sortedAndFilteredLibraryBooks.length > displayedBooks.length ? ` (${displayedBooks.length}권 표시)` : ''}
             </span>
             {/* Sort Dropdown */}
             <div className="relative" ref={sortDropdownRef}>
@@ -1275,7 +1314,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                 />
               </label>
               <span className="text-sm text-secondary">
-                {selectedBooks.size}개 선택(총 {sortedAndFilteredLibraryBooks.length}권)
+                {selectedBooks.size}개 선택(총 {sortedAndFilteredLibraryBooks.length}권{!showAllBooks && !hasActiveFilters() && sortedAndFilteredLibraryBooks.length > displayedBooks.length ? `, ${displayedBooks.length}권 표시` : ''})
               </span>
             </div>
 
@@ -1391,7 +1430,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
       {viewType === 'card' ? (
         /* Card View */
         <div className="space-y-4 max-w-4xl mx-auto">
-        {sortedAndFilteredLibraryBooks.length === 0 && debouncedSearchQuery.trim().length >= 2 ? (
+        {displayedBooks.length === 0 && debouncedSearchQuery.trim().length >= 2 ? (
           <div className="text-center text-secondary p-8 bg-secondary rounded-lg shadow-md">
             <h3 className="text-lg font-medium mb-2">검색 결과가 없습니다</h3>
             <p className="text-sm">'{debouncedSearchQuery}' 에 대한 검색 결과를 찾을 수 없습니다.</p>
@@ -1685,7 +1724,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
       ) : (
         /* Grid View */
         <div className="grid gap-4 max-w-4xl mx-auto" style={{ gridTemplateColumns: `repeat(${gridColumns}, 1fr)` }}>
-          {sortedAndFilteredLibraryBooks.length === 0 && debouncedSearchQuery.trim().length >= 2 ? (
+          {displayedBooks.length === 0 && debouncedSearchQuery.trim().length >= 2 ? (
             <div className="col-span-full text-center text-secondary p-8 bg-secondary rounded-lg shadow-md">
               <h3 className="text-lg font-medium mb-2">검색 결과가 없습니다</h3>
               <p className="text-sm">'{debouncedSearchQuery}' 에 대한 검색 결과를 찾을 수 없습니다.</p>
@@ -1946,6 +1985,22 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
           )))}
         </div>
       )}
+
+      {/* View All Button - 필터가 없고 전체보기 모드가 아닐 때만 표시 */}
+      {!showAllBooks && !hasActiveFilters() && sortedAndFilteredLibraryBooks.length > displayedBooks.length && (
+        <div className="flex justify-center mt-6">
+          <button
+            onClick={() => setShowAllBooks(true)}
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
+          >
+            <span>전체 보기</span>
+            <span className="text-blue-200">
+              ({displayedBooks.length}/{sortedAndFilteredLibraryBooks.length}권)
+            </span>
+          </button>
+        </div>
+      )}
+
       {detailModalBookId && (
         <MyLibraryBookDetailModal
             bookId={detailModalBookId}

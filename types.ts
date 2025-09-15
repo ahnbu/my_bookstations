@@ -170,6 +170,7 @@ export type UserSettings = {
   showTags: boolean;
   showLibraryStock: boolean;
   showFavorites: boolean;
+  defaultPageSize: number;
   tagSettings: UserTagSettings;
   theme: Theme;
 };

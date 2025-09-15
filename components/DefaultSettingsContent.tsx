@@ -10,6 +10,7 @@ const DefaultSettingsContent: React.FC = () => {
     showTags: true,
     showLibraryStock: true,
     showFavorites: true,
+    defaultPageSize: 50,
     tagSettings: {
       tags: [
         {
@@ -120,6 +121,7 @@ const DefaultSettingsContent: React.FC = () => {
       showTags: true,
       showLibraryStock: true,
       showFavorites: true,
+      defaultPageSize: 50,
       tagSettings: {
         tags: [
           {
@@ -261,6 +263,23 @@ const DefaultSettingsContent: React.FC = () => {
                 }`}
               />
             </button>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="text-sm font-medium text-white">기본 보기 건수</label>
+              <p className="text-xs text-gray-400 mt-1">새 사용자의 내 서재 초기 로딩 시 표시할 책의 수를 설정합니다.</p>
+            </div>
+            <select
+              value={defaultSettings.defaultPageSize}
+              onChange={(e) => setDefaultSettings(prev => ({ ...prev, defaultPageSize: parseInt(e.target.value) }))}
+              className="px-3 py-1 bg-gray-600 text-white rounded border border-gray-500 focus:border-blue-500 text-sm w-24"
+            >
+              <option value={25}>25권</option>
+              <option value={50}>50권</option>
+              <option value={100}>100권</option>
+              <option value={200}>200권</option>
+            </select>
           </div>
 
           <div className="space-y-3">

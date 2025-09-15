@@ -312,6 +312,28 @@ const SettingsModal: React.FC = () => {
                   </button>
                 </div>
 
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-primary">
+                      기본 보기 건수
+                    </label>
+                    <p className="text-xs text-secondary mt-1 hidden sm:block">
+                      내 서재 초기 로딩 시 표시할 책의 수를 설정합니다.
+                    </p>
+                  </div>
+                  <select
+                    value={localSettings.defaultPageSize}
+                    onChange={(e) => setLocalSettings(prev => ({ ...prev, defaultPageSize: parseInt(e.target.value) }))}
+                    disabled={saving}
+                    className="input-base w-24 text-sm disabled:opacity-50"
+                  >
+                    <option value={25}>25권</option>
+                    <option value={50}>50권</option>
+                    <option value={100}>100권</option>
+                    <option value={200}>200권</option>
+                  </select>
+                </div>
+
                 <div className="space-y-3">
                   <div>
                     <label className="text-sm font-medium text-primary">
