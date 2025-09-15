@@ -1259,7 +1259,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                 className="p-1 btn-base btn-primary rounded-lg"
                 title="선택된 책에 태그 관리"
               >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd" />
                 </svg>
               </button>
@@ -1269,7 +1269,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                 title={showFavoritesOnly ? "전체 책 보기" : "좋아하는 책만 보기"}
               >
                 <HeartIcon
-                  className={`w-4 h-4 transition-colors duration-200 ${
+                  className={`w-5 h-5 transition-colors duration-200 ${
                     showFavoritesOnly
                       ? 'text-red-500 fill-red-500'
                       : 'text-[#131729] fill-[#131729]'
@@ -1289,7 +1289,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                 className={`p-1 btn-base ${selectedBooks.size > 0 ? 'btn-danger' : 'btn-primary'} rounded-lg`}
                 title="선택된 책 삭제"
               >
-                <TrashIcon className={`w-4 h-4 ${selectedBooks.size > 0 ? 'text-white' : 'text-[#131729]'}`} />
+                <TrashIcon className={`w-5 h-5 ${selectedBooks.size > 0 ? 'text-white' : 'text-[#131729]'}`} />
               </button>
             </div>
           </div>
@@ -1309,7 +1309,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                       setSelectedBooks(new Set());
                     }
                   }}
-                  className="w-4 h-4 text-blue-600 bg-tertiary border-primary rounded focus:ring-blue-500"
+                  className="w-5 h-5 text-blue-600 bg-tertiary border-primary rounded focus:ring-blue-500"
                   title="전체 선택"
                 />
               </label>

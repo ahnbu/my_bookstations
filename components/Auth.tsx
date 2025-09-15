@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Spinner from './Spinner';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useUIStore } from '../stores/useUIStore';
@@ -8,6 +8,12 @@ const Auth: React.FC = () => {
     const { session } = useAuthStore();
     const { openAuthModal, openProfileModal, openSettingsModal } = useUIStore();
     const [loading, setLoading] = useState(false);
+    const [imageLoadError, setImageLoadError] = useState(false);
+
+    // 사용자가 변경될 때 이미지 에러 상태 리셋
+    useEffect(() => {
+        setImageLoadError(false);
+    }, [session?.user?.id]);
 
     if (loading) {
         return (
@@ -29,8 +35,13 @@ const Auth: React.FC = () => {
                     className="flex items-center gap-2 hover:bg-gray-800 p-2 rounded-lg transition-colors duration-200"
                     title="프로필 설정"
                 >
-                    {userAvatar ? (
-                        <img src={userAvatar} alt="User avatar" className="w-8 h-8 rounded-full" />
+                    {userAvatar && !imageLoadError ? (
+                        <img
+                            src={userAvatar}
+                            alt="User avatar"
+                            className="w-8 h-8 rounded-full"
+                            onError={() => setImageLoadError(true)}
+                        />
                     ) : (
                         <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
                             <span className="text-white text-sm font-semibold">

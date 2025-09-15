@@ -73,11 +73,30 @@ const AuthModal: React.FC = () => {
     }
     setLoading(false);
   };
-  
+
+  const getRedirectURL = () => {
+    if (typeof window !== 'undefined') {
+      const currentURL = window.location.origin;
+
+      // 로컬 개발 환경 감지 (localhost 또는 127.0.0.1)
+      if (currentURL.includes('localhost') || currentURL.includes('127.0.0.1')) {
+        return currentURL; // 현재 실행중인 전체 URL 사용 (포트 포함)
+      }
+
+      // 프로덕션 환경
+      return 'https://my-bookstations.vercel.app/';
+    }
+
+    return 'https://my-bookstations.vercel.app/';
+  };
+
   const handleGoogleLogin = async () => {
     setLoading(true);
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
+        options: {
+          redirectTo: getRedirectURL()
+        }
     });
     if (oauthError) {
         setError(oauthError.message);
