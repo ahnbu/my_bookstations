@@ -179,7 +179,7 @@ const SettingsModal: React.FC = () => {
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
-            데이터 관리
+            내보내기
           </button>
         </div>
 
@@ -197,7 +197,7 @@ const SettingsModal: React.FC = () => {
                     <label className="text-sm font-medium text-primary">
                       완독여부 표시
                     </label>
-                    <p className="text-xs text-secondary mt-1">
+                    <p className="text-xs text-secondary mt-1 hidden sm:block">
                       내 서재에서 읽기 상태를 표시합니다.
                     </p>
                   </div>
@@ -221,7 +221,7 @@ const SettingsModal: React.FC = () => {
                     <label className="text-sm font-medium text-primary">
                       별표 표시
                     </label>
-                    <p className="text-xs text-secondary mt-1">
+                    <p className="text-xs text-secondary mt-1 hidden sm:block">
                       내 서재에서 별점 평가를 표시합니다.
                     </p>
                   </div>
@@ -245,7 +245,7 @@ const SettingsModal: React.FC = () => {
                     <label className="text-sm font-medium text-primary">
                       태그 보기
                     </label>
-                    <p className="text-xs text-secondary mt-1">
+                    <p className="text-xs text-secondary mt-1 hidden sm:block">
                       내 서재에서 책별 태그를 표시합니다.
                     </p>
                   </div>
@@ -269,7 +269,7 @@ const SettingsModal: React.FC = () => {
                     <label className="text-sm font-medium text-primary">
                       도서관별 재고 보기
                     </label>
-                    <p className="text-xs text-secondary mt-1">
+                    <p className="text-xs text-secondary mt-1 hidden sm:block">
                       내 서재에서 도서관별 재고 정보를 표시합니다.
                     </p>
                   </div>
@@ -288,16 +288,16 @@ const SettingsModal: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className="space-y-3">
                   <div>
                     <label className="text-sm font-medium text-primary">
                       테마
                     </label>
-                    <p className="text-xs text-secondary mt-1">
+                    <p className="text-xs text-secondary mt-1 hidden sm:block">
                       애플리케이션의 외관을 설정합니다.
                     </p>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="theme-button-group flex flex-row gap-2">
                     {[
                       { value: 'light', label: '라이트', icon: '☀️' },
                       { value: 'dark', label: '다크', icon: '🌙' },
@@ -315,13 +315,13 @@ const SettingsModal: React.FC = () => {
                           }
                         }}
                         disabled={saving}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors disabled:opacity-50 ${
+                        className={`btn-base flex-1 ${
                           localSettings.theme === theme.value
-                            ? 'btn-base btn-primary'
-                            : 'bg-elevated text-primary border-primary hover-surface'
+                            ? 'btn-primary'
+                            : 'btn-secondary'
                         }`}
                       >
-                        <span className="mr-1">{theme.icon}</span>
+                        <span className="mr-2">{theme.icon}</span>
                         {theme.label}
                       </button>
                     ))}
@@ -370,42 +370,41 @@ const SettingsModal: React.FC = () => {
 
                   {/* Add New Tag - 항상 하단 고정 */}
                   <div className="flex-shrink-0 p-4 border border-secondary rounded-lg bg-secondary">
-                    <h4 className="text-sm font-medium text-primary mb-3">새 태그 추가</h4>
+                    {/* <h4 className="text-sm font-medium text-primary mb-3">새 태그 추가</h4> */}
                     <div className="space-y-3">
-                      <input
-                        type="text"
-                        value={newTagName}
-                        onChange={(e) => setNewTagName(e.target.value)}
-                        placeholder="태그 이름"
-                        className="input-base w-full"
-                        maxLength={20}
-                      />
-                      <div>
-                        <label className="block text-xs text-secondary mb-2">색상</label>
-                        <div className="flex gap-2">
-                          {colorOptions.map((color) => (
-                            <button
-                              key={color.value}
-                              onClick={() => setNewTagColor(color.value)}
-                              className={`px-3 py-1 text-xs font-semibold rounded-md border ${color.class} ${
-                                newTagColor === color.value
-                                  ? 'ring-2 ring-ring ring-offset-2'
-                                  : 'opacity-70 hover:opacity-100'
-                              }`}
-                              title={color.label}
-                            >
-                              {color.label}
-                            </button>
-                          ))}
-                        </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newTagName}
+                          onChange={(e) => setNewTagName(e.target.value)}
+                          placeholder="태그 이름"
+                          className="input-base flex-1"
+                          maxLength={20}
+                        />
+                        <button
+                          onClick={handleCreateTag}
+                          disabled={!newTagName.trim()}
+                          className="btn-base btn-primary"
+                        >
+                          태그 추가
+                        </button>
                       </div>
-                      <button
-                        onClick={handleCreateTag}
-                        disabled={!newTagName.trim()}
-                        className="btn-base btn-primary w-full"
-                      >
-                        태그 추가
-                      </button>
+                      <div className="flex gap-2">
+                        {colorOptions.map((color) => (
+                          <button
+                            key={color.value}
+                            onClick={() => setNewTagColor(color.value)}
+                            className={`px-3 py-1 text-xs font-semibold rounded-md border ${color.class} ${
+                              newTagColor === color.value
+                                ? 'ring-2 ring-ring ring-offset-2'
+                                : 'opacity-70 hover:opacity-100'
+                            }`}
+                            title={color.label}
+                          >
+                            {color.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -416,20 +415,20 @@ const SettingsModal: React.FC = () => {
             {activeTab === 'data' && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-sm font-medium text-primary mb-3">내보내기</h3>
+                  {/* <h3 className="text-sm font-medium text-primary mb-3">내보내기</h3> */}
                   <div className="p-4 border border-secondary rounded-lg">
                     <div className="flex items-center justify-between">
                       <div>
                         <label className="text-sm font-medium text-primary">
                           CSV로 내보내기
                         </label>
-                        <p className="text-xs text-secondary mt-1">
+                        <p className="text-xs text-secondary mt-1 hidden sm:block">
                           내 서재의 모든 책 정보를 CSV 파일로 다운로드합니다.
                         </p>
                       </div>
                       <button
                         onClick={handleExportCSV}
-                        className="btn-base btn-success"
+                        className="btn-base btn-primary"
                       >
                         내보내기
                       </button>

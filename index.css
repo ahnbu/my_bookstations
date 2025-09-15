@@ -452,6 +452,13 @@
   }
 }
 
+/* Theme button responsive styles */
+.theme-button-group {
+  width: 100%;
+}
+
+/* 모바일에서도 테마 버튼을 1줄로 유지 */
+
 /* Reduce motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
   .library-tag {
