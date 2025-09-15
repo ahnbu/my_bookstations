@@ -166,19 +166,19 @@ const DefaultSettingsContent: React.FC = () => {
       </div>
       */}
       {/* 표시 옵션 기본값 */}
-      <div className="bg-gray-800 rounded-lg p-6 space-y-6">
-        <h3 className="text-xl font-semibold text-white mb-4">표시 옵션 기본값</h3>
+      <div className="bg-gray-800 rounded-lg space-y-6">
+        <h3 className="text-xl font-semibold text-white mb-4 pt-6">표시 옵션 기본값</h3>
 
-        <div className="space-y-4">
+        <div className="space-y-4 pb-6">
           <div className="flex items-center justify-between">
             <div>
               <label className="text-sm font-medium text-white">완독여부 표시</label>
-              <p className="text-xs text-gray-400 mt-1">내 서재에서 읽기 상태를 표시합니다.</p>
+              <p className="text-xs text-secondary mt-1 hidden sm:block">내 서재에서 읽기 상태를 표시합니다.</p>
             </div>
             <button
               onClick={() => handleToggle('showReadStatus')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                defaultSettings.showReadStatus ? 'bg-blue-600' : 'bg-gray-600'
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                defaultSettings.showReadStatus ? 'bg-blue-600' : 'bg-gray-200'
               }`}
             >
               <span
@@ -192,12 +192,12 @@ const DefaultSettingsContent: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <label className="text-sm font-medium text-white">별표 표시</label>
-              <p className="text-xs text-gray-400 mt-1">내 서재에서 별점 평가를 표시합니다.</p>
+              <p className="text-xs text-secondary mt-1 hidden sm:block">내 서재에서 별점 평가를 표시합니다.</p>
             </div>
             <button
               onClick={() => handleToggle('showRating')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                defaultSettings.showRating ? 'bg-blue-600' : 'bg-gray-600'
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                defaultSettings.showRating ? 'bg-blue-600' : 'bg-gray-200'
               }`}
             >
               <span
@@ -211,12 +211,12 @@ const DefaultSettingsContent: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <label className="text-sm font-medium text-white">태그 보기</label>
-              <p className="text-xs text-gray-400 mt-1">내 서재에서 책별 태그를 표시합니다.</p>
+              <p className="text-xs text-secondary mt-1 hidden sm:block">내 서재에서 책별 태그를 표시합니다.</p>
             </div>
             <button
               onClick={() => handleToggle('showTags')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                defaultSettings.showTags ? 'bg-blue-600' : 'bg-gray-600'
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                defaultSettings.showTags ? 'bg-blue-600' : 'bg-gray-200'
               }`}
             >
               <span
@@ -230,12 +230,12 @@ const DefaultSettingsContent: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <label className="text-sm font-medium text-white">도서관별 재고 보기</label>
-              <p className="text-xs text-gray-400 mt-1">내 서재에서 도서관별 재고 정보를 표시합니다.</p>
+              <p className="text-xs text-secondary mt-1 hidden sm:block">내 서재에서 도서관별 재고 정보를 표시합니다.</p>
             </div>
             <button
               onClick={() => handleToggle('showLibraryStock')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                defaultSettings.showLibraryStock ? 'bg-blue-600' : 'bg-gray-600'
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                defaultSettings.showLibraryStock ? 'bg-blue-600' : 'bg-gray-200'
               }`}
             >
               <span
@@ -249,12 +249,12 @@ const DefaultSettingsContent: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <label className="text-sm font-medium text-white">좋아요 아이콘 표시</label>
-              <p className="text-xs text-gray-400 mt-1">내 서재에서 책별 좋아요 버튼을 표시합니다.</p>
+              <p className="text-xs text-secondary mt-1 hidden sm:block">내 서재에서 책별 좋아요 버튼을 표시합니다.</p>
             </div>
             <button
               onClick={() => handleToggle('showFavorites')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                defaultSettings.showFavorites ? 'bg-blue-600' : 'bg-gray-600'
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                defaultSettings.showFavorites ? 'bg-blue-600' : 'bg-gray-200'
               }`}
             >
               <span
@@ -268,12 +268,12 @@ const DefaultSettingsContent: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <label className="text-sm font-medium text-white">기본 보기 건수</label>
-              <p className="text-xs text-gray-400 mt-1">새 사용자의 내 서재 초기 로딩 시 표시할 책의 수를 설정합니다.</p>
+              <p className="text-xs text-secondary mt-1 hidden sm:block">새 사용자의 내 서재 초기 로딩 시 표시할 책의 수를 설정합니다.</p>
             </div>
             <select
               value={defaultSettings.defaultPageSize}
               onChange={(e) => setDefaultSettings(prev => ({ ...prev, defaultPageSize: parseInt(e.target.value) }))}
-              className="px-3 py-1 bg-gray-600 text-white rounded border border-gray-500 focus:border-blue-500 text-sm w-24"
+              className="input-base w-24 text-sm"
             >
               <option value={25}>25권</option>
               <option value={50}>50권</option>
@@ -285,9 +285,9 @@ const DefaultSettingsContent: React.FC = () => {
           <div className="space-y-3">
             <div>
               <label className="text-sm font-medium text-white">테마</label>
-              <p className="text-xs text-gray-400 mt-1">애플리케이션의 기본 외관을 설정합니다.</p>
+              <p className="text-xs text-secondary mt-1 hidden sm:block">애플리케이션의 기본 외관을 설정합니다.</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               {[
                 { value: 'light', label: '라이트', icon: '☀️' },
                 { value: 'dark', label: '다크', icon: '🌙' },
@@ -296,10 +296,10 @@ const DefaultSettingsContent: React.FC = () => {
                 <button
                   key={theme.value}
                   onClick={() => handleThemeChange(theme.value as Theme)}
-                  className={`px-4 py-2 rounded-lg border transition-colors ${
+                  className={`btn-base flex-1 ${
                     defaultSettings.theme === theme.value
-                      ? 'bg-blue-600 border-blue-500 text-white'
-                      : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                      ? 'btn-primary'
+                      : 'btn-secondary'
                   }`}
                 >
                   <span className="mr-2">{theme.icon}</span>
@@ -312,8 +312,8 @@ const DefaultSettingsContent: React.FC = () => {
       </div>
 
       {/* 기본 태그 설정 */}
-      <div className="bg-gray-800 rounded-lg p-6">
-        <h3 className="text-xl font-semibold text-white mb-4">기본 태그 설정</h3>
+      <div className="bg-gray-800 rounded-lg">
+        <h3 className="text-xl font-semibold text-white mb-4 pt-6">기본 태그 설정</h3>
         <p className="text-gray-400 text-sm mb-4">새 사용자에게 기본으로 제공할 태그를 설정합니다.</p>
 
         <div className="space-y-3 mb-4">
@@ -352,12 +352,14 @@ const DefaultSettingsContent: React.FC = () => {
           ))}
         </div>
 
-        <button
-          onClick={addDefaultTag}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-        >
-          기본 태그 추가
-        </button>
+        <div className="pb-6">
+          <button
+            onClick={addDefaultTag}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          >
+            기본 태그 추가
+          </button>
+        </div>
       </div>
 
       {/* 액션 버튼들 */}
@@ -368,13 +370,13 @@ const DefaultSettingsContent: React.FC = () => {
         <button
           onClick={applyDefaultSettings}
           disabled={saving}
-          className="px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-600/50 text-white rounded-lg transition-colors font-medium"
+          className="btn-base btn-primary flex-1"
         >
           {saving ? '적용 중...' : '기본값 적용'}
         </button>
         <button
           onClick={resetToOriginal}
-          className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+          className="btn-base btn-primary flex-1"
         >
           초기화
         </button>

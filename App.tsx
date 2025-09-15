@@ -12,6 +12,7 @@ import FeedbackModal from './components/FeedbackModal';
 import BulkSearchModal from './components/BulkSearchModal';
 import APITestModal from './components/APITestModal';
 import DevNoteModal from './components/DevNoteModal';
+import WelcomeModal from './components/WelcomeModal';
 import Notification from './components/Notification';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
@@ -23,7 +24,7 @@ import { useSettingsStore } from './stores/useSettingsStore';
 import { isAdmin } from './utils/adminCheck';
 
 const App: React.FC = () => {
-  const { notification, setNotification } = useUIStore();
+  const { notification, setNotification, openWelcomeModal } = useUIStore();
   const initializeAuthListener = useAuthStore(state => state.initializeAuthListener);
   const session = useAuthStore(state => state.session);
   const fetchUserLibrary = useBookStore(state => state.fetchUserLibrary);
@@ -64,6 +65,17 @@ const App: React.FC = () => {
     }
   }, [setNotification]);
 
+  // 첫 방문자 감지 및 웰컴 모달 표시
+  useEffect(() => {
+    const hasVisitedBefore = localStorage.getItem('hasVisited');
+    if (!hasVisitedBefore) {
+      // 약간의 지연을 두어 다른 초기화가 완료된 후 웰컴 모달 표시
+      setTimeout(() => {
+        openWelcomeModal();
+      }, 500);
+    }
+  }, [openWelcomeModal]);
+
   return (
     <div className="min-h-screen bg-primary text-primary font-sans">
       {notification && (
@@ -93,6 +105,9 @@ const App: React.FC = () => {
         <FeedbackModal />
       </main>
       <Footer />
+
+      {/* 웰컴 모달 */}
+      <WelcomeModal />
 
       {/* 개발환경에서만 개발자 도구 표시 */}
       {isAdmin(session?.user?.email) && <AdminPanel />}

@@ -20,6 +20,9 @@ interface UIState {
   isBulkSearchModalOpen: boolean;
   isAPITestModalOpen: boolean;
   isDevNoteModalOpen: boolean;
+
+  // Welcome Modal state
+  isWelcomeModalOpen: boolean;
   
   // Context state
   isAPITestMode: boolean;
@@ -55,6 +58,10 @@ interface UIState {
   openDevNoteModal: () => void;
   closeDevNoteModal: () => void;
 
+  // Welcome Modal actions
+  openWelcomeModal: () => void;
+  closeWelcomeModal: () => void;
+
   setAPITestMode: (isAPITestMode: boolean) => void;
 }
 
@@ -71,6 +78,7 @@ export const useUIStore = create<UIState>((set) => ({
   isBulkSearchModalOpen: false,
   isAPITestModalOpen: false,
   isDevNoteModalOpen: false,
+  isWelcomeModalOpen: false,
   isAPITestMode: false,
 
   setIsLoading: (isLoading) => set({ isLoading }),
@@ -102,6 +110,10 @@ export const useUIStore = create<UIState>((set) => ({
   closeAPITestModal: () => set({ isAPITestModalOpen: false }),
   openDevNoteModal: () => set({ isDevNoteModalOpen: true }),
   closeDevNoteModal: () => set({ isDevNoteModalOpen: false }),
+
+  // Welcome Modal implementations
+  openWelcomeModal: () => set({ isWelcomeModalOpen: true }),
+  closeWelcomeModal: () => set({ isWelcomeModalOpen: false }),
 
   setAPITestMode: (isAPITestMode) => set({ isAPITestMode }),
 }));
