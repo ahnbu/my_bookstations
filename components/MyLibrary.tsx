@@ -1433,22 +1433,24 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                   title="상세 정보 보기"
                 />
                 {/* Heart Icon for Favorite */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFavorite(book.id);
-                  }}
-                  className="absolute top-1 left-1 p-1 bg-black bg-opacity-50 rounded-full hover:bg-opacity-70 transition-all duration-200"
-                  title={book.isFavorite ? "좋아요 취소" : "좋아요"}
-                >
-                  <HeartIcon
-                    className={`w-4 h-4 transition-colors duration-200 ${
-                      book.isFavorite
-                        ? 'text-red-500 fill-red-500'
-                        : 'text-white hover:text-red-300'
-                    }`}
-                  />
-                </button>
+                {settings.showFavorites && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite(book.id);
+                    }}
+                    className="absolute top-1 left-1 p-1 bg-black bg-opacity-50 rounded-full hover:bg-opacity-70 transition-all duration-200"
+                    title={book.isFavorite ? "좋아요 취소" : "좋아요"}
+                  >
+                    <HeartIcon
+                      className={`w-4 h-4 transition-colors duration-200 ${
+                        book.isFavorite
+                          ? 'text-red-500 fill-red-500'
+                          : 'text-white hover:text-red-300'
+                      }`}
+                    />
+                  </button>
+                )}
               </div>
               
               {/* Action Buttons */}
@@ -1721,22 +1723,24 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
               </div>
 
               {/* Heart Icon for Favorite */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleFavorite(book.id);
-                }}
-                className="absolute top-2 right-2 z-20 p-1 bg-black bg-opacity-50 rounded-full hover:bg-opacity-70 transition-all duration-200"
-                title={book.isFavorite ? "좋아요 취소" : "좋아요"}
-              >
-                <HeartIcon
-                  className={`w-4 h-4 transition-colors duration-200 ${
-                    book.isFavorite
-                      ? 'text-red-500 fill-red-500'
-                      : 'text-white hover:text-red-300'
-                  }`}
-                />
-              </button>
+              {settings.showFavorites && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFavorite(book.id);
+                  }}
+                  className="absolute top-2 right-2 z-20 p-1 bg-black bg-opacity-50 rounded-full hover:bg-opacity-70 transition-all duration-200"
+                  title={book.isFavorite ? "좋아요 취소" : "좋아요"}
+                >
+                  <HeartIcon
+                    className={`w-4 h-4 transition-colors duration-200 ${
+                      book.isFavorite
+                        ? 'text-red-500 fill-red-500'
+                        : 'text-white hover:text-red-300'
+                    }`}
+                  />
+                </button>
+              )}
 
               {/* Book Cover */}
               <div className="text-center mb-3">

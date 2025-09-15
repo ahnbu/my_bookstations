@@ -169,6 +169,7 @@ export type UserSettings = {
   showRating: boolean;
   showTags: boolean;
   showLibraryStock: boolean;
+  showFavorites: boolean;
   tagSettings: UserTagSettings;
   theme: Theme;
 };

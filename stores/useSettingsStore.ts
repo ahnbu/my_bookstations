@@ -24,17 +24,41 @@ interface SettingsState {
   applyTheme: (theme: Theme) => void;
 }
 
-const defaultSettings: UserSettings = {
-  showReadStatus: true,
-  showRating: true,
-  showTags: true,
-  showLibraryStock: true,
-  tagSettings: {
-    tags: [],
-    maxTags: 5,
-  },
-  theme: 'system',
+const getDefaultSettings = (): UserSettings => {
+  // 관리자가 설정한 기본값 확인
+  const adminDefaults = localStorage.getItem('adminDefaultSettings');
+  if (adminDefaults) {
+    try {
+      return JSON.parse(adminDefaults);
+    } catch (error) {
+      console.error('관리자 기본값 파싱 실패:', error);
+    }
+  }
+
+  // 기본값 (fallback)
+  return {
+    showReadStatus: true,
+    showRating: true,
+    showTags: true,
+    showLibraryStock: true,
+    showFavorites: true,
+    tagSettings: {
+      tags: [
+        {
+          id: 'default_personal',
+          name: '개인',
+          color: 'primary',
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        }
+      ],
+      maxTags: 5,
+    },
+    theme: 'system',
+  };
 };
+
+const defaultSettings: UserSettings = getDefaultSettings();
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   settings: defaultSettings,
@@ -58,33 +82,36 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
       if (error) {
         if (error.code === 'PGRST116') {
-          // No settings found, create default settings
+          // No settings found, create default settings with current admin defaults
+          const currentDefaultSettings = getDefaultSettings();
           const { error: insertError } = await supabase
             .from('user_settings')
             .insert({
               user_id: user.id,
-              settings: defaultSettings,
+              settings: currentDefaultSettings,
             });
 
           if (insertError) {
             console.error('Error creating default settings:', insertError);
           }
-          
-          set({ settings: defaultSettings, loading: false });
+
+          set({ settings: currentDefaultSettings, loading: false });
         } else {
           console.error('Error fetching user settings:', error);
-          set({ settings: defaultSettings, loading: false });
+          const currentDefaultSettings = getDefaultSettings();
+          set({ settings: currentDefaultSettings, loading: false });
         }
         return;
       }
 
-      set({ 
-        settings: data?.settings || defaultSettings, 
-        loading: false 
+      set({
+        settings: data?.settings || getDefaultSettings(),
+        loading: false
       });
     } catch (error) {
       console.error('Error in fetchUserSettings:', error);
-      set({ settings: defaultSettings, loading: false });
+      const currentDefaultSettings = getDefaultSettings();
+      set({ settings: currentDefaultSettings, loading: false });
     }
   },
 
@@ -126,7 +153,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   resetSettings: () => {
-    set({ settings: defaultSettings });
+    set({ settings: getDefaultSettings() });
   },
 
   // Tag Management Implementation
