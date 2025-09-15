@@ -1286,10 +1286,10 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                   }
                 }}
                 disabled={selectedBooks.size === 0}
-                className={`p-1 btn-base ${selectedBooks.size > 0 ? 'btn-danger' : 'btn-primary'} rounded-lg`}
+                className="p-1 btn-base btn-primary rounded-lg"
                 title="선택된 책 삭제"
               >
-                <TrashIcon className={`w-5 h-5 ${selectedBooks.size > 0 ? 'text-white' : 'text-[#131729]'}`} />
+                <TrashIcon className="w-5 h-5 text-[#131729]" />
               </button>
             </div>
           </div>
@@ -1416,10 +1416,10 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                   }
                 }}
                 disabled={selectedBooks.size === 0}
-                className={`p-1 btn-base ${selectedBooks.size > 0 ? 'btn-danger' : 'btn-primary'} rounded-lg`}
+                className="p-1 btn-base btn-primary rounded-lg"
                 title="선택된 책 삭제"
               >
-                <TrashIcon className={`w-4 h-4 ${selectedBooks.size > 0 ? 'text-white' : 'text-[#131729]'}`} />
+                <TrashIcon className="w-4 h-4 text-[#131729]" />
               </button>
             </div>
           </div>

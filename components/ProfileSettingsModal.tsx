@@ -5,7 +5,7 @@ import { EyeIcon, EyeOffIcon } from './Icons';
 
 const ProfileSettingsModal: React.FC = () => {
   const { isProfileModalOpen, closeProfileModal, setNotification } = useUIStore();
-  const { updatePassword, signOut } = useAuthStore();
+  const { updatePassword } = useAuthStore();
   
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -63,13 +63,6 @@ const ProfileSettingsModal: React.FC = () => {
     closeProfileModal();
   };
 
-  const handleLogout = async () => {
-    if (window.confirm('로그아웃 하시겠습니까?')) {
-      await signOut();
-      closeProfileModal();
-      setNotification({ message: '로그아웃되었습니다.', type: 'success' });
-    }
-  };
 
   if (!isProfileModalOpen) return null;
 
@@ -182,16 +175,6 @@ const ProfileSettingsModal: React.FC = () => {
             </button>
           </div>
         </form>
-        
-        {/* 로그아웃 버튼 */}
-        <div className="mt-6 pt-4 border-t border-gray-200">
-          <button
-            onClick={handleLogout}
-            className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-          >
-            로그아웃
-          </button>
-        </div>
       </div>
     </div>
   );
