@@ -4,7 +4,7 @@ import BookSearchListModal from './components/BookSearchListModal';
 import BookDetails from './components/BookDetails';
 import MyLibrary from './components/MyLibrary';
 import SearchForm from './components/SearchForm';
-import DevToolsFloat from './components/DevToolsFloat';
+import AdminPanel from './components/DevToolsFloat';
 import AuthModal from './components/AuthModal';
 import ProfileSettingsModal from './components/ProfileSettingsModal';
 import SettingsModal from './components/SettingsModal';
@@ -17,6 +17,7 @@ import { useUIStore } from './stores/useUIStore';
 import { useAuthStore } from './stores/useAuthStore';
 import { useBookStore } from './stores/useBookStore';
 import { useSettingsStore } from './stores/useSettingsStore';
+import { isAdmin } from './utils/adminCheck';
 
 const App: React.FC = () => {
   const { notification, setNotification } = useUIStore();
@@ -91,7 +92,7 @@ const App: React.FC = () => {
       <Footer />
       
       {/* 개발환경에서만 개발자 도구 표시 */}
-      {import.meta.env.DEV && <DevToolsFloat />}
+      {isAdmin(session?.user?.email) && <AdminPanel />}
     </div>
   );
 };

@@ -5,6 +5,7 @@ import type { UserSettings, CustomTag, TagColor, SelectedBook, Theme } from '../
 interface SettingsState {
   settings: UserSettings;
   loading: boolean;
+  isCreatingSettings: boolean;
 
   // Actions
   fetchUserSettings: () => Promise<void>;
@@ -22,6 +23,9 @@ interface SettingsState {
   setTheme: (theme: Theme) => Promise<void>;
   getSystemTheme: () => 'light' | 'dark';
   applyTheme: (theme: Theme) => void;
+
+  // Internal helper methods
+  createDefaultSettingsForUser: (userId: string) => Promise<void>;
 }
 
 const getDefaultSettings = (): UserSettings => {
@@ -64,10 +68,18 @@ const defaultSettings: UserSettings = getDefaultSettings();
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   settings: defaultSettings,
   loading: false,
+  isCreatingSettings: false,
 
   fetchUserSettings: async () => {
+    const { loading, isCreatingSettings } = get();
+
+    // 이미 로딩 중이거나 생성 중인 경우 중복 호출 방지
+    if (loading || isCreatingSettings) {
+      return;
+    }
+
     set({ loading: true });
-    
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -82,25 +94,22 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         .single();
 
       if (error) {
+        console.log('Supabase error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          fullError: error
+        });
+
         if (error.code === 'PGRST116') {
-          // No settings found, create default settings with current admin defaults
-          const currentDefaultSettings = getDefaultSettings();
-          const { error: insertError } = await supabase
-            .from('user_settings')
-            .insert({
-              user_id: user.id,
-              settings: currentDefaultSettings,
-            });
-
-          if (insertError) {
-            console.error('Error creating default settings:', insertError);
-          }
-
-          set({ settings: currentDefaultSettings, loading: false });
+          // No settings found, create default settings
+          console.log('No settings found for user, creating default settings');
+          await get().createDefaultSettingsForUser(user.id);
         } else {
           console.error('Error fetching user settings:', error);
-          const currentDefaultSettings = getDefaultSettings();
-          set({ settings: currentDefaultSettings, loading: false });
+          // 406 에러나 다른 에러의 경우에도 기본 설정 생성 시도
+          console.log('Attempting to create default settings for any error');
+          await get().createDefaultSettingsForUser(user.id);
         }
         return;
       }
@@ -113,6 +122,58 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       console.error('Error in fetchUserSettings:', error);
       const currentDefaultSettings = getDefaultSettings();
       set({ settings: currentDefaultSettings, loading: false });
+    }
+  },
+
+  createDefaultSettingsForUser: async (userId: string) => {
+    const { isCreatingSettings } = get();
+
+    // 이미 생성 중인 경우 중복 방지
+    if (isCreatingSettings) {
+      return;
+    }
+
+    set({ isCreatingSettings: true });
+
+    try {
+      const currentDefaultSettings = getDefaultSettings();
+
+      const { error: insertError } = await supabase
+        .from('user_settings')
+        .insert({
+          user_id: userId,
+          settings: currentDefaultSettings,
+        });
+
+      if (insertError) {
+        // 409 Conflict (중복 키) 에러인 경우 기존 설정 조회
+        if (insertError.code === '23505') {
+          console.log('Settings already exist for user, fetching existing settings');
+
+          const { data, error: fetchError } = await supabase
+            .from('user_settings')
+            .select('settings')
+            .eq('user_id', userId)
+            .single();
+
+          if (fetchError) {
+            console.error('Error fetching existing settings after conflict:', fetchError);
+            set({ settings: currentDefaultSettings, loading: false, isCreatingSettings: false });
+          } else {
+            set({ settings: data?.settings || currentDefaultSettings, loading: false, isCreatingSettings: false });
+          }
+        } else {
+          console.error('Error creating default settings:', insertError);
+          set({ settings: currentDefaultSettings, loading: false, isCreatingSettings: false });
+        }
+      } else {
+        console.log('Default settings created successfully for new user');
+        set({ settings: currentDefaultSettings, loading: false, isCreatingSettings: false });
+      }
+    } catch (error) {
+      console.error('Error in createDefaultSettingsForUser:', error);
+      const currentDefaultSettings = getDefaultSettings();
+      set({ settings: currentDefaultSettings, loading: false, isCreatingSettings: false });
     }
   },
 

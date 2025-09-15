@@ -14,6 +14,7 @@ interface UIState {
   isProfileModalOpen: boolean;
   isSettingsModalOpen: boolean;
   isFeedbackModalOpen: boolean;
+  isAdminModalOpen: boolean;
   
   // Context state
   isAPITestMode: boolean;
@@ -38,6 +39,9 @@ interface UIState {
   openFeedbackModal: () => void;
   closeFeedbackModal: () => void;
 
+  openAdminModal: () => void;
+  closeAdminModal: () => void;
+
   setAPITestMode: (isAPITestMode: boolean) => void;
 }
 
@@ -50,6 +54,7 @@ export const useUIStore = create<UIState>((set) => ({
   isProfileModalOpen: false,
   isSettingsModalOpen: false,
   isFeedbackModalOpen: false,
+  isAdminModalOpen: false,
   isAPITestMode: false,
 
   setIsLoading: (isLoading) => set({ isLoading }),
@@ -70,6 +75,9 @@ export const useUIStore = create<UIState>((set) => ({
 
   openFeedbackModal: () => set({ isFeedbackModalOpen: true }),
   closeFeedbackModal: () => set({ isFeedbackModalOpen: false }),
+
+  openAdminModal: () => set({ isAdminModalOpen: true }),
+  closeAdminModal: () => set({ isAdminModalOpen: false }),
 
   setAPITestMode: (isAPITestMode) => set({ isAPITestMode }),
 }));

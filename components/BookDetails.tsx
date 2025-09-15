@@ -92,9 +92,11 @@ const BookDetails: React.FC = () => {
   const { closeBookSearchListModal } = useUIStore();
   const { session } = useAuthStore();
   
-  // 디버깅을 위한 로그 추가
+  // 개발 환경에서만 디버깅 로그 출력
   useEffect(() => {
-    console.log('BookDetails - selectedBook changed:', selectedBook);
+    if (import.meta.env.DEV) {
+      console.log('BookDetails - selectedBook changed:', selectedBook);
+    }
   }, [selectedBook]);
   
   // 로딩 상태 추가

@@ -5,13 +5,13 @@ import DevNoteContent from './DevNoteContent';
 import BulkBookSearchContent from './BulkBookSearchContent';
 import DefaultSettingsContent from './DefaultSettingsContent';
 
-// DevTools 모달 컴포넌트
-interface DevToolsModalProps {
+// 관리자 기능 모달 컴포넌트
+interface AdminModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const DevToolsModal: React.FC<DevToolsModalProps> = ({ isOpen, onClose }) => {
+const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<'apiTest' | 'devNote' | 'bulkSearch' | 'defaultSettings'>('bulkSearch');
   const { setAPITestMode } = useUIStore();
 
@@ -54,7 +54,7 @@ const DevToolsModal: React.FC<DevToolsModalProps> = ({ isOpen, onClose }) => {
           <div className="flex items-center gap-3">
             {/* <span className="text-2xl">🛠️</span>  */}
             <div>
-              <h2 className="text-xl font-bold text-white">개발자 도구</h2>
+              <h2 className="text-xl font-bold text-white">관리자 기능</h2>
               {/* <p className="text-sm text-gray-400">API 테스트 및 개발 노트</p> */}
             </div>
           </div>
@@ -144,19 +144,19 @@ const DevToolsModal: React.FC<DevToolsModalProps> = ({ isOpen, onClose }) => {
   );
 };
 
-// 메인 플로팅 컴포넌트
-const DevToolsFloat: React.FC = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+// 메인 관리자 패널 컴포넌트 (플로팅 버튼 제거)
+const AdminPanel: React.FC = () => {
+  const { isAdminModalOpen, closeAdminModal } = useUIStore();
 
   // ESC 키로 모달 닫기
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isModalOpen) {
-        setIsModalOpen(false);
+      if (event.key === 'Escape' && isAdminModalOpen) {
+        closeAdminModal();
       }
     };
 
-    if (isModalOpen) {
+    if (isAdminModalOpen) {
       document.addEventListener('keydown', handleKeyDown);
       // 모달이 열릴 때 body 스크롤 방지
       document.body.style.overflow = 'hidden';
@@ -166,27 +166,17 @@ const DevToolsFloat: React.FC = () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'unset';
     };
-  }, [isModalOpen]);
+  }, [isAdminModalOpen, closeAdminModal]);
 
   return (
     <>
-      {/* 플로팅 버튼 */}
-      <button
-        onClick={() => setIsModalOpen(true)}
-        className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 z-40 flex flex-col items-center justify-center group"
-        title="개발자 도구 열기"
-      >
-        <span className="text-xl group-hover:animate-pulse">🛠️</span>
-        <span className="text-xs opacity-90 mt-0.5">DEV</span>
-      </button>
-
-      {/* 개발자 도구 모달 */}
-      <DevToolsModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      {/* 관리자 기능 모달 */}
+      <AdminModal
+        isOpen={isAdminModalOpen}
+        onClose={closeAdminModal}
       />
     </>
   );
 };
 
-export default DevToolsFloat;
+export default AdminPanel;
