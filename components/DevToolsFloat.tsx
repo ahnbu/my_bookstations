@@ -12,29 +12,19 @@ interface AdminModalProps {
 }
 
 const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'apiTest' | 'devNote' | 'bulkSearch' | 'defaultSettings'>('bulkSearch');
-  const { setAPITestMode } = useUIStore();
+  const [activeTab, setActiveTab] = useState<'siteManagement' | 'devTools'>('siteManagement');
+  const { setAPITestMode, openBulkSearchModal, openAPITestModal, openDevNoteModal } = useUIStore();
 
-  // 모달이 열릴 때 API 테스트 모드 활성화, 닫힐 때 비활성화
+  // 모달이 닫힐 때 API 테스트 모드 비활성화
   React.useEffect(() => {
-    if (isOpen && activeTab === 'apiTest') {
-      setAPITestMode(true);
-    }
-    return () => {
-      if (!isOpen) {
-        setAPITestMode(false);
-      }
-    };
-  }, [isOpen, activeTab, setAPITestMode]);
-
-  // 탭이 변경될 때 API 테스트 모드 설정
-  const handleTabChange = (tab: 'apiTest' | 'devNote' | 'bulkSearch' | 'defaultSettings') => {
-    setActiveTab(tab);
-    if (tab === 'apiTest') {
-      setAPITestMode(true);
-    } else {
+    if (!isOpen) {
       setAPITestMode(false);
     }
+  }, [isOpen, setAPITestMode]);
+
+  // 탭이 변경될 때 처리
+  const handleTabChange = (tab: 'siteManagement' | 'devTools') => {
+    setActiveTab(tab);
   };
 
   if (!isOpen) return null;
@@ -72,70 +62,48 @@ const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
         {/* 탭 헤더 */}
         <div className="flex border-b border-gray-600">
           <button
-            onClick={() => handleTabChange('bulkSearch')}
+            onClick={() => handleTabChange('siteManagement')}
             className={`px-6 py-3 font-medium transition-colors ${
-              activeTab === 'bulkSearch'
+              activeTab === 'siteManagement'
                 ? 'text-blue-400 border-b-2 border-blue-400 bg-gray-700/50'
                 : 'text-gray-300 hover:text-white hover:bg-gray-700/30'
             }`}
           >
-            대량조회
+            사이트관리
           </button>
           <button
-            onClick={() => handleTabChange('apiTest')}
+            onClick={() => handleTabChange('devTools')}
             className={`px-6 py-3 font-medium transition-colors ${
-              activeTab === 'apiTest'
+              activeTab === 'devTools'
                 ? 'text-blue-400 border-b-2 border-blue-400 bg-gray-700/50'
                 : 'text-gray-300 hover:text-white hover:bg-gray-700/30'
             }`}
           >
-            API 테스트
-          </button>
-          <button
-            onClick={() => handleTabChange('devNote')}
-            className={`px-6 py-3 font-medium transition-colors ${
-              activeTab === 'devNote'
-                ? 'text-blue-400 border-b-2 border-blue-400 bg-gray-700/50'
-                : 'text-gray-300 hover:text-white hover:bg-gray-700/30'
-            }`}
-          >
-            개발노트
-          </button>
-          <button
-            onClick={() => handleTabChange('defaultSettings')}
-            className={`px-6 py-3 font-medium transition-colors ${
-              activeTab === 'defaultSettings'
-                ? 'text-blue-400 border-b-2 border-blue-400 bg-gray-700/50'
-                : 'text-gray-300 hover:text-white hover:bg-gray-700/30'
-            }`}
-          >
-            기본값설정
+            개발도구
           </button>
         </div>
 
         {/* 탭 컨텐츠 */}
         <div className="flex-1 overflow-hidden">
-          {activeTab === 'bulkSearch' && (
-            <div className="h-full overflow-y-auto p-6">
-              <BulkBookSearchContent />
-            </div>
-          )}
-
-          {activeTab === 'apiTest' && (
-            <div className="h-full overflow-y-auto p-6">
-              <APITestContent />
-            </div>
-          )}
-
-          {activeTab === 'devNote' && (
-            <div className="h-full p-6">
-              <DevNoteContent />
-            </div>
-          )}
-
-          {activeTab === 'defaultSettings' && (
+          {activeTab === 'siteManagement' && (
             <div className="h-full overflow-y-auto p-6">
               <DefaultSettingsContent />
+            </div>
+          )}
+
+          {activeTab === 'devTools' && (
+            <div className="h-full p-6">
+              <div className="flex flex-col md:flex-row gap-4">
+                <button className="btn-base flex-1 btn-primary" onClick={openBulkSearchModal}>
+                  <span className="mr-2">📚</span>대량조회
+                </button>
+                <button className="btn-base flex-1 btn-primary" onClick={openAPITestModal}>
+                  <span className="mr-2">🔧</span>API 테스트
+                </button>
+                <button className="btn-base flex-1 btn-primary" onClick={openDevNoteModal}>
+                  <span className="mr-2">📝</span>개발노트
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -158,13 +126,19 @@ const AdminPanel: React.FC = () => {
 
     if (isAdminModalOpen) {
       document.addEventListener('keydown', handleKeyDown);
-      // 모달이 열릴 때 body 스크롤 방지
-      document.body.style.overflow = 'hidden';
+      // 모달이 열릴 때만 body 스크롤 방지
+      if (document.body.style.overflow !== 'hidden') {
+        document.body.style.overflow = 'hidden';
+      }
+    } else {
+      // 모달이 닫힐 때만 body 스크롤 복원
+      if (document.body.style.overflow === 'hidden') {
+        document.body.style.overflow = 'unset';
+      }
     }
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'unset';
     };
   }, [isAdminModalOpen, closeAdminModal]);
 

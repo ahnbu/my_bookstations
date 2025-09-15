@@ -1,35 +1,44 @@
 import React from 'react';
 import { useUIStore } from '../stores/useUIStore';
-import DevNoteContent from './DevNoteContent';
+import APITestContent from './APITestContent';
 
-const DevNoteModal: React.FC = () => {
-  const { isDevNoteModalOpen, closeDevNoteModal } = useUIStore();
+const APITestModal: React.FC = () => {
+  const { isAPITestModalOpen, closeAPITestModal, setAPITestMode } = useUIStore();
 
   // ESC 키로 모달 닫기
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isDevNoteModalOpen) {
-        closeDevNoteModal();
+      if (event.key === 'Escape' && isAPITestModalOpen) {
+        closeAPITestModal();
       }
     };
 
-    if (isDevNoteModalOpen) {
+    if (isAPITestModalOpen) {
       document.addEventListener('keydown', handleKeyDown);
     }
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isDevNoteModalOpen, closeDevNoteModal]);
+  }, [isAPITestModalOpen, closeAPITestModal]);
 
-  if (!isDevNoteModalOpen) return null;
+  // API 테스트 모달이 열릴 때 API 테스트 모드 활성화
+  React.useEffect(() => {
+    if (isAPITestModalOpen) {
+      setAPITestMode(true);
+    } else {
+      setAPITestMode(false);
+    }
+  }, [isAPITestModalOpen, setAPITestMode]);
+
+  if (!isAPITestModalOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* 오버레이 */}
       <div
         className="absolute inset-0 bg-black bg-opacity-50"
-        onClick={closeDevNoteModal}
+        onClick={closeAPITestModal}
       />
 
       {/* 모달 컨텐츠 */}
@@ -37,14 +46,14 @@ const DevNoteModal: React.FC = () => {
         {/* 헤더 */}
         <div className="flex items-center justify-between p-4 border-b border-gray-600">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">📝</span>
+            <span className="text-2xl">🔧</span>
             <div>
-              <h2 className="text-xl font-bold text-white">개발노트</h2>
-              <p className="text-sm text-gray-400">개발 과정의 메모와 노트를 관리할 수 있습니다</p>
+              <h2 className="text-xl font-bold text-white">API 테스트</h2>
+              <p className="text-sm text-gray-400">API 엔드포인트를 테스트하고 응답을 확인할 수 있습니다</p>
             </div>
           </div>
           <button
-            onClick={closeDevNoteModal}
+            onClick={closeAPITestModal}
             className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-700 rounded-full"
             title="닫기 (ESC)"
           >
@@ -56,8 +65,8 @@ const DevNoteModal: React.FC = () => {
 
         {/* 컨텐츠 */}
         <div className="flex-1 overflow-hidden">
-          <div className="h-full p-6">
-            <DevNoteContent />
+          <div className="h-full overflow-y-auto p-6">
+            <APITestContent />
           </div>
         </div>
       </div>
@@ -65,4 +74,4 @@ const DevNoteModal: React.FC = () => {
   );
 };
 
-export default DevNoteModal;
+export default APITestModal;

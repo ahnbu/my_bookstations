@@ -9,6 +9,9 @@ import AuthModal from './components/AuthModal';
 import ProfileSettingsModal from './components/ProfileSettingsModal';
 import SettingsModal from './components/SettingsModal';
 import FeedbackModal from './components/FeedbackModal';
+import BulkSearchModal from './components/BulkSearchModal';
+import APITestModal from './components/APITestModal';
+import DevNoteModal from './components/DevNoteModal';
 import Notification from './components/Notification';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
@@ -90,9 +93,18 @@ const App: React.FC = () => {
         <FeedbackModal />
       </main>
       <Footer />
-      
+
       {/* 개발환경에서만 개발자 도구 표시 */}
       {isAdmin(session?.user?.email) && <AdminPanel />}
+
+      {/* 개발도구 독립 모달들 */}
+      {isAdmin(session?.user?.email) && (
+        <>
+          <BulkSearchModal />
+          <APITestModal />
+          <DevNoteModal />
+        </>
+      )}
     </div>
   );
 };

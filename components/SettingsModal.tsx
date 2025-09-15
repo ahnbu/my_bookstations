@@ -343,7 +343,7 @@ const SettingsModal: React.FC = () => {
                       애플리케이션의 외관을 설정합니다.
                     </p>
                   </div>
-                  <div className="theme-button-group flex flex-row gap-2">
+                  <div className="theme-button-group flex flex-col sm:flex-row gap-2">
                     {[
                       { value: 'light', label: '라이트', icon: '☀️' },
                       { value: 'dark', label: '다크', icon: '🌙' },

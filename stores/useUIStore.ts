@@ -15,6 +15,11 @@ interface UIState {
   isSettingsModalOpen: boolean;
   isFeedbackModalOpen: boolean;
   isAdminModalOpen: boolean;
+
+  // Dev Tools Modal states
+  isBulkSearchModalOpen: boolean;
+  isAPITestModalOpen: boolean;
+  isDevNoteModalOpen: boolean;
   
   // Context state
   isAPITestMode: boolean;
@@ -42,6 +47,14 @@ interface UIState {
   openAdminModal: () => void;
   closeAdminModal: () => void;
 
+  // Dev Tools Modal actions
+  openBulkSearchModal: () => void;
+  closeBulkSearchModal: () => void;
+  openAPITestModal: () => void;
+  closeAPITestModal: () => void;
+  openDevNoteModal: () => void;
+  closeDevNoteModal: () => void;
+
   setAPITestMode: (isAPITestMode: boolean) => void;
 }
 
@@ -55,6 +68,9 @@ export const useUIStore = create<UIState>((set) => ({
   isSettingsModalOpen: false,
   isFeedbackModalOpen: false,
   isAdminModalOpen: false,
+  isBulkSearchModalOpen: false,
+  isAPITestModalOpen: false,
+  isDevNoteModalOpen: false,
   isAPITestMode: false,
 
   setIsLoading: (isLoading) => set({ isLoading }),
@@ -78,6 +94,14 @@ export const useUIStore = create<UIState>((set) => ({
 
   openAdminModal: () => set({ isAdminModalOpen: true }),
   closeAdminModal: () => set({ isAdminModalOpen: false }),
+
+  // Dev Tools Modal implementations
+  openBulkSearchModal: () => set({ isBulkSearchModalOpen: true }),
+  closeBulkSearchModal: () => set({ isBulkSearchModalOpen: false }),
+  openAPITestModal: () => set({ isAPITestModalOpen: true }),
+  closeAPITestModal: () => set({ isAPITestModalOpen: false }),
+  openDevNoteModal: () => set({ isDevNoteModalOpen: true }),
+  closeDevNoteModal: () => set({ isDevNoteModalOpen: false }),
 
   setAPITestMode: (isAPITestMode) => set({ isAPITestMode }),
 }));

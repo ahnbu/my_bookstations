@@ -14,6 +14,10 @@ export default defineConfig(({ mode }) => {
         }
       },
       server: {
+        hmr: {
+          // WebSocket 연결 안정성 향상
+          overlay: false, // 오류 오버레이 비활성화로 DOM 간섭 방지
+        },
         proxy: {
           // '/ttb/api'로 시작하는 요청을 위한 프록시 규칙
           '/ttb/api': {
