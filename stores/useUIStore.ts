@@ -13,6 +13,7 @@ interface UIState {
   authModalMode: 'login' | 'signup';
   isProfileModalOpen: boolean;
   isSettingsModalOpen: boolean;
+  isFeedbackModalOpen: boolean;
   
   // Context state
   isAPITestMode: boolean;
@@ -33,7 +34,10 @@ interface UIState {
   
   openSettingsModal: () => void;
   closeSettingsModal: () => void;
-  
+
+  openFeedbackModal: () => void;
+  closeFeedbackModal: () => void;
+
   setAPITestMode: (isAPITestMode: boolean) => void;
 }
 
@@ -45,6 +49,7 @@ export const useUIStore = create<UIState>((set) => ({
   authModalMode: 'login',
   isProfileModalOpen: false,
   isSettingsModalOpen: false,
+  isFeedbackModalOpen: false,
   isAPITestMode: false,
 
   setIsLoading: (isLoading) => set({ isLoading }),
@@ -62,6 +67,9 @@ export const useUIStore = create<UIState>((set) => ({
   
   openSettingsModal: () => set({ isSettingsModalOpen: true }),
   closeSettingsModal: () => set({ isSettingsModalOpen: false }),
-  
+
+  openFeedbackModal: () => set({ isFeedbackModalOpen: true }),
+  closeFeedbackModal: () => set({ isFeedbackModalOpen: false }),
+
   setAPITestMode: (isAPITestMode) => set({ isAPITestMode }),
 }));

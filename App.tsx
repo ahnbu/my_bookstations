@@ -8,6 +8,7 @@ import DevToolsFloat from './components/DevToolsFloat';
 import AuthModal from './components/AuthModal';
 import ProfileSettingsModal from './components/ProfileSettingsModal';
 import SettingsModal from './components/SettingsModal';
+import FeedbackModal from './components/FeedbackModal';
 import Notification from './components/Notification';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
@@ -80,10 +81,12 @@ const App: React.FC = () => {
         <BookSearchListModal />
 
         <AuthModal />
-        
+
         <ProfileSettingsModal />
-        
+
         <SettingsModal />
+
+        <FeedbackModal />
       </main>
       <Footer />
       
