@@ -188,10 +188,10 @@ const SettingsModal: React.FC = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         ) : (
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             {/* Display Options Tab */}
             {activeTab === 'display' && (
-              <div className="space-y-6">
+              <div className="space-y-6 pb-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <label className="text-sm font-medium text-primary">
@@ -491,7 +491,7 @@ const SettingsModal: React.FC = () => {
 
         {/* Footer Buttons - 표시 옵션 탭에서만 표시 */}
         {activeTab === 'display' && (
-          <div className="flex gap-2 pt-6 mt-6 border-t border-secondary">
+          <div className="flex gap-2 pt-6 mt-6 border-t border-secondary flex-shrink-0">
             <button
               type="button"
               onClick={handleClose}
