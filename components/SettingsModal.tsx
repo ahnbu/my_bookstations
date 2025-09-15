@@ -369,7 +369,10 @@ const SettingsModal: React.FC = () => {
                   </div>
 
                   {/* Add New Tag - 항상 하단 고정 */}
-                  <div className="flex-shrink-0 p-4 border border-secondary rounded-lg bg-secondary">
+                  <div className="flex-shrink-0 pt-4">
+                    {/* 구분선 보이는 버전 
+                    <div className="flex-shrink-0 pt-4 border-t border-secondary"> 
+                    */}
                     {/* <h4 className="text-sm font-medium text-primary mb-3">새 태그 추가</h4> */}
                     <div className="space-y-3">
                       <div className="flex gap-2">
@@ -386,7 +389,7 @@ const SettingsModal: React.FC = () => {
                           disabled={!newTagName.trim()}
                           className="btn-base btn-primary"
                         >
-                          태그 추가
+                          추가
                         </button>
                       </div>
                       <div className="flex gap-2">
@@ -441,6 +444,7 @@ const SettingsModal: React.FC = () => {
         )}
 
         {/* Footer Buttons */}
+        {/* 하단 구분선과 취소버튼 안보이게
         <div className="flex gap-2 pt-6 mt-6 border-t border-secondary">
           <button
             type="button"
@@ -459,7 +463,8 @@ const SettingsModal: React.FC = () => {
               {saving ? '저장 중...' : '저장'}
             </button>
           )}
-        </div>
+        </div> 
+        */}
 
         {/* Edit Tag Modal */}
         {editingTag && (
