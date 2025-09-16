@@ -1,6 +1,7 @@
 # .github/workflows/deploy-worker.yml
 
 name: Deploy Cloudflare Worker
+run: npx wrangler deploy src/index.js     # index.js파일 못찾아서 명시적으로 지정
 
 on:
   push:
