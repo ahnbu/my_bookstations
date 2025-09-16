@@ -530,7 +530,8 @@ const MyLibrary: React.FC = () => {
   const [viewType, setViewType] = useState<ViewType>('card');
   const [gridColumns, setGridColumns] = useState(5);
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
-  const sortDropdownRef = useRef<HTMLDivElement>(null);
+  const mobileSortDropdownRef = useRef<HTMLDivElement>(null);
+  const desktopSortDropdownRef = useRef<HTMLDivElement>(null);
   const [backgroundRefreshComplete, setBackgroundRefreshComplete] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
@@ -605,7 +606,11 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        mobileSortDropdownRef.current && !mobileSortDropdownRef.current.contains(target) &&
+        desktopSortDropdownRef.current && !desktopSortDropdownRef.current.contains(target)
+      ) {
         setSortDropdownOpen(false);
       }
     };
@@ -1216,9 +1221,13 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
               총 {sortedAndFilteredLibraryBooks.length}권{!showAllBooks && !hasActiveFilters() && sortedAndFilteredLibraryBooks.length > displayedBooks.length ? ` (${displayedBooks.length}권 표시)` : ''}
             </span>
             {/* Sort Dropdown */}
-            <div className="relative" ref={sortDropdownRef}>
+            <div className="relative" ref={mobileSortDropdownRef}>
               <button
-                onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setSortDropdownOpen(!sortDropdownOpen);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
@@ -1371,9 +1380,13 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
 
             <div className="flex items-center gap-2">
               {/* Sort Dropdown */}
-              <div className="relative" ref={sortDropdownRef}>
+              <div className="relative" ref={desktopSortDropdownRef}>
                 <button
-                  onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSortDropdownOpen(!sortDropdownOpen);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
