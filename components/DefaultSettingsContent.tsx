@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSettingsStore } from '../stores/useSettingsStore';
+import { PlusIcon } from './Icons';
 import type { UserSettings, TagColor, CustomTag, Theme } from '../types';
 
 const DefaultSettingsContent: React.FC = () => {
@@ -343,13 +344,13 @@ const DefaultSettingsContent: React.FC = () => {
           </div>
 
           {welcomeMessageSettings.enabled && (
-            <div className="space-y-3 pl-4 border-l-2 border-blue-500/30">
-              <div className="flex flex-col sm:flex-row gap-3">
+            <div className="space-y-3">
+              <div className="flex flex-row gap-2 sm:gap-3">
                 <button
                   onClick={() => setIsEditingWelcomeMessage(!isEditingWelcomeMessage)}
                   className="btn-base btn-secondary flex-1"
                 >
-                  {isEditingWelcomeMessage ? '편집 완료' : '초기 안내 메시지 수정하기'}
+                  {isEditingWelcomeMessage ? '편집 완료' : '메시지 수정'}
                 </button>
                 <button
                   onClick={() => {
@@ -383,7 +384,7 @@ const DefaultSettingsContent: React.FC = () => {
                   }}
                   className="btn-base btn-secondary flex-1"
                 >
-                  기본 메시지 복원
+                  메시지 원래대로
                 </button>
               </div>
 
@@ -437,7 +438,16 @@ const DefaultSettingsContent: React.FC = () => {
 
       {/* 기본 태그 설정 */}
       <div className="bg-gray-800 rounded-lg">
-        <h3 className="text-xl font-semibold text-white mb-4 pt-6">기본 태그 설정</h3>
+        <div className="flex items-center justify-between pt-6 mb-4">
+          <h3 className="text-xl font-semibold text-white">기본 태그 설정</h3>
+          <button
+            onClick={addDefaultTag}
+            className="btn-base btn-primary flex items-center gap-2"
+          >
+            <PlusIcon className="w-4 h-4" />
+            태그 추가
+          </button>
+        </div>
         <p className="text-gray-400 text-sm mb-4 hidden sm:block">새 사용자에게 기본으로 제공할 태그를 설정합니다.</p>
 
         <div className="space-y-3 mb-4">
@@ -477,12 +487,6 @@ const DefaultSettingsContent: React.FC = () => {
         </div>
 
         <div className="pb-6">
-          <button
-            onClick={addDefaultTag}
-            className="btn-base btn-primary"
-          >
-            기본 태그 추가
-          </button>
         </div>
       </div>
 

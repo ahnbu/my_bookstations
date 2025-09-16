@@ -281,15 +281,20 @@ const BulkBookSearchContent: React.FC = () => {
     <div className="space-y-6">
       {/* 입력 영역 */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        {/* <h3 className="text-lg font-semibold text-gray-900 mb-4">
           📚 대량 책 조회 및 일괄 반영
-        </h3>
+        </h3> */}
 
         <div className="space-y-4">
           <div>
+            <div className="text-sm text-gray-600">
+              💡 제목과 저자를 포함하여 키워드 검색합니다 (앞 2개 단어 사용).
+            </div>
+            <br></br>
             <label htmlFor="book-titles" className="block text-sm font-medium text-gray-700 mb-2">
               책 제목 목록 (줄바꿈으로 구분)
             </label>
+
             <textarea
               id="book-titles"
               value={inputText}
@@ -300,14 +305,11 @@ const BulkBookSearchContent: React.FC = () => {
             />
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              💡 제목과 저자를 포함하여 키워드 검색합니다 (앞 2개 단어 사용).
-            </div>
+          <div className="flex justify-center">
             <button
               onClick={handleSearch}
               disabled={isSearching || !inputText.trim()}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+              className={`btn-base flex-1 ${isSearching || !inputText.trim() ? 'btn-secondary' : 'btn-primary'}`}
             >
               {isSearching ? '검색중...' : '검색 시작'}
             </button>

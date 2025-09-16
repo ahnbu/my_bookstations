@@ -48,22 +48,23 @@ const DevNoteContent: React.FC = () => {
   return (
     <div className="h-full flex flex-col space-y-4">
       {/* 헤더 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-400">
-            마크다운 형식으로 메모를 작성하세요 • 단축키: Ctrl+S로 저장
-          </p>
-        </div>
-        
+      <div>
+        <p className="text-sm text-gray-400">
+            마크다운으로 메모작성(Ctrl+S로 저장)
+        </p>
+      </div>
+      <div className="flex justify-center">
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 flex items-center gap-2 ${
-            saveStatus === 'saved' 
-              ? 'bg-green-600 text-white' 
+          className={`btn-base flex-1 ${
+            saveStatus === 'saved'
+              ? 'btn-success'
               : saveStatus === 'error'
-              ? 'bg-red-600 text-white'
-              : 'bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed'
+              ? 'btn-danger'
+              : isSaving
+              ? 'btn-secondary'
+              : 'btn-primary'
           }`}
         >
           {saveStatus === 'saving' ? (
