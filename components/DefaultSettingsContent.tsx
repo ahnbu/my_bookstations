@@ -148,30 +148,32 @@ const DefaultSettingsContent: React.FC = () => {
   };
 
   const resetToOriginal = () => {
-    setDefaultSettings({
-      showReadStatus: true,
-      showRating: true,
-      showTags: true,
-      showLibraryStock: true,
-      showFavorites: true,
-      showBookNotes: true,
-      defaultPageSize: 50,
-      tagSettings: {
-        tags: [
-          {
-            id: 'default_personal',
-            name: '개인',
-            color: 'primary',
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-          }
-        ],
-        maxTags: 5,
-      },
-      theme: 'system',
-    });
-    setMessage({ text: '기본값이 초기화되었습니다.', type: 'success' });
-    setTimeout(() => setMessage(null), 3000);
+    if (window.confirm('정말로 모든 설정을 초기화하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.')) {
+      setDefaultSettings({
+        showReadStatus: true,
+        showRating: true,
+        showTags: true,
+        showLibraryStock: true,
+        showFavorites: true,
+        showBookNotes: true,
+        defaultPageSize: 50,
+        tagSettings: {
+          tags: [
+            {
+              id: 'default_personal',
+              name: '개인',
+              color: 'primary',
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+            }
+          ],
+          maxTags: 5,
+        },
+        theme: 'system',
+      });
+      setMessage({ text: '기본값이 초기화되었습니다.', type: 'success' });
+      setTimeout(() => setMessage(null), 3000);
+    }
   };
 
   // 컴포넌트 마운트 시 저장된 기본값 로드

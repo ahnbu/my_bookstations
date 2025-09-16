@@ -1804,7 +1804,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                         onClick={() => handleNoteEdit(book.id, book.note)}
                         title={book.note || '메모를 추가하려면 클릭하세요'}
                       >
-                        {book.note || '메모를 추가하세요...'}
+                        {book.note || '메모'}
                       </span>
                     </div>
                   )}
