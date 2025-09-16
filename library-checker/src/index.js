@@ -1,3 +1,5 @@
+// 2025-09-16 GitHub Actions 자동 배포 테스트 커밋 - 트리거 테스트2
+// command: deploy src/index.js --name library-checker
 // 2025-09-16 GitHub Actions 자동 배포 테스트 커밋 - 트리거 테스트
 // 최종 수정: 2025-08-09 - 경기도 전자도서관 재고 크롤링 기능 추가
 // 수정: 2025-08-09 - 전자책 대출가능 여부 정확성 개선
