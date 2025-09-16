@@ -40,11 +40,21 @@ async function updateBookInStoreAndDB(
 
   // 2. DB 업데이트: 백그라운드에서 실행
   // DB에 저장할 때는 id, detailedStockInfo 등 불필요한 속성을 제외합니다.
-  const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBook;
+  const { id: bookId, detailedStockInfo, note, ...bookDataForDb } = updatedBook;
   try {
+    // note 필드는 별도 컬럼으로, book_data는 JSONB로 저장
+    const updateData: { book_data: Json; note?: string | null } = {
+      book_data: bookDataForDb as Json
+    };
+
+    // note가 updates에 포함된 경우에만 DB의 note 컬럼 업데이트
+    if ('note' in updates) {
+      updateData.note = note || null;
+    }
+
     const { error } = await supabase
       .from('user_library')
-      .update({ book_data: bookDataForDb as Json })
+      .update(updateData)
       .eq('id', id);
     if (error) throw error;
   } catch (error) {
@@ -95,6 +105,7 @@ interface BookState {
   updateBookTags: (id: number, tagIds: string[]) => Promise<void>;
   updateMultipleBookTags: (bookUpdates: Array<{id: number, tagIds: string[]}>) => Promise<void>;
   toggleFavorite: (id: number) => Promise<void>;
+  updateBookNote: (id: number, note: string) => Promise<void>;
   setResetLibraryFilters: (resetFn?: () => void) => void;
 }
 
@@ -576,6 +587,12 @@ export const useBookStore = create<BookState>(
         const currentFavorite = book.isFavorite || false;
         const newIsFavorite = !currentFavorite;
         await updateBookInStoreAndDB(id, { isFavorite: newIsFavorite }, '좋아요 상태 변경에 실패했습니다.');
+      },
+
+      updateBookNote: async (id, note) => {
+        // 50자 제한 적용
+        const trimmedNote = note.trim().slice(0, 50);
+        await updateBookInStoreAndDB(id, { note: trimmedNote }, '메모 저장에 실패했습니다.');
       },
 
       setResetLibraryFilters: (resetFn) => {

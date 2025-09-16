@@ -119,6 +119,7 @@ export type BookData = AladdinBookItem & {
   rating: number;
   customTags?: string[]; // 태그 ID 배열
   isFavorite: boolean;
+  note?: string; // 사용자 메모 (최대 50자)
 };
 
 // This represents a book object within the application's state, including its database ID.
@@ -170,6 +171,7 @@ export type UserSettings = {
   showTags: boolean;
   showLibraryStock: boolean;
   showFavorites: boolean;
+  showBookNotes: boolean; // 메모 표시 설정
   defaultPageSize: number;
   tagSettings: UserTagSettings;
   theme: Theme;
@@ -186,18 +188,21 @@ export interface Database {
           created_at: string;
           user_id: string;
           book_data: BookData | null;
+          note: string | null;
         };
         Insert: {
           id?: number;
           created_at?: string;
           user_id: string;
           book_data: Json;
+          note?: string;
         };
         Update: {
           id?: number;
           created_at?: string;
           user_id?: string;
           book_data?: Json;
+          note?: string;
         };
       };
       user_settings: {

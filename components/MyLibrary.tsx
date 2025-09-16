@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { SelectedBook, StockInfo, SortKey, ReadStatus, CustomTag } from '../types';
-import { DownloadIcon, TrashIcon, RefreshIcon, CheckIcon, SearchIcon, CloseIcon, HeartIcon } from './Icons';
+import { DownloadIcon, TrashIcon, RefreshIcon, CheckIcon, SearchIcon, CloseIcon, HeartIcon, MessageSquareIcon } from './Icons';
 import Spinner from './Spinner';
 import { useBookStore } from '../stores/useBookStore';
 import { useAuthStore } from '../stores/useAuthStore';
@@ -520,6 +520,7 @@ const MyLibrary: React.FC = () => {
     removeTagFromBook,
     updateMultipleBookTags,
     toggleFavorite,
+    updateBookNote,
     setResetLibraryFilters,
   } = useBookStore();
   
@@ -536,15 +537,48 @@ const MyLibrary: React.FC = () => {
   const [bulkTagModalOpen, setBulkTagModalOpen] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [showAllBooks, setShowAllBooks] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
+  const [noteInputValue, setNoteInputValue] = useState('');
   
   // 필터 리셋 함수
   const resetLibraryFilters = useCallback(() => {
     setDebouncedSearchQuery('');
     setActiveTags(new Set());
-    setSelectedTagIds(new Set());
     setShowFavoritesOnly(false);
     // showAllBooks는 유지 - 사용자가 전체보기를 선택했다면 그 의도 유지
+    // setSelectedTagIds는 BulkTagModal 내부 state이므로 여기서 접근하지 않음
   }, []);
+
+  // 메모 편집 관련 함수들
+  const handleNoteEdit = useCallback((bookId: number, currentNote: string = '') => {
+    setEditingNoteId(bookId);
+    setNoteInputValue(currentNote);
+  }, []);
+
+  const handleNoteSave = useCallback(async (bookId: number) => {
+    try {
+      await updateBookNote(bookId, noteInputValue);
+      setEditingNoteId(null);
+      setNoteInputValue('');
+    } catch (error) {
+      console.error('메모 저장 실패:', error);
+    }
+  }, [noteInputValue, updateBookNote]);
+
+  const handleNoteCancel = useCallback(() => {
+    setEditingNoteId(null);
+    setNoteInputValue('');
+  }, []);
+
+  const handleNoteKeyDown = useCallback((e: React.KeyboardEvent, bookId: number) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleNoteSave(bookId);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleNoteCancel();
+    }
+  }, [handleNoteSave, handleNoteCancel]);
 
   // MyLibrary 컴포넌트 내부 최상단 (useState 훅들 아래)
 const handleBookSelection = useCallback((bookId: number, isSelected: boolean) => {
@@ -1734,6 +1768,48 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                   searchUrl={createGyeonggiEbookSearchURL(book.title)}
                 />
               </div>}
+
+              {/* Book Note Section */}
+              {settings.showBookNotes && (
+                <div className="mt-3 pt-3 border-t border-secondary">
+                  {editingNoteId === book.id ? (
+                    /* Editing Mode */
+                    <div className="flex items-center gap-2">
+                      <MessageSquareIcon className="w-4 h-4 text-secondary flex-shrink-0" />
+                      <input
+                        type="text"
+                        value={noteInputValue}
+                        onChange={(e) => setNoteInputValue(e.target.value)}
+                        onKeyDown={(e) => handleNoteKeyDown(e, book.id)}
+                        onBlur={() => handleNoteSave(book.id)}
+                        maxLength={50}
+                        placeholder="메모를 입력하세요..."
+                        className="flex-1 px-2 py-1 text-xs bg-tertiary border border-secondary rounded text-primary focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => handleNoteSave(book.id)}
+                        className="p-1 text-secondary hover:text-green-500 transition-colors"
+                        title="저장"
+                      >
+                        <CheckIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    /* Display Mode */
+                    <div className="flex items-center gap-2">
+                      <MessageSquareIcon className="w-4 h-4 text-secondary flex-shrink-0" />
+                      <span
+                        className="flex-1 text-xs text-secondary truncate cursor-pointer hover:text-primary"
+                        onClick={() => handleNoteEdit(book.id, book.note)}
+                        title={book.note || '메모를 추가하려면 클릭하세요'}
+                      >
+                        {book.note || '메모를 추가하세요...'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )))}
@@ -1997,6 +2073,48 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                     })()}
                   />
                 </div>}
+
+                {/* Book Note Section */}
+                {settings.showBookNotes && (
+                  <div className="mt-2 pt-2 border-t border-secondary">
+                    {editingNoteId === book.id ? (
+                      /* Editing Mode */
+                      <div className="flex items-center gap-1">
+                        <MessageSquareIcon className="w-3 h-3 text-secondary flex-shrink-0" />
+                        <input
+                          type="text"
+                          value={noteInputValue}
+                          onChange={(e) => setNoteInputValue(e.target.value)}
+                          onKeyDown={(e) => handleNoteKeyDown(e, book.id)}
+                          onBlur={() => handleNoteSave(book.id)}
+                          maxLength={50}
+                          placeholder="메모..."
+                          className="flex-1 px-1 py-0.5 text-xs bg-tertiary border border-secondary rounded text-primary focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => handleNoteSave(book.id)}
+                          className="p-0.5 text-secondary hover:text-green-500 transition-colors"
+                          title="저장"
+                        >
+                          <CheckIcon className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      /* Display Mode */
+                      <div className="flex items-center gap-1">
+                        <MessageSquareIcon className="w-3 h-3 text-secondary flex-shrink-0" />
+                        <span
+                          className="flex-1 text-xs text-secondary truncate cursor-pointer hover:text-primary"
+                          onClick={() => handleNoteEdit(book.id, book.note)}
+                          title={book.note || '메모를 추가하려면 클릭하세요'}
+                        >
+                          {book.note || '메모...'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )))}

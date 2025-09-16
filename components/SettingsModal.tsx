@@ -315,6 +315,30 @@ const SettingsModal: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <label className="text-sm font-medium text-primary">
+                      메모 표시
+                    </label>
+                    <p className="text-xs text-secondary mt-1 hidden sm:block">
+                      내 서재에서 책별 메모 기능을 표시합니다.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleToggle('showBookNotes')}
+                    disabled={saving}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
+                      localSettings.showBookNotes ? 'bg-blue-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        localSettings.showBookNotes ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-primary">
                       기본 보기 건수
                     </label>
                     <p className="text-xs text-secondary mt-1 hidden sm:block">
