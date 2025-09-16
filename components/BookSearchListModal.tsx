@@ -59,6 +59,7 @@ const BookSearchListModal: React.FC = () => {
                   <img src={book.cover.replace('coversum', 'cover')} alt={book.title} className="w-32 h-48 object-cover rounded shadow-md mb-4" />
                   <h3 className="text-sm font-semibold text-primary mb-1 line-clamp-2">{book.title}</h3>
                   <p className="text-xs text-tertiary line-clamp-2">{book.author.replace(/\s*\([^)]*\)/g, '')}</p>
+                  <p className="text-xs text-tertiary mt-1">{book.pubDate}</p>
                 </li>
                 );
               })}

@@ -223,6 +223,32 @@ export interface Database {
           settings?: UserSettings;
         };
       };
+      dev_notes: {
+        Row: {
+          id: number;
+          created_at: string;
+          updated_at: string;
+          user_id: string;
+          content: string;
+          title: string;
+        };
+        Insert: {
+          id?: number;
+          created_at?: string;
+          updated_at?: string;
+          user_id: string;
+          content: string;
+          title?: string;
+        };
+        Update: {
+          id?: number;
+          created_at?: string;
+          updated_at?: string;
+          user_id?: string;
+          content?: string;
+          title?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;

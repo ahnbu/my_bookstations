@@ -520,6 +520,7 @@ const MyLibrary: React.FC = () => {
     removeTagFromBook,
     updateMultipleBookTags,
     toggleFavorite,
+    setResetLibraryFilters,
   } = useBookStore();
   
   const [detailModalBookId, setDetailModalBookId] = useState<number | null>(null);
@@ -536,6 +537,15 @@ const MyLibrary: React.FC = () => {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [showAllBooks, setShowAllBooks] = useState(false);
   
+  // 필터 리셋 함수
+  const resetLibraryFilters = useCallback(() => {
+    setDebouncedSearchQuery('');
+    setActiveTags(new Set());
+    setSelectedTagIds(new Set());
+    setShowFavoritesOnly(false);
+    // showAllBooks는 유지 - 사용자가 전체보기를 선택했다면 그 의도 유지
+  }, []);
+
   // MyLibrary 컴포넌트 내부 최상단 (useState 훅들 아래)
 const handleBookSelection = useCallback((bookId: number, isSelected: boolean) => {
   setSelectedBooks(prev => {
@@ -574,7 +584,13 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [sortDropdownOpen]);
-  
+
+  // 필터 리셋 함수를 store에 등록
+  useEffect(() => {
+    setResetLibraryFilters(resetLibraryFilters);
+    return () => setResetLibraryFilters(undefined);
+  }, [resetLibraryFilters, setResetLibraryFilters]);
+
   // Responsive grid columns (optimized for max-w-4xl container)
   useEffect(() => {
     const updateColumns = () => {

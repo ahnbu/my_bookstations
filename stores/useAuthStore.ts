@@ -6,6 +6,7 @@ import { useUIStore } from './useUIStore';
 
 interface AuthState {
   session: Session | null;
+  user: Session['user'] | null;
   signOut: () => Promise<void>;
   updatePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
   deleteAccount: () => Promise<{ success: boolean; error?: string }>;
@@ -14,6 +15,7 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set) => ({
   session: null,
+  user: null,
   signOut: async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -73,8 +75,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
   initializeAuthListener: () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      set({ session });
-      
+      set({ session, user: session?.user || null });
+
       // When a sign-in is complete, close the modal.
       if (event === 'SIGNED_IN') {
         useUIStore.getState().closeAuthModal();

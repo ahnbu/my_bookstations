@@ -73,6 +73,7 @@ interface BookState {
   refreshingIsbn: string | null;
   refreshingEbookId: number | null;
   librarySearchQuery: string;
+  resetLibraryFilters?: () => void;
 
   // Actions
   searchBooks: (query: string, searchType: string) => Promise<void>;
@@ -94,6 +95,7 @@ interface BookState {
   updateBookTags: (id: number, tagIds: string[]) => Promise<void>;
   updateMultipleBookTags: (bookUpdates: Array<{id: number, tagIds: string[]}>) => Promise<void>;
   toggleFavorite: (id: number) => Promise<void>;
+  setResetLibraryFilters: (resetFn?: () => void) => void;
 }
 
 
@@ -107,6 +109,7 @@ export const useBookStore = create<BookState>(
       refreshingIsbn: null,
       refreshingEbookId: null,
       librarySearchQuery: '',
+      resetLibraryFilters: undefined,
 
       // Actions
       fetchUserLibrary: async () => {
@@ -279,7 +282,13 @@ export const useBookStore = create<BookState>(
               // 책 추가 성공 후 모달 닫기 및 선택된 책 초기화
               // useUIStore.getState().closeBookSearchListModal();
               set({ selectedBook: null });
-            
+
+              // 내 서재 필터 리셋 (추가된 책이 보이도록)
+              const { resetLibraryFilters } = get();
+              if (resetLibraryFilters) {
+                resetLibraryFilters();
+              }
+
               // 비동기 백그라운드 재고 조회 실행 (환경별 지연 시간 적용)
               const delay = window.location.hostname === 'localhost' ? 100 : 800;
               setTimeout(() => { get().refreshAllBookInfo(newBookWithId.id, newBookWithId.isbn13, newBookWithId.title); }, delay);
@@ -567,6 +576,10 @@ export const useBookStore = create<BookState>(
         const currentFavorite = book.isFavorite || false;
         const newIsFavorite = !currentFavorite;
         await updateBookInStoreAndDB(id, { isFavorite: newIsFavorite }, '좋아요 상태 변경에 실패했습니다.');
+      },
+
+      setResetLibraryFilters: (resetFn) => {
+        set({ resetLibraryFilters: resetFn });
       },
     })
 );
