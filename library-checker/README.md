@@ -1,3 +1,5 @@
+(참고 - 20250916 : 자동 배포 테스트용 1줄 입력)
+
 # Library Checker - Cloudflare Workers
 
 마이북스테이션 프로젝트의 통합 도서관 재고 확인 API를 위한 Cloudflare Workers입니다.
