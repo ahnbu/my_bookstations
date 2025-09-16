@@ -3,7 +3,7 @@ import React from 'react';
 const Footer: React.FC = () => {
   return (
     <footer className="text-center py-6 text-tertiary text-sm">
-      <p>made by planninghighway 2025</p>
+      <p>© 2025 made by planninghighway</p>
     </footer>
   );
 };

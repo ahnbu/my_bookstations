@@ -1082,8 +1082,9 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
     return (
        <div className="mt-12 animate-fade-in text-center text-secondary p-8 bg-elevated rounded-lg shadow-inner">
         <h2 className="text-2xl font-bold mb-4 text-primary">내 서재</h2>
-        <p>서재가 비어있습니다.</p>
-        <p className="text-sm mt-2">책을 검색하고 '내 서재에 추가' 버튼을 눌러 관리해보세요.</p>
+        <p>서재가 비어있습니다.</p><br></br>
+        <p className="text-sm mt-2">책을 검색하고 </p>
+        <p className="text-sm mt-2">'내 서재에 추가' 버튼을 눌러 관리해보세요.</p>
       </div>
     );
   }

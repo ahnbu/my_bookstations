@@ -124,12 +124,13 @@ const FeedbackModal: React.FC = () => {
             )}
           </div>
 
+          {/* 사용자 이메일, 이름 안보이게 주석처리
           {session?.user && (
             <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
               <div><strong>보내는 사람:</strong> {session.user.user_metadata?.full_name || session.user.user_metadata?.name || '익명 사용자'}</div>
               <div><strong>이메일:</strong> {session.user.email}</div>
             </div>
-          )}
+          )}*/}
 
           <div className="flex gap-2 pt-4">
             <button

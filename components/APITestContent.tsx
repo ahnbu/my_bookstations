@@ -122,7 +122,7 @@ const APITestContent: React.FC = () => {
     <div className="space-y-6 relative">
       {/* 책 검색 섹션 */}
       <div>
-        <h3 className="text-xl font-semibold text-white mb-4">📚 책 검색 (알라딘 API)</h3>
+        {/* <h3 className="text-xl font-semibold text-white mb-4">📚 책 검색 (알라딘 API)</h3>  */}
         
         {/* API 테스트 전용 검색 폼 */}
         <form onSubmit={handleApiSearchSubmit} className="w-full max-w-2xl">
@@ -186,12 +186,12 @@ const APITestContent: React.FC = () => {
         onSelectBook={handleApiSelectBook}
       />
 
+      {/* 수동 입력 섹션 
       <div className="border-t border-gray-600 pt-6"></div>
       
-      {/* 수동 입력 섹션 */}
       <div>
         <h3 className="text-xl font-semibold text-white mb-4">✏️ 수동 입력 테스트</h3>
-      </div>
+      </div> */}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

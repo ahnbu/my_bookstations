@@ -4,6 +4,48 @@ import { useUIStore } from '../stores/useUIStore';
 const WelcomeModal: React.FC = () => {
   const { isWelcomeModalOpen, closeWelcomeModal } = useUIStore();
 
+  // 관리자 설정에서 환영 메시지 설정 로드
+  const getWelcomeMessageSettings = () => {
+    try {
+      const savedSettings = localStorage.getItem('adminWelcomeMessageSettings');
+      if (savedSettings) {
+        return JSON.parse(savedSettings);
+      }
+    } catch (error) {
+      console.error('환영 메시지 설정 로드 실패:', error);
+    }
+    // 기본값 반환
+    return {
+      enabled: true,
+      content: `마이 북스테이션에
+오신 것을 환영합니다.
+
+이 서비스는
+경기도 광주시의
+책을 좋아하는 사람들이
+지역 도서관과 전자도서관 재고를
+간편하게 찾아볼 수 있도록
+만든 것입니다.
+
+맨 위 검색 창에
+원하는 책 제목을 입력하고
+"내 서재 추가"를 눌러보세요.
+
+그러면 해당 책이
+관내 도서관에 있는지
+도서관 전자책이 있는지
+알 수 있습니다.
+
+💡 가끔 재고 확인에
+오류가 나기도 하니
+재고가 없는 경우는
+책 오른쪽 끝에 있는
+새로고침 버튼을 눌러보세요.`
+    };
+  };
+
+  const welcomeSettings = getWelcomeMessageSettings();
+
   // ESC 키로 모달 닫기
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -34,7 +76,8 @@ const WelcomeModal: React.FC = () => {
     closeWelcomeModal();
   };
 
-  if (!isWelcomeModalOpen) return null;
+  // 관리자가 환영 메시지를 비활성화한 경우 또는 모달이 닫혀있는 경우 렌더링하지 않음
+  if (!isWelcomeModalOpen || !welcomeSettings.enabled) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -69,43 +112,8 @@ const WelcomeModal: React.FC = () => {
         {/* 컨텐츠 */}
         <div className="p-6 space-y-4">
           <div className="text-center space-y-4">
-            <h3 className="text-lg font-semibold text-primary">
-              마이 북스테이션에 <br/>
-              오신 것을 환영합니다.</h3>
-
-            <div className="space-y-3 text-sm text-secondary leading-relaxed">
-              <p>
-                이 서비스는<br/>
-                경기도 광주시의<br/> 
-                책을 좋아하는 사람들이<br/>
-                지역 도서관과 전자도서관 재고를<br/>
-                간편하게 찾아볼 수 있도록<br/>
-                만든 것입니다.
-              </p>
-
-              <p>
-                맨 위 검색 창에<br/>
-                원하는 책 제목을 입력하고<br/>
-                "내 서재 추가"를 눌러보세요.
-              </p>
-
-              <p>
-                그러면 해당 책이<br/>
-                관내 도서관에 있는지<br/>
-                도서관 전자책이 있는지<br/>
-                알 수 있습니다.<br/> <br/> 
-              </p>
-
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 mt-4">
-                <p className="text-xs text-yellow-800 dark:text-yellow-200">
-                  <span className="font-semibold">💡</span> 
-                  가끔 재고 확인에<br/>
-                  오류가 나기도 하니<br/>
-                  재고가 없는 경우는<br/>
-                  책 오른쪽 끝에 있는<br/>
-                  새로고침 버튼을 눌러보세요.<br/>
-                </p>
-              </div>
+            <div className="text-sm text-secondary leading-relaxed whitespace-pre-line">
+              {welcomeSettings.content}
             </div>
           </div>
         </div>

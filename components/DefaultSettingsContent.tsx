@@ -26,6 +26,36 @@ const DefaultSettingsContent: React.FC = () => {
     theme: 'system' as Theme,
   });
 
+  // 환영 메시지 설정 상태
+  const [welcomeMessageSettings, setWelcomeMessageSettings] = useState({
+    enabled: true,
+    content: `마이 북스테이션에
+오신 것을 환영합니다.
+
+이 서비스는
+경기도 광주시의
+책을 좋아하는 사람들이
+지역 도서관과 전자도서관 재고를
+간편하게 찾아볼 수 있도록
+만든 것입니다.
+
+맨 위 검색 창에
+원하는 책 제목을 입력하고
+"내 서재 추가"를 눌러보세요.
+
+그러면 해당 책이
+관내 도서관에 있는지
+도서관 전자책이 있는지
+알 수 있습니다.
+
+💡 가끔 재고 확인에
+오류가 나기도 하니
+재고가 없는 경우는
+책 오른쪽 끝에 있는
+새로고침 버튼을 눌러보세요.`
+  });
+  const [isEditingWelcomeMessage, setIsEditingWelcomeMessage] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
@@ -103,6 +133,7 @@ const DefaultSettingsContent: React.FC = () => {
       // 실제로는 관리자용 기본값을 저장하는 API 호출
       // 현재는 localStorage에 저장하는 방식으로 구현
       localStorage.setItem('adminDefaultSettings', JSON.stringify(defaultSettings));
+      localStorage.setItem('adminWelcomeMessageSettings', JSON.stringify(welcomeMessageSettings));
 
       setMessage({ text: '기본값이 성공적으로 적용되었습니다.', type: 'success' });
       setTimeout(() => setMessage(null), 3000);
@@ -148,6 +179,16 @@ const DefaultSettingsContent: React.FC = () => {
         setDefaultSettings(JSON.parse(savedDefaults));
       } catch (error) {
         console.error('저장된 기본값 로드 실패:', error);
+      }
+    }
+
+    // 환영 메시지 설정 로드
+    const savedWelcomeSettings = localStorage.getItem('adminWelcomeMessageSettings');
+    if (savedWelcomeSettings) {
+      try {
+        setWelcomeMessageSettings(JSON.parse(savedWelcomeSettings));
+      } catch (error) {
+        console.error('저장된 환영 메시지 설정 로드 실패:', error);
       }
     }
   }, []);
@@ -282,6 +323,89 @@ const DefaultSettingsContent: React.FC = () => {
             </select>
           </div>
 
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="text-sm font-medium text-white">초기 안내 메시지</label>
+              <p className="text-xs text-secondary mt-1 hidden sm:block">첫 방문자에게 표시되는 환영 메시지를 관리합니다.</p>
+            </div>
+            <button
+              onClick={() => setWelcomeMessageSettings(prev => ({ ...prev, enabled: !prev.enabled }))}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                welcomeMessageSettings.enabled ? 'bg-blue-600' : 'bg-gray-200'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  welcomeMessageSettings.enabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          {welcomeMessageSettings.enabled && (
+            <div className="space-y-3 pl-4 border-l-2 border-blue-500/30">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => setIsEditingWelcomeMessage(!isEditingWelcomeMessage)}
+                  className="btn-base btn-secondary flex-1"
+                >
+                  {isEditingWelcomeMessage ? '편집 완료' : '초기 안내 메시지 수정하기'}
+                </button>
+                <button
+                  onClick={() => {
+                    setWelcomeMessageSettings(prev => ({
+                      ...prev,
+                      content: `마이 북스테이션에
+오신 것을 환영합니다.
+
+이 서비스는
+경기도 광주시의
+책을 좋아하는 사람들이
+지역 도서관과 전자도서관 재고를
+간편하게 찾아볼 수 있도록
+만든 것입니다.
+
+맨 위 검색 창에
+원하는 책 제목을 입력하고
+"내 서재 추가"를 눌러보세요.
+
+그러면 해당 책이
+관내 도서관에 있는지
+도서관 전자책이 있는지
+알 수 있습니다.
+
+💡 가끔 재고 확인에
+오류가 나기도 하니
+재고가 없는 경우는
+책 오른쪽 끝에 있는
+새로고침 버튼을 눌러보세요.`
+                    }));
+                  }}
+                  className="btn-base btn-secondary flex-1"
+                >
+                  기본 메시지 복원
+                </button>
+              </div>
+
+              {isEditingWelcomeMessage && (
+                <div className="space-y-3">
+                  <textarea
+                    value={welcomeMessageSettings.content}
+                    onChange={(e) => setWelcomeMessageSettings(prev => ({ ...prev, content: e.target.value }))}
+                    className="w-full h-64 px-3 py-2 bg-gray-600 text-white rounded border border-gray-500 focus:border-blue-500 resize-none text-sm leading-relaxed"
+                    placeholder="환영 메시지를 입력하세요..."
+                  />
+                  <div className="bg-gray-700 rounded-lg p-4">
+                    <h4 className="text-sm font-medium text-white mb-2">미리보기:</h4>
+                    <div className="text-sm text-secondary leading-relaxed whitespace-pre-line">
+                      {welcomeMessageSettings.content || '메시지를 입력하세요...'}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="space-y-3">
             <div>
               <label className="text-sm font-medium text-white">테마</label>
@@ -314,19 +438,19 @@ const DefaultSettingsContent: React.FC = () => {
       {/* 기본 태그 설정 */}
       <div className="bg-gray-800 rounded-lg">
         <h3 className="text-xl font-semibold text-white mb-4 pt-6">기본 태그 설정</h3>
-        <p className="text-gray-400 text-sm mb-4">새 사용자에게 기본으로 제공할 태그를 설정합니다.</p>
+        <p className="text-gray-400 text-sm mb-4 hidden sm:block">새 사용자에게 기본으로 제공할 태그를 설정합니다.</p>
 
         <div className="space-y-3 mb-4">
           {defaultSettings.tagSettings.tags.map((tag) => (
-            <div key={tag.id} className="flex items-center gap-3 p-3 bg-gray-700 rounded-lg">
+            <div key={tag.id} className="flex items-center gap-2 sm:gap-3 p-3 bg-gray-700 rounded-lg">
               <input
                 type="text"
                 value={tag.name}
                 onChange={(e) => updateTagName(tag.id, e.target.value)}
-                className="flex-1 px-3 py-1 bg-gray-600 text-white rounded border border-gray-500 focus:border-blue-500"
+                className="flex-1 min-w-0 px-3 py-1 bg-gray-600 text-white rounded border border-gray-500 focus:border-blue-500 text-sm"
                 maxLength={20}
               />
-              <div className="flex gap-1">
+              <div className="flex gap-1 flex-shrink-0">
                 {colorOptions.map((color) => (
                   <button
                     key={color.value}
@@ -335,7 +459,7 @@ const DefaultSettingsContent: React.FC = () => {
                       tag.color === color.value
                         ? 'ring-2 ring-blue-400 ring-offset-2 ring-offset-gray-700'
                         : 'opacity-70 hover:opacity-100'
-                    }`}
+                    } whitespace-nowrap`}
                     title={color.label}
                   >
                     {color.label}
@@ -344,7 +468,7 @@ const DefaultSettingsContent: React.FC = () => {
               </div>
               <button
                 onClick={() => removeDefaultTag(tag.id)}
-                className="px-2 py-1 text-xs text-red-400 hover:text-red-300 border border-red-600 hover:border-red-500 rounded"
+                className="px-2 py-1 text-xs text-red-400 hover:text-red-300 border border-red-600 hover:border-red-500 rounded flex-shrink-0 whitespace-nowrap"
               >
                 삭제
               </button>
@@ -355,7 +479,7 @@ const DefaultSettingsContent: React.FC = () => {
         <div className="pb-6">
           <button
             onClick={addDefaultTag}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            className="btn-base btn-primary"
           >
             기본 태그 추가
           </button>
