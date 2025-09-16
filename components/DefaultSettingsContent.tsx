@@ -209,7 +209,7 @@ const DefaultSettingsContent: React.FC = () => {
       */}
       {/* 표시 옵션 기본값 */}
       <div className="bg-gray-800 rounded-lg space-y-6">
-        <h3 className="text-xl font-semibold text-white mb-4 pt-6">표시 옵션 기본값</h3>
+        <h3 className="text-xl font-semibold text-white mb-4 pt-6">기본값 설정 (신규 유저만 적용)</h3>
 
         <div className="space-y-4 pb-6">
           <div className="flex items-center justify-between">
@@ -500,7 +500,7 @@ const DefaultSettingsContent: React.FC = () => {
           disabled={saving}
           className="btn-base btn-primary flex-1"
         >
-          {saving ? '적용 중...' : '기본값 적용'}
+          {saving ? '저장 중...' : '변경 저장하기'}
         </button>
         <button
           onClick={resetToOriginal}
