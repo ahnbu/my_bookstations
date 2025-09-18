@@ -3,10 +3,10 @@ import { create } from 'zustand';
 interface UIState {
   // Global loading states
   isLoading: boolean;
-  
+
   // Notification state
   notification: { message: string; type: 'success' | 'error' | 'warning' } | null;
-  
+
   // Modal states
   isBookSearchListModalOpen: boolean;
   isAuthModalOpen: boolean;
@@ -15,6 +15,9 @@ interface UIState {
   isSettingsModalOpen: boolean;
   isFeedbackModalOpen: boolean;
   isAdminModalOpen: boolean;
+
+  // Book Detail Modal state
+  selectedBookIdForDetail: number | null;
 
   // Dev Tools Modal states
   isBulkSearchModalOpen: boolean;
@@ -50,6 +53,10 @@ interface UIState {
   openAdminModal: () => void;
   closeAdminModal: () => void;
 
+  // Book Detail Modal actions
+  openMyLibraryBookDetailModal: (bookId: number) => void;
+  closeMyLibraryBookDetailModal: () => void;
+
   // Dev Tools Modal actions
   openBulkSearchModal: () => void;
   closeBulkSearchModal: () => void;
@@ -75,6 +82,7 @@ export const useUIStore = create<UIState>((set) => ({
   isSettingsModalOpen: false,
   isFeedbackModalOpen: false,
   isAdminModalOpen: false,
+  selectedBookIdForDetail: null,
   isBulkSearchModalOpen: false,
   isAPITestModalOpen: false,
   isDevNoteModalOpen: false,
@@ -102,6 +110,10 @@ export const useUIStore = create<UIState>((set) => ({
 
   openAdminModal: () => set({ isAdminModalOpen: true }),
   closeAdminModal: () => set({ isAdminModalOpen: false }),
+
+  // Book Detail Modal implementations
+  openMyLibraryBookDetailModal: (bookId) => set({ selectedBookIdForDetail: bookId }),
+  closeMyLibraryBookDetailModal: () => set({ selectedBookIdForDetail: null }),
 
   // Dev Tools Modal implementations
   openBulkSearchModal: () => set({ isBulkSearchModalOpen: true }),

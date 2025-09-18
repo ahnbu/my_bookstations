@@ -10,6 +10,7 @@ import MyLibraryBookDetailModal from './MyLibraryBookDetailModal';
 import TagFilter from './TagFilter';
 import CustomTagComponent from './CustomTag';
 import { getStatusEmoji, isEBooksEmpty, hasAvailableEBooks, processBookTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL, generateLibraryDetailURL, isLibraryStockClickable } from '../services/unifiedLibrary.service';
+import { addHomeResetListener } from '../utils/events';
 // import { filterGyeonggiEbookByIsbn, debugIsbnMatching } from '../utils/isbnMatcher'; // 성능 최적화로 사용 안함
 
 
@@ -550,6 +551,28 @@ const MyLibrary: React.FC = () => {
     // setSelectedTagIds는 BulkTagModal 내부 state이므로 여기서 접근하지 않음
   }, []);
 
+  // 전체 내 서재 상태 리셋 함수 (홈 리셋용) - 성능 최적화
+  const resetAllLibraryStates = useCallback(() => {
+    // 외부 store 상태 리셋 (먼저 실행)
+    const { sortConfig: currentSortConfig, sortLibrary: sortLibraryAction, setLibrarySearchQuery: setSearchQuery } = useBookStore.getState();
+    setSearchQuery('');
+
+    if (currentSortConfig.key !== 'addedDate' || currentSortConfig.order !== 'desc') {
+      sortLibraryAction('addedDate');
+    }
+
+    // 로컬 상태 리셋 (배치 업데이트)
+    setDebouncedSearchQuery('');
+    setActiveTags(new Set());
+    setShowFavoritesOnly(false);
+    setShowAllBooks(false);
+    setSelectedBooks(new Set());
+    setSelectAll(false);
+    setBulkTagModalOpen(false);
+    setEditingNoteId(null);
+    setNoteInputValue('');
+  }, []); // 의존성 배열을 비워서 함수 재생성 방지
+
   // 메모 편집 관련 함수들
   const handleNoteEdit = useCallback((bookId: number, currentNote: string = '') => {
     setEditingNoteId(bookId);
@@ -629,6 +652,15 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
     setResetLibraryFilters(resetLibraryFilters);
     return () => setResetLibraryFilters(undefined);
   }, [resetLibraryFilters, setResetLibraryFilters]);
+
+  // 홈 리셋 이벤트 구독 - 성능 최적화: 한 번만 등록
+  useEffect(() => {
+    const cleanup = addHomeResetListener(() => {
+      resetAllLibraryStates();
+    });
+
+    return cleanup;
+  }, []); // 빈 의존성 배열로 이벤트 리스너 재등록 방지
 
   // Responsive grid columns (optimized for max-w-4xl container)
   useEffect(() => {

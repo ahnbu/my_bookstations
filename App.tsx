@@ -13,9 +13,11 @@ import BulkSearchModal from './components/BulkSearchModal';
 import APITestModal from './components/APITestModal';
 import DevNoteModal from './components/DevNoteModal';
 import WelcomeModal from './components/WelcomeModal';
+import MyLibraryBookDetailModal from './components/MyLibraryBookDetailModal';
 import Notification from './components/Notification';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
+import { addHomeResetListener } from './utils/events';
 
 import { useUIStore } from './stores/useUIStore';
 import { useAuthStore } from './stores/useAuthStore';
@@ -24,7 +26,7 @@ import { useSettingsStore } from './stores/useSettingsStore';
 import { isAdmin } from './utils/adminCheck';
 
 const App: React.FC = () => {
-  const { notification, setNotification, openWelcomeModal } = useUIStore();
+  const { notification, setNotification, openWelcomeModal, selectedBookIdForDetail, closeMyLibraryBookDetailModal } = useUIStore();
   const initializeAuthListener = useAuthStore(state => state.initializeAuthListener);
   const session = useAuthStore(state => state.session);
   const fetchUserLibrary = useBookStore(state => state.fetchUserLibrary);
@@ -76,6 +78,19 @@ const App: React.FC = () => {
     }
   }, [openWelcomeModal]);
 
+  // 홈 리셋 이벤트 구독 - 전역 모달 닫기 (성능 최적화)
+  useEffect(() => {
+    const cleanup = addHomeResetListener(() => {
+      // 전역 상세 모달 닫기 (조건부 체크를 내부에서 수행)
+      const { selectedBookIdForDetail: currentBookId, closeMyLibraryBookDetailModal: closeModal } = useUIStore.getState();
+      if (currentBookId) {
+        closeModal();
+      }
+    });
+
+    return cleanup;
+  }, []); // 빈 의존성 배열로 이벤트 리스너 재등록 방지
+
   return (
     <div className="min-h-screen bg-primary text-primary font-sans">
       {notification && (
@@ -108,6 +123,14 @@ const App: React.FC = () => {
 
       {/* 웰컴 모달 */}
       <WelcomeModal />
+
+      {/* 전역 상세 모달 */}
+      {selectedBookIdForDetail && (
+        <MyLibraryBookDetailModal
+          bookId={selectedBookIdForDetail}
+          onClose={closeMyLibraryBookDetailModal}
+        />
+      )}
 
       {/* 개발환경에서만 개발자 도구 표시 */}
       {isAdmin(session?.user?.email) && <AdminPanel />}

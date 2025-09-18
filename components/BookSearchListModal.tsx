@@ -4,19 +4,18 @@ import { useBookStore } from '../stores/useBookStore';
 import { useUIStore } from '../stores/useUIStore';
 
 const BookSearchListModal: React.FC = () => {
-  const { isBookSearchListModalOpen, closeBookSearchListModal, setNotification } = useUIStore();
+  const { isBookSearchListModalOpen, closeBookSearchListModal, setNotification, openMyLibraryBookDetailModal } = useUIStore();
   const { searchResults, selectBook, myLibraryBooks } = useBookStore();
 
   const handleBookClick = (book: any) => {
     // 중복 책 체크
-    const isDuplicate = myLibraryBooks.some(libraryBook => libraryBook.isbn13 === book.isbn13);
-    
-    if (isDuplicate) {
-      setNotification({
-        message: '이미 서재에 추가된 책입니다. 다른 책을 선택해주세요.',
-        type: 'warning'
-      });
-      return; // 모달은 열어둔 채로 중복 책 선택 차단
+    const duplicateBook = myLibraryBooks.find(libraryBook => libraryBook.isbn13 === book.isbn13);
+
+    if (duplicateBook) {
+      // 이미 추가된 책인 경우 해당 책의 상세 모달 열기
+      closeBookSearchListModal(); // 검색 결과 모달 닫기
+      openMyLibraryBookDetailModal(duplicateBook.id); // 상세 모달 열기
+      return;
     }
 
     // 중복이 아닌 경우에만 책 선택
@@ -39,17 +38,17 @@ const BookSearchListModal: React.FC = () => {
             <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {searchResults.map((book) => {
                 const isDuplicate = myLibraryBooks.some(libraryBook => libraryBook.isbn13 === book.isbn13);
-                
+
                 return (
                 <li
                   key={book.isbn13}
                   onClick={() => handleBookClick(book)}
                   className={`bg-secondary rounded-lg p-4 flex flex-col items-center text-center cursor-pointer transition-all duration-300 relative ${
-                    isDuplicate 
-                      ? 'opacity-60 hover:bg-secondary'
+                    isDuplicate
+                      ? 'opacity-80 hover:bg-tertiary hover:shadow-lg transform hover:-translate-y-1'
                       : 'hover:bg-tertiary hover:shadow-lg transform hover:-translate-y-1'
                   }`}
-                  title={isDuplicate ? '이미 서재에 추가된 책입니다' : ''}
+                  title={isDuplicate ? '이미 서재에 추가된 책입니다. 클릭하면 상세 정보를 볼 수 있습니다.' : '클릭하여 서재에 추가'}
                 >
                   {isDuplicate && (
                     <div className="absolute top-2 right-2 bg-yellow-500 text-black text-xs px-2 py-1 rounded-full font-semibold">

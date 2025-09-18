@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SearchIcon } from './Icons';
 import Spinner from './Spinner';
 import { useBookStore } from '../stores/useBookStore';
 import { useUIStore } from '../stores/useUIStore';
+import { addHomeResetListener } from '../utils/events';
 
 const SearchForm: React.FC = () => {
   const [query, setQuery] = useState('');
@@ -11,6 +12,17 @@ const SearchForm: React.FC = () => {
   // 1. searchBooks 액션만 구독
   const searchBooks = useBookStore((state) => state.searchBooks);
   const isLoading = useUIStore((state) => state.isLoading);
+
+  // 홈 리셋 이벤트 구독
+  useEffect(() => {
+    const cleanup = addHomeResetListener(() => {
+      // 검색 폼 초기화
+      setQuery('');
+      setSearchType('Keyword');
+    });
+
+    return cleanup;
+  }, []);
 
   // 2. handleSubmit 함수 교체
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
