@@ -7,6 +7,7 @@ import { CloseIcon, RefreshIcon, BookOpenIcon } from './Icons';
 import Spinner from './Spinner';
 import StarRating from './StarRating';
 import CustomTagComponent from './CustomTag';
+import AuthorButtons from './AuthorButtons';
 import { getStatusClass, getStatusEmoji, processBookTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL, generateLibraryDetailURL, isLibraryStockClickable } from '../services/unifiedLibrary.service';
 import { filterGyeonggiEbookByIsbn } from '../utils/isbnMatcher';
 
@@ -97,7 +98,7 @@ const renderStockInfo = (libraryName: string, stock?: StockInfo, bookTitle: stri
 
 
 const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ bookId, onClose }) => {
-    const { updateReadStatus, updateRating, refreshingIsbn, refreshEBookInfo, refreshingEbookId, refreshAllBookInfo, addTagToBook, removeTagFromBook } = useBookStore();
+    const { updateReadStatus, updateRating, refreshingIsbn, refreshEBookInfo, refreshingEbookId, refreshAllBookInfo, addTagToBook, removeTagFromBook, setAuthorFilter } = useBookStore();
     const book = useBookStore(state => state.myLibraryBooks.find(b => b.id === bookId));
     const { settings } = useSettingsStore();
 
@@ -110,6 +111,16 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
 
     if (!book) return null; // Render nothing while closing or if book not found
 
+    const handleAuthorClick = (authorName: string) => {
+        if (!authorName) return;
+
+        // 현재 모달 닫기
+        onClose();
+
+        // MyLibrary에서 저자로 필터링
+        setAuthorFilter(authorName);
+    };
+
     const formatDate = (timestamp: number) => {
         const date = new Date(timestamp);
         const yyyy = date.getFullYear();
@@ -121,6 +132,11 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
     };
 
     const hasEbookLink = book.subInfo?.ebookList?.[0]?.link;
+
+    // 레이아웃 로직 변수 정의
+    const hasLeftContent = settings.showRating || settings.showReadStatus || settings.showTags;
+    const hasRightContent = settings.showLibraryStock;
+    const isLibraryStockOnly = !hasLeftContent && hasRightContent;
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 p-4 transition-opacity duration-300">
@@ -139,7 +155,14 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                         </div>
                         <div className="md:col-span-2 text-secondary">
                           <h3 className="text-2xl font-bold text-primary mb-2">{book.title}</h3>
-                          <p className="text-lg text-secondary mb-1"><strong>저자:</strong> {book.author.replace(/\s*\([^)]*\)/g, '')}</p>
+                          <p className="text-lg text-secondary mb-1">
+                            <strong>저자:</strong>{' '}
+                            <AuthorButtons
+                              authorString={book.author}
+                              onAuthorClick={handleAuthorClick}
+                              className="text-blue-400 hover:text-blue-300 hover:underline cursor-pointer transition-colors"
+                            />
+                          </p>
                           <p className="text-md text-tertiary mb-1"><strong>출판사:</strong> {book.publisher}</p>
                           <p className="text-md text-tertiary mb-1"><strong>출간일:</strong> {book.pubDate}</p>
                           <p className="text-md text-tertiary mb-1"><strong>ISBN:</strong> {book.isbn13}</p>
@@ -181,251 +204,439 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                         </div>
                     </div>
                     
-                    <div className="mt-6 pt-6 border-t border-primary">
-                        <h3 className="text-2xl font-bold text-primary mb-4">내 서재 정보</h3>
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-secondary rounded-lg p-6">
-                            {/* Left side: Status & Rating */}
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-secondary mb-2">나의 별점</label>
-                                    <StarRating
-                                        rating={book.rating}
-                                        onRatingChange={(newRating) => updateRating(book.id, newRating)}
-                                    />
-                                </div>
-                                <div className="w-32">
-                                    <label className="block text-sm font-medium text-secondary mb-2">읽음 상태</label>
-                                    <select
-                                        value={book.readStatus}
-                                        onChange={(e) => updateReadStatus(book.id, e.target.value as ReadStatus)}
-                                        className="input-base text-sm rounded-md block w-full p-2.5"
-                                    >
-                                        <option value="읽지 않음">읽지 않음</option>
-                                        <option value="읽는 중">읽는 중</option>
-                                        <option value="완독">완독</option>
-                                    </select>
-                                </div>
+                    {/* 내 서재 정보가 하나라도 표시될 때만 섹션을 표시 */}
+                    {(hasLeftContent || hasRightContent) && (
+                        <div className="mt-6 pt-6 border-t border-primary">
+                            <h3 className="text-2xl font-bold text-primary mb-4">내 서재 정보</h3>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-secondary rounded-lg p-6">
+                                {/* 왼쪽 컬럼: 일반 요소들 또는 도서관 재고 (도서관 재고만 있을 때) */}
+                                <div className="space-y-6">
+                                    {/* 도서관 재고만 있는 경우 왼쪽 컬럼에 표시 */}
+                                    {isLibraryStockOnly ? (
+                                        // 도서관 재고만 있을 때
+                                        <div>
+                                            <div className="flex justify-between items-center mb-3">
+                                                <h4 className="text-lg font-semibold text-primary">도서관 재고</h4>
+                                                <button
+                                                    onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title)}
+                                                    disabled={refreshingIsbn === book.isbn13 || refreshingEbookId === book.id}
+                                                    className="p-2 text-secondary hover:text-primary rounded-full hover-surface transition-colors disabled:opacity-50 disabled:cursor-wait"
+                                                    title="모든 재고 정보 새로고침"
+                                                >
+                                                    {(refreshingIsbn === book.isbn13 || refreshingEbookId === book.id) ? <Spinner /> : <RefreshIcon className="w-5 h-5" />}
+                                                </button>
+                                            </div>
+                                            <div className="space-y-2 text-sm text-secondary bg-elevated p-4 rounded-md">
+                                                {renderStockInfo('퇴촌 도서관', book.toechonStock, book.title, book.detailedStockInfo)}
+                                                {renderStockInfo('기타 도서관', book.otherStock, book.title, book.detailedStockInfo)}
+                                                {book.subInfo?.ebookList?.[0]?.link && (
+                                                    <>
+                                                        <div className="flex justify-between items-center">
+                                                            <span>전자책(교육):</span>
+                                                            {book.ebookInfo ? (
+                                                                <a
+                                                                    href={`https://lib.goe.go.kr/elib/module/elib/search/index.do?menu_idx=94&author_name=&viewPage=1&search_text=${encodeURIComponent(createSearchSubject(book.title))}&sortField=book_pubdt&sortType=desc&rowCount=20`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className={`font-medium ${book.ebookInfo.summary.대출가능 > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
+                                                                    title={`총 재고: ${book.ebookInfo.summary.총개수}권, 대출가능: ${book.ebookInfo.summary.대출가능}권`}
+                                                                >
+                                                                    {book.ebookInfo.summary.총개수} / {book.ebookInfo.summary.대출가능}
+                                                                </a>
+                                                            ) : (
+                                                                <span className="text-tertiary">정보 없음</span>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex justify-between items-center">
+                                                            <span>전자책(시립구독):</span>
+                                                            {(() => {
+                                                                const siripInfo = book.siripEbookInfo;
+                                                                const subscriptionTotalCount = siripInfo?.details?.subscription?.total_count || 0;
+                                                                const subscriptionAvailableCount = siripInfo?.details?.subscription?.available_count || 0;
 
-                                {/* 태그 관리 섹션 */}
-                                <div>
-                                    <label className="block text-sm font-medium text-secondary mb-3">선택된 태그</label>
-                                    <div className="space-y-4">
-                                        {/* 현재 등록된 태그들 (primary 색상, X 버튼) */}
-                                        <div className="flex flex-wrap gap-2">
-                                            {book.customTags && book.customTags.length > 0 ? (
-                                                book.customTags.map(tagId => {
-                                                    const tag = settings.tagSettings.tags.find(t => t.id === tagId);
-                                                    return tag ? (
-                                                        <CustomTagComponent
-                                                            key={tag.id}
-                                                            tag={{...tag, color: 'primary'}}
-                                                            showClose={true}
-                                                            onClose={() => removeTagFromBook(book.id, tag.id)}
-                                                            size="sm"
-                                                        />
-                                                    ) : null;
-                                                })
-                                            ) : (
-                                                <span className="text-tertiary text-sm">선택된 태그가 없습니다</span>
+                                                                if (!siripInfo) {
+                                                                    return (
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                refreshAllBookInfo(book.id, book.isbn13, book.title);
+                                                                            }}
+                                                                            className="font-medium text-blue-400 hover:text-blue-300"
+                                                                            disabled={refreshingEbookId === book.id}
+                                                                        >
+                                                                            {refreshingEbookId === book.id ? '로딩...' : '조회'}
+                                                                        </button>
+                                                                    );
+                                                                }
+
+                                                                if ('error' in siripInfo) {
+                                                                    return <span className="font-medium text-tertiary">정보 없음</span>;
+                                                                }
+
+                                                                return (
+                                                                    <a
+                                                                        href={`https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent((() => {
+                                                                            let titleForSearch = book.title;
+                                                                            const dashIndex = titleForSearch.indexOf('-');
+                                                                            if (dashIndex !== -1) {
+                                                                                titleForSearch = titleForSearch.substring(0, dashIndex).trim();
+                                                                            }
+                                                                            return titleForSearch.split(' ').slice(0, 3).join(' ');
+                                                                        })())}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className={`font-medium ${subscriptionAvailableCount > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
+                                                                        title={`총 ${subscriptionTotalCount}권 (대출가능: ${subscriptionAvailableCount}권)`}
+                                                                    >
+                                                                        {subscriptionTotalCount} / {subscriptionAvailableCount}
+                                                                    </a>
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                        <div className="flex justify-between items-center">
+                                                            <span>전자책(시립소장):</span>
+                                                            {(() => {
+                                                                const siripInfo = book.siripEbookInfo;
+                                                                const ownedTotalCount = siripInfo?.details?.owned?.total_count || 0;
+                                                                const ownedAvailableCount = siripInfo?.details?.owned?.available_count || 0;
+
+                                                                if (!siripInfo) {
+                                                                    return (
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                refreshAllBookInfo(book.id, book.isbn13, book.title);
+                                                                            }}
+                                                                            className="font-medium text-blue-400 hover:text-blue-300"
+                                                                            disabled={refreshingEbookId === book.id}
+                                                                        >
+                                                                            {refreshingEbookId === book.id ? '로딩...' : '조회'}
+                                                                        </button>
+                                                                    );
+                                                                }
+
+                                                                if ('error' in siripInfo) {
+                                                                    return <span className="font-medium text-tertiary">정보 없음</span>;
+                                                                }
+
+                                                                return (
+                                                                    <a
+                                                                        href={`https://lib.gjcity.go.kr:444/elibrary-front/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent((() => {
+                                                                            let titleForSearch = book.title;
+                                                                            const dashIndex = titleForSearch.indexOf('-');
+                                                                            if (dashIndex !== -1) {
+                                                                                titleForSearch = titleForSearch.substring(0, dashIndex).trim();
+                                                                            }
+                                                                            return titleForSearch.split(' ').slice(0, 3).join(' ');
+                                                                        })())}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className={`font-medium ${ownedAvailableCount > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
+                                                                        title={`총 ${ownedTotalCount}권 (대출가능: ${ownedAvailableCount}권)`}
+                                                                    >
+                                                                        {ownedTotalCount} / {ownedAvailableCount}
+                                                                    </a>
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                        <div className="flex justify-between items-center">
+                                                            <span>전자책(경기):</span>
+                                                            {book.gyeonggiEbookInfo ? (
+                                                                'error' in book.gyeonggiEbookInfo ? (
+                                                                    <span className="font-medium text-tertiary">정보 없음</span>
+                                                                ) : (() => {
+                                                                    // ISBN 필터링 적용
+                                                                    const filteredGyeonggiInfo = filterGyeonggiEbookByIsbn(book, book.gyeonggiEbookInfo);
+                                                                    return (
+                                                                        <a
+                                                                            href={createGyeonggiEbookSearchURL(book.title)}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className={`font-medium ${filteredGyeonggiInfo.available_count > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
+                                                                            title={`총 ${filteredGyeonggiInfo.total_count}권 (대출가능: ${filteredGyeonggiInfo.available_count}권, 소장형: ${filteredGyeonggiInfo.owned_count}권, 구독형: ${filteredGyeonggiInfo.subscription_count}권)`}
+                                                                        >
+                                                                            {filteredGyeonggiInfo.total_count} / {filteredGyeonggiInfo.available_count}
+                                                                        </a>
+                                                                    );
+                                                                })()
+                                                            ) : (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        refreshAllBookInfo(book.id, book.isbn13, book.title);
+                                                                    }}
+                                                                    className="font-medium text-blue-400 hover:text-blue-300"
+                                                                    disabled={refreshingEbookId === book.id}
+                                                                >
+                                                                    {refreshingEbookId === book.id ? '로딩...' : '조회'}
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                            {/* 시간 정보 유지 */}
+                                            {book.ebookInfo && (
+                                                <div className="text-xs text-tertiary pt-2 mt-2">
+                                                    {formatDate(book.ebookInfo.lastUpdated)} 기준
+                                                </div>
                                             )}
                                         </div>
-
-                                        {/* 추가 가능한 태그들 (secondary 색상, + 버튼) */}
-                                        {settings.tagSettings.tags.filter(tag => !book.customTags?.includes(tag.id)).length > 0 && (
-                                            <>
-                                                <div className="text-sm text-secondary">사용 가능한 태그</div>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {settings.tagSettings.tags
-                                                        .filter(tag => !book.customTags?.includes(tag.id))
-                                                        .map(tag => (
-                                                            <CustomTagComponent
-                                                                key={tag.id}
-                                                                tag={{...tag, color: 'secondary'}}
-                                                                showAdd={true}
-                                                                onAdd={() => addTagToBook(book.id, tag.id)}
-                                                                size="sm"
-                                                            />
-                                                        ))
-                                                    }
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            {/* Combined Library Stock */}
-                            <div>
-                                <div className="flex justify-between items-center mb-3">
-                                    <h4 className="text-lg font-semibold text-primary">도서관 재고</h4>
-                                    <button
-                                        onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title)}
-                                        disabled={refreshingIsbn === book.isbn13 || refreshingEbookId === book.id}
-                                        className="p-2 text-secondary hover:text-primary rounded-full hover-surface transition-colors disabled:opacity-50 disabled:cursor-wait"
-                                        title="모든 재고 정보 새로고침"
-                                    >
-                                        {(refreshingIsbn === book.isbn13 || refreshingEbookId === book.id) ? <Spinner /> : <RefreshIcon className="w-5 h-5" />}
-                                    </button>
-                                </div>
-                                <div className="space-y-2 text-sm text-secondary bg-elevated p-4 rounded-md">
-                                    {renderStockInfo('퇴촌 도서관', book.toechonStock, book.title, book.detailedStockInfo)}
-                                    {renderStockInfo('기타 도서관', book.otherStock, book.title, book.detailedStockInfo)}
-                                    {book.subInfo?.ebookList?.[0]?.link && (
+                                    ) : (
+                                        // 일반 요소들이 있을 때
                                         <>
-                                            <div className="flex justify-between items-center">
-                                                <span>전자책(교육):</span>
-                                                {book.ebookInfo ? (
-                                                    <a
-                                                        href={`https://lib.goe.go.kr/elib/module/elib/search/index.do?menu_idx=94&author_name=&viewPage=1&search_text=${encodeURIComponent(createSearchSubject(book.title))}&sortField=book_pubdt&sortType=desc&rowCount=20`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className={`font-medium ${book.ebookInfo.summary.대출가능 > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
-                                                        title={`총 재고: ${book.ebookInfo.summary.총개수}권, 대출가능: ${book.ebookInfo.summary.대출가능}권`}
+                                            {settings.showRating && (
+                                                <div>
+                                                    <label className="block text-sm font-medium text-secondary mb-2">나의 별점</label>
+                                                    <StarRating
+                                                        rating={book.rating}
+                                                        onRatingChange={(newRating) => updateRating(book.id, newRating)}
+                                                    />
+                                                </div>
+                                            )}
+                                            {settings.showReadStatus && (
+                                                <div className="w-32">
+                                                    <label className="block text-sm font-medium text-secondary mb-2">읽음 상태</label>
+                                                    <select
+                                                        value={book.readStatus}
+                                                        onChange={(e) => updateReadStatus(book.id, e.target.value as ReadStatus)}
+                                                        className="input-base text-sm rounded-md block w-full p-2.5"
                                                     >
-                                                        {book.ebookInfo.summary.총개수} / {book.ebookInfo.summary.대출가능}
-                                                    </a>
-                                                ) : (
-                                                    <span className="text-tertiary">정보 없음</span>
-                                                )}
-                                            </div>
-                                            <div className="flex justify-between items-center">
-                                                <span>전자책(시립구독):</span>
-                                                {(() => {
-                                                    const siripInfo = book.siripEbookInfo;
-                                                    const subscriptionTotalCount = siripInfo?.details?.subscription?.total_count || 0;
-                                                    const subscriptionAvailableCount = siripInfo?.details?.subscription?.available_count || 0;
-                                                    
-                                                    if (!siripInfo) {
-                                                        return (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    refreshAllBookInfo(book.id, book.isbn13, book.title);
-                                                                }}
-                                                                className="font-medium text-blue-400 hover:text-blue-300"
-                                                                disabled={refreshingEbookId === book.id}
-                                                            >
-                                                                {refreshingEbookId === book.id ? '로딩...' : '조회'}
-                                                            </button>
-                                                        );
-                                                    }
-                                                    
-                                                    if ('error' in siripInfo) {
-                                                        return <span className="font-medium text-tertiary">정보 없음</span>;
-                                                    }
+                                                        <option value="읽지 않음">읽지 않음</option>
+                                                        <option value="읽는 중">읽는 중</option>
+                                                        <option value="완독">완독</option>
+                                                    </select>
+                                                </div>
+                                            )}
 
-                                                    return (
-                                                        <a
-                                                            href={`https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent((() => {
-                                                                let titleForSearch = book.title;
-                                                                const dashIndex = titleForSearch.indexOf('-');
-                                                                if (dashIndex !== -1) {
-                                                                    titleForSearch = titleForSearch.substring(0, dashIndex).trim();
-                                                                }
-                                                                return titleForSearch.split(' ').slice(0, 3).join(' ');
-                                                            })())}`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className={`font-medium ${subscriptionAvailableCount > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
-                                                            title={`총 ${subscriptionTotalCount}권 (대출가능: ${subscriptionAvailableCount}권)`}
-                                                        >
-                                                            {subscriptionTotalCount} / {subscriptionAvailableCount}
-                                                        </a>
-                                                    );
-                                                })()}
-                                            </div>
-                                            <div className="flex justify-between items-center">
-                                                <span>전자책(시립소장):</span>
-                                                {(() => {
-                                                    const siripInfo = book.siripEbookInfo;
-                                                    const ownedTotalCount = siripInfo?.details?.owned?.total_count || 0;
-                                                    const ownedAvailableCount = siripInfo?.details?.owned?.available_count || 0;
-                                                    
-                                                    if (!siripInfo) {
-                                                        return (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    refreshAllBookInfo(book.id, book.isbn13, book.title);
-                                                                }}
-                                                                className="font-medium text-blue-400 hover:text-blue-300"
-                                                                disabled={refreshingEbookId === book.id}
-                                                            >
-                                                                {refreshingEbookId === book.id ? '로딩...' : '조회'}
-                                                            </button>
-                                                        );
-                                                    }
-                                                    
-                                                    if ('error' in siripInfo) {
-                                                        return <span className="font-medium text-tertiary">정보 없음</span>;
-                                                    }
+                                            {/* 태그 관리 섹션 */}
+                                            {settings.showTags && (
+                                                <div>
+                                                    <label className="block text-sm font-medium text-secondary mb-3">선택된 태그</label>
+                                                    <div className="space-y-4">
+                                                        {/* 현재 등록된 태그들 (primary 색상, X 버튼) */}
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {book.customTags && book.customTags.length > 0 ? (
+                                                                book.customTags.map(tagId => {
+                                                                    const tag = settings.tagSettings.tags.find(t => t.id === tagId);
+                                                                    return tag ? (
+                                                                        <CustomTagComponent
+                                                                            key={tag.id}
+                                                                            tag={{...tag, color: 'primary'}}
+                                                                            showClose={true}
+                                                                            onClose={() => removeTagFromBook(book.id, tag.id)}
+                                                                            size="sm"
+                                                                        />
+                                                                    ) : null;
+                                                                })
+                                                            ) : (
+                                                                <span className="text-tertiary text-sm">선택된 태그가 없습니다</span>
+                                                            )}
+                                                        </div>
 
-                                                    return (
-                                                        <a
-                                                            href={`https://lib.gjcity.go.kr:444/elibrary-front/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent((() => {
-                                                                let titleForSearch = book.title;
-                                                                const dashIndex = titleForSearch.indexOf('-');
-                                                                if (dashIndex !== -1) {
-                                                                    titleForSearch = titleForSearch.substring(0, dashIndex).trim();
-                                                                }
-                                                                return titleForSearch.split(' ').slice(0, 3).join(' ');
-                                                            })())}`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className={`font-medium ${ownedAvailableCount > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
-                                                            title={`총 ${ownedTotalCount}권 (대출가능: ${ownedAvailableCount}권)`}
-                                                        >
-                                                            {ownedTotalCount} / {ownedAvailableCount}
-                                                        </a>
-                                                    );
-                                                })()}
-                                            </div>
-                                            <div className="flex justify-between items-center">
-                                                <span>전자책(경기):</span>
-                                                {book.gyeonggiEbookInfo ? (
-                                                    'error' in book.gyeonggiEbookInfo ? (
-                                                        <span className="font-medium text-tertiary">정보 없음</span>
-                                                    ) : (() => {
-                                                        // ISBN 필터링 적용
-                                                        const filteredGyeonggiInfo = filterGyeonggiEbookByIsbn(book, book.gyeonggiEbookInfo);
-                                                        return (
-                                                            <a
-                                                                href={createGyeonggiEbookSearchURL(book.title)}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className={`font-medium ${filteredGyeonggiInfo.available_count > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
-                                                                title={`총 ${filteredGyeonggiInfo.total_count}권 (대출가능: ${filteredGyeonggiInfo.available_count}권, 소장형: ${filteredGyeonggiInfo.owned_count}권, 구독형: ${filteredGyeonggiInfo.subscription_count}권)`}
-                                                            >
-                                                                {filteredGyeonggiInfo.total_count} / {filteredGyeonggiInfo.available_count}
-                                                            </a>
-                                                        );
-                                                    })()
-                                                ) : (
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            refreshAllBookInfo(book.id, book.isbn13, book.title);
-                                                        }}
-                                                        className="font-medium text-blue-400 hover:text-blue-300"
-                                                        disabled={refreshingEbookId === book.id}
-                                                    >
-                                                        {refreshingEbookId === book.id ? '로딩...' : '조회'}
-                                                    </button>
-                                                )}
-                                            </div>
+                                                        {/* 추가 가능한 태그들 (secondary 색상, + 버튼) */}
+                                                        {settings.tagSettings.tags.filter(tag => !book.customTags?.includes(tag.id)).length > 0 && (
+                                                            <>
+                                                                <div className="text-sm text-secondary">사용 가능한 태그</div>
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    {settings.tagSettings.tags
+                                                                        .filter(tag => !book.customTags?.includes(tag.id))
+                                                                        .map(tag => (
+                                                                            <CustomTagComponent
+                                                                                key={tag.id}
+                                                                                tag={{...tag, color: 'secondary'}}
+                                                                                showAdd={true}
+                                                                                onAdd={() => addTagToBook(book.id, tag.id)}
+                                                                                size="sm"
+                                                                            />
+                                                                        ))
+                                                                    }
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </>
                                     )}
                                 </div>
-                                {/* 시간 정보 유지 */}
-                                {book.ebookInfo && (
-                                    <div className="text-xs text-tertiary pt-2 mt-2">
-                                        {formatDate(book.ebookInfo.lastUpdated)} 기준
-                                    </div>
-                                )}
-                            </div>
 
+                                {/* 오른쪽 컬럼: 도서관 재고 (다른 요소들과 함께 있을 때만) */}
+                                <div className="space-y-6">
+                                    {!isLibraryStockOnly && hasRightContent && (
+                                        <div>
+                                            <div className="flex justify-between items-center mb-3">
+                                                <h4 className="text-lg font-semibold text-primary">도서관 재고</h4>
+                                                <button
+                                                    onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title)}
+                                                    disabled={refreshingIsbn === book.isbn13 || refreshingEbookId === book.id}
+                                                    className="p-2 text-secondary hover:text-primary rounded-full hover-surface transition-colors disabled:opacity-50 disabled:cursor-wait"
+                                                    title="모든 재고 정보 새로고침"
+                                                >
+                                                    {(refreshingIsbn === book.isbn13 || refreshingEbookId === book.id) ? <Spinner /> : <RefreshIcon className="w-5 h-5" />}
+                                                </button>
+                                            </div>
+                                            <div className="space-y-2 text-sm text-secondary bg-elevated p-4 rounded-md">
+                                                {renderStockInfo('퇴촌 도서관', book.toechonStock, book.title, book.detailedStockInfo)}
+                                                {renderStockInfo('기타 도서관', book.otherStock, book.title, book.detailedStockInfo)}
+                                                {book.subInfo?.ebookList?.[0]?.link && (
+                                                    <>
+                                                        <div className="flex justify-between items-center">
+                                                            <span>전자책(교육):</span>
+                                                            {book.ebookInfo ? (
+                                                                <a
+                                                                    href={`https://lib.goe.go.kr/elib/module/elib/search/index.do?menu_idx=94&author_name=&viewPage=1&search_text=${encodeURIComponent(createSearchSubject(book.title))}&sortField=book_pubdt&sortType=desc&rowCount=20`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className={`font-medium ${book.ebookInfo.summary.대출가능 > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
+                                                                    title={`총 재고: ${book.ebookInfo.summary.총개수}권, 대출가능: ${book.ebookInfo.summary.대출가능}권`}
+                                                                >
+                                                                    {book.ebookInfo.summary.총개수} / {book.ebookInfo.summary.대출가능}
+                                                                </a>
+                                                            ) : (
+                                                                <span className="text-tertiary">정보 없음</span>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex justify-between items-center">
+                                                            <span>전자책(시립구독):</span>
+                                                            {(() => {
+                                                                const siripInfo = book.siripEbookInfo;
+                                                                const subscriptionTotalCount = siripInfo?.details?.subscription?.total_count || 0;
+                                                                const subscriptionAvailableCount = siripInfo?.details?.subscription?.available_count || 0;
+
+                                                                if (!siripInfo) {
+                                                                    return (
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                refreshAllBookInfo(book.id, book.isbn13, book.title);
+                                                                            }}
+                                                                            className="font-medium text-blue-400 hover:text-blue-300"
+                                                                            disabled={refreshingEbookId === book.id}
+                                                                        >
+                                                                            {refreshingEbookId === book.id ? '로딩...' : '조회'}
+                                                                        </button>
+                                                                    );
+                                                                }
+
+                                                                if ('error' in siripInfo) {
+                                                                    return <span className="font-medium text-tertiary">정보 없음</span>;
+                                                                }
+
+                                                                return (
+                                                                    <a
+                                                                        href={`https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent((() => {
+                                                                            let titleForSearch = book.title;
+                                                                            const dashIndex = titleForSearch.indexOf('-');
+                                                                            if (dashIndex !== -1) {
+                                                                                titleForSearch = titleForSearch.substring(0, dashIndex).trim();
+                                                                            }
+                                                                            return titleForSearch.split(' ').slice(0, 3).join(' ');
+                                                                        })())}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className={`font-medium ${subscriptionAvailableCount > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
+                                                                        title={`총 ${subscriptionTotalCount}권 (대출가능: ${subscriptionAvailableCount}권)`}
+                                                                    >
+                                                                        {subscriptionTotalCount} / {subscriptionAvailableCount}
+                                                                    </a>
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                        <div className="flex justify-between items-center">
+                                                            <span>전자책(시립소장):</span>
+                                                            {(() => {
+                                                                const siripInfo = book.siripEbookInfo;
+                                                                const ownedTotalCount = siripInfo?.details?.owned?.total_count || 0;
+                                                                const ownedAvailableCount = siripInfo?.details?.owned?.available_count || 0;
+
+                                                                if (!siripInfo) {
+                                                                    return (
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                refreshAllBookInfo(book.id, book.isbn13, book.title);
+                                                                            }}
+                                                                            className="font-medium text-blue-400 hover:text-blue-300"
+                                                                            disabled={refreshingEbookId === book.id}
+                                                                        >
+                                                                            {refreshingEbookId === book.id ? '로딩...' : '조회'}
+                                                                        </button>
+                                                                    );
+                                                                }
+
+                                                                if ('error' in siripInfo) {
+                                                                    return <span className="font-medium text-tertiary">정보 없음</span>;
+                                                                }
+
+                                                                return (
+                                                                    <a
+                                                                        href={`https://lib.gjcity.go.kr:444/elibrary-front/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent((() => {
+                                                                            let titleForSearch = book.title;
+                                                                            const dashIndex = titleForSearch.indexOf('-');
+                                                                            if (dashIndex !== -1) {
+                                                                                titleForSearch = titleForSearch.substring(0, dashIndex).trim();
+                                                                            }
+                                                                            return titleForSearch.split(' ').slice(0, 3).join(' ');
+                                                                        })())}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className={`font-medium ${ownedAvailableCount > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
+                                                                        title={`총 ${ownedTotalCount}권 (대출가능: ${ownedAvailableCount}권)`}
+                                                                    >
+                                                                        {ownedTotalCount} / {ownedAvailableCount}
+                                                                    </a>
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                        <div className="flex justify-between items-center">
+                                                            <span>전자책(경기):</span>
+                                                            {book.gyeonggiEbookInfo ? (
+                                                                'error' in book.gyeonggiEbookInfo ? (
+                                                                    <span className="font-medium text-tertiary">정보 없음</span>
+                                                                ) : (() => {
+                                                                    // ISBN 필터링 적용
+                                                                    const filteredGyeonggiInfo = filterGyeonggiEbookByIsbn(book, book.gyeonggiEbookInfo);
+                                                                    return (
+                                                                        <a
+                                                                            href={createGyeonggiEbookSearchURL(book.title)}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className={`font-medium ${filteredGyeonggiInfo.available_count > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`}
+                                                                            title={`총 ${filteredGyeonggiInfo.total_count}권 (대출가능: ${filteredGyeonggiInfo.available_count}권, 소장형: ${filteredGyeonggiInfo.owned_count}권, 구독형: ${filteredGyeonggiInfo.subscription_count}권)`}
+                                                                        >
+                                                                            {filteredGyeonggiInfo.total_count} / {filteredGyeonggiInfo.available_count}
+                                                                        </a>
+                                                                    );
+                                                                })()
+                                                            ) : (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        refreshAllBookInfo(book.id, book.isbn13, book.title);
+                                                                    }}
+                                                                    className="font-medium text-blue-400 hover:text-blue-300"
+                                                                    disabled={refreshingEbookId === book.id}
+                                                                >
+                                                                    {refreshingEbookId === book.id ? '로딩...' : '조회'}
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                            {/* 시간 정보 유지 */}
+                                            {book.ebookInfo && (
+                                                <div className="text-xs text-tertiary pt-2 mt-2">
+                                                    {formatDate(book.ebookInfo.lastUpdated)} 기준
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
         </div>

@@ -83,6 +83,7 @@ interface BookState {
   refreshingIsbn: string | null;
   refreshingEbookId: number | null;
   librarySearchQuery: string;
+  authorFilter: string;
   resetLibraryFilters?: () => void;
 
   // Actions
@@ -107,6 +108,8 @@ interface BookState {
   toggleFavorite: (id: number) => Promise<void>;
   updateBookNote: (id: number, note: string) => Promise<void>;
   setResetLibraryFilters: (resetFn?: () => void) => void;
+  setAuthorFilter: (author: string) => void;
+  clearAuthorFilter: () => void;
 }
 
 
@@ -120,6 +123,7 @@ export const useBookStore = create<BookState>(
       refreshingIsbn: null,
       refreshingEbookId: null,
       librarySearchQuery: '',
+      authorFilter: '',
       resetLibraryFilters: undefined,
 
       // Actions
@@ -597,6 +601,14 @@ export const useBookStore = create<BookState>(
 
       setResetLibraryFilters: (resetFn) => {
         set({ resetLibraryFilters: resetFn });
+      },
+
+      setAuthorFilter: (author) => {
+        set({ authorFilter: author });
+      },
+
+      clearAuthorFilter: () => {
+        set({ authorFilter: '' });
       },
     })
 );

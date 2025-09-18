@@ -517,6 +517,9 @@ const MyLibrary: React.FC = () => {
     updateRating,
     librarySearchQuery,
     setLibrarySearchQuery,
+    authorFilter,
+    setAuthorFilter,
+    clearAuthorFilter,
     addTagToBook,
     removeTagFromBook,
     updateMultipleBookTags,
@@ -547,15 +550,17 @@ const MyLibrary: React.FC = () => {
     setDebouncedSearchQuery('');
     setActiveTags(new Set());
     setShowFavoritesOnly(false);
+    clearAuthorFilter();
     // showAllBooks는 유지 - 사용자가 전체보기를 선택했다면 그 의도 유지
     // setSelectedTagIds는 BulkTagModal 내부 state이므로 여기서 접근하지 않음
-  }, []);
+  }, [clearAuthorFilter]);
 
   // 전체 내 서재 상태 리셋 함수 (홈 리셋용) - 성능 최적화
   const resetAllLibraryStates = useCallback(() => {
     // 외부 store 상태 리셋 (먼저 실행)
-    const { sortConfig: currentSortConfig, sortLibrary: sortLibraryAction, setLibrarySearchQuery: setSearchQuery } = useBookStore.getState();
+    const { sortConfig: currentSortConfig, sortLibrary: sortLibraryAction, setLibrarySearchQuery: setSearchQuery, clearAuthorFilter: clearAuthor } = useBookStore.getState();
     setSearchQuery('');
+    clearAuthor();
 
     if (currentSortConfig.key !== 'addedDate' || currentSortConfig.order !== 'desc') {
       sortLibraryAction('addedDate');
@@ -726,8 +731,9 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
   const hasActiveFilters = useCallback(() => {
     return debouncedSearchQuery.trim().length >= 2 ||
            activeTags.size > 0 ||
-           showFavoritesOnly;
-  }, [debouncedSearchQuery, activeTags, showFavoritesOnly]);
+           showFavoritesOnly ||
+           authorFilter.trim().length > 0;
+  }, [debouncedSearchQuery, activeTags, showFavoritesOnly, authorFilter]);
 
   const sortedAndFilteredLibraryBooks = useMemo(() => {
     const readStatusOrder: Record<ReadStatus, number> = { '완독': 0, '읽는 중': 1, '읽지 않음': 2 };
@@ -747,6 +753,14 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
     if (activeTags.size > 0) {
       filteredBooks = filteredBooks.filter(book =>
         book.customTags?.some(tagId => activeTags.has(tagId))
+      );
+    }
+
+    // Filter by author if authorFilter is set
+    if (authorFilter.trim()) {
+      const authorQuery = authorFilter.toLowerCase().trim();
+      filteredBooks = filteredBooks.filter(book =>
+        book.author.toLowerCase().includes(authorQuery)
       );
     }
 
@@ -782,7 +796,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
         }
         return 0;
     });
-  }, [myLibraryBooks, sortConfig, debouncedSearchQuery, activeTags, showFavoritesOnly]);
+  }, [myLibraryBooks, sortConfig, debouncedSearchQuery, activeTags, showFavoritesOnly, authorFilter]);
 
   // 페이지네이션이 적용된 표시할 책 목록 계산
   const displayedBooks = useMemo(() => {

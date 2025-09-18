@@ -8,6 +8,7 @@ import { SelectedBook, ReadStatus, StockInfo } from '../types';
 import { generateLibraryDetailURL, isLibraryStockClickable } from '../services/unifiedLibrary.service';
 import StarRating from './StarRating';
 import Spinner from './Spinner';
+import AuthorButtons from './AuthorButtons';
 
 const createSearchSubject = (title: string): string => {
   const chunks = title.split(' ');
@@ -88,8 +89,9 @@ const BookDetails: React.FC = () => {
     updateRating,
     refreshingIsbn,
     refreshAllBookInfo,
+    searchBooks,
   } = useBookStore();
-  const { closeBookSearchListModal } = useUIStore();
+  const { closeBookSearchListModal, openBookSearchListModal } = useUIStore();
   const { session } = useAuthStore();
   
   // 개발 환경에서만 디버깅 로그 출력
@@ -114,7 +116,7 @@ const BookDetails: React.FC = () => {
 
   const handleAddClick = async () => {
     if (isAdding || isBookInLibrary || !selectedBook) return;
-    
+
     setIsAdding(true);
     setIsLoading(true);
     try {
@@ -129,6 +131,29 @@ const BookDetails: React.FC = () => {
       setIsLoading(false);
     }
   }
+
+  const handleAuthorClick = async (authorName: string) => {
+    if (!authorName) return;
+
+    try {
+      setIsLoading(true);
+
+      // 알라딘 API로 저자 검색 (Author 타입으로)
+      await searchBooks(authorName, 'Author');
+
+      // 검색 결과가 있으면 모달 열기
+      const searchResults = useBookStore.getState().searchResults;
+      if (searchResults.length > 0) {
+        openBookSearchListModal();
+      } else {
+        console.log(`'${authorName}' 저자의 검색 결과가 없습니다.`);
+      }
+    } catch (error) {
+      console.error('저자 검색 중 오류 발생:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // 도서가 선택되지 않은 경우
   if (!selectedBook) {
@@ -251,7 +276,16 @@ const BookDetails: React.FC = () => {
           
           <h2 className="text-2xl font-bold text-primary mb-3 pr-12">{selectedBook.title}</h2>
           <p className="text-base text-secondary mb-2">
-            <strong>저자:</strong> {selectedBook.author ? selectedBook.author.replace(/\s*\([^)]*\)/g, '') : '정보 없음'}
+            <strong>저자:</strong>{' '}
+            {selectedBook.author ? (
+              <AuthorButtons
+                authorString={selectedBook.author}
+                onAuthorClick={handleAuthorClick}
+                className="text-blue-400 hover:text-blue-300 hover:underline cursor-pointer transition-colors"
+              />
+            ) : (
+              <span className="text-gray-400">정보 없음</span>
+            )}
           </p>
           <p className="text-sm text-tertiary mb-2">
             <strong>출판사:</strong> {selectedBook.publisher || '정보 없음'}
