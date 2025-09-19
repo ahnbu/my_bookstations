@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { ReadStatus, StockInfo, CustomTag } from '../types';
 import { useBookStore } from '../stores/useBookStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
-import { CloseIcon, RefreshIcon, BookOpenIcon } from './Icons';
+import { CloseIcon, RefreshIcon, BookOpenIcon, MessageSquareIcon, EditIcon, SaveIcon, TrashIcon } from './Icons';
 import Spinner from './Spinner';
 import StarRating from './StarRating';
 import CustomTagComponent from './CustomTag';
@@ -98,9 +98,13 @@ const renderStockInfo = (libraryName: string, stock?: StockInfo, bookTitle: stri
 
 
 const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ bookId, onClose }) => {
-    const { updateReadStatus, updateRating, refreshingIsbn, refreshEBookInfo, refreshingEbookId, refreshAllBookInfo, addTagToBook, removeTagFromBook, setAuthorFilter } = useBookStore();
+    const { updateReadStatus, updateRating, refreshingIsbn, refreshEBookInfo, refreshingEbookId, refreshAllBookInfo, addTagToBook, removeTagFromBook, setAuthorFilter, updateBookNote } = useBookStore();
     const book = useBookStore(state => state.myLibraryBooks.find(b => b.id === bookId));
     const { settings } = useSettingsStore();
+
+    // 메모 편집 상태 관리
+    const [editingNote, setEditingNote] = useState(false);
+    const [noteValue, setNoteValue] = useState('');
 
     // If the book is deleted while the modal is open, close the modal.
     useEffect(() => {
@@ -108,6 +112,13 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
             onClose();
         }
     }, [book, onClose]);
+
+    // 메모 값 초기화
+    useEffect(() => {
+        if (book) {
+            setNoteValue(book.note || '');
+        }
+    }, [book]);
 
     if (!book) return null; // Render nothing while closing or if book not found
 
@@ -119,6 +130,47 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
 
         // MyLibrary에서 저자로 필터링
         setAuthorFilter(authorName);
+    };
+
+    // 메모 편집 시작
+    const handleNoteEdit = () => {
+        setEditingNote(true);
+    };
+
+    // 메모 저장
+    const handleNoteSave = async () => {
+        try {
+            await updateBookNote(book.id, noteValue);
+            setEditingNote(false);
+        } catch (error) {
+            console.error('메모 저장 실패:', error);
+        }
+    };
+
+    // 메모 편집 취소
+    const handleNoteCancel = () => {
+        setNoteValue(book.note || '');
+        setEditingNote(false);
+    };
+
+    // 메모 삭제
+    const handleNoteDelete = async () => {
+        try {
+            await updateBookNote(book.id, '');
+            setNoteValue('');
+            setEditingNote(false);
+        } catch (error) {
+            console.error('메모 삭제 실패:', error);
+        }
+    };
+
+    // 키보드 이벤트 처리
+    const handleNoteKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && e.ctrlKey) {
+            handleNoteSave();
+        } else if (e.key === 'Escape') {
+            handleNoteCancel();
+        }
     };
 
     const formatDate = (timestamp: number) => {
@@ -134,7 +186,7 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
     const hasEbookLink = book.subInfo?.ebookList?.[0]?.link;
 
     // 레이아웃 로직 변수 정의
-    const hasLeftContent = settings.showRating || settings.showReadStatus || settings.showTags;
+    const hasLeftContent = settings.showRating || settings.showReadStatus || settings.showTags || settings.showBookNotes;
     const hasRightContent = settings.showLibraryStock;
     const isLibraryStockOnly = !hasLeftContent && hasRightContent;
 
@@ -455,6 +507,97 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                                             </>
                                                         )}
                                                     </div>
+                                                </div>
+                                            )}
+
+                                            {/* 메모 관리 섹션 */}
+                                            {settings.showBookNotes && (
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <label className="block text-sm font-medium text-secondary">메모</label>
+                                                        <div className="flex items-center gap-2">
+                                                            {!editingNote && (
+                                                                <button
+                                                                    onClick={handleNoteEdit}
+                                                                    className="p-1.5 text-secondary hover:text-primary rounded-md hover:bg-tertiary transition-colors"
+                                                                    title="메모 편집 (또는 메모 영역 클릭)"
+                                                                >
+                                                                    <EditIcon className="w-4 h-4" />
+                                                                </button>
+                                                            )}
+                                                            {book.note && !editingNote && (
+                                                                <button
+                                                                    onClick={handleNoteDelete}
+                                                                    className="p-1.5 text-secondary hover:text-red-500 rounded-md hover:bg-tertiary transition-colors"
+                                                                    title="메모 삭제"
+                                                                >
+                                                                    <TrashIcon className="w-4 h-4" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {editingNote ? (
+                                                        /* 편집 모드 */
+                                                        <div className="space-y-3">
+                                                            <div className="relative">
+                                                                <textarea
+                                                                    value={noteValue}
+                                                                    onChange={(e) => setNoteValue(e.target.value)}
+                                                                    onKeyDown={handleNoteKeyDown}
+                                                                    maxLength={50}
+                                                                    placeholder="메모를 입력하세요... (Ctrl+Enter: 저장, Esc: 취소)"
+                                                                    className="w-full px-3 py-2 text-sm bg-tertiary border border-secondary rounded-md text-primary focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                                                                    rows={3}
+                                                                    autoFocus
+                                                                />
+                                                                <div className="absolute bottom-2 right-2 text-xs text-tertiary">
+                                                                    {noteValue.length}/50
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <button
+                                                                    onClick={handleNoteSave}
+                                                                    className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+                                                                >
+                                                                    <SaveIcon className="w-4 h-4" />
+                                                                    저장
+                                                                </button>
+                                                                <button
+                                                                    onClick={handleNoteCancel}
+                                                                    className="flex items-center gap-1 px-3 py-1.5 bg-gray-600 text-white text-sm rounded-md hover:bg-gray-700 transition-colors"
+                                                                >
+                                                                    <CloseIcon className="w-4 h-4" />
+                                                                    취소
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        /* 표시 모드 */
+                                                        <div className="min-h-[60px] p-3 bg-tertiary border border-secondary rounded-md">
+                                                            {book.note ? (
+                                                                <div
+                                                                    className="flex items-start gap-2 cursor-pointer hover:bg-opacity-80 rounded p-1 -m-1 transition-colors"
+                                                                    onClick={handleNoteEdit}
+                                                                    title="클릭하여 메모를 편집하세요"
+                                                                >
+                                                                    <MessageSquareIcon className="w-4 h-4 text-secondary flex-shrink-0 mt-0.5" />
+                                                                    <p className="text-sm text-primary leading-relaxed break-words">
+                                                                        {book.note}
+                                                                    </p>
+                                                                </div>
+                                                            ) : (
+                                                                <div
+                                                                    className="flex items-center gap-2 text-tertiary cursor-pointer hover:text-secondary transition-colors rounded p-1 -m-1"
+                                                                    onClick={handleNoteEdit}
+                                                                    title="클릭하여 메모를 추가하세요"
+                                                                >
+                                                                    <MessageSquareIcon className="w-4 h-4" />
+                                                                    <span className="text-sm">메모가 없습니다. 클릭하여 메모를 추가하세요.</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </>

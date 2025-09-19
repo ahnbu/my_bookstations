@@ -1829,7 +1829,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
               </div>}
 
               {/* Book Note Section */}
-              {settings.showBookNotes && (
+              {settings.showBookNotes && book.note && (
                 <div className="mt-3 pt-3 border-t border-secondary">
                   {editingNoteId === book.id ? (
                     /* Editing Mode */
@@ -2134,7 +2134,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                 </div>}
 
                 {/* Book Note Section */}
-                {settings.showBookNotes && (
+                {settings.showBookNotes && book.note && (
                   <div className="mt-2 pt-2 border-t border-secondary">
                     {editingNoteId === book.id ? (
                       /* Editing Mode */
