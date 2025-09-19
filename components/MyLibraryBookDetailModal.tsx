@@ -593,7 +593,7 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                                                     title="클릭하여 메모를 추가하세요"
                                                                 >
                                                                     <MessageSquareIcon className="w-4 h-4" />
-                                                                    <span className="text-sm">메모가 없습니다. 클릭하여 메모를 추가하세요.</span>
+                                                                    <span className="text-sm">클릭하여 메모를 추가하세요.</span>
                                                                 </div>
                                                             )}
                                                         </div>
