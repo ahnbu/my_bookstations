@@ -1,11 +1,12 @@
 import React from 'react';
 import { CloseIcon } from './Icons';
+import Spinner from './Spinner';
 import { useBookStore } from '../stores/useBookStore';
 import { useUIStore } from '../stores/useUIStore';
 
 const BookSearchListModal: React.FC = () => {
   const { isBookSearchListModalOpen, closeBookSearchListModal, setNotification, openMyLibraryBookDetailModal } = useUIStore();
-  const { searchResults, selectBook, myLibraryBooks } = useBookStore();
+  const { searchResults, selectBook, myLibraryBooks, hasMoreResults, isLoadingMore, loadMoreSearchResults } = useBookStore();
 
   const handleBookClick = (book: any) => {
     // 중복 책 체크
@@ -35,34 +36,56 @@ const BookSearchListModal: React.FC = () => {
         </div>
         <div className="p-6 overflow-y-auto">
           {searchResults.length > 0 ? (
-            <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {searchResults.map((book) => {
-                const isDuplicate = myLibraryBooks.some(libraryBook => libraryBook.isbn13 === book.isbn13);
+            <div>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {searchResults.map((book) => {
+                  const isDuplicate = myLibraryBooks.some(libraryBook => libraryBook.isbn13 === book.isbn13);
 
-                return (
-                <li
-                  key={book.isbn13}
-                  onClick={() => handleBookClick(book)}
-                  className={`bg-secondary rounded-lg p-4 flex flex-col items-center text-center cursor-pointer transition-all duration-300 relative ${
-                    isDuplicate
-                      ? 'opacity-80 hover:bg-tertiary hover:shadow-lg transform hover:-translate-y-1'
-                      : 'hover:bg-tertiary hover:shadow-lg transform hover:-translate-y-1'
-                  }`}
-                  title={isDuplicate ? '이미 서재에 추가된 책입니다. 클릭하면 상세 정보를 볼 수 있습니다.' : '클릭하여 서재에 추가'}
-                >
-                  {isDuplicate && (
-                    <div className="absolute top-2 right-2 bg-yellow-500 text-black text-xs px-2 py-1 rounded-full font-semibold">
-                      추가됨
-                    </div>
-                  )}
-                  <img src={book.cover.replace('coversum', 'cover')} alt={book.title} className="w-32 h-48 object-cover rounded shadow-md mb-4" />
-                  <h3 className="text-sm font-semibold text-primary mb-1 line-clamp-2">{book.title}</h3>
-                  <p className="text-xs text-tertiary line-clamp-2">{book.author.replace(/\s*\([^)]*\)/g, '')}</p>
-                  <p className="text-xs text-tertiary mt-1">{book.pubDate}</p>
-                </li>
-                );
-              })}
-            </ul>
+                  return (
+                  <li
+                    key={book.isbn13}
+                    onClick={() => handleBookClick(book)}
+                    className={`bg-secondary rounded-lg p-4 flex flex-col items-center text-center cursor-pointer transition-all duration-300 relative ${
+                      isDuplicate
+                        ? 'opacity-80 hover:bg-tertiary hover:shadow-lg transform hover:-translate-y-1'
+                        : 'hover:bg-tertiary hover:shadow-lg transform hover:-translate-y-1'
+                    }`}
+                    title={isDuplicate ? '이미 서재에 추가된 책입니다. 클릭하면 상세 정보를 볼 수 있습니다.' : '클릭하여 서재에 추가'}
+                  >
+                    {isDuplicate && (
+                      <div className="absolute top-2 right-2 bg-yellow-500 text-black text-xs px-2 py-1 rounded-full font-semibold">
+                        추가됨
+                      </div>
+                    )}
+                    <img src={book.cover.replace('coversum', 'cover')} alt={book.title} className="w-32 h-48 object-cover rounded shadow-md mb-4" />
+                    <h3 className="text-sm font-semibold text-primary mb-1 line-clamp-2">{book.title}</h3>
+                    <p className="text-xs text-tertiary line-clamp-2">{book.author.replace(/\s*\([^)]*\)/g, '')}</p>
+                    <p className="text-xs text-tertiary mt-1">{book.pubDate}</p>
+                  </li>
+                  );
+                })}
+              </ul>
+
+              {/* 더 보기 버튼 영역 */}
+              {(hasMoreResults || isLoadingMore) && (
+                <div className="flex justify-center mt-8">
+                  <button
+                    onClick={loadMoreSearchResults}
+                    disabled={isLoadingMore}
+                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-500 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+                  >
+                    {isLoadingMore ? (
+                      <>
+                        <Spinner />
+                        추가 로딩 중...
+                      </>
+                    ) : (
+                      '더 많은 책 보기'
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
           ) : (
             <p className="text-center text-tertiary py-8">검색 결과가 없습니다.</p>
           )}

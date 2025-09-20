@@ -86,8 +86,16 @@ interface BookState {
   authorFilter: string;
   resetLibraryFilters?: () => void;
 
+  // Pagination state
+  currentPage: number;
+  hasMoreResults: boolean;
+  isLoadingMore: boolean;
+  lastSearchQuery: string;
+  lastSearchType: string;
+
   // Actions
   searchBooks: (query: string, searchType: string) => Promise<void>;
+  loadMoreSearchResults: () => Promise<void>;
   selectBook: (book: AladdinBookItem | SelectedBook, options?: { scroll?: boolean }) => void;
   unselectBook: () => void;
   addToLibrary: () => Promise<void>;
@@ -125,6 +133,13 @@ export const useBookStore = create<BookState>(
       librarySearchQuery: '',
       authorFilter: '',
       resetLibraryFilters: undefined,
+
+      // Pagination state
+      currentPage: 1,
+      hasMoreResults: false,
+      isLoadingMore: false,
+      lastSearchQuery: '',
+      lastSearchType: '',
 
       // Actions
       fetchUserLibrary: async () => {
@@ -222,16 +237,35 @@ export const useBookStore = create<BookState>(
       searchBooks: async (query, searchType) => {
         const { setIsLoading, setNotification } = useUIStore.getState();
         setIsLoading(true);
-        set({ selectedBook: null });
+        set({
+          selectedBook: null,
+          currentPage: 1,
+          hasMoreResults: false,
+          isLoadingMore: false,
+          lastSearchQuery: query,
+          lastSearchType: searchType
+        });
         try {
-          const results = await searchAladinBooks(query, searchType);
+          const results = await searchAladinBooks(query, searchType, 1);
           // [세트] 로 시작하는 도서 제외
           const filteredResults = results.filter(book => !book.title.startsWith('[세트]'));
-          set({ searchResults: filteredResults });
+
+          // 같은 페이지 내에서도 중복 ISBN13 제거 (안전장치)
+          const uniqueResults = filteredResults.filter((book, index, self) =>
+            index === self.findIndex(b => b.isbn13 === book.isbn13)
+          );
+
+          set({
+            searchResults: uniqueResults,
+            hasMoreResults: filteredResults.length === 20 // 원본 결과 기준으로 판단
+          });
         } catch (error) {
           console.error(error);
           setNotification({ message: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.', type: 'error' });
-          set({ searchResults: [] });
+          set({
+            searchResults: [],
+            hasMoreResults: false
+          });
         } finally {
           setIsLoading(false);
         }
@@ -601,6 +635,42 @@ export const useBookStore = create<BookState>(
 
       setResetLibraryFilters: (resetFn) => {
         set({ resetLibraryFilters: resetFn });
+      },
+
+      loadMoreSearchResults: async () => {
+        const { currentPage, hasMoreResults, isLoadingMore, lastSearchQuery, lastSearchType, searchResults } = get();
+
+        if (!hasMoreResults || isLoadingMore || !lastSearchQuery) return;
+
+        const { setNotification } = useUIStore.getState();
+        set({ isLoadingMore: true });
+
+        try {
+          const nextPage = currentPage + 1;
+          const startIndex = nextPage; // 알라딘 API는 페이지 번호를 그대로 사용
+          const results = await searchAladinBooks(lastSearchQuery, lastSearchType, startIndex);
+
+          // [세트] 로 시작하는 도서 제외
+          const filteredResults = results.filter(book => !book.title.startsWith('[세트]'));
+
+          // 기존 결과와 중복되지 않는 새로운 결과만 필터링
+          const existingIsbn13s = new Set(searchResults.map(book => book.isbn13));
+          const uniqueNewResults = filteredResults.filter(book => !existingIsbn13s.has(book.isbn13));
+
+          set({
+            searchResults: [...searchResults, ...uniqueNewResults],
+            currentPage: nextPage,
+            hasMoreResults: filteredResults.length === 20, // 원본 결과 기준으로 판단
+            isLoadingMore: false
+          });
+        } catch (error) {
+          console.error(error);
+          setNotification({
+            message: error instanceof Error ? error.message : '추가 검색 결과를 불러오는 데 실패했습니다.',
+            type: 'error'
+          });
+          set({ isLoadingMore: false });
+        }
       },
 
       setAuthorFilter: (author) => {

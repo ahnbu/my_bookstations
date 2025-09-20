@@ -15,7 +15,7 @@ export default async function (request: VercelRequest, response: VercelResponse)
   }
 
   try {
-    const { Query, QueryType, MaxResults, SearchTarget, output, Version, OptResult } = request.query;
+    const { Query, QueryType, MaxResults, SearchTarget, output, Version, OptResult, start } = request.query;
 
     const params = new URLSearchParams({
       ttbkey: TTB_KEY,
@@ -26,6 +26,7 @@ export default async function (request: VercelRequest, response: VercelResponse)
       output: (output as string) || 'js',
       Version: (Version as string) || '20131101',
       OptResult: (OptResult as string) || 'ebookList',
+      start: (start as string) || '1',
     });
 
     const aladinApiUrl = `${ALADIN_API_BASE_URL}?${params.toString()}`;
