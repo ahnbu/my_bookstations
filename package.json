@@ -24,6 +24,7 @@
   "devDependencies": {
     "@playwright/test": "^1.54.2",
     "@types/node": "^22.14.0",
+    "@vercel/node": "^5.3.26",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
