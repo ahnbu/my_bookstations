@@ -1,10 +1,10 @@
 import React from 'react';
-import type { CustomTag, SelectedBook } from '../types';
+import type { CustomTag } from '../types';
 import CustomTagComponent from './CustomTag';
+import { useBookStore } from '../stores/useBookStore';
 
 interface TagFilterProps {
   tags: CustomTag[];
-  books: SelectedBook[];
   activeTags: Set<string>;
   onTagClick: (tagId: string) => void;
   onClearAll: () => void;
@@ -12,31 +12,25 @@ interface TagFilterProps {
 
 const TagFilter: React.FC<TagFilterProps> = ({
   tags,
-  books,
   activeTags,
   onTagClick,
   onClearAll,
 }) => {
-  // 태그 사용량 계산 및 정렬
+  // useBookStore에서 전체 서재 기준 태그 카운트 가져오기
+  const { tagCounts } = useBookStore();
+
+  // 태그 사용량 정렬 및 상위 10개만 표시
   const tagUsageStats = React.useMemo(() => {
-    const stats = new Map<string, number>();
-
-    books.forEach(book => {
-      book.customTags?.forEach(tagId => {
-        stats.set(tagId, (stats.get(tagId) || 0) + 1);
-      });
-    });
-
     // 사용량 많은 순으로 정렬하고 상위 10개만 표시
-    return Array.from(stats.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([tagId, count]) => ({
-        tag: tags.find(t => t.id === tagId),
-        count
+    return tags
+      .map(tag => ({
+        tag,
+        count: tagCounts[tag.id] || 0
       }))
-      .filter(item => item.tag); // 태그가 존재하는 것만 필터링
-  }, [tags, books]);
+      .filter(item => item.count > 0) // 사용된 태그만 필터링
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  }, [tags, tagCounts]);
 
   if (tagUsageStats.length === 0) {
     return null; // 태그가 없으면 필터 영역을 표시하지 않음

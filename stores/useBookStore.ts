@@ -90,10 +90,15 @@ interface BookState {
   resetLibraryFilters?: () => void;
   isAllBooksLoaded: boolean;
   totalBooksCount: number;
+  tagCounts: Record<string, number>;
 
   // Server-based library search
   librarySearchResults: SelectedBook[];
   isSearchingLibrary: boolean;
+
+  // Server-based tag filtering
+  libraryTagFilterResults: SelectedBook[];
+  isFilteringByTag: boolean;
 
   // Pagination state
   currentPage: number;
@@ -130,6 +135,9 @@ interface BookState {
   clearAuthorFilter: () => void;
   searchUserLibrary: (query: string) => Promise<void>;
   clearLibrarySearch: () => void;
+  fetchTagCounts: () => Promise<void>;
+  filterLibraryByTags: (tagIds: string[]) => Promise<void>;
+  clearLibraryTagFilter: () => void;
 }
 
 
@@ -147,8 +155,11 @@ export const useBookStore = create<BookState>(
       resetLibraryFilters: undefined,
       isAllBooksLoaded: false,
       totalBooksCount: 0,
+      tagCounts: {},
       librarySearchResults: [],
       isSearchingLibrary: false,
+      libraryTagFilterResults: [],
+      isFilteringByTag: false,
 
       // Pagination state
       currentPage: 1,
@@ -200,6 +211,8 @@ export const useBookStore = create<BookState>(
               totalBooksCount: count || 0,
               isAllBooksLoaded: isAllLoaded
             });
+            // 태그 카운트 갱신
+            get().fetchTagCounts();
             // 자동 전자책 정보 업데이트 제거 - 사용자가 명시적으로 요청할 때만 실행
             // get().updateMissingEbookIsbn13();
         } catch (error) {
@@ -250,6 +263,8 @@ export const useBookStore = create<BookState>(
               myLibraryBooks: [...myLibraryBooks, ...remainingBooks],
               isAllBooksLoaded: true
             });
+            // 태그 카운트 갱신
+            get().fetchTagCounts();
         } catch (error) {
             console.error('Error fetching remaining library:', error);
             setNotification({ message: '나머지 서재 정보를 불러오는 데 실패했습니다.', type: 'error' });
@@ -820,6 +835,69 @@ export const useBookStore = create<BookState>(
 
       clearLibrarySearch: () => {
         set({ librarySearchResults: [] });
+      },
+
+      fetchTagCounts: async () => {
+        const session = useAuthStore.getState().session;
+        if (!session?.user) return;
+
+        try {
+          const { data, error } = await supabase.rpc('get_tag_counts_for_user');
+
+          if (error) throw error;
+
+          // DB에서 받은 배열 [{ tag_id: 'abc', book_count: 10 }, ...]을
+          // { abc: 10, ... } 형태의 객체로 변환
+          const counts = (data || []).reduce((acc, { tag_id, book_count }) => {
+            acc[tag_id] = Number(book_count);
+            return acc;
+          }, {} as Record<string, number>);
+
+          set({ tagCounts: counts });
+        } catch (error) {
+          console.error('Error fetching tag counts:', error);
+          set({ tagCounts: {} });
+        }
+      },
+
+      filterLibraryByTags: async (tagIds: string[]) => {
+        if (tagIds.length === 0) {
+          get().clearLibraryTagFilter();
+          return;
+        }
+
+        const { session } = useAuthStore.getState();
+        if (!session?.user) return;
+
+        set({ isFilteringByTag: true });
+        try {
+          const { data, error } = await supabase.rpc('get_books_by_tags', {
+            tags_to_filter: tagIds,
+          });
+
+          if (error) throw error;
+
+          const results = (data || []).map(item => {
+            const bookDataWithDefaults = {
+              ...{ readStatus: '읽지 않음', rating: 0 },
+              ...item.book_data,
+            };
+            return {
+              ...bookDataWithDefaults,
+              id: item.id,
+              note: item.note,
+            };
+          });
+
+          set({ libraryTagFilterResults: results, isFilteringByTag: false });
+        } catch (error) {
+          console.error('Error filtering by tags:', error);
+          set({ libraryTagFilterResults: [], isFilteringByTag: false });
+        }
+      },
+
+      clearLibraryTagFilter: () => {
+        set({ libraryTagFilterResults: [] });
       },
     })
 );

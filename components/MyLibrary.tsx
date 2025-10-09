@@ -534,6 +534,10 @@ const MyLibrary: React.FC = () => {
     clearLibrarySearch,
     librarySearchResults,
     isSearchingLibrary,
+    filterLibraryByTags,
+    clearLibraryTagFilter,
+    libraryTagFilterResults,
+    isFilteringByTag,
   } = useBookStore();
   
   const [detailModalBookId, setDetailModalBookId] = useState<number | null>(null);
@@ -581,6 +585,7 @@ const MyLibrary: React.FC = () => {
     // 검색 관련 상태 초기화
     setLibrarySearchQuery('');
     clearLibrarySearch();
+    clearLibraryTagFilter();
 
     // 로컬 상태 리셋 (배치 업데이트)
     setDebouncedSearchQuery('');
@@ -593,7 +598,7 @@ const MyLibrary: React.FC = () => {
     setEditingNoteId(null);
     setNoteInputValue('');
   // }, []); // 의존성 배열을 비워서 함수 재생성 방지
-  }, [fetchUserLibrary, setLibrarySearchQuery, clearLibrarySearch]); // fetchUserLibrary를 의존성 배열에 추가
+  }, [fetchUserLibrary, setLibrarySearchQuery, clearLibrarySearch, clearLibraryTagFilter]); // fetchUserLibrary를 의존성 배열에 추가
 
   // 메모 편집 관련 함수들
   const handleNoteEdit = useCallback((bookId: number, currentNote: string = '') => {
@@ -735,10 +740,18 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
       newActiveTags.add(tagId);
     }
     setActiveTags(newActiveTags);
+
+    // [핵심 수정] DB 필터링 함수 호출
+    if (newActiveTags.size > 0) {
+      filterLibraryByTags(Array.from(newActiveTags));
+    } else {
+      clearLibraryTagFilter();
+    }
   };
 
   const handleClearAllTags = () => {
     setActiveTags(new Set());
+    clearLibraryTagFilter();
   };
 
   // 그리드 컬럼별 완전한 행을 위한 사전 계산 테이블
@@ -764,22 +777,21 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
   const sortedAndFilteredLibraryBooks = useMemo(() => {
     const readStatusOrder: Record<ReadStatus, number> = { '완독': 0, '읽는 중': 1, '읽지 않음': 2 };
 
-    // [핵심 수정] 검색어가 2자 이상이면 서버 검색 결과를 사용
-    let filteredBooks = debouncedSearchQuery.trim().length >= 2
-      ? [...librarySearchResults]  // 서버 검색 결과 사용
-      : [...myLibraryBooks];        // 로컬 데이터 사용
+    // [핵심 수정] 필터 우선순위에 따라 기본 데이터셋 결정
+    let filteredBooks: SelectedBook[];
 
-    // 서버 검색 결과를 사용하는 경우, 제목/저자 필터는 이미 적용됨
-    // 나머지 필터들만 적용
-
-    // Then filter by active tags
-    if (activeTags.size > 0) {
-      filteredBooks = filteredBooks.filter(book =>
-        book.customTags?.some(tagId => activeTags.has(tagId))
-      );
+    if (debouncedSearchQuery.trim().length >= 2) {
+      // 1순위: 텍스트 검색 활성화 → 서버 검색 결과 사용
+      filteredBooks = [...librarySearchResults];
+    } else if (activeTags.size > 0) {
+      // 2순위: 태그 필터 활성화 → 서버 태그 필터링 결과 사용
+      filteredBooks = [...libraryTagFilterResults];
+    } else {
+      // 3순위: 필터 없음 → 로컬 데이터 사용
+      filteredBooks = [...myLibraryBooks];
     }
 
-    // Filter by author if authorFilter is set
+    // authorFilter와 showFavoritesOnly는 클라이언트 측에서 추가로 필터링
     if (authorFilter.trim()) {
       const authorQuery = authorFilter.toLowerCase().trim();
       filteredBooks = filteredBooks.filter(book =>
@@ -787,7 +799,6 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
       );
     }
 
-    // Filter by favorites if enabled
     if (showFavoritesOnly) {
       filteredBooks = filteredBooks.filter(book => book.isFavorite === true);
     }
@@ -819,7 +830,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
         }
         return 0;
     });
-  }, [myLibraryBooks, librarySearchResults, sortConfig, debouncedSearchQuery, activeTags, showFavoritesOnly, authorFilter]);
+  }, [myLibraryBooks, librarySearchResults, libraryTagFilterResults, sortConfig, debouncedSearchQuery, activeTags, showFavoritesOnly, authorFilter]);
 
   // 페이지네이션이 적용된 표시할 책 목록 계산
   const displayedBooks = useMemo(() => {
@@ -1276,7 +1287,6 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
         {/* Second Row: Tag Filter */}
         <TagFilter
           tags={settings.tagSettings?.tags || []}
-          books={myLibraryBooks}
           activeTags={activeTags}
           onTagClick={handleTagClick}
           onClearAll={handleClearAllTags}
@@ -1565,10 +1575,12 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
       {viewType === 'card' ? (
         /* Card View */
         <div className="space-y-4 max-w-4xl mx-auto">
-        {isSearchingLibrary ? (
+        {(isSearchingLibrary || isFilteringByTag) ? (
           <div className="text-center p-8">
             <Spinner />
-            <p className="mt-2 text-secondary">서재에서 검색 중입니다...</p>
+            <p className="mt-2 text-secondary">
+              {isSearchingLibrary ? '서재에서 검색 중입니다...' : '태그로 필터링 중입니다...'}
+            </p>
           </div>
         ) : displayedBooks.length === 0 && debouncedSearchQuery.trim().length >= 2 ? (
           <div className="text-center text-secondary p-8 bg-secondary rounded-lg shadow-md">
@@ -1906,10 +1918,12 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
       ) : (
         /* Grid View */
         <div className="grid gap-4 max-w-4xl mx-auto" style={{ gridTemplateColumns: `repeat(${gridColumns}, 1fr)` }}>
-          {isSearchingLibrary ? (
+          {(isSearchingLibrary || isFilteringByTag) ? (
             <div className="col-span-full text-center p-8">
               <Spinner />
-              <p className="mt-2 text-secondary">서재에서 검색 중입니다...</p>
+              <p className="mt-2 text-secondary">
+                {isSearchingLibrary ? '서재에서 검색 중입니다...' : '태그로 필터링 중입니다...'}
+              </p>
             </div>
           ) : displayedBooks.length === 0 && debouncedSearchQuery.trim().length >= 2 ? (
             <div className="col-span-full text-center text-secondary p-8 bg-secondary rounded-lg shadow-md">
