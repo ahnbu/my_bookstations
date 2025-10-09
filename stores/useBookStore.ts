@@ -44,7 +44,9 @@ async function updateBookInStoreAndDB(
   const { id: bookId, detailedStockInfo, note, ...bookDataForDb } = updatedBook;
   try {
     // note 필드는 별도 컬럼으로, book_data는 JSONB로 저장
-    const updateData: { book_data: Json; note?: string | null } = {
+    const updateData: { book_data: Json; note?: string | null; title?: string; author?: string } = {
+      title: updatedBook.title,
+      author: updatedBook.author,
       book_data: bookDataForDb as Json
     };
 
@@ -89,6 +91,10 @@ interface BookState {
   isAllBooksLoaded: boolean;
   totalBooksCount: number;
 
+  // Server-based library search
+  librarySearchResults: SelectedBook[];
+  isSearchingLibrary: boolean;
+
   // Pagination state
   currentPage: number;
   hasMoreResults: boolean;
@@ -122,6 +128,8 @@ interface BookState {
   setResetLibraryFilters: (resetFn?: () => void) => void;
   setAuthorFilter: (author: string) => void;
   clearAuthorFilter: () => void;
+  searchUserLibrary: (query: string) => Promise<void>;
+  clearLibrarySearch: () => void;
 }
 
 
@@ -139,6 +147,8 @@ export const useBookStore = create<BookState>(
       resetLibraryFilters: undefined,
       isAllBooksLoaded: false,
       totalBooksCount: 0,
+      librarySearchResults: [],
+      isSearchingLibrary: false,
 
       // Pagination state
       currentPage: 1,
@@ -273,7 +283,11 @@ export const useBookStore = create<BookState>(
 
                 const { error } = await supabase
                   .from('user_library')
-                  .update({ book_data: bookDataForDb as Json })
+                  .update({
+                    title: updatedBookData.title,
+                    author: updatedBookData.author,
+                    book_data: bookDataForDb as Json
+                  })
                   .eq('id', book.id);
 
                 if (error) throw error;
@@ -383,8 +397,13 @@ export const useBookStore = create<BookState>(
           try {
               const { data, error } = await supabase
                   .from('user_library')
-                  .insert([{ user_id: session.user.id, book_data: newBookData as Json }])
-                  .select('id, book_data')
+                  .insert([{
+                    user_id: session.user.id,
+                    title: newBookData.title,
+                    author: newBookData.author,
+                    book_data: newBookData as Json
+                  }])
+                  .select('id, book_data, note')
                   .single();
               
               if (error) throw error;
@@ -456,10 +475,14 @@ export const useBookStore = create<BookState>(
           const updatedBook = { ...bookToUpdate, ebookInfo: newEBookInfo };
           // DB 저장 시 detailedStockInfo 필드 제외하여 저장공간 절약
           const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBook;
-          
+
           const { error } = await supabase
             .from('user_library')
-            .update({ book_data: bookDataForDb as Json })
+            .update({
+              title: updatedBook.title,
+              author: updatedBook.author,
+              book_data: bookDataForDb as Json
+            })
             .eq('id', id);
 
           if (error) throw error;
@@ -540,14 +563,18 @@ export const useBookStore = create<BookState>(
 
           // DB 저장 시 detailedStockInfo 필드 제외하여 저장공간 절약
           const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBook;
-          
+
           const { error } = await supabase
             .from('user_library')
-            .update({ book_data: bookDataForDb as Json })
+            .update({
+              title: updatedBook.title,
+              author: updatedBook.author,
+              book_data: bookDataForDb as Json
+            })
             .eq('id', id);
 
           if (error) throw error;
-          
+
           set(state => ({
             myLibraryBooks: state.myLibraryBooks.map(book =>
               book.id === id ? updatedBook : book
@@ -626,10 +653,15 @@ export const useBookStore = create<BookState>(
           if (!book) return { success: false, id, error: 'Book not found' };
 
           try {
-            const { id: bookId, detailedStockInfo, ...bookDataForDb } = { ...book, customTags: tagIds };
+            const updatedBookData = { ...book, customTags: tagIds };
+            const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBookData;
             const { error } = await supabase
               .from('user_library')
-              .update({ book_data: bookDataForDb as Json })
+              .update({
+                title: updatedBookData.title,
+                author: updatedBookData.author,
+                book_data: bookDataForDb as Json
+              })
               .eq('id', id);
 
             if (error) throw error;
@@ -744,6 +776,50 @@ export const useBookStore = create<BookState>(
 
       clearAuthorFilter: () => {
         set({ authorFilter: '' });
+      },
+
+      searchUserLibrary: async (query: string) => {
+        const { session } = useAuthStore.getState();
+        if (!session?.user || query.trim().length < 2) {
+          set({ librarySearchResults: [], isSearchingLibrary: false });
+          return;
+        }
+
+        set({ isSearchingLibrary: true });
+        try {
+          const { data, error } = await supabase
+            .from('user_library')
+            .select('id, book_data, note, title, author')
+            .eq('user_id', session.user.id)
+            .or(`title.ilike.%${query}%,author.ilike.%${query}%`)
+            .order('created_at', { ascending: false });
+
+          if (error) throw error;
+
+          const searchResults = data
+            .map(item => {
+              if (!item.book_data) return null;
+              const bookDataWithDefaults = {
+                ...{ readStatus: '읽지 않음', rating: 0 },
+                ...item.book_data,
+              };
+              return {
+                ...bookDataWithDefaults,
+                id: item.id,
+                note: item.note,
+              };
+            })
+            .filter((book): book is SelectedBook => book !== null);
+
+          set({ librarySearchResults: searchResults, isSearchingLibrary: false });
+        } catch (error) {
+          console.error('Error searching library:', error);
+          set({ librarySearchResults: [], isSearchingLibrary: false });
+        }
+      },
+
+      clearLibrarySearch: () => {
+        set({ librarySearchResults: [] });
       },
     })
 );
