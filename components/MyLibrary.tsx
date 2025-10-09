@@ -526,6 +526,9 @@ const MyLibrary: React.FC = () => {
     toggleFavorite,
     updateBookNote,
     setResetLibraryFilters,
+    fetchRemainingLibrary,
+    isAllBooksLoaded,
+    totalBooksCount,
   } = useBookStore();
   
   const [detailModalBookId, setDetailModalBookId] = useState<number | null>(null);
@@ -2184,12 +2187,19 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
       {!showAllBooks && !hasActiveFilters() && sortedAndFilteredLibraryBooks.length > displayedBooks.length && (
         <div className="flex justify-center mt-6">
           <button
-            onClick={() => setShowAllBooks(true)}
+            onClick={async () => {
+              // DB에서 나머지 책 로드 (아직 전체 로드하지 않았을 경우)
+              if (!isAllBooksLoaded) {
+                await fetchRemainingLibrary();
+              }
+              // UI 전체 표시
+              setShowAllBooks(true);
+            }}
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
           >
             <span>전체 보기</span>
             <span className="text-blue-200">
-              ({displayedBooks.length}/{sortedAndFilteredLibraryBooks.length}권)
+              ({displayedBooks.length}/{totalBooksCount}권)
             </span>
           </button>
         </div>

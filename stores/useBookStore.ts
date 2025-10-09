@@ -7,6 +7,7 @@ import { fetchBookAvailability, summarizeEBooks, GwangjuPaperResult } from '../s
 import { filterGyeonggiEbookByIsbn } from '../utils/isbnMatcher';
 import { useUIStore } from './useUIStore';
 import { useAuthStore } from './useAuthStore';
+import { useSettingsStore } from './useSettingsStore';
 
 /**
  * 특정 책의 데이터를 업데이트하고, 로컬 상태와 Supabase DB를 동기화하는 헬퍼 함수
@@ -85,6 +86,8 @@ interface BookState {
   librarySearchQuery: string;
   authorFilter: string;
   resetLibraryFilters?: () => void;
+  isAllBooksLoaded: boolean;
+  totalBooksCount: number;
 
   // Pagination state
   currentPage: number;
@@ -104,6 +107,7 @@ interface BookState {
   refreshAllBookInfo: (id: number, isbn13: string, title: string) => Promise<void>;
   sortLibrary: (key: SortKey) => void;
   fetchUserLibrary: () => Promise<void>;
+  fetchRemainingLibrary: () => Promise<void>;
   clearLibrary: () => void;
   updateReadStatus: (id: number, status: ReadStatus) => Promise<void>;
   updateRating: (id: number, rating: number) => Promise<void>;
@@ -133,6 +137,8 @@ export const useBookStore = create<BookState>(
       librarySearchQuery: '',
       authorFilter: '',
       resetLibraryFilters: undefined,
+      isAllBooksLoaded: false,
+      totalBooksCount: 0,
 
       // Pagination state
       currentPage: 1,
@@ -145,18 +151,23 @@ export const useBookStore = create<BookState>(
       fetchUserLibrary: async () => {
         const { session } = useAuthStore.getState();
         if (!session) return;
-        
+
         const { setIsLoading, setNotification } = useUIStore.getState();
         setIsLoading(true);
 
         try {
-            const { data, error } = await supabase
+            // 사용자 설정에서 초기 로딩 건수 가져오기
+            const { settings } = useSettingsStore.getState();
+            const pageSize = settings.defaultPageSize;
+
+            const { data, error, count } = await supabase
                 .from('user_library')
-                .select('id, book_data')
-                .order('created_at', { ascending: false });
+                .select('id, book_data', { count: 'exact' })
+                .order('created_at', { ascending: false })
+                .limit(pageSize);
 
             if (error) throw error;
-            
+
             const libraryBooks = data
               .map(item => {
                   if (!item.book_data) return null; // Safety check for null jsonb
@@ -172,12 +183,66 @@ export const useBookStore = create<BookState>(
               })
               .filter((book): book is SelectedBook => book !== null);
 
-            set({ myLibraryBooks: libraryBooks });
+            // pageSize보다 적게 로드되면 전체 로드 완료
+            const isAllLoaded = libraryBooks.length < pageSize;
+            set({
+              myLibraryBooks: libraryBooks,
+              totalBooksCount: count || 0,
+              isAllBooksLoaded: isAllLoaded
+            });
             // 자동 전자책 정보 업데이트 제거 - 사용자가 명시적으로 요청할 때만 실행
             // get().updateMissingEbookIsbn13();
         } catch (error) {
             console.error('Error fetching user library:', error);
             setNotification({ message: '서재 정보를 불러오는 데 실패했습니다.', type: 'error' });
+        } finally {
+            setIsLoading(false);
+        }
+      },
+
+      fetchRemainingLibrary: async () => {
+        const { myLibraryBooks, isAllBooksLoaded } = get();
+        const { session } = useAuthStore.getState();
+
+        // 이미 전체 로드했거나 세션이 없으면 종료
+        if (isAllBooksLoaded || !session) return;
+
+        const { setIsLoading, setNotification } = useUIStore.getState();
+        setIsLoading(true);
+
+        try {
+            const currentCount = myLibraryBooks.length;
+
+            const { data, error } = await supabase
+                .from('user_library')
+                .select('id, book_data')
+                .order('created_at', { ascending: false })
+                .range(currentCount, 9999); // 현재 개수 이후부터 끝까지
+
+            if (error) throw error;
+
+            const remainingBooks = data
+              .map(item => {
+                  if (!item.book_data) return null;
+                  const bookDataWithDefaults = {
+                      ...{ readStatus: '읽지 않음', rating: 0 },
+                      ...item.book_data,
+                  };
+                  return {
+                      ...bookDataWithDefaults,
+                      id: item.id,
+                  };
+              })
+              .filter((book): book is SelectedBook => book !== null);
+
+            // 기존 책 + 새로 로드한 책 병합
+            set({
+              myLibraryBooks: [...myLibraryBooks, ...remainingBooks],
+              isAllBooksLoaded: true
+            });
+        } catch (error) {
+            console.error('Error fetching remaining library:', error);
+            setNotification({ message: '나머지 서재 정보를 불러오는 데 실패했습니다.', type: 'error' });
         } finally {
             setIsLoading(false);
         }

@@ -47,7 +47,7 @@ const App: React.FC = () => {
     } else {
       clearLibrary();
     }
-  }, [session, fetchUserLibrary, clearLibrary, fetchUserSettings]);
+  }, [session]);
 
   // 설정이 로드되면 테마 적용
   useEffect(() => {
