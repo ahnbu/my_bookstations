@@ -528,6 +528,7 @@ const MyLibrary: React.FC = () => {
     setResetLibraryFilters,
     fetchRemainingLibrary,
     isAllBooksLoaded,
+    fetchUserLibrary,
     totalBooksCount,
   } = useBookStore();
   
@@ -560,15 +561,18 @@ const MyLibrary: React.FC = () => {
 
   // 전체 내 서재 상태 리셋 함수 (홈 리셋용) - 성능 최적화
   const resetAllLibraryStates = useCallback(() => {
-    // 외부 store 상태 리셋 (먼저 실행)
-    const { sortConfig: currentSortConfig, sortLibrary: sortLibraryAction, setLibrarySearchQuery: setSearchQuery, clearAuthorFilter: clearAuthor } = useBookStore.getState();
-    setSearchQuery('');
-    clearAuthor();
+    // 외부 store Zustand 스토어의 상태를 초기 로딩 상태로 되돌리기 위해 fetchUserLibrary를 호출합니다.
 
-    if (currentSortConfig.key !== 'addedDate' || currentSortConfig.order !== 'desc') {
-      sortLibraryAction('addedDate');
-    }
+    // const { sortConfig: currentSortConfig, sortLibrary: sortLibraryAction, setLibrarySearchQuery: setSearchQuery, clearAuthorFilter: clearAuthor } = useBookStore.getState();
+    // setSearchQuery('');
+    // clearAuthor();
 
+    // if (currentSortConfig.key !== 'addedDate' || currentSortConfig.order !== 'desc') {
+    //   sortLibraryAction('addedDate');
+    // }
+
+    // Zustand 스토어의 상태를 초기 로딩 상태로 되돌리기 위해 fetchUserLibrary를 호출합니다.
+    fetchUserLibrary();
     // 로컬 상태 리셋 (배치 업데이트)
     setDebouncedSearchQuery('');
     setActiveTags(new Set());
@@ -579,7 +583,8 @@ const MyLibrary: React.FC = () => {
     setBulkTagModalOpen(false);
     setEditingNoteId(null);
     setNoteInputValue('');
-  }, []); // 의존성 배열을 비워서 함수 재생성 방지
+  // }, []); // 의존성 배열을 비워서 함수 재생성 방지
+  }, [fetchUserLibrary]); // fetchUserLibrary를 의존성 배열에 추가
 
   // 메모 편집 관련 함수들
   const handleNoteEdit = useCallback((bookId: number, currentNote: string = '') => {
@@ -1267,7 +1272,8 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
           {/* Mobile: First Row - Book count + Sort */}
           <div className="flex justify-between items-center md:hidden">
             <span className="text-sm text-secondary font-medium">
-              총 {sortedAndFilteredLibraryBooks.length}권{!showAllBooks && !hasActiveFilters() && sortedAndFilteredLibraryBooks.length > displayedBooks.length ? ` (${displayedBooks.length}권 표시)` : ''}
+              {/* 총 {sortedAndFilteredLibraryBooks.length}권{!showAllBooks && !hasActiveFilters() && sortedAndFilteredLibraryBooks.length > displayedBooks.length ? ` (${displayedBooks.length}권 표시)` : ''} */}
+              총 {hasActiveFilters() ? sortedAndFilteredLibraryBooks.length : totalBooksCount}권{!showAllBooks && !hasActiveFilters() && totalBooksCount > displayedBooks.length ? ` (${displayedBooks.length}권 표시)` : ''}
             </span>
             {/* Sort Dropdown */}
             <div className="relative" ref={mobileSortDropdownRef}>
@@ -1423,7 +1429,8 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                 />
               </label>
               <span className="text-sm text-secondary">
-                {selectedBooks.size}개 선택(총 {sortedAndFilteredLibraryBooks.length}권{!showAllBooks && !hasActiveFilters() && sortedAndFilteredLibraryBooks.length > displayedBooks.length ? `, ${displayedBooks.length}권 표시` : ''})
+                {/* {selectedBooks.size}개 선택(총 {sortedAndFilteredLibraryBooks.length}권{!showAllBooks && !hasActiveFilters() && sortedAndFilteredLibraryBooks.length > displayedBooks.length ? `, ${displayedBooks.length}권 표시` : ''}) */}
+                {selectedBooks.size}개 선택(총 {hasActiveFilters() ? sortedAndFilteredLibraryBooks.length : totalBooksCount}권{!showAllBooks && !hasActiveFilters() && totalBooksCount > displayedBooks.length ? ` 중 ${displayedBooks.length}권 표시` : ''})
               </span>
             </div>
 
@@ -2184,7 +2191,10 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
       )}
 
       {/* View All Button - 필터가 없고 전체보기 모드가 아닐 때만 표시 */}
-      {!showAllBooks && !hasActiveFilters() && sortedAndFilteredLibraryBooks.length > displayedBooks.length && (
+      {/* {!showAllBooks && !hasActiveFilters() && sortedAndFilteredLibraryBooks.length > displayedBooks.length && ( */}
+      {/* 전체보기 버튼 표시 기준 변경: 필터+전체보기x -> 전체보기x 변경 */}
+      {!showAllBooks && !hasActiveFilters() && !isAllBooksLoaded && (
+
         <div className="flex justify-center mt-6">
           <button
             onClick={async () => {
