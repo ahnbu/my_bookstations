@@ -104,8 +104,115 @@ describe('isbnMatcher', () => {
         isbn13: '979-11-92768-23-6' // 하이픈 포함
       }
       const ebookResult = mockGyeonggiResult.books![0] // '9791192768236'
-      
+
       expect(isBookMatched(bookWithHyphenIsbn, ebookResult)).toBe(true)
+    })
+
+    // 새로운 테스트: 저자명 매칭 로직
+    describe('저자명 매칭 로직 (알라딘 전자책 없을 때만)', () => {
+      it('알라딘 전자책 있음 + ISBN 불일치 + 저자명 일치 → 매칭 실패 (저자명 매칭 안함)', () => {
+        const bookWithEbook: BookData = {
+          ...mockBook,
+          author: '크리스 나이바우어 (지은이), 김윤종 (옮긴이)',
+          isbn13: '9788974797485', // 종이책 ISBN
+          subInfo: {
+            ebookList: [
+              { isbn13: '9999999999999' } // 전자책 있음 (ISBN 불일치)
+            ]
+          }
+        } as BookData
+
+        const ebookResult = {
+          title: '자네, 좌뇌한테 속았네!',
+          author: '크리스 나이바우어', // 저자명 앞 3글자 일치 ("크리스")
+          isbn: '8974797488' // ISBN 불일치
+        }
+
+        // 알라딘 전자책이 있으므로 저자명 매칭 안함 → 실패
+        expect(isBookMatched(bookWithEbook, ebookResult)).toBe(false)
+      })
+
+      it('알라딘 전자책 없음 + ISBN 불일치 + 저자명 일치 → 매칭 성공', () => {
+        const bookWithoutEbook: BookData = {
+          ...mockBook,
+          author: '크리스 나이바우어 (지은이), 김윤종 (옮긴이)',
+          isbn13: '9788974797485', // 종이책 ISBN
+          subInfo: {
+            ebookList: [] // 전자책 없음
+          }
+        } as BookData
+
+        const ebookResult = {
+          title: '자네, 좌뇌한테 속았네!',
+          author: '크리스 나이바우어', // 저자명 앞 3글자 일치 ("크리스")
+          isbn: '8974797488' // ISBN 불일치
+        }
+
+        // 알라딘 전자책이 없으므로 저자명 매칭 시도 → 성공
+        expect(isBookMatched(bookWithoutEbook, ebookResult)).toBe(true)
+      })
+
+      it('알라딘 전자책 없음 + ISBN 불일치 + 저자명 불일치 → 매칭 실패', () => {
+        const bookWithoutEbook: BookData = {
+          ...mockBook,
+          author: '크리스 나이바우어',
+          isbn13: '9999999999999',
+          subInfo: {
+            ebookList: [] // 전자책 없음
+          }
+        } as BookData
+
+        const ebookResult = {
+          title: '다른 책',
+          author: '홍길동', // 저자명 불일치
+          isbn: '8888888888888' // ISBN 불일치
+        }
+
+        // ISBN도 불일치, 저자명도 불일치 → 실패
+        expect(isBookMatched(bookWithoutEbook, ebookResult)).toBe(false)
+      })
+
+      it('알라딘 전자책 없음 + ISBN 일치 → 매칭 성공 (저자명 무관)', () => {
+        const bookWithoutEbook: BookData = {
+          ...mockBook,
+          author: '크리스 나이바우어',
+          isbn13: '9788974797488',
+          subInfo: {
+            ebookList: [] // 전자책 없음
+          }
+        } as BookData
+
+        const ebookResult = {
+          title: '자네, 좌뇌한테 속았네!',
+          author: '홍길동', // 저자명 불일치해도 무관
+          isbn: '9788974797488' // ISBN 일치
+        }
+
+        // ISBN 일치 → 성공 (저자명 확인 필요 없음)
+        expect(isBookMatched(bookWithoutEbook, ebookResult)).toBe(true)
+      })
+
+      it('저자명 정규화 테스트: 괄호 제거 후 앞 3글자 매칭', () => {
+        const bookWithoutEbook: BookData = {
+          ...mockBook,
+          author: '강원국 (지은이)',
+          isbn13: '9999999999999',
+          subInfo: {
+            ebookList: [] // 전자책 없음
+          }
+        } as BookData
+
+        const ebookResult = {
+          title: '직장인의 글쓰기',
+          author: '강원국', // 괄호 없음
+          isbn: '8888888888888' // ISBN 불일치
+        }
+
+        // 저자명 정규화: "강원국 (지은이)" → "강원국" → "강원국" (앞 3글자)
+        // 검색 결과: "강원국" → "강원국" (앞 3글자)
+        // 일치 → 성공
+        expect(isBookMatched(bookWithoutEbook, ebookResult)).toBe(true)
+      })
     })
   })
 

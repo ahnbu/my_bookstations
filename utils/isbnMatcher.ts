@@ -14,6 +14,23 @@ function normalizeIsbn(isbn: string): string {
 }
 
 /**
+ * 저자명을 정규화하는 함수
+ * - 괄호 및 괄호 안 내용 제거: "(지은이)", "(옮긴이)", "(글)", "(그림)" 등
+ * - 쉼표 이후 내용 제거: "크리스 나이바우어, 김윤종" → "크리스 나이바우어"
+ * - 공백 제거
+ * - 앞 3글자만 추출
+ */
+function normalizeAuthorName(author: string): string {
+  if (!author) return ''
+
+  return author
+    .replace(/\([^)]*\)/g, '') // 괄호 및 내용 제거
+    .split(',')[0] // 쉼표 앞부분만 추출
+    .replace(/\s/g, '') // 공백 제거
+    .substring(0, 3) // 앞 3글자만
+}
+
+/**
  * 두 ISBN이 일치하는지 확인
  */
 function isIsbnMatch(isbn1: string, isbn2: string): boolean {
@@ -26,26 +43,37 @@ function isIsbnMatch(isbn1: string, isbn2: string): boolean {
 }
 
 /**
- * 도서와 경기도 전자도서관 책이 ISBN으로 매칭되는지 확인
+ * 도서와 경기도 전자도서관 책이 매칭되는지 확인
  * @param book 원본 도서 데이터
  * @param ebookResult 경기도 전자도서관 검색 결과의 책
- * @returns ISBN 매칭 여부
+ * @returns 매칭 여부 (ISBN 우선, 알라딘 전자책 없을 시 저자명 앞 3글자)
  */
 export function isBookMatched(book: BookData, ebookResult: any): boolean {
   const paperIsbn = book.isbn13 // 종이책 ISBN
   const ebookIsbn = book.subInfo?.ebookList?.[0]?.isbn13 // 전자책 ISBN
   const resultIsbn = ebookResult.isbn // 검색 결과 ISBN
-  
-  // 종이책 ISBN과 매칭
+  const hasAladinEbook = book.subInfo?.ebookList && book.subInfo.ebookList.length > 0
+
+  // ISBN 매칭 시도 (종이책 또는 전자책)
   if (paperIsbn && isIsbnMatch(paperIsbn, resultIsbn)) {
     return true
   }
-  
-  // 전자책 ISBN과 매칭  
+
   if (ebookIsbn && isIsbnMatch(ebookIsbn, resultIsbn)) {
     return true
   }
-  
+
+  // 알라딘에 전자책 정보가 없는 경우에만 저자명 매칭 시도
+  if (!hasAladinEbook) {
+    const bookAuthor = normalizeAuthorName(book.author)
+    const resultAuthor = normalizeAuthorName(ebookResult.author || '')
+
+    // 저자명 앞 3글자가 일치하는지 확인
+    if (bookAuthor && resultAuthor && bookAuthor === resultAuthor) {
+      return true
+    }
+  }
+
   return false
 }
 
