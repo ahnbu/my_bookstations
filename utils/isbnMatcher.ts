@@ -87,41 +87,44 @@ export function filterGyeonggiEbookByIsbn(
   book: BookData, 
   gyeonggiResult: GyeonggiEbookLibraryResult
 ): GyeonggiEbookLibraryResult {
-  // 에러 응답인 경우 그대로 반환
-  if ('error' in gyeonggiResult) {
-    return gyeonggiResult
-  }
+  // // 에러 응답인 경우 그대로 반환
+  // if ('error' in gyeonggiResult) {
+  //   return gyeonggiResult
+  // }
   
-  // ISBN 매칭되는 책만 필터링
-  const matchedBooks = gyeonggiResult.books?.filter(ebookResult => 
-    isBookMatched(book, ebookResult)
-  ) || []
+  // // ISBN 매칭되는 책만 필터링
+  // const matchedBooks = gyeonggiResult.books?.filter(ebookResult => 
+  //   isBookMatched(book, ebookResult)
+  // ) || []
   
-  // 필터링된 책들로 카운트 재계산
-  const totalCount = matchedBooks.length
+  // // 필터링된 책들로 카운트 재계산
+  // const totalCount = matchedBooks.length
 
-  // 경기전자도서관 재고문제 해결
-  const availableCount = matchedBooks.filter(book => book.available === true).length;
+  // // 경기전자도서관 재고문제 해결
+  // const availableCount = matchedBooks.filter(book => book.available === true).length;
   
-  // const availableCount = matchedBooks.filter(book => {
-  //   // status 필드로 대출 가능 여부 확인
-  //   return book.status === '대출가능'
-  // }).length
-  const unavailableCount = totalCount - availableCount
+  // // const availableCount = matchedBooks.filter(book => {
+  // //   // status 필드로 대출 가능 여부 확인
+  // //   return book.status === '대출가능'
+  // // }).length
+  // const unavailableCount = totalCount - availableCount
   
-  // 소장형과 구독형 개수 계산
-  const ownedCount = matchedBooks.filter(book => book.type === '소장형').length
-  const subscriptionCount = matchedBooks.filter(book => book.type === '구독형').length
+  // // 소장형과 구독형 개수 계산
+  // const ownedCount = matchedBooks.filter(book => book.type === '소장형').length
+  // const subscriptionCount = matchedBooks.filter(book => book.type === '구독형').length
   
-  return {
-    library_name: gyeonggiResult.library_name,
-    total_count: totalCount,
-    available_count: availableCount,
-    unavailable_count: unavailableCount,
-    owned_count: ownedCount,
-    subscription_count: subscriptionCount,
-    books: matchedBooks
-  }
+  // return {
+  //   library_name: gyeonggiResult.library_name,
+  //   total_count: totalCount,
+  //   available_count: availableCount,
+  //   unavailable_count: unavailableCount,
+  //   owned_count: ownedCount,
+  //   subscription_count: subscriptionCount,
+  //   books: matchedBooks
+  // }
+  // ISBN 필터링 로직을 모두 제거하고,
+  // Cloudflare Worker가 보내준 원본 결과를 수정 없이 그대로 반환합니다.
+  return gyeonggiResult;
 }
 
 /**

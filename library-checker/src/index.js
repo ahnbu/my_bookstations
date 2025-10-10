@@ -252,7 +252,14 @@ async function searchGyeonggiEbookLibrary(searchText) {
 async function searchOwnedBooks(query) {
   const encodedTitle = encodeURIComponent(query);
   const timestamp = Date.now();
-  const apiUrl = `https://ebook.library.kr/api/service/search-engine?contentType=EB&searchType=all&detailQuery=TITLE:${encodedTitle}:true&sort=relevance&asc=desc&loanable=false&withFacet=true&page=1&size=20&_t=${timestamp}`;
+
+  // BUG FIX: API 호출 방식 변경 
+  // 불안정한 detailQuery 대신, 안정적인 keyword 파라미터를 사용하는 API URL로 교체합니다.
+  // detailQuery 파라미터는 빈 값으로 남겨두어 충돌을 방지합니다.
+  // const apiUrl = `https://ebook.library.kr/api/service/search-engine?contentType=EB&searchType=all&detailQuery=TITLE:${encodedTitle}:true&sort=relevance&asc=desc&loanable=false&withFacet=true&page=1&size=20&_t=${timestamp}`;
+
+  const apiUrl = `https://ebook.library.kr/api/service/search-engine?contentType=EB&searchType=all&detailQuery=&sort=relevance&loanable=false&page=1&size=20&keyword=${encodedTitle}&_t=${timestamp}`;
+  // ====================================================================
 
   const headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',

@@ -249,19 +249,38 @@ export function processGyeonggiEbookTitle(title: string): string {
   return createOptimalSearchTitle(title);
 }
 
+// /**
+//  * 경기도 전자도서관 검색 URL 생성 (올바른 인코딩)
+//  * @param title - 검색할 제목
+//  * @returns 검색 URL
+//  */
+// export function createGyeonggiEbookSearchURL(title: string): string {
+//   const processedTitle = processGyeonggiEbookTitle(title);
+//   // URL 수동 구성 (올바른 인코딩을 위해)
+//   const baseUrl = "https://ebook.library.kr/search";
+//   const encodedTitle = encodeURIComponent(processedTitle).replace(/'/g, '%27');
+//   const detailQuery = `TITLE:${encodedTitle}:true`;
+  
+//   return `${baseUrl}?detailQuery=${detailQuery}&OnlyStartWith=false&searchType=all&listType=list`;
+// }
+
+
 /**
- * 경기도 전자도서관 검색 URL 생성 (올바른 인코딩)
+ * 경기도 전자도서관 검색 URL 생성 
+ * (기존) 제목필드 한정 -> (변경) keyword 검색 (매칭확률up)
  * @param title - 검색할 제목
  * @returns 검색 URL
  */
 export function createGyeonggiEbookSearchURL(title: string): string {
-  const processedTitle = processGyeonggiEbookTitle(title);
-  // URL 수동 구성 (올바른 인코딩을 위해)
-  const baseUrl = "https://ebook.library.kr/search";
-  const encodedTitle = encodeURIComponent(processedTitle).replace(/'/g, '%27');
-  const detailQuery = `TITLE:${encodedTitle}:true`;
+  // 제목 처리 로직은 그대로 사용합니다.
+  const processedTitle = createOptimalSearchTitle(title);
   
-  return `${baseUrl}?detailQuery=${detailQuery}&OnlyStartWith=false&searchType=all&listType=list`;
+  // URL 생성 방식을 더 유연한 'keyword' 파라미터 방식으로 변경합니다.
+  const baseUrl = "https://ebook.library.kr/search";
+  const encodedTitle = encodeURIComponent(processedTitle);
+  
+  // searchType=all, listType=list 등의 파라미터는 유지하여 일관성을 확보합니다.
+  return `${baseUrl}?OnlyStartWith=false&searchType=all&listType=list&keyword=${encodedTitle}`;
 }
 
 /**
