@@ -153,49 +153,100 @@ function debugLog(message: string, data?: any) {
   }
 }
 
-/**
- * 전자책 검색용 책 제목 처리 함수
- * 특수문자를 공백으로 변경 후 3개 chunk로 제한
+// /**
+//  * 전자책 검색용 책 제목 처리 함수
+//  * 특수문자를 공백으로 변경 후 3개 chunk로 제한
+//  * @param title - 원본 제목
+//  * @returns 처리된 제목 (최대 3개 chunk)
+//  */
+// export function processBookTitle(title: string): string {
+//   // 특수문자를 공백으로 변경
+//   const processedTitle = title.replace(/[^\w\s가-힣]/g, ' ');
+  
+//   // 공백으로 분리하고 빈 문자열 제거
+//   const chunks = processedTitle.split(' ').filter(chunk => chunk.trim() !== '');
+  
+//   // 3개 이하면 그대로 반환, 3개 초과면 첫 3개만 반환
+//   if (chunks.length <= 3) {
+//     return chunks.join(' ');
+//   }
+  
+//   return chunks.slice(0, 3).join(' ');
+// }
+
+// /**
+//  * 경기도 전자도서관 검색용 책 제목 처리 함수
+//  * 특수문자 발견 시 그 이후 내용 제거, 최대 3단어 제한
+//  * @param title - 원본 제목
+//  * @returns 처리된 제목
+//  */
+// export function processGyeonggiEbookTitle(title: string): string {
+//   // 특수문자 목록 (쉼표, 하이픈, 콜론, 세미콜론, 괄호 등)
+//   const specialChars = /[,\-:;()[\]{}]/;
+  
+//   // 특수문자가 있으면 그 위치까지만 추출
+//   let processedTitle = title;
+//   const match = title.search(specialChars);
+//   if (match !== -1) {
+//     processedTitle = title.substring(0, match).trim();
+//   }
+  
+//   // 공백으로 분리하고 빈 문자열 제거
+//   const words = processedTitle.split(' ').filter(word => word.trim() !== '');
+  
+//   // 최대 3단어까지만 사용
+//   return words.slice(0, 3).join(' ');
+// }
+
+// /** 1차 개선 (2025.10.10) (경기교육 검색로직 변경)
+// /** 특수문자 제거 후 3단어 (50% 성공) -> 특수문자 포함 3단어or2단어(90%)
+//  * 전자책 검색용 책 제목 처리 함수 (성공률 100% 로직으로 개선)
+//  * 원본 제목에서 띄어쓰기 기준으로 앞 3단어만 사용
+//  * @param title - 원본 제목
+//  * @returns 처리된 제목 (최대 3개 단어)
+//  */
+// export function processBookTitle(title: string): string {
+//   // 1. 원본 제목을 바로 공백으로 분리하고, 혹시 모를 연속 공백 등을 처리
+//   const chunks = title.split(' ').filter(chunk => chunk.trim() !== '');
+  
+//   // 2. 앞에서 3단어만 선택하여 다시 공백으로 합침 -> 2단어로 변경
+//   // return chunks.slice(0, 3).join(' ');
+//   return chunks.slice(0, 2).join(' ');
+// }
+
+
+/** 2차 개선 (2025.10.10)
+ * [최종 개선안] 도서관 검색용 제목을 생성하는 통합 함수 (2단계 정제 전략)
+ * 1단계: 명백한 부제(콜론, 하이픈, 괄호 뒤)를 제거하여 핵심 제목을 추출합니다.
+ * 2단계: 1단계 결과물을 3단어로 제한하여 검색 정확도와 재현율의 균형을 맞춥니다.
  * @param title - 원본 제목
- * @returns 처리된 제목 (최대 3개 chunk)
+ * @returns 최적화된 검색어
  */
-export function processBookTitle(title: string): string {
-  // 특수문자를 공백으로 변경
-  const processedTitle = title.replace(/[^\w\s가-힣]/g, ' ');
-  
-  // 공백으로 분리하고 빈 문자열 제거
-  const chunks = processedTitle.split(' ').filter(chunk => chunk.trim() !== '');
-  
-  // 3개 이하면 그대로 반환, 3개 초과면 첫 3개만 반환
-  if (chunks.length <= 3) {
-    return chunks.join(' ');
+function createOptimalSearchTitle(title: string): string {
+  // // 1단계: 명백한 부제 구분자(:, -, ()를 기준으로 핵심 제목을 추출합니다.
+  // const subtitleMarkers = /:|-|\(/; // 콜론, 하이픈, 여는 괄호
+  // 1단계: 부제 구분자를 확장합니다. (닫는 괄호, 대괄호, 중괄호 추가)
+  // 정규식에서 특별한 의미를 갖는 [, ], {, }, (,) 등은 \로 이스케이프 처리해야 합니다.
+  const subtitleMarkers = /:|-|\(|\)|\[|\]|\{|\}/; // 콜론, 하이픈, 모든 종류의 괄호
+  let coreTitle = title;
+  const markerIndex = title.search(subtitleMarkers);
+
+  if (markerIndex !== -1) {
+    coreTitle = title.substring(0, markerIndex).trim();
   }
-  
-  return chunks.slice(0, 3).join(' ');
+
+  // 2단계: 추출된 핵심 제목을 기준으로 3단어 제한을 적용합니다.
+  const words = coreTitle.split(' ').filter(word => word.trim() !== '');
+  return words.slice(0, 3).join(' ');
 }
 
-/**
- * 경기도 전자도서관 검색용 책 제목 처리 함수
- * 특수문자 발견 시 그 이후 내용 제거, 최대 3단어 제한
- * @param title - 원본 제목
- * @returns 처리된 제목
- */
+// 기존 두 함수를 새로운 통합 함수를 호출하도록 변경합니다.
+export function processBookTitle(title: string): string {
+  return createOptimalSearchTitle(title);
+}
+
 export function processGyeonggiEbookTitle(title: string): string {
-  // 특수문자 목록 (쉼표, 하이픈, 콜론, 세미콜론, 괄호 등)
-  const specialChars = /[,\-:;()[\]{}]/;
-  
-  // 특수문자가 있으면 그 위치까지만 추출
-  let processedTitle = title;
-  const match = title.search(specialChars);
-  if (match !== -1) {
-    processedTitle = title.substring(0, match).trim();
-  }
-  
-  // 공백으로 분리하고 빈 문자열 제거
-  const words = processedTitle.split(' ').filter(word => word.trim() !== '');
-  
-  // 최대 3단어까지만 사용
-  return words.slice(0, 3).join(' ');
+  return createOptimalSearchTitle(title);
 }
 
 /**
