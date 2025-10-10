@@ -71,10 +71,14 @@ export function filterGyeonggiEbookByIsbn(
   
   // 필터링된 책들로 카운트 재계산
   const totalCount = matchedBooks.length
-  const availableCount = matchedBooks.filter(book => {
-    // status 필드로 대출 가능 여부 확인
-    return book.status === '대출가능'
-  }).length
+
+  // 경기전자도서관 재고문제 해결
+  const availableCount = matchedBooks.filter(book => book.available === true).length;
+  
+  // const availableCount = matchedBooks.filter(book => {
+  //   // status 필드로 대출 가능 여부 확인
+  //   return book.status === '대출가능'
+  // }).length
   const unavailableCount = totalCount - availableCount
   
   // 소장형과 구독형 개수 계산

@@ -41,7 +41,8 @@ export interface GwangjuPaperError {
 export interface GyeonggiEbookLibraryBook {
   type: '소장형' | '구독형';
   title: string;
-  status: '대출가능' | '대출불가';
+  // status: '대출가능' | '대출불가';
+  available: boolean;
   current_borrow?: number;
   total_capacity?: number;
   author?: string;
