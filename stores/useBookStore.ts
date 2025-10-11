@@ -107,6 +107,16 @@ interface BookState {
   lastSearchQuery: string;
   lastSearchType: string;
 
+  // Bulk refresh state
+  bulkRefreshState: {
+    isRunning: boolean;
+    isPaused: boolean;
+    isCancelled: boolean;
+    current: number;
+    total: number;
+    failed: number[];
+  };
+
   // Actions
   searchBooks: (query: string, searchType: string) => Promise<void>;
   loadMoreSearchResults: () => Promise<void>;
@@ -138,6 +148,18 @@ interface BookState {
   fetchTagCounts: () => Promise<void>;
   filterLibraryByTags: (tagIds: string[]) => Promise<void>;
   clearLibraryTagFilter: () => void;
+  bulkRefreshAllBooks: (
+    limit: number | 'all',
+    callbacks: {
+      onProgress: (current: number, total: number, failed: number) => void;
+      onComplete: (success: number, failed: number[]) => void;
+      shouldPause: () => boolean;
+      shouldCancel: () => boolean;
+    }
+  ) => Promise<void>;
+  pauseBulkRefresh: () => void;
+  resumeBulkRefresh: () => void;
+  cancelBulkRefresh: () => void;
 }
 
 
@@ -167,6 +189,16 @@ export const useBookStore = create<BookState>(
       isLoadingMore: false,
       lastSearchQuery: '',
       lastSearchType: '',
+
+      // Bulk refresh state
+      bulkRefreshState: {
+        isRunning: false,
+        isPaused: false,
+        isCancelled: false,
+        current: 0,
+        total: 0,
+        failed: [],
+      },
 
       // Actions
       fetchUserLibrary: async () => {
@@ -898,6 +930,134 @@ export const useBookStore = create<BookState>(
 
       clearLibraryTagFilter: () => {
         set({ libraryTagFilterResults: [] });
+      },
+
+      bulkRefreshAllBooks: async (limit, callbacks) => {
+        const { myLibraryBooks } = get();
+
+        // 대상 책 선택
+        const getBooksToRefresh = (limit: number | 'all') => {
+          if (limit === 'all') {
+            return myLibraryBooks;
+          }
+          // 최근 추가된 순으로 정렬 후 limit개 선택
+          return [...myLibraryBooks]
+            .sort((a, b) => b.addedDate - a.addedDate)
+            .slice(0, limit);
+        };
+
+        const booksToRefresh = getBooksToRefresh(limit);
+        const total = booksToRefresh.length;
+
+        // 초기 상태 설정
+        set({
+          bulkRefreshState: {
+            isRunning: true,
+            isPaused: false,
+            isCancelled: false,
+            current: 0,
+            total,
+            failed: [],
+          },
+        });
+
+        const failed: number[] = [];
+        let current = 0;
+
+        // 10개씩 배치 처리
+        const batchSize = 10;
+        for (let i = 0; i < booksToRefresh.length; i += batchSize) {
+          // 취소 확인
+          if (callbacks.shouldCancel()) {
+            set({
+              bulkRefreshState: {
+                isRunning: false,
+                isPaused: false,
+                isCancelled: true,
+                current,
+                total,
+                failed,
+              },
+            });
+            callbacks.onComplete(current - failed.length, failed);
+            return;
+          }
+
+          // 일시정지 확인
+          while (callbacks.shouldPause()) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+
+          // 배치 처리
+          const batch = booksToRefresh.slice(i, Math.min(i + batchSize, booksToRefresh.length));
+
+          for (const book of batch) {
+            try {
+              await get().refreshAllBookInfo(book.id, book.isbn13, book.title);
+              current++;
+            } catch (error) {
+              console.error(`Failed to refresh book ${book.id}:`, error);
+              failed.push(book.id);
+              current++;
+            }
+
+            // 진행률 업데이트
+            set(state => ({
+              bulkRefreshState: {
+                ...state.bulkRefreshState,
+                current,
+                failed,
+              },
+            }));
+            callbacks.onProgress(current, total, failed.length);
+          }
+
+          // 다음 배치가 있고, 취소되지 않았으면 1초 대기
+          if (i + batchSize < booksToRefresh.length && !callbacks.shouldCancel()) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+
+        // 완료 상태 설정
+        set({
+          bulkRefreshState: {
+            isRunning: false,
+            isPaused: false,
+            isCancelled: false,
+            current,
+            total,
+            failed,
+          },
+        });
+
+        callbacks.onComplete(current - failed.length, failed);
+      },
+
+      pauseBulkRefresh: () => {
+        set(state => ({
+          bulkRefreshState: {
+            ...state.bulkRefreshState,
+            isPaused: true,
+          },
+        }));
+      },
+
+      resumeBulkRefresh: () => {
+        set(state => ({
+          bulkRefreshState: {
+            ...state.bulkRefreshState,
+            isPaused: false,
+          },
+        }));
+      },
+
+      cancelBulkRefresh: () => {
+        set(state => ({
+          bulkRefreshState: {
+            ...state.bulkRefreshState,
+            isCancelled: true,
+          },
+        }));
       },
     })
 );

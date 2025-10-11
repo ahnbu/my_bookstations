@@ -2,13 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useBookStore } from '../stores/useBookStore';
-import type { CustomTag, TagColor } from '../types';
+import type { CustomTag, TagColor, Theme } from '../types';
 import CustomTagComponent from './CustomTag';
 
 const SettingsModal: React.FC = () => {
   const { isSettingsModalOpen, closeSettingsModal, setNotification } = useUIStore();
   const { settings, loading, updateUserSettings, createTag, updateTag, deleteTag, getTagUsageCount, exportToCSV, setTheme } = useSettingsStore();
-  const { myLibraryBooks } = useBookStore();
+  const { myLibraryBooks, bulkRefreshAllBooks, pauseBulkRefresh, resumeBulkRefresh, cancelBulkRefresh } = useBookStore();
 
   const [localSettings, setLocalSettings] = useState(settings);
   const [saving, setSaving] = useState(false);
@@ -16,6 +16,16 @@ const SettingsModal: React.FC = () => {
   const [editingTag, setEditingTag] = useState<CustomTag | null>(null);
   const [newTagName, setNewTagName] = useState('');
   const [newTagColor, setNewTagColor] = useState<TagColor>('primary');
+
+  // 일괄 갱신 상태
+  const [selectedRefreshLimit, setSelectedRefreshLimit] = useState<number | 'all'>(25);
+  const [refreshState, setRefreshState] = useState({
+    isRunning: false,
+    isPaused: false,
+    current: 0,
+    total: 0,
+    failed: 0,
+  });
 
   useEffect(() => {
     if (isSettingsModalOpen) {
@@ -43,6 +53,24 @@ const SettingsModal: React.FC = () => {
   };
 
   const handleClose = () => {
+    // 갱신 중일 때 경고
+    if (refreshState.isRunning) {
+      const confirmed = window.confirm(
+        '재고 갱신이 진행 중입니다.\n갱신을 취소하고 닫으시겠습니까?'
+      );
+      if (!confirmed) return;
+
+      // 갱신 취소
+      cancelBulkRefresh();
+      setRefreshState({
+        isRunning: false,
+        isPaused: false,
+        current: 0,
+        total: 0,
+        failed: 0,
+      });
+    }
+
     setLocalSettings(settings); // Reset to original settings
     setActiveTab('display');
     setEditingTag(null);
@@ -110,6 +138,120 @@ const SettingsModal: React.FC = () => {
     } catch (error) {
       setNotification({ message: 'CSV 내보내기에 실패했습니다.', type: 'error' });
     }
+  };
+
+  // 일괄 갱신 범위 선택지 생성
+  const getRefreshOptions = () => {
+    const totalBooks = myLibraryBooks.length;
+    const options = [
+      { value: 25, label: '최근 25권' },
+      { value: 50, label: '최근 50권' },
+      { value: 100, label: '최근 100권' },
+      { value: 200, label: '최근 200권' },
+      { value: 'all' as const, label: `전체 (${totalBooks}권)` },
+    ];
+
+    // 보유 권수보다 큰 선택지 필터링
+    return options.filter(opt => opt.value === 'all' || opt.value <= totalBooks);
+  };
+
+  // 예상 소요 시간 계산 (초)
+  const estimateRefreshTime = (bookCount: number) => {
+    const batches = Math.ceil(bookCount / 10);
+    const waitTime = (batches - 1) * 1; // 배치 간 대기
+    const apiTime = batches * 2; // API 호출 시간
+    return waitTime + apiTime;
+  };
+
+  // 일괄 갱신 시작
+  const handleStartBulkRefresh = () => {
+    const limit = selectedRefreshLimit;
+    const bookCount = limit === 'all' ? myLibraryBooks.length : Math.min(limit, myLibraryBooks.length);
+    const estimatedTime = estimateRefreshTime(bookCount);
+
+    const confirmed = window.confirm(
+      `${bookCount}권의 재고를 갱신하시겠습니까?\n\n예상 소요 시간: 약 ${estimatedTime}초`
+    );
+
+    if (!confirmed) return;
+
+    setRefreshState({
+      isRunning: true,
+      isPaused: false,
+      current: 0,
+      total: bookCount,
+      failed: 0,
+    });
+
+    bulkRefreshAllBooks(limit, {
+      onProgress: (current, total, failed) => {
+        setRefreshState(prev => ({
+          ...prev,
+          current,
+          total,
+          failed,
+        }));
+      },
+      onComplete: (success, failedIds) => {
+        setRefreshState({
+          isRunning: false,
+          isPaused: false,
+          current: 0,
+          total: 0,
+          failed: 0,
+        });
+
+        if (failedIds.length === 0) {
+          setNotification({
+            message: `${success}권의 재고 갱신이 완료되었습니다.`,
+            type: 'success',
+          });
+        } else if (success > 0) {
+          setNotification({
+            message: `${success}권 갱신 완료, ${failedIds.length}권 실패했습니다.`,
+            type: 'warning',
+          });
+        } else {
+          setNotification({
+            message: '재고 갱신에 실패했습니다. 네트워크 연결을 확인해주세요.',
+            type: 'error',
+          });
+        }
+      },
+      shouldPause: () => refreshState.isPaused,
+      shouldCancel: () => false, // 취소는 별도 버튼으로 처리
+    });
+  };
+
+  // 일시정지/재개 토글
+  const handleTogglePause = () => {
+    if (refreshState.isPaused) {
+      resumeBulkRefresh();
+      setRefreshState(prev => ({ ...prev, isPaused: false }));
+    } else {
+      pauseBulkRefresh();
+      setRefreshState(prev => ({ ...prev, isPaused: true }));
+    }
+  };
+
+  // 취소
+  const handleCancelRefresh = () => {
+    const confirmed = window.confirm('재고 갱신을 중단하시겠습니까?');
+    if (!confirmed) return;
+
+    cancelBulkRefresh();
+    setRefreshState({
+      isRunning: false,
+      isPaused: false,
+      current: 0,
+      total: 0,
+      failed: 0,
+    });
+
+    setNotification({
+      message: `재고 갱신이 취소되었습니다. (${refreshState.current}/${refreshState.total}권 완료)`,
+      type: 'warning',
+    });
   };
 
   const colorOptions: { value: TagColor; label: string; class: string }[] = [
@@ -487,8 +629,8 @@ const SettingsModal: React.FC = () => {
             {/* Data Management Tab */}
             {activeTab === 'data' && (
               <div className="space-y-6">
+                {/* CSV 내보내기 */}
                 <div>
-                  {/* <h3 className="text-sm font-medium text-primary mb-3">내보내기</h3> */}
                   <div className="p-4 border border-secondary rounded-lg">
                     <div className="flex items-center justify-between">
                       <div>
@@ -505,6 +647,123 @@ const SettingsModal: React.FC = () => {
                       >
                         내보내기
                       </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 재고 일괄 갱신 */}
+                <div>
+                  <div className="p-4 border border-secondary rounded-lg">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-primary">
+                          재고 일괄 갱신
+                        </label>
+                        <p className="text-xs text-secondary mt-1 hidden sm:block">
+                          내 서재의 책 재고 정보를 일괄적으로 갱신합니다.
+                        </p>
+                      </div>
+
+                      {/* 갱신 범위 선택 */}
+                      {!refreshState.isRunning && (
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                          <label className="text-xs text-secondary whitespace-nowrap">
+                            갱신 범위:
+                          </label>
+                          <select
+                            value={selectedRefreshLimit}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setSelectedRefreshLimit(value === 'all' ? 'all' : parseInt(value));
+                            }}
+                            className="input-base flex-1 text-sm"
+                          >
+                            {getRefreshOptions().map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* 시작 버튼 (갱신 전) */}
+                      {!refreshState.isRunning && (
+                        <button
+                          onClick={handleStartBulkRefresh}
+                          disabled={myLibraryBooks.length === 0}
+                          className="btn-base btn-primary w-full"
+                        >
+                          재고 일괄 갱신 시작
+                        </button>
+                      )}
+
+                      {/* Progress 영역 (갱신 중) */}
+                      {refreshState.isRunning && (
+                        <div className="space-y-3">
+                          {/* Progress Bar */}
+                          <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                            <div
+                              className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                              style={{
+                                width: `${(refreshState.current / refreshState.total) * 100}%`,
+                              }}
+                            ></div>
+                          </div>
+
+                          {/* 진행률 텍스트 */}
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-secondary">
+                              {refreshState.isPaused
+                                ? `${refreshState.current} / ${refreshState.total}권 (일시정지됨)`
+                                : `${refreshState.current} / ${refreshState.total}권 갱신 중...`}
+                            </span>
+                            <span className="text-blue-600 font-medium">
+                              {Math.round((refreshState.current / refreshState.total) * 100)}%
+                            </span>
+                          </div>
+
+                          {/* 실패 건수 */}
+                          {refreshState.failed > 0 && (
+                            <div className="text-xs text-red-600">
+                              실패: {refreshState.failed}권
+                            </div>
+                          )}
+
+                          {/* 제어 버튼 */}
+                          <div className="flex gap-2">
+                            <button
+                              onClick={handleTogglePause}
+                              className="btn-base btn-secondary flex-1 flex items-center justify-center gap-2"
+                            >
+                              {refreshState.isPaused ? (
+                                <>
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                                  </svg>
+                                  재개
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M5.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75A.75.75 0 007.25 3h-1.5zM12.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75h-1.5z" />
+                                  </svg>
+                                  일시정지
+                                </>
+                              )}
+                            </button>
+                            <button
+                              onClick={handleCancelRefresh}
+                              className="btn-base bg-red-600 text-white hover:bg-red-700 flex items-center justify-center gap-2"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                              취소
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
