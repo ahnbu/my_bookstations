@@ -227,6 +227,12 @@ function createOptimalSearchTitle(title: string): string {
   // const subtitleMarkers = /:|-|\(/; // 콜론, 하이픈, 여는 괄호
   // 1단계: 부제 구분자를 확장합니다. (닫는 괄호, 대괄호, 중괄호 추가)
   // 정규식에서 특별한 의미를 갖는 [, ], {, }, (,) 등은 \로 이스케이프 처리해야 합니다.
+  
+  // [추가] title이 문자열이 아니거나 비어있는 경우를 대비한 방어 코드
+  if (typeof title !== 'string' || !title) {
+    return ''; // 에러를 발생시키는 대신 안전하게 빈 문자열 반환
+  }
+
   const subtitleMarkers = /:|-|\(|\)|\[|\]|\{|\}/; // 콜론, 하이픈, 모든 종류의 괄호
   let coreTitle = title;
   const markerIndex = title.search(subtitleMarkers);

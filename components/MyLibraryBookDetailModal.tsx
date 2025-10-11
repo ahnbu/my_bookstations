@@ -19,7 +19,88 @@ interface MyLibraryBookDetailModalProps {
   onClose: () => void;
 }
 
-const renderStockInfo = (libraryName: string, stock?: StockInfo, bookTitle: string, detailedStockInfo?: any) => {
+// 도서관 재고
+
+// const renderStockInfo = (libraryName: string, stock?: StockInfo, bookTitle: string, detailedStockInfo?: any) => {
+//     if (typeof stock === 'undefined') {
+//         return <div className="flex justify-between items-center"><span>{libraryName}:</span> <div className="flex items-center gap-2"><Spinner /><span className="text-tertiary">확인중...</span></div></div>;
+//     }
+//     if (!stock) {
+//         return <div className="flex justify-between items-center"><span>{libraryName}:</span> <span className="text-tertiary">정보 없음</span></div>;
+//     }
+//     const { total, available } = stock;
+//     const statusColor = available > 0 ? 'text-green-400' : 'text-red-400';
+//     const statusText = available > 0 ? '대출가능' : '대출불가';
+    
+//     const subject = createSearchSubject(bookTitle);
+//     let searchUrl = '';
+//     let searchTitle = '';
+    
+//     // 퇴촌도서관의 경우 상세 재고 정보에서 URL 파라미터 확인
+//     if (libraryName === '퇴촌 도서관' && detailedStockInfo?.gwangju_paper?.availability) {
+//         const toechonItem = detailedStockInfo.gwangju_paper.availability.find((item: any) => 
+//             item.소장도서관 === '퇴촌도서관' && 
+//             item.recKey && 
+//             item.bookKey && 
+//             item.publishFormCode
+//         );
+        
+//         if (toechonItem) {
+//             searchUrl = generateLibraryDetailURL(toechonItem.recKey, toechonItem.bookKey, toechonItem.publishFormCode);
+//             searchTitle = `퇴촌도서관 상세 페이지로 이동`;
+//             // console.log('MyLibraryBookDetailModal 퇴촌도서관 상세 URL 생성:', searchUrl); // 성능 개선을 위해 주석 처리
+//         } else {
+//             // 파라미터가 없으면 향상된 검색 URL 사용 (제목 + 저자)
+//             const authorName = bookTitle.includes(' - ') ? '' : ` ${bookTitle.split(' by ')[1] || ''}`.trim();
+//             const enhancedKeyword = authorName ? `${subject} ${authorName}` : subject;
+//             searchUrl = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(enhancedKeyword)}`;
+//             searchTitle = `퇴촌 도서관에서 '${enhancedKeyword}' 검색`;
+//             // console.log('MyLibraryBookDetailModal 퇴촌도서관 URL 파라미터 없음, 향상된 검색 URL 사용:', enhancedKeyword); // 성능 개선을 위해 주석 처리
+//         }
+//     } else if (libraryName === '기타 도서관') {
+//         searchUrl = `https://lib.gjcity.go.kr/lay1/program/S1T446C461/jnet/resourcessearch/resultList.do?searchType=SIMPLE&searchKey=TITLE&searchLibrary=ALL&searchKeyword=${encodeURIComponent(subject)}`;
+//         searchTitle = `광주시립도서관에서 '${subject}' 검색`;
+//         // 기타 도서관은 툴팁 없이 표시
+//         return (
+//             <div className="flex justify-between items-center">
+//                 <span>{libraryName}:</span>
+//                 <a
+//                     href={searchUrl}
+//                     target="_blank"
+//                     rel="noopener noreferrer"
+//                     className={`font-medium ${statusColor} hover:text-blue-400 hover:underline cursor-pointer transition-colors`}
+//                 >
+//                     {total} / {available}
+//                 </a>
+//             </div>
+//         );
+//     }
+
+//     return (
+//         <div className="flex justify-between items-center">
+//             <span>{libraryName}:</span>
+//             {searchUrl ? (
+//                 <a
+//                     href={searchUrl}
+//                     target="_blank"
+//                     rel="noopener noreferrer"
+//                     className={`font-medium ${statusColor} hover:text-blue-400 hover:underline cursor-pointer transition-colors`}
+//                     title={`${searchTitle} - ${statusText} 총 ${total}권 소장, 대출가능 ${available}권`}
+//                 >
+//                     {total} / {available}
+//                 </a>
+//             ) : (
+//                 <span className={`font-medium ${statusColor}`} title={`${statusText} 총 ${total}권 소장, 대출가능 ${available}권`}>
+//                     {total} / {available}
+//                 </span>
+//             )}
+//         </div>
+//     );
+// };
+
+// MyLibraryBookDetailModal.tsx 파일의 renderStockInfo 함수를 아래 코드로 교체하세요.
+
+const renderStockInfo = (libraryName: string, bookTitle: string, stock?: StockInfo) => {
     if (typeof stock === 'undefined') {
         return <div className="flex justify-between items-center"><span>{libraryName}:</span> <div className="flex items-center gap-2"><Spinner /><span className="text-tertiary">확인중...</span></div></div>;
     }
@@ -34,68 +115,43 @@ const renderStockInfo = (libraryName: string, stock?: StockInfo, bookTitle: stri
     let searchUrl = '';
     let searchTitle = '';
     
-    // 퇴촌도서관의 경우 상세 재고 정보에서 URL 파라미터 확인
-    if (libraryName === '퇴촌 도서관' && detailedStockInfo?.gwangju_paper?.availability) {
-        const toechonItem = detailedStockInfo.gwangju_paper.availability.find((item: any) => 
-            item.소장도서관 === '퇴촌도서관' && 
-            item.recKey && 
-            item.bookKey && 
-            item.publishFormCode
-        );
-        
-        if (toechonItem) {
-            searchUrl = generateLibraryDetailURL(toechonItem.recKey, toechonItem.bookKey, toechonItem.publishFormCode);
-            searchTitle = `퇴촌도서관 상세 페이지로 이동`;
-            // console.log('MyLibraryBookDetailModal 퇴촌도서관 상세 URL 생성:', searchUrl); // 성능 개선을 위해 주석 처리
-        } else {
-            // 파라미터가 없으면 향상된 검색 URL 사용 (제목 + 저자)
-            const authorName = bookTitle.includes(' - ') ? '' : ` ${bookTitle.split(' by ')[1] || ''}`.trim();
-            const enhancedKeyword = authorName ? `${subject} ${authorName}` : subject;
-            searchUrl = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(enhancedKeyword)}`;
-            searchTitle = `퇴촌 도서관에서 '${enhancedKeyword}' 검색`;
-            // console.log('MyLibraryBookDetailModal 퇴촌도서관 URL 파라미터 없음, 향상된 검색 URL 사용:', enhancedKeyword); // 성능 개선을 위해 주석 처리
-        }
+    // [수정] 퇴촌 도서관 링크 생성 로직을 MyLibrary.tsx와 동일하게 단순화
+    if (libraryName === '퇴촌 도서관') {
+        searchUrl = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(subject)}`;
+        searchTitle = `퇴촌 도서관에서 '${subject}' 검색`;
     } else if (libraryName === '기타 도서관') {
         searchUrl = `https://lib.gjcity.go.kr/lay1/program/S1T446C461/jnet/resourcessearch/resultList.do?searchType=SIMPLE&searchKey=TITLE&searchLibrary=ALL&searchKeyword=${encodeURIComponent(subject)}`;
         searchTitle = `광주시립도서관에서 '${subject}' 검색`;
-        // 기타 도서관은 툴팁 없이 표시
-        return (
-            <div className="flex justify-between items-center">
-                <span>{libraryName}:</span>
-                <a
-                    href={searchUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`font-medium ${statusColor} hover:text-blue-400 hover:underline cursor-pointer transition-colors`}
-                >
-                    {total} / {available}
-                </a>
-            </div>
-        );
+    }
+
+    // searchUrl이 없는 경우를 대비한 방어 코드 (이론적으로는 이제 발생하지 않음)
+    if (!searchUrl) {
+      return (
+        <div className="flex justify-between items-center">
+            <span>{libraryName}:</span>
+            <span className={`font-medium ${statusColor}`} title={`${statusText} | 총 ${total}권, 대출가능 ${available}권`}>
+                {total} / {available}
+            </span>
+        </div>
+      );
     }
 
     return (
         <div className="flex justify-between items-center">
             <span>{libraryName}:</span>
-            {searchUrl ? (
-                <a
-                    href={searchUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`font-medium ${statusColor} hover:text-blue-400 hover:underline cursor-pointer transition-colors`}
-                    title={`${searchTitle} - ${statusText} 총 ${total}권 소장, 대출가능 ${available}권`}
-                >
-                    {total} / {available}
-                </a>
-            ) : (
-                <span className={`font-medium ${statusColor}`} title={`${statusText} 총 ${total}권 소장, 대출가능 ${available}권`}>
-                    {total} / {available}
-                </span>
-            )}
+            <a
+                href={searchUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()} // 이벤트 버블링 방지
+                className={`font-medium ${statusColor} hover:text-blue-400 hover:underline cursor-pointer transition-colors`}
+                title={`${searchTitle} | ${statusText} (총 ${total}권, 대출가능 ${available}권)`}
+            >
+                {total} / {available}
+            </a>
         </div>
     );
 };
-
 
 const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ bookId, onClose }) => {
     const { updateReadStatus, updateRating, refreshingIsbn, refreshEBookInfo, refreshingEbookId, refreshAllBookInfo, addTagToBook, removeTagFromBook, setAuthorFilter, updateBookNote } = useBookStore();
@@ -279,8 +335,8 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                                 </button>
                                             </div>
                                             <div className="space-y-2 text-sm text-secondary bg-elevated p-4 rounded-md">
-                                                {renderStockInfo('퇴촌 도서관', book.toechonStock, book.title, book.detailedStockInfo)}
-                                                {renderStockInfo('기타 도서관', book.otherStock, book.title, book.detailedStockInfo)}
+                                                {renderStockInfo('퇴촌 도서관', book.title, book.toechonStock)}
+                                                {renderStockInfo('기타 도서관', book.title, book.otherStock)}
                                                 {book.subInfo?.ebookList?.[0]?.link && (
                                                     <>
                                                         <div className="flex justify-between items-center">
@@ -620,8 +676,8 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                                 </button>
                                             </div>
                                             <div className="space-y-2 text-sm text-secondary bg-elevated p-4 rounded-md">
-                                                {renderStockInfo('퇴촌 도서관', book.toechonStock, book.title, book.detailedStockInfo)}
-                                                {renderStockInfo('기타 도서관', book.otherStock, book.title, book.detailedStockInfo)}
+                                                {renderStockInfo('퇴촌 도서관', book.title, book.toechonStock)}
+                                                {renderStockInfo('기타 도서관', book.title, book.otherStock)}
                                                 {book.subInfo?.ebookList?.[0]?.link && (
                                                     <>
                                                         <div className="flex justify-between items-center">
