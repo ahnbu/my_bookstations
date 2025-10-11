@@ -159,6 +159,8 @@ export default {
 // =================================================================
 // 크롤링 함수들
 // =================================================================
+// 경기 광주시 시립도서관 종이책 검색 (iframe 안의 주소로 요청)
+
 async function searchGwangjuLibrary(isbn) {
   const url = "https://lib.gjcity.go.kr:8443/kolaseek/plus/search/plusSearchResultList.do";
   const payload = new URLSearchParams({'searchType': 'DETAIL','searchKey5': 'ISBN','searchKeyword5': isbn,'searchLibrary': 'ALL','searchSort': 'SIMILAR','searchRecordCount': '30'});
@@ -248,7 +250,7 @@ async function searchGyeonggiEbookLibrary(searchText) {
   }
 }
 
-// 소장형 도서 검색 함수
+// 경기도 전자도서관 소장형 도서 검색 함수
 async function searchOwnedBooks(query) {
   const encodedTitle = encodeURIComponent(query);
   const timestamp = Date.now();
@@ -285,11 +287,11 @@ async function searchOwnedBooks(query) {
   return parseOwnedResults(jsonData);
 }
 
-// 구독형 도서 검색 함수 (개선된 버전)
+// 경기도 전자도서관 구독형 도서 검색 함수 (개선된 버전)
 async function searchSubscriptionBooks(query) {
   try {
     
-    // --- 1단계: 동적 인증 토큰 생성 (subscription_solution.md 권장 방식) ---
+    // --- 1단계: 동적 인증 토큰 생성 (docs/subscription_solution.md 권장 방식) ---
     // KST (UTC+9)를 기준으로 현재 시간 생성 - 단순화된 방식
     const now = new Date(new Date().getTime() + 9 * 60 * 60 * 1000);
     
@@ -389,7 +391,7 @@ async function searchSubscriptionBooks(query) {
   }
 }
 
-// 시립도서관 전자책 검색 함수
+// 경기광주 시립도서관 전자책 검색 함수
 async function searchSiripOwnedEbook(searchTitle) {
   try {
     const encodedTitle = encodeURIComponent(searchTitle);
@@ -527,6 +529,8 @@ function parseGwangjuHTML(html) {
   } catch (error) { throw new Error(`광주 파싱 오류: ${error.message}`); }
 }
 
+// 경기도교육청 HTML 파싱함수
+
 function parseGyeonggiHTML(html, libraryCode) {
   try {
     const libraryNameMap = { '10000004': '성남도서관', '10000009': '통합도서관' };
@@ -560,7 +564,19 @@ function parseGyeonggiHTML(html, libraryCode) {
       const author = infoBlock.match(/저자\s*:\s*(.*?)(?:<span|<br|\s*│)/i)?.[1]?.trim() || "정보 없음";
       const publisher = infoBlock.match(/출판사\s*:\s*(.*?)(?:<span|<br|\s*│)/i)?.[1]?.trim() || "정보 없음";
       const pubDate = infoBlock.match(/발행일자\s*:\s*(.*?)(?:<span|<br|\s*│)/i)?.[1]?.trim() || "정보 없음";
-      
+
+      // [추가] ISBN 추출 로직 시작
+      let isbn = "정보 없음"; // 기본값 설정
+      const keyValueMatch = bookHtml.match(/keyValue="([^"]*)"/i);
+      if (keyValueMatch && keyValueMatch[1]) {
+        const keyValueParts = keyValueMatch[1].split('///');
+        // keyValue가 '제목///발간년도///저자///출판사///ISBN' 순서이므로 5번째 요소 확인
+        if (keyValueParts.length > 4) {
+          isbn = keyValueParts[4].trim();
+        }
+      }
+      // [추가] ISBN 추출 로직 끝
+
       // 대출 가능 여부 추출을 위한 더 유연한 패턴들
       let statusText = "정보 없음";
       const statusPatterns = [
@@ -589,7 +605,15 @@ function parseGyeonggiHTML(html, libraryCode) {
         status = "대출불가";
       }
       
-      return { '소장도서관': branchName, '도서명': title, '저자': author, '출판사': publisher, '발행일': pubDate, '대출상태': status };
+      return { 
+        '소장도서관': branchName, 
+        '도서명': title, 
+        '저자': author, 
+        '출판사': publisher, 
+        '발행일': pubDate, 
+        '대출상태': status,
+        'isbn': isbn // 추출한 ISBN 추가
+      };
     });
     
     return { library_name: `경기도교육청-${branchName}`, availability };

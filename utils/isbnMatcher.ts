@@ -27,7 +27,7 @@ function normalizeAuthorName(author: string): string {
     .replace(/\([^)]*\)/g, '') // 괄호 및 내용 제거
     .split(',')[0] // 쉼표 앞부분만 추출
     .replace(/\s/g, '') // 공백 제거
-    .substring(0, 3) // 앞 3글자만
+    .substring(0, 2) // 앞 3글자만 -> 2자로 변경
 }
 
 /**
@@ -64,11 +64,11 @@ export function isBookMatched(book: BookData, ebookResult: any): boolean {
   }
 
   // 알라딘에 전자책 정보가 없는 경우에만 저자명 매칭 시도
+  // 저자명 앞 3글자가 일치하는지 확인 
   if (!hasAladinEbook) {
     const bookAuthor = normalizeAuthorName(book.author)
     const resultAuthor = normalizeAuthorName(ebookResult.author || '')
 
-    // 저자명 앞 3글자가 일치하는지 확인
     if (bookAuthor && resultAuthor && bookAuthor === resultAuthor) {
       return true
     }
