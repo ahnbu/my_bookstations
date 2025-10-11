@@ -335,7 +335,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     ].join('\n');
 
     // Download CSV file
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    // [수정] UTF-8 BOM('\uFEFF')을 csvContent 앞에 추가하여 Excel 호환성 확보
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    // const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);

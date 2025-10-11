@@ -17,6 +17,9 @@ const SettingsModal: React.FC = () => {
   const [newTagName, setNewTagName] = useState('');
   const [newTagColor, setNewTagColor] = useState<TagColor>('primary');
 
+  // [추가] CSV 내보내기 진행 상태 추가
+  const [isExporting, setIsExporting] = useState(false);
+
   // 일괄 갱신 상태
   const [selectedRefreshLimit, setSelectedRefreshLimit] = useState<number | 'all'>(25);
   const [refreshState, setRefreshState] = useState({
@@ -131,12 +134,46 @@ const SettingsModal: React.FC = () => {
     }
   };
 
-  const handleExportCSV = () => {
+  // const handleExportCSV = () => {
+  //   try {
+  //     exportToCSV(myLibraryBooks);
+  //     setNotification({ message: 'CSV 파일이 다운로드됩니다.', type: 'success' });
+  //   } catch (error) {
+  //     setNotification({ message: 'CSV 내보내기에 실패했습니다.', type: 'error' });
+  //   }
+  // };
+
+  // [전체권수 대상으로 csv 내보내기]
+  // 전체로딩 안되어 있으면, 전체로딩 후에 csv내보내기
+  const handleExportCSV = async () => {
+    // 이미 내보내기 중이면 중복 실행 방지
+    if (isExporting) return;
+
+    if (!window.confirm(`전체 ${totalBooksCount}권의 서재 데이터를 CSV 파일로 내보내시겠습니까?`)) {
+      return;
+    }
+
+    setIsExporting(true);
+    setNotification({ message: '전체 서재 데이터를 준비 중입니다...', type: 'info' });
+
     try {
-      exportToCSV(myLibraryBooks);
-      setNotification({ message: 'CSV 파일이 다운로드됩니다.', type: 'success' });
+      let booksToExport = myLibraryBooks;
+
+      // 1. 모든 책이 로드되지 않았다면 나머지 책을 불러옵니다.
+      if (!isAllBooksLoaded) {
+        await fetchRemainingLibrary();
+        // 2. 스토어에서 최신화된 전체 책 목록을 다시 가져옵니다.
+        booksToExport = useBookStore.getState().myLibraryBooks;
+      }
+
+      // 3. 전체 책 목록으로 내보내기 실행
+      exportToCSV(booksToExport);
+
     } catch (error) {
-      setNotification({ message: 'CSV 내보내기에 실패했습니다.', type: 'error' });
+      console.error("CSV export failed:", error);
+      setNotification({ message: 'CSV 내보내기 중 오류가 발생했습니다.', type: 'error' });
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -661,9 +698,14 @@ const SettingsModal: React.FC = () => {
                       </div>
                       <button
                         onClick={handleExportCSV}
-                        className="btn-base btn-primary"
+                        disabled={isExporting || myLibraryBooks.length === 0}
+                        className="btn-base btn-primary disabled:opacity-50 disabled:cursor-wait"
                       >
-                        내보내기
+                        {isExporting 
+                          ? '내보내는 중...' 
+                          : `내보내기`
+                          // : `전체 서재(${totalBooksCount}권) 내보내기`
+                        }
                       </button>
                     </div>
                   </div>
