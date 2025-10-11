@@ -115,10 +115,17 @@ export default {
       }
         }
         
+        // [추가] 최종 응답 객체에 isbn과 title 추가
+        const responsePayload = {
+          title: eduTitle, // 요청받은 eduTitle을 기준으로 title 필드 추가
+          isbn: isbn,
+          ...finalResult
+        };
+
         // API 응답 결과 로그 (유지 - 테스트 응답과 동일한 형태)
-        console.log('API Response:', JSON.stringify(finalResult, null, 2));
+        console.log('API Response:', JSON.stringify(responsePayload, null, 2));
         
-        return new Response(JSON.stringify(finalResult), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify(responsePayload), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
       } catch (error) {
         console.error(`API Error: ${error.message}`);
@@ -166,7 +173,13 @@ async function searchGwangjuLibrary(isbn) {
   const url = "https://lib.gjcity.go.kr:8443/kolaseek/plus/search/plusSearchResultList.do";
   const payload = new URLSearchParams({'searchType': 'DETAIL','searchKey5': 'ISBN','searchKeyword5': isbn,'searchLibrary': 'ALL','searchSort': 'SIMILAR','searchRecordCount': '30'});
   const headers = {'User-Agent': 'Mozilla/5.0','Content-Type': 'application/x-www-form-urlencoded','Referer': 'https://lib.gjcity.go.kr:8443/kolaseek/plus/search/plusSearchDetail.do'};
-  const response = await fetch(url, { method: 'POST', headers: headers, body: payload.toString(), signal: AbortSignal.timeout(20000) });
+  const response = await fetch(url, {
+    method: 'POST', 
+    headers: headers, 
+    body: payload.toString(), 
+    // signal: AbortSignal.timeout(20000) 
+    signal: AbortSignal.timeout(5000) // 대기 시간을 20초 -> 5초로 줄임
+  });
   if (!response.ok) throw new Error(`경기광주 HTTP ${response.status}`);
   const htmlContent = await response.text();
   return parseGwangjuHTML(htmlContent);
