@@ -26,7 +26,10 @@ interface UIState {
 
   // Welcome Modal state
   isWelcomeModalOpen: boolean;
-  
+
+  // Keyword Search Modal state
+  isKeywordSearchModalOpen: boolean;
+
   // Context state
   isAPITestMode: boolean;
 
@@ -69,6 +72,10 @@ interface UIState {
   openWelcomeModal: () => void;
   closeWelcomeModal: () => void;
 
+  // Keyword Search Modal actions
+  openKeywordSearchModal: () => void;
+  closeKeywordSearchModal: () => void;
+
   setAPITestMode: (isAPITestMode: boolean) => void;
 }
 
@@ -87,6 +94,7 @@ export const useUIStore = create<UIState>((set) => ({
   isAPITestModalOpen: false,
   isDevNoteModalOpen: false,
   isWelcomeModalOpen: false,
+  isKeywordSearchModalOpen: false,
   isAPITestMode: false,
 
   setIsLoading: (isLoading) => set({ isLoading }),
@@ -126,6 +134,10 @@ export const useUIStore = create<UIState>((set) => ({
   // Welcome Modal implementations
   openWelcomeModal: () => set({ isWelcomeModalOpen: true }),
   closeWelcomeModal: () => set({ isWelcomeModalOpen: false }),
+
+  // Keyword Search Modal implementations
+  openKeywordSearchModal: () => set({ isKeywordSearchModalOpen: true }),
+  closeKeywordSearchModal: () => set({ isKeywordSearchModalOpen: false }),
 
   setAPITestMode: (isAPITestMode) => set({ isAPITestMode }),
 }));

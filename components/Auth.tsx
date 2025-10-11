@@ -7,7 +7,7 @@ import { isAdmin } from '../utils/adminCheck';
 
 const Auth: React.FC = () => {
     const { session, signOut } = useAuthStore();
-    const { openAuthModal, openProfileModal, openSettingsModal, openFeedbackModal, openAdminModal, setNotification } = useUIStore();
+    const { openAuthModal, openProfileModal, openSettingsModal, openFeedbackModal, openAdminModal, openKeywordSearchModal, setNotification } = useUIStore();
     const [loading, setLoading] = useState(false);
     const [imageLoadError, setImageLoadError] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -136,6 +136,18 @@ const Auth: React.FC = () => {
                                     관리자 기능
                                 </button>
                             )}
+                            <button
+                                onClick={() => {
+                                    setIsDropdownOpen(false);
+                                    openKeywordSearchModal();
+                                }}
+                                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            >
+                                <svg className="w-4 h-4 mr-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                키워드 검색
+                            </button>
                         </div>
 
                         {/* 로그아웃 버튼 */}

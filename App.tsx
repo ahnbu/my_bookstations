@@ -14,6 +14,7 @@ import APITestModal from './components/APITestModal';
 import DevNoteModal from './components/DevNoteModal';
 import WelcomeModal from './components/WelcomeModal';
 import MyLibraryBookDetailModal from './components/MyLibraryBookDetailModal';
+import KeywordSearchModal from './components/KeywordSearchModal';
 import Notification from './components/Notification';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
@@ -124,6 +125,9 @@ const App: React.FC = () => {
 
       {/* 웰컴 모달 */}
       <WelcomeModal />
+
+      {/* 키워드 검색 모달 */}
+      <KeywordSearchModal />
 
       {/* 전역 상세 모달 */}
       {selectedBookIdForDetail && (
