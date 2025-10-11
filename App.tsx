@@ -47,7 +47,8 @@ const App: React.FC = () => {
     } else {
       clearLibrary();
     }
-  }, [session]);
+  // }, [session]); // 외부링크 열면 계속 페이지 초기화됨
+  }, [session?.user?.id]);  // ✅ 실제 사용자 ID 변경 시에만 실행
 
   // 설정이 로드되면 테마 적용
   useEffect(() => {

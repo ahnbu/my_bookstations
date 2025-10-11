@@ -1,13 +1,15 @@
-// 2025-09-16 GitHub Actions 자동 배포 테스트 - Wrangler 4.37.0 + 설정파일 기반
-// 최종 수정: 2025-08-09 - 경기도 전자도서관 재고 크롤링 기능 추가
-// 수정: 2025-08-09 - 전자책 대출가능 여부 정확성 개선
-// 수정: 2025-08-09 - supabase 무료요금 비활성화 방지 위해서 3일마다 ping 기능 추가
-// 수정: 2025-08-09 - 과도한 콘솔 로그 정리 (운영 환경 최적화)
+// 2025-10-11 - 네이밍, 크롤링 로직 전반적인 정리
+// 2025-09-16 - GitHub Actions 자동 배포 - Wrangler 4.37.0 + 설정파일 기반
+// 2025-08-09 - 경기도 전자도서관 재고 크롤링 기능 추가
+// 2025-08-09 - 전자책 대출가능 여부 정확성 개선
+// 2025-08-09 - supabase 무료요금 비활성화 방지 위해서 3일마다 ping 기능 추가
+// 2025-08-09 - 과도한 콘솔 로그 정리 (운영 환경 최적화)
 
-// CloudFlare Workers - 4-Way 통합 도서관 재고 확인 API (경기도 전자도서관 포함 버전)
-// =================================================================
+// CloudFlare Workers - 도서관 재고 확인
+
+// ==============================================
 // 메인 핸들러
-// =================================================================
+// ==============================================
 export default {
   async fetch(request) {
     const corsHeaders = {
@@ -165,9 +167,9 @@ export default {
   }
 };
 
-// =================================================================
+// ==============================================
 // 크롤링 함수들
-// =================================================================
+// ==============================================
 // 경기 광주시 시립도서관 종이책 검색 (iframe 안의 주소로 요청)
 async function searchGwangjuLibrary(isbn) {
   const url = "https://lib.gjcity.go.kr:8443/kolaseek/plus/search/plusSearchResultList.do";
@@ -873,7 +875,8 @@ function parseGyenggiEbookSubsResults(data, query) {
 }
 
 // 경기광주 시립 전자도서관 (소장) 결과 정리
-function parseSiripEbookOwnedHTML(html, searchTitle) {
+function parseSiripEbookOwnedHTML(html) {
+// function parseSiripEbookOwnedHTML(html, searchTitle) {
   try {
     // 검색 결과가 없는 경우 체크
     if (html.includes('검색결과가 없습니다') || html.includes('자료가 없습니다') || html.includes('"총 0개"')) {
@@ -1085,7 +1088,8 @@ function parseSiripEbookOwnedHTML(html, searchTitle) {
 }
 
 // 경기광주 시립 전자도서관 (구독) 결과 정리
-function parseSiripEbookSubsHTML(html, searchTitle) {
+function parseSiripEbookSubsHTML(html) {
+// function parseSiripEbookSubsHTML(html, searchTitle) {
   try {
     // 검색 결과가 없는 경우 체크
     if (html.includes('검색결과가 없습니다') || html.includes('자료가 없습니다') || html.includes('"총 0개"')) {
@@ -1213,8 +1217,9 @@ function parseSiripEbookSubsHTML(html, searchTitle) {
   }
 }
 
+// ==========================================
 // 테스트 및 검증 함수들
-// =================================================================
+// ==========================================
 
 // 경기도 전자도서관 API 응답 검증 함수
 function validateGyeonggiEbookApiResponse(response) {
