@@ -30,9 +30,21 @@ async function updateBookInStoreAndDB(
   }
 
   // 1. 낙관적 업데이트: UI 상태를 즉시 변경
+  // const updatedBook: SelectedBook = { ...originalBook, ...updates };
+  // useBookStore.setState(state => ({
+  //   myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? updatedBook : b)),
+  //   selectedBook:
+  //     state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
+  //       ? updatedBook
+  //       : state.selectedBook,
+  // }));
+
+  // 태그 필터 상태에서 메모 수정이 반영되도록 개선
   const updatedBook: SelectedBook = { ...originalBook, ...updates };
   useBookStore.setState(state => ({
     myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? updatedBook : b)),
+    librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? updatedBook : b)),
+    libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? updatedBook : b)),
     selectedBook:
       state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
         ? updatedBook
@@ -70,11 +82,20 @@ async function updateBookInStoreAndDB(
     });
     useBookStore.setState(state => ({
       myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? originalBook : b)),
+      librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? originalBook : b)),
+      libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? originalBook : b)),
       selectedBook:
         state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
           ? originalBook
           : state.selectedBook,
     }));
+    // useBookStore.setState(state => ({
+    //   myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? originalBook : b)),
+    //   selectedBook:
+    //     state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
+    //       ? originalBook
+    //       : state.selectedBook,
+    // }));
   }
 }
 
@@ -215,7 +236,7 @@ export const useBookStore = create<BookState>(
 
             const { data, error, count } = await supabase
                 .from('user_library')
-                .select('id, book_data', { count: 'exact' })
+                .select('id, book_data, note', { count: 'exact' })
                 .order('created_at', { ascending: false })
                 .limit(pageSize);
 
@@ -232,6 +253,7 @@ export const useBookStore = create<BookState>(
                   return {
                       ...bookDataWithDefaults,
                       id: item.id,
+                      note: item.note,
                   };
               })
               .filter((book): book is SelectedBook => book !== null);
@@ -270,7 +292,7 @@ export const useBookStore = create<BookState>(
 
             const { data, error } = await supabase
                 .from('user_library')
-                .select('id, book_data')
+                .select('id, book_data, note')
                 .order('created_at', { ascending: false })
                 .range(currentCount, 9999); // 현재 개수 이후부터 끝까지
 
@@ -286,6 +308,7 @@ export const useBookStore = create<BookState>(
                   return {
                       ...bookDataWithDefaults,
                       id: item.id,
+                      note: item.note,
                   };
               })
               .filter((book): book is SelectedBook => book !== null);
