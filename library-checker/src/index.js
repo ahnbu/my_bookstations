@@ -878,7 +878,7 @@ function parseSiripEbookOwnedHTML(html, searchTitle) {
     // 해결: <!-- paging --> 주석까지 포함하여 완전한 책 리스트 추출
     const bookListMatch = html.match(/<ul[^>]*class[^>]*book_resultList[^>]*>([\s\S]*?)<\/ul>\s*<!-- paging -->/i);
     if (!bookListMatch) {
-      console.log('❌ book_resultList with paging 매칭 실패, 대안 시도...');
+      // console.log('❌ book_resultList with paging 매칭 실패, 대안 시도...');
       // 대안: greedy 매칭 시도
       const alternativeMatch = html.match(/<ul[^>]*class[^>]*book_resultList[^>]*>([\s\S]*)<\/ul>/i);
       if (!alternativeMatch) {
@@ -890,10 +890,10 @@ function parseSiripEbookOwnedHTML(html, searchTitle) {
           books: []
         };
       }
-      console.log('✅ 대안 패턴으로 book_resultList 추출 성공');
+      // console.log('✅ 대안 패턴으로 book_resultList 추출 성공');
       const bookListHTML = alternativeMatch[1];
     } else {
-      console.log('✅ book_resultList with paging 매칭 성공');
+      // console.log('✅ book_resultList with paging 매칭 성공');
       const bookListHTML = bookListMatch[1];
     }
     
@@ -909,8 +909,8 @@ function parseSiripEbookOwnedHTML(html, searchTitle) {
       };
     }
     
-    console.log(`✅ 최종 book_resultList 추출 성공 (길이: ${finalBookListHTML.length}자)`);
-    console.log(`🔍 use 클래스 포함 여부: ${finalBookListHTML.includes('class="use"')}`);
+    // console.log(`✅ 최종 book_resultList 추출 성공 (길이: ${finalBookListHTML.length}자)`);
+    // console.log(`🔍 use 클래스 포함 여부: ${finalBookListHTML.includes('class="use"')}`);
     
     // 2. 개별 책 항목 추출: 전체 영역을 하나의 책으로 처리 (단일 책 결과인 경우)
     // XPath div[2]/p[2] 구조가 확인되었으므로 전체 영역에서 직접 정보 추출

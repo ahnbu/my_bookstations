@@ -8,7 +8,7 @@ import CustomTagComponent from './CustomTag';
 const SettingsModal: React.FC = () => {
   const { isSettingsModalOpen, closeSettingsModal, setNotification } = useUIStore();
   const { settings, loading, updateUserSettings, createTag, updateTag, deleteTag, getTagUsageCount, exportToCSV, setTheme } = useSettingsStore();
-  const { myLibraryBooks, bulkRefreshAllBooks, pauseBulkRefresh, resumeBulkRefresh, cancelBulkRefresh } = useBookStore();
+  const { myLibraryBooks, totalBooksCount, isAllBooksLoaded, fetchRemainingLibrary, bulkRefreshAllBooks, pauseBulkRefresh, resumeBulkRefresh, cancelBulkRefresh } = useBookStore();
 
   const [localSettings, setLocalSettings] = useState(settings);
   const [saving, setSaving] = useState(false);
@@ -142,7 +142,7 @@ const SettingsModal: React.FC = () => {
 
   // 일괄 갱신 범위 선택지 생성
   const getRefreshOptions = () => {
-    const totalBooks = myLibraryBooks.length;
+    const totalBooks = totalBooksCount; // DB 전체 권수 사용
     const options = [
       { value: 25, label: '최근 25권' },
       { value: 50, label: '최근 50권' },
@@ -164,9 +164,9 @@ const SettingsModal: React.FC = () => {
   };
 
   // 일괄 갱신 시작
-  const handleStartBulkRefresh = () => {
+  const handleStartBulkRefresh = async () => {
     const limit = selectedRefreshLimit;
-    const bookCount = limit === 'all' ? myLibraryBooks.length : Math.min(limit, myLibraryBooks.length);
+    const bookCount = limit === 'all' ? totalBooksCount : Math.min(limit, totalBooksCount);
     const estimatedTime = estimateRefreshTime(bookCount);
 
     const confirmed = window.confirm(
@@ -174,6 +174,24 @@ const SettingsModal: React.FC = () => {
     );
 
     if (!confirmed) return;
+
+    // 전체 갱신 선택 시, 아직 로드되지 않은 책이 있다면 먼저 로드
+    if (limit === 'all' && !isAllBooksLoaded) {
+      setNotification({
+        message: '전체 책을 불러오는 중입니다...',
+        type: 'success',
+      });
+
+      try {
+        await fetchRemainingLibrary();
+      } catch (error) {
+        setNotification({
+          message: '전체 책을 불러오는데 실패했습니다.',
+          type: 'error',
+        });
+        return;
+      }
+    }
 
     setRefreshState({
       isRunning: true,
