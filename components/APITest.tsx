@@ -3,7 +3,7 @@ import { LibraryStockResponse, AladdinBookItem } from '../types';
 import { SearchIcon, AlertCircleIcon, BookIcon, CopyIcon } from './Icons';
 import Spinner from './Spinner';
 import SearchForm from './SearchForm';
-import { fetchBookAvailability, processBookTitle, LibraryApiResponse } from '../services/unifiedLibrary.service';
+import { fetchBookAvailability, processGyeonggiEbookEduTitle, LibraryApiResponse } from '../services/unifiedLibrary.service';
 import { useBookStore } from '../stores/useBookStore';
 import { useUIStore } from '../stores/useUIStore';
 import DevNoteModal from './DevNoteModal';
@@ -108,7 +108,7 @@ const APITest: React.FC = () => {
     await runApiTest(isbn, title);
   };
 
-  const processedTitle = title ? processBookTitle(title) : '';
+  const processedTitle = title ? processGyeonggiEbookEduTitle(title) : '';
 
   return (
     <div className="mt-12 api-test-container">

@@ -8,11 +8,11 @@ import Spinner from './Spinner';
 import StarRating from './StarRating';
 import CustomTagComponent from './CustomTag';
 import AuthorButtons from './AuthorButtons';
-import { getStatusClass, getStatusEmoji, processBookTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL, generateLibraryDetailURL, isLibraryStockClickable } from '../services/unifiedLibrary.service';
+import { getStatusClass, getStatusEmoji, processGyeonggiEbookEduTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL, generateLibraryDetailURL, isLibraryStockClickable } from '../services/unifiedLibrary.service';
 import { filterGyeonggiEbookByIsbn } from '../utils/isbnMatcher';
 
 // Use the standardized title processing function from ebook.service
-const createSearchSubject = processBookTitle;
+const createSearchSubject = processGyeonggiEbookEduTitle;
 
 interface MyLibraryBookDetailModalProps {
   bookId: number;

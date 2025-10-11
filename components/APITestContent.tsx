@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LibraryStockResponse, AladdinBookItem } from '../types';
 import { SearchIcon, AlertCircleIcon, BookIcon, CopyIcon } from './Icons';
 import Spinner from './Spinner';
-import { fetchBookAvailability, processBookTitle, LibraryApiResponse } from '../services/unifiedLibrary.service';
+import { fetchBookAvailability, processGyeonggiEbookEduTitle, LibraryApiResponse } from '../services/unifiedLibrary.service';
 import { searchAladinBooks } from '../services/aladin.service';
 import APITestBookSearchModal from './APITestBookSearchModal';
 
@@ -116,7 +116,7 @@ const APITestContent: React.FC = () => {
     await runApiTest(isbn, title);
   };
 
-  const processedTitle = title ? processBookTitle(title) : '';
+  const processedTitle = title ? processGyeonggiEbookEduTitle(title) : '';
 
   return (
     <div className="space-y-6 relative">

@@ -9,7 +9,7 @@ import StarRating from './StarRating';
 import MyLibraryBookDetailModal from './MyLibraryBookDetailModal';
 import TagFilter from './TagFilter';
 import CustomTagComponent from './CustomTag';
-import { getStatusEmoji, isEBooksEmpty, hasAvailableEBooks, processBookTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL, generateLibraryDetailURL, isLibraryStockClickable } from '../services/unifiedLibrary.service';
+import { getStatusEmoji, isEBooksEmpty, hasAvailableEBooks, processGyeonggiEbookEduTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL, generateLibraryDetailURL, isLibraryStockClickable } from '../services/unifiedLibrary.service';
 import { addHomeResetListener } from '../utils/events';
 // import { filterGyeonggiEbookByIsbn, debugIsbnMatching } from '../utils/isbnMatcher'; // 성능 최적화로 사용 안함
 
@@ -729,7 +729,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
   };
   
   // Use the standardized title processing function from ebook.service
-  const createSearchSubject = processBookTitle;
+  const createSearchSubject = processGyeonggiEbookEduTitle;
 
   // Tag filtering handlers
   const handleTagClick = (tagId: string) => {

@@ -34,10 +34,13 @@ export default {
     if (request.method === 'POST') {
       try {
         const body = await request.json();
-        const { isbn, title = '', gyeonggiTitle = '', siripTitle = '' } = body;
-
+        // [변경] title -> eduTitle 로 요청 키 이름 변경
+        // const { isbn, title = '', gyeonggiTitle = '', siripTitle = '' } = body;
         // API 요청 정보 로그 (유지)
-        console.log(`Request received - ISBN: ${isbn}, Title: "${title}", GyeonggiTitle: "${gyeonggiTitle}", SiripTitle: "${siripTitle}"`);
+        // console.log(`Request received - ISBN: ${isbn}, Title: "${title}", GyeonggiTitle: "${gyeonggiTitle}", SiripTitle: "${siripTitle}"`);
+        const { isbn, eduTitle = '', gyeonggiTitle = '', siripTitle = '' } = body;
+        console.log(`Request received - ISBN: ${isbn}, eduTitle: "${eduTitle}", GyeonggiTitle: "${gyeonggiTitle}", SiripTitle: "${siripTitle}"`);
+
 
         if (!isbn) {
           return new Response(JSON.stringify({ error: 'isbn 파라미터가 필요합니다.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -48,10 +51,10 @@ export default {
         ];
 
         let gyeonggiEbookPromise = null;
-        if (title) {
+        if (eduTitle) {
             promises.push(
-                searchSingleGyeonggiEbook(title, '10000004'), // 성남 (기존 title 사용)
-                searchSingleGyeonggiEbook(title, '10000009')  // 통합 (기존 title 사용)
+                searchGyeonggiEduEbook(eduTitle, '10000004'), // 성남 (기존 title 사용)
+                searchGyeonggiEduEbook(eduTitle, '10000009')  // 통합 (기존 title 사용)
             );
         }
         
@@ -97,7 +100,7 @@ export default {
           sirip_ebook: siripEbookResult || null
         };
         
-        if (title && results.length > 1) {
+        if (eduTitle && results.length > 1) {
             // 기존 경기도교육청 전자책 결과 처리
             if (results[1].status === 'fulfilled' && results[1].value?.availability) {
               finalResult.gyeonggi_ebook_education.push(...results[1].value.availability);
@@ -155,12 +158,10 @@ export default {
   }
 };
 
-
 // =================================================================
 // 크롤링 함수들
 // =================================================================
 // 경기 광주시 시립도서관 종이책 검색 (iframe 안의 주소로 요청)
-
 async function searchGwangjuLibrary(isbn) {
   const url = "https://lib.gjcity.go.kr:8443/kolaseek/plus/search/plusSearchResultList.do";
   const payload = new URLSearchParams({'searchType': 'DETAIL','searchKey5': 'ISBN','searchKeyword5': isbn,'searchLibrary': 'ALL','searchSort': 'SIMILAR','searchRecordCount': '30'});
@@ -171,7 +172,8 @@ async function searchGwangjuLibrary(isbn) {
   return parseGwangjuHTML(htmlContent);
 }
 
-async function searchSingleGyeonggiEbook(searchText, libraryCode) {
+// 경기도 교육청 전자도서관 검색
+async function searchGyeonggiEduEbook(searchText, libraryCode) {
   const url = new URL("https://lib.goe.go.kr/elib/module/elib/search/index.do");
   url.searchParams.set("menu_idx", "94");
   url.searchParams.set("search_text", searchText);
@@ -185,16 +187,16 @@ async function searchSingleGyeonggiEbook(searchText, libraryCode) {
   const response = await fetch(url.toString(), { method: 'GET', headers: headers, signal: AbortSignal.timeout(20000) });
   if (!response.ok) throw new Error(`경기도교육청(${libraryCode}) HTTP ${response.status}`);
   const htmlContent = await response.text();
-  return parseGyeonggiHTML(htmlContent, libraryCode);
+  return parseGyeonggiEduHTML(htmlContent, libraryCode);
 }
 
-// 새로운 경기도 전자도서관 API 함수 (검증된 코드로 교체)
+// 경기도 전자도서관 (소장+구독) 통합 검색
 async function searchGyeonggiEbookLibrary(searchText) {
   try {
     // 소장형 도서와 구독형 도서를 병렬로 검색
     const [ownedResults, subscriptionResults] = await Promise.allSettled([
-      searchOwnedBooks(searchText),
-      searchSubscriptionBooks(searchText)
+      searchGyeonggiEbookOwned(searchText),
+      searchGyeonggiEbookSubs(searchText)
     ]);
 
     // 결과 통합 및 처리 (안전장치 추가)
@@ -250,8 +252,8 @@ async function searchGyeonggiEbookLibrary(searchText) {
   }
 }
 
-// 경기도 전자도서관 소장형 도서 검색 함수
-async function searchOwnedBooks(query) {
+// 경기도 전자도서관 (소장) 검색
+async function searchGyeonggiEbookOwned(query) {
   const encodedTitle = encodeURIComponent(query);
   const timestamp = Date.now();
 
@@ -284,11 +286,11 @@ async function searchOwnedBooks(query) {
   
   const jsonData = await response.json();
   
-  return parseOwnedResults(jsonData);
+  return parseGyenggiEbookOwnedResults(jsonData);
 }
 
-// 경기도 전자도서관 구독형 도서 검색 함수 (개선된 버전)
-async function searchSubscriptionBooks(query) {
+// 경기도 전자도서관 (구독) 검색
+async function searchGyeonggiEbookSubs(query) {
   try {
     
     // --- 1단계: 동적 인증 토큰 생성 (docs/subscription_solution.md 권장 방식) ---
@@ -371,7 +373,7 @@ async function searchSubscriptionBooks(query) {
     const data = await response.json();
     
     // parseSubscriptionResults 함수를 사용하여 파싱
-    const parsedResults = parseSubscriptionResults(data, query);
+    const parsedResults = parseGyenggiEbookSubsResults(data, query);
     
     return parsedResults;
 
@@ -391,8 +393,107 @@ async function searchSubscriptionBooks(query) {
   }
 }
 
-// 경기광주 시립도서관 전자책 검색 함수
-async function searchSiripOwnedEbook(searchTitle) {
+// 경기광주 시립도서관 전자책 (소장+구독) 통합 검색
+// 현재는 소장, 구독이 나눠져 있으나 추후 합칠 수 있으므로 그대로 유지
+async function searchSiripEbookIntegrated(searchTitle) {
+  try {
+    
+    // 소장형과 구독형을 병렬로 검색
+    const [ownedResults, subscriptionResults] = await Promise.allSettled([
+      searchSiripEbookOwned(searchTitle),
+      searchSiripEbookSubs(searchTitle)
+    ]);
+    
+    // 결과 처리
+    let ownedData = null;
+    let subscriptionData = null;
+    
+    if (ownedResults.status === 'fulfilled') {
+      ownedData = ownedResults.value;
+    } else {
+      ownedData = {
+        library_name: '광주시립중앙도서관-소장형',
+        total_count: 0,
+        available_count: 0,
+        unavailable_count: 0,
+        books: [],
+        error: ownedResults.reason.message
+      };
+    }
+    
+    if (subscriptionResults.status === 'fulfilled') {
+      subscriptionData = subscriptionResults.value;
+    } else {
+      subscriptionData = {
+        library_name: '광주시립중앙도서관-구독형',
+        total_count: 0,
+        available_count: 0,
+        unavailable_count: 0,
+        books: [],
+        error: subscriptionResults.reason.message
+      };
+    }
+    
+    // 통합 결과 구성
+    const totalBooks = ownedData.total_count + subscriptionData.total_count;
+    const totalAvailable = ownedData.available_count + subscriptionData.available_count;
+    const totalUnavailable = ownedData.unavailable_count + subscriptionData.unavailable_count;
+    
+    // 시립도서관 통합 결과 정보
+    const 시립도서관_통합_결과 = {
+      library_name: '광주시립중앙도서관-통합',
+      total_count: totalBooks,
+      available_count: totalAvailable,
+      unavailable_count: totalUnavailable,
+      owned_count: ownedData.total_count,
+      subscription_count: subscriptionData.total_count,
+      search_query: searchTitle
+    };
+    
+    // 각 도서관별 상세 내역을 포함한 계층적 구조
+    const integratedResult = {
+      // 시립도서관 통합 결과 정보
+      시립도서관_통합_결과: 시립도서관_통합_결과,
+      
+      // 각 도서관별 상세 내역
+      details: {
+        owned: {
+          library_name: ownedData.library_name,
+          total_count: ownedData.total_count,
+          available_count: ownedData.available_count,
+          unavailable_count: ownedData.unavailable_count,
+          books: ownedData.books || [],
+          ...(ownedData.error && { error: ownedData.error })
+        },
+        subscription: {
+          library_name: subscriptionData.library_name,
+          total_count: subscriptionData.total_count,
+          available_count: subscriptionData.available_count,
+          unavailable_count: subscriptionData.unavailable_count,
+          books: subscriptionData.books || [],
+          ...(subscriptionData.error && { error: subscriptionData.error })
+        }
+      },
+      
+      // 에러 정보가 있는 경우에만 포함
+      ...(ownedData.error || subscriptionData.error) && {
+        errors: {
+          ...(ownedData.error && { owned: ownedData.error }),
+          ...(subscriptionData.error && { subscription: subscriptionData.error })
+        }
+      }
+    };
+    
+    return integratedResult;
+    
+  } catch (error) {
+    console.error('시립도서관 통합 검색 오류:', error);
+    throw new Error(`시립도서관 통합 검색 실패: ${error.message}`);
+  }
+}
+
+// 경기광주 시립도서관 전자책 (소장) 검색
+async function searchSiripEbookOwned(searchTitle) {
   try {
     const encodedTitle = encodeURIComponent(searchTitle);
     const url = `https://lib.gjcity.go.kr:444/elibrary-front/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodedTitle}`;
@@ -426,7 +527,7 @@ async function searchSiripOwnedEbook(searchTitle) {
     
     const htmlContent = await response.text();
     
-    return parseSiripOwnedEbookHTML(htmlContent, searchTitle);
+    return parseSiripEbookOwnedHTML(htmlContent, searchTitle);
     
   } catch (error) {
     console.error('시립도서관 전자책 검색 오류:', error);
@@ -434,8 +535,8 @@ async function searchSiripOwnedEbook(searchTitle) {
   }
 }
 
-// 시립도서관 구독형 전자책 검색 함수
-async function searchSiripSubscriptionEbook(searchTitle) {
+// 경기광주 시립도서관 전자책 (구독) 검색
+async function searchSiripEbookSubs(searchTitle) {
   try {
     const encodedTitle = encodeURIComponent(searchTitle);
     const url = `https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?brcd=&sntnAuthCode=&contentAll=&cttsDvsnCode=&orderByKey=&schClst=all&schDvsn=000&reSch=&ctgrId=&allClstCheck=on&clstCheck=ctts&clstCheck=autr&clstCheck=pbcm&allDvsnCheck=000&dvsnCheck=001&schTxt=${encodedTitle}&reSchTxt=`;
@@ -469,7 +570,7 @@ async function searchSiripSubscriptionEbook(searchTitle) {
     
     const htmlContent = await response.text();
     
-    return parseSiripSubscriptionEbookHTML(htmlContent, searchTitle);
+    return parseSiripEbookSubsHTML(htmlContent, searchTitle);
     
   } catch (error) {
     console.error('시립도서관 구독형 전자책 검색 오류:', error);
@@ -478,9 +579,10 @@ async function searchSiripSubscriptionEbook(searchTitle) {
 }
 
 
-// =================================================================
+// ===========================================
 // 파싱 함수들
-// =================================================================
+// ===========================================
+
 function parseGwangjuHTML(html) {
   try {
     const bookListMatch = html.match(/<ul[^>]*class[^>]*resultList[^>]*>([\s\S]*?)<\/ul>/i);
@@ -529,9 +631,8 @@ function parseGwangjuHTML(html) {
   } catch (error) { throw new Error(`광주 파싱 오류: ${error.message}`); }
 }
 
-// 경기도교육청 HTML 파싱함수
-
-function parseGyeonggiHTML(html, libraryCode) {
+// 경기도 교육청 전자도서관 HTML 결과 정리
+function parseGyeonggiEduHTML(html, libraryCode) {
   try {
     const libraryNameMap = { '10000004': '성남도서관', '10000009': '통합도서관' };
     const branchName = libraryNameMap[libraryCode] || `코드(${libraryCode})`;
@@ -623,216 +724,8 @@ function parseGyeonggiHTML(html, libraryCode) {
   }
 }
 
-// 새로운 경기도 전자도서관 API 응답 파싱 함수
-function parseGyeonggiEbookApiResponse(apiResponse, searchText) {
-  try {
-    // 더 포괄적인 검색 결과 없음 체크
-    const noResultPatterns = [
-      '검색 결과가 없습니다',
-      '검색된 자료가 없습니다',
-      '검색결과가 없습니다',
-      'No results found',
-      'class="noResult"'
-    ];
-    
-    const hasNoResults = noResultPatterns.some(pattern => html.includes(pattern));
-    if (hasNoResults) {
-      return {
-        library_name: '경기도 전자도서관',
-        total_count: 0,
-        available_count: 0,
-        unavailable_count: 0,
-        owned_count: 0,
-        subscription_count: 0,
-        books: []
-      };
-    }
-
-    let ownedCount = 0;
-    let subscriptionCount = 0;
-    let availableCount = 0;
-    const books = [];
-
-    // HTML에서 주요 섹션들 확인
-    const allSections = html.match(/<div class="searchResultList"[^>]*>/g) || [];
-    
-    // data-type 값들 확인
-    const dataTypes = allSections.map(section => {
-      const match = section.match(/data-type="([^"]*)"/);
-      return match ? match[1] : 'unknown';
-    });
-    
-    // 소장형/구독형 텍스트 직접 검색
-    const ebTextMatch = html.match(/소장형\s*\(\s*<span>\s*(\d+)\s*<\/span>\s*\)/i);
-    const subsTextMatch = html.match(/구독형\s*\(\s*<span>\s*(\d+)\s*<\/span>\s*\)/i);
-    
-    // 직접 매칭이 성공했다면 카운트 설정
-    if (ebTextMatch) {
-      ownedCount = parseInt(ebTextMatch[1], 10);
-    }
-    if (subsTextMatch) {
-      subscriptionCount = parseInt(subsTextMatch[1], 10);
-    }
-
-    // 소장형(EB) 섹션 파싱
-    const ebSectionMatch = html.match(/<div class="searchResultList" data-type="EB">([\s\S]*?)(?=<div class="searchResultList" data-type="(?:SUBS|AB)"|$)/i);
-    if (ebSectionMatch) {
-      // 여러 패턴으로 소장형 개수 추출 시도
-      const ebCountPatterns = [
-        /<em>소장형 \(<span>(\d+)<\/span>\)<\/em>/i,
-        /<em>소장형.*?(\d+).*?<\/em>/i,
-        /소장형.*?(\d+)/i
-      ];
-      
-      for (const pattern of ebCountPatterns) {
-        const match = ebSectionMatch[1].match(pattern);
-        if (match) {
-          ownedCount = parseInt(match[1], 10);
-          break;
-        }
-      }
-
-      // 소장형 책이 있다면 간단히 available_count를 ownedCount로 설정
-      // (실제 HTML 구조를 모르므로 보수적 접근)
-      if (ownedCount > 0) {
-        // 기본적으로 모든 소장형 책이 대출가능하다고 가정
-        // 실제로는 더 정밀한 파싱이 필요하지만, 일단 1권은 있다고 표시
-        availableCount = ownedCount;
-        
-        for (let i = 0; i < ownedCount; i++) {
-          books.push({
-            title: '소장형 전자책',
-            status: '대출가능',
-            current_borrow: 0,
-            total_capacity: 1
-          });
-        }
-      }
-
-      // 더 포괄적인 버튼 패턴 검색 시도
-      const buttonPatterns = [
-        /<button[^>]*class="[^"]*btn[^"]*"[^>]*>([^<]*)<small[^>]*>\((\d+)\/(\d+)\)<\/small><\/button>/gi,
-        /<button[^>]*>([^<]*)<small[^>]*>\((\d+)\/(\d+)\)<\/small><\/button>/gi,
-        /대출하기|예약하기|이용하기/gi
-      ];
-      
-      for (const pattern of buttonPatterns) {
-        const matches = [...ebSectionMatch[1].matchAll(pattern)];
-        if (matches.length > 0) {
-          break;
-        }
-      }
-    }
-
-    // 구독형(SUBS) 섹션 파싱
-    const subsSectionMatch = html.match(/<div class="searchResultList" data-type="SUBS">([\s\S]*?)(?=<div class="searchResultList" data-type="AB"|$)/i);
-    if (subsSectionMatch) {
-      // 여러 패턴으로 구독형 개수 추출 시도
-      const subsCountPatterns = [
-        /<em>구독형 \(<span>(\d+)<\/span>\)<\/em>/i,
-        /<em>구독형.*?(\d+).*?<\/em>/i,
-        /구독형.*?(\d+)/i
-      ];
-      
-      for (const pattern of subsCountPatterns) {
-        const match = subsSectionMatch[1].match(pattern);
-        if (match) {
-          subscriptionCount = parseInt(match[1], 10);
-          break;
-        }
-      }
-      
-      if (subscriptionCount > 0) {
-        // 구독형은 모두 대출 가능으로 처리
-        availableCount += subscriptionCount;
-        
-        // 구독형 도서들 추가
-        for (let i = 0; i < subscriptionCount; i++) {
-          books.push({
-            title: '구독형 전자책',
-            status: '대출가능'
-          });
-        }
-      }
-    }
-    
-    // 다른 섹션이나 일반적인 검색 결과도 확인
-    if (ownedCount === 0 && subscriptionCount === 0) {
-      // 일반적인 책 목록 패턴 확인
-      const generalBookPatterns = [
-        /class="bookItem"/gi,
-        /class="book"/gi,
-        /<li[^>]*book/gi,
-        /대출하기|예약하기|이용하기/gi
-      ];
-      
-      let foundBooks = 0;
-      generalBookPatterns.forEach((pattern, index) => {
-        const matches = html.match(pattern) || [];
-        if (matches.length > foundBooks) {
-          foundBooks = matches.length;
-        }
-      });
-      
-      if (foundBooks > 0) {
-        ownedCount = 1;
-        availableCount = 1;
-        books.push({
-          title: '전자책',
-          status: '대출가능'
-        });
-      }
-    }
-
-    // 대출가능 개수 계산 (소장형 + 구독형)
-    availableCount = ownedCount + subscriptionCount;
-    
-    // 책 목록 생성
-    books.length = 0; // 기존 배열 초기화
-    
-    // 소장형 책 추가
-    for (let i = 0; i < ownedCount; i++) {
-      books.push({
-        title: '소장형 전자책',
-        status: '대출가능',
-        current_borrow: 0,
-        total_capacity: 1
-      });
-    }
-    
-    // 구독형 책 추가  
-    for (let i = 0; i < subscriptionCount; i++) {
-      books.push({
-        title: '구독형 전자책',
-        status: '대출가능'
-      });
-    }
-
-    const totalCount = ownedCount + subscriptionCount;
-    const unavailableCount = 0; // 전자책은 기본적으로 모두 대출 가능
-
-
-    return {
-      library_name: '경기도 전자도서관',
-      total_count: totalCount,
-      available_count: availableCount,
-      unavailable_count: unavailableCount,
-      owned_count: ownedCount,
-      subscription_count: subscriptionCount,
-      books: books
-    };
-
-  } catch (error) {
-    console.error(`경기도 전자도서관 파싱 오류: ${error.message}`);
-    throw new Error(`경기도 전자도서관 파싱 오류: ${error.message}`);
-  }
-}
-
-// 새로운 API 기반 파싱 함수 (실제 사용)
-// 기존 parseGyeonggiEbookApiResponseNew 함수 제거됨 - 새로운 파싱 함수들로 대체
-
-// 새로운 파싱 함수들 (검증된 코드)
-function parseOwnedResults(data) {
+// 경기도 전자도서관 (소장) 결과 정리
+function parseGyenggiEbookOwnedResults(data) {
   try {
     if (!data || data.httpStatus !== 'OK' || !data.data) {
       return [];
@@ -870,7 +763,8 @@ function parseOwnedResults(data) {
   }
 }
 
-function parseSubscriptionResults(data, query) {
+// 경기도 전자도서관 (구독) 결과 정리
+function parseGyenggiEbookSubsResults(data, query) {
   try {
     // 응답 데이터 유효성 검증
     if (!data) {
@@ -965,9 +859,8 @@ function parseSubscriptionResults(data, query) {
   }
 }
 
-// 시립도서관 전자책 HTML 파싱 함수
-// 시립도서관 소장형 전자책 HTML 파싱 함수 (완전 재작성 - 구독형 검증 패턴 적용)
-function parseSiripOwnedEbookHTML(html, searchTitle) {
+// 경기광주 시립 전자도서관 (소장) 결과 정리
+function parseSiripEbookOwnedHTML(html, searchTitle) {
   try {
     // 검색 결과가 없는 경우 체크
     if (html.includes('검색결과가 없습니다') || html.includes('자료가 없습니다') || html.includes('"총 0개"')) {
@@ -1178,8 +1071,8 @@ function parseSiripOwnedEbookHTML(html, searchTitle) {
   }
 }
 
-// 시립도서관 구독형 전자책 HTML 파싱 함수 (완전 재작성 - 테스트 검증 완료)
-function parseSiripSubscriptionEbookHTML(html, searchTitle) {
+// 경기광주 시립 전자도서관 (구독) 결과 정리
+function parseSiripEbookSubsHTML(html, searchTitle) {
   try {
     // 검색 결과가 없는 경우 체크
     if (html.includes('검색결과가 없습니다') || html.includes('자료가 없습니다') || html.includes('"총 0개"')) {
@@ -1304,104 +1197,6 @@ function parseSiripSubscriptionEbookHTML(html, searchTitle) {
   } catch (error) {
     console.error(`시립도서관 구독형 전자책 파싱 오류: ${error.message}`);
     throw new Error(`시립도서관 구독형 전자책 파싱 오류: ${error.message}`);
-  }
-}
-
-// 시립도서관 소장형 + 구독형 통합 검색 함수
-async function searchSiripEbookIntegrated(searchTitle) {
-  try {
-    
-    // 소장형과 구독형을 병렬로 검색
-    const [ownedResults, subscriptionResults] = await Promise.allSettled([
-      searchSiripOwnedEbook(searchTitle),
-      searchSiripSubscriptionEbook(searchTitle)
-    ]);
-    
-    // 결과 처리
-    let ownedData = null;
-    let subscriptionData = null;
-    
-    if (ownedResults.status === 'fulfilled') {
-      ownedData = ownedResults.value;
-    } else {
-      ownedData = {
-        library_name: '광주시립중앙도서관-소장형',
-        total_count: 0,
-        available_count: 0,
-        unavailable_count: 0,
-        books: [],
-        error: ownedResults.reason.message
-      };
-    }
-    
-    if (subscriptionResults.status === 'fulfilled') {
-      subscriptionData = subscriptionResults.value;
-    } else {
-      subscriptionData = {
-        library_name: '광주시립중앙도서관-구독형',
-        total_count: 0,
-        available_count: 0,
-        unavailable_count: 0,
-        books: [],
-        error: subscriptionResults.reason.message
-      };
-    }
-    
-    // 통합 결과 구성
-    const totalBooks = ownedData.total_count + subscriptionData.total_count;
-    const totalAvailable = ownedData.available_count + subscriptionData.available_count;
-    const totalUnavailable = ownedData.unavailable_count + subscriptionData.unavailable_count;
-    
-    // 시립도서관 통합 결과 정보
-    const 시립도서관_통합_결과 = {
-      library_name: '광주시립중앙도서관-통합',
-      total_count: totalBooks,
-      available_count: totalAvailable,
-      unavailable_count: totalUnavailable,
-      owned_count: ownedData.total_count,
-      subscription_count: subscriptionData.total_count,
-      search_query: searchTitle
-    };
-    
-    // 각 도서관별 상세 내역을 포함한 계층적 구조
-    const integratedResult = {
-      // 시립도서관 통합 결과 정보
-      시립도서관_통합_결과: 시립도서관_통합_결과,
-      
-      // 각 도서관별 상세 내역
-      details: {
-        owned: {
-          library_name: ownedData.library_name,
-          total_count: ownedData.total_count,
-          available_count: ownedData.available_count,
-          unavailable_count: ownedData.unavailable_count,
-          books: ownedData.books || [],
-          ...(ownedData.error && { error: ownedData.error })
-        },
-        subscription: {
-          library_name: subscriptionData.library_name,
-          total_count: subscriptionData.total_count,
-          available_count: subscriptionData.available_count,
-          unavailable_count: subscriptionData.unavailable_count,
-          books: subscriptionData.books || [],
-          ...(subscriptionData.error && { error: subscriptionData.error })
-        }
-      },
-      
-      // 에러 정보가 있는 경우에만 포함
-      ...(ownedData.error || subscriptionData.error) && {
-        errors: {
-          ...(ownedData.error && { owned: ownedData.error }),
-          ...(subscriptionData.error && { subscription: subscriptionData.error })
-        }
-      }
-    };
-    
-    return integratedResult;
-    
-  } catch (error) {
-    console.error('시립도서관 통합 검색 오류:', error);
-    throw new Error(`시립도서관 통합 검색 실패: ${error.message}`);
   }
 }
 
@@ -1551,4 +1346,3 @@ async function runAllTests() {
 if (typeof globalThis !== 'undefined' && globalThis.environment === 'development') {
   // 테스트 함수들이 로드되었음을 표시 (최소한의 로그)
 }
-

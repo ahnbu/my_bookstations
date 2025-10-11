@@ -240,12 +240,20 @@ function createOptimalSearchTitle(title: string): string {
   return words.slice(0, 3).join(' ');
 }
 
-// 기존 두 함수를 새로운 통합 함수를 호출하도록 변경합니다.
-export function processBookTitle(title: string): string {
+// 3가지 도서관 제목 처리 함수 : 현재는 모두 동일하나, 추후 별도 적용 염두하고 개별 함수로 정리
+
+// 경기도 교육청 전자도서관
+export function processGyeonggiEbookEduTitle(title: string): string {
   return createOptimalSearchTitle(title);
 }
 
+// 경기도 전자도서관
 export function processGyeonggiEbookTitle(title: string): string {
+  return createOptimalSearchTitle(title);
+}
+
+// 경기도 광주시 시립 전자도서관
+export function processSiripEbookTitle(title: string): string {
   return createOptimalSearchTitle(title);
 }
 
@@ -294,29 +302,33 @@ export async function fetchBookAvailability(isbn: string, title: string): Promis
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
   // 제목을 처리하여 3개 chunk로 제한 (기존 도서관용 - 한글만)
-  const processedTitle = processBookTitle(title);
+  // [변경] 변수명 변경: processedTitle -> processedEduTitle
+  // const processedTitle = processBookTitle(title);
+  const processedTitleGyeonggiEdu = processGyeonggiEbookEduTitle(title);
   
   // 경기도 전자도서관용 제목 처리 (숫자/영어 포함, 특수문자에서 자름)
-  const gyeonggiProcessedTitle = processGyeonggiEbookTitle(title);
+  const ProcessedTitleGyeonggi = processGyeonggiEbookTitle(title);
   
   // 시립도서관 전자책용 제목 처리 (동일한 로직 사용)
-  const siripProcessedTitle = processGyeonggiEbookTitle(title);
+  const ProcessedTitleSirip = processSiripEbookTitle(title);
   
   // 디버그용 로그 추가
   debugLog('제목 처리:', {
     originalTitle: title,
-    processedTitle: processedTitle,
-    gyeonggiProcessedTitle: gyeonggiProcessedTitle,
-    siripProcessedTitle: siripProcessedTitle
+    // processedTitle: processedTitle,
+    processedEduTitle: processedTitleGyeonggiEdu, // [변경]
+    gyeonggiProcessedTitle: ProcessedTitleGyeonggi,
+    siripProcessedTitle: ProcessedTitleSirip
   });
 
   try {
     debugLog(`API 호출 시작 - 엔드포인트: ${API_ENDPOINT}`);
     debugLog('요청 데이터:', {
       isbn: isbn,
-      title: processedTitle,
-      gyeonggiTitle: gyeonggiProcessedTitle,
-      siripTitle: siripProcessedTitle
+      // title: processedTitle,
+      eduTitle: processedTitleGyeonggiEdu, // [변경]
+      gyeonggiTitle: ProcessedTitleGyeonggi,
+      siripTitle: ProcessedTitleSirip
     });
 
     const response = await fetch(API_ENDPOINT, {
@@ -326,9 +338,10 @@ export async function fetchBookAvailability(isbn: string, title: string): Promis
       },
       body: JSON.stringify({
         isbn: isbn,
-        title: processedTitle, // 기존 도서관용 (한글만)
-        gyeonggiTitle: gyeonggiProcessedTitle, // 경기도 전자도서관용 (숫자/영어 포함)
-        siripTitle: siripProcessedTitle, // 시립도서관 전자책용 (숫자/영어 포함)
+        // title: processedTitle, 
+        eduTitle: processedTitleGyeonggiEdu, // 경기도 교육청 전자도서관용
+        gyeonggiTitle: ProcessedTitleGyeonggi, // 경기도 전자도서관용
+        siripTitle: ProcessedTitleSirip, // 시립도서관 전자책용
       }),
       signal: controller.signal,
     });
