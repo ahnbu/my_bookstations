@@ -8,11 +8,13 @@ interface SearchResult {
   libraryName: '퇴촌' | '기타' | 'e교육' | 'e시립구독' | 'e시립소장' | 'e경기';
   title: string;
   author: string;
+  publisher: string; // [추가]
   pubDate: string;
   isAvailable: boolean;
 }
 
-type SortKey = 'libraryName' | 'type' | 'title' | 'author' | 'pubDate' | 'isAvailable';
+type SortKey = 'libraryName' | 'type' | 'title' | 'author' | 'publisher' | 'pubDate' | 'isAvailable';
+// type SortKey = 'libraryName' | 'type' | 'title' | 'author' | 'pubDate' | 'isAvailable';
 type SortOrder = 'asc' | 'desc';
 
 const KeywordSearchModal: React.FC = () => {
@@ -245,7 +247,7 @@ const KeywordSearchModal: React.FC = () => {
             <div className="overflow-x-auto">
               <p className="text-gray-600 mb-4">총 <span className="font-bold text-blue-600">{sortedResults.length}</span>건의 결과를 찾았습니다.</p>
               <table className="w-full border-collapse">
-                <thead>
+                {/* <thead>
                   <tr className="bg-gray-100 border-b-2 border-gray-300">
                     <th
                       onClick={() => handleSort('type')}
@@ -271,6 +273,12 @@ const KeywordSearchModal: React.FC = () => {
                     >
                       저자 <SortArrow column="author" />
                     </th>
+                    <th 
+                      onClick={() => handleSort('publisher')} 
+                      className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors"
+                    >
+                      출판사 <SortArrow column="publisher" />
+                    </th>
                     <th
                       onClick={() => handleSort('pubDate')}
                       className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors"
@@ -281,7 +289,61 @@ const KeywordSearchModal: React.FC = () => {
                       onClick={() => handleSort('isAvailable')}
                       className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors"
                     >
-                      대출 가능 <SortArrow column="isAvailable" />
+                      대출가능 <SortArrow column="isAvailable" />
+                    </th>
+                  </tr>
+                </thead> */}
+
+                <thead>
+                  <tr className="bg-gray-100 border-b-2 border-gray-300">
+                    <th
+                      onClick={() => handleSort('type')}
+                      // [수정] 너비 고정 및 줄바꿈 방지
+                      className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors w-20 whitespace-nowrap"
+                    >
+                      타입 <SortArrow column="type" />
+                    </th>
+                    <th
+                      onClick={() => handleSort('libraryName')}
+                      // [수정] 너비 고정 및 줄바꿈 방지
+                      className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors w-24 whitespace-nowrap"
+                    >
+                      도서관 <SortArrow column="libraryName" />
+                    </th>
+                    <th
+                      onClick={() => handleSort('title')}
+                      // [수정] 최소 너비 설정 (가장 유연하게)
+                      className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors min-w-[200px]"
+                    >
+                      제목 <SortArrow column="title" />
+                    </th>
+                    <th
+                      onClick={() => handleSort('author')}
+                      // [수정] 너비 설정
+                      className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors w-40"
+                    >
+                      저자 <SortArrow column="author" />
+                    </th>
+                    <th 
+                      onClick={() => handleSort('publisher')}
+                      // [수정] 너비 설정
+                      className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors w-40"
+                    >
+                      출판사 <SortArrow column="publisher" />
+                    </th>
+                    <th
+                      onClick={() => handleSort('pubDate')}
+                      // [수정] 너비 고정 및 줄바꿈 방지
+                      className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors w-28 whitespace-nowrap"
+                    >
+                      출간일 <SortArrow column="pubDate" />
+                    </th>
+                    <th
+                      onClick={() => handleSort('isAvailable')}
+                      // [수정] 너비 고정 및 줄바꿈 방지
+                      className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors w-28 whitespace-nowrap"
+                    >
+                      대출가능 <SortArrow column="isAvailable" />
                     </th>
                   </tr>
                 </thead>
@@ -309,6 +371,10 @@ const KeywordSearchModal: React.FC = () => {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">
                         {result.author}
+                      </td>
+                      {/* [추가] 출판사 데이터 셀 */}
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {result.publisher}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">
                         {result.pubDate}
