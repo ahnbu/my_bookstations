@@ -49,7 +49,7 @@ const APITestModal: React.FC = () => {
             <span className="text-2xl">🔧</span>
             <div>
               <h2 className="text-xl font-bold text-white">API 테스트</h2>
-              <p className="text-sm text-gray-400">API 엔드포인트를 테스트하고 응답을 확인할 수 있습니다</p>
+              {/* <p className="text-sm text-gray-400">API 엔드포인트를 테스트하고 응답을 확인할 수 있습니다</p> */}
             </div>
           </div>
           <button

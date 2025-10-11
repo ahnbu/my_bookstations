@@ -40,7 +40,7 @@ const DevNoteModal: React.FC = () => {
             <span className="text-2xl">📝</span>
             <div>
               <h2 className="text-xl font-bold text-white">개발노트</h2>
-              <p className="text-sm text-gray-400">개발 과정의 메모와 노트를 관리할 수 있습니다</p>
+              {/* <p className="text-sm text-gray-400">개발 과정의 메모와 노트를 관리할 수 있습니다</p> */}
             </div>
           </div>
           <button

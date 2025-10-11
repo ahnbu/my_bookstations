@@ -154,7 +154,7 @@ const APITest: React.FC = () => {
 
         <div className="border-t border-gray-600 pt-6"></div>
         
-        {/* 수동 입력 섹션 */}
+        {/* 수동 입력 섹션
         <div className="mb-6">
           <h3 className="text-xl font-semibold text-white mb-4">✏️ 수동 입력 테스트</h3>
         </div>
@@ -162,7 +162,7 @@ const APITest: React.FC = () => {
         <form onSubmit={handleSubmit} className="mb-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             {/* ISBN Input */}
-            <div>
+            {/* <div>
                 <label htmlFor="isbn-test" className="block text-sm font-medium text-gray-300 mb-2">
                   ISBN (13자리)
                 </label>
@@ -175,10 +175,10 @@ const APITest: React.FC = () => {
                   className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow duration-300"
                   disabled={isLoading}
                 />
-              </div>
+              </div> */}
 
             {/* Title Input */}
-              <div>
+              {/* <div>
                 <label htmlFor="title-test" className="block text-sm font-medium text-gray-300 mb-2">
                   도서 제목
                 </label>
@@ -197,7 +197,7 @@ const APITest: React.FC = () => {
                   </p>
                 )}
               </div>
-          </div>
+          </div> */}
 
           <button
             type="submit"

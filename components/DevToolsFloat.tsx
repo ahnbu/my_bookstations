@@ -95,10 +95,10 @@ const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
             <div className="h-full p-6">
               <div className="flex flex-col md:flex-row gap-4">
                 <button className="btn-base flex-1 btn-primary" onClick={openBulkSearchModal}>
-                  <span className="mr-2">📚</span>대량조회
+                  <span className="mr-2">📚</span>대량등록
                 </button>
                 <button className="btn-base flex-1 btn-primary" onClick={openAPITestModal}>
-                  <span className="mr-2">🔧</span>API 테스트
+                  <span className="mr-2">🔧</span>API테스트
                 </button>
                 <button className="btn-base flex-1 btn-primary" onClick={openDevNoteModal}>
                   <span className="mr-2">📝</span>개발노트

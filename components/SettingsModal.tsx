@@ -356,7 +356,7 @@ const SettingsModal: React.FC = () => {
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
-            표시 옵션
+            표시옵션
           </button>
           <button
             onClick={() => setActiveTab('tags')}
@@ -366,7 +366,7 @@ const SettingsModal: React.FC = () => {
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
-            태그 관리
+            태그관리
           </button>
           <button
             onClick={() => setActiveTab('data')}
@@ -376,7 +376,7 @@ const SettingsModal: React.FC = () => {
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
-            내보내기
+            저장갱신
           </button>
         </div>
 
