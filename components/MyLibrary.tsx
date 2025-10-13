@@ -107,10 +107,6 @@ interface LibraryTagProps {
   isError?: boolean; // [추가]
 }
 // 2025.10.13 v2- API에러시 퇴촌(에러) -> (빨간점) 퇴촌(0/0)로 표시하도록 수정
-
-// MyLibrary.tsx 파일
-
-// [교체] 기존 LibraryTag 컴포넌트 전체를 아래 코드로 교체하세요.
 const LibraryTag: React.FC<LibraryTagProps> = ({ name, totalBooks, availableBooks, searchUrl, size = 'md', isError = false }) => {
   const getStatus = () => {
     // 1순위: API 에러 여부 확인
@@ -168,7 +164,6 @@ const LibraryTag: React.FC<LibraryTagProps> = ({ name, totalBooks, availableBook
 };
 
 // 2025.10.13 v1- API에러시 퇴촌(0/0) -> 퇴촌(에러)로 표시하도록 수정
-
 // const LibraryTag: React.FC<LibraryTagProps> = ({ name, totalBooks, availableBooks, searchUrl, size = 'md', isError = false }) => {
 // //   const getStatus = () => {
 // //     if (isError) return 'error';
