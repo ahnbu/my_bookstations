@@ -37,71 +37,6 @@ export default {
       );
     }
 
-    /* index.js의 /keyword-search 핸들러 부분을 아래 코드로 교체 */
-
-    // if (request.method === 'POST' && pathname === '/keyword-search') {
-    //   try {
-    //     const body = await request.json();
-    //     const { keyword } = body;
-
-    //     if (!keyword || !keyword.trim()) {
-    //       return new Response(
-    //         JSON.stringify({ error: 'keyword 파라미터가 필요합니다.' }),
-    //         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    //       );
-    //     }
-
-    //     console.log(`Keyword search request: "${keyword}"`);
-
-    //     // 6개 도서관 병렬 검색
-    //     const searchPromises = [
-    //       searchGwangjuPaperKeyword(keyword),
-    //       searchGyeonggiEduKeyword(keyword),
-    //       searchGyeonggiEbookKeyword(keyword),
-    //       searchSiripEbookKeyword(keyword),
-    //     ];
-
-    //     const results = await Promise.allSettled(searchPromises);
-
-    //     // 결과 통합
-    //     const combinedResults = [];
-
-    //     // 광주 종이책 (퇴촌 + 기타)
-    //     if (results[0].status === 'fulfilled' && results[0].value) {
-    //       combinedResults.push(...results[0].value);
-    //     }
-
-    //     // 경기도교육청 전자책
-    //     if (results[1].status === 'fulfilled' && results[1].value) {
-    //       combinedResults.push(...results[1].value);
-    //     }
-
-    //     // 경기도 전자도서관
-    //     if (results[2].status === 'fulfilled' && results[2].value) {
-    //       combinedResults.push(...results[2].value);
-    //     }
-
-    //     // 시립도서관 전자책 (구독형 + 소장형)
-    //     if (results[3].status === 'fulfilled' && results[3].value) {
-    //       combinedResults.push(...results[3].value);
-    //     }
-
-    //     console.log(`Keyword search completed: ${combinedResults.length} results found`);
-
-    //     return new Response(
-    //       JSON.stringify(combinedResults),
-    //       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    //     );
-
-    //   } catch (error) {
-    //     console.error('Keyword search error:', error);
-    //     return new Response(
-    //       JSON.stringify({ error: '키워드 검색 중 오류가 발생했습니다.' }),
-    //       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    //     );
-    //   }
-    // }
-
     if (request.method === 'POST' && pathname === '/keyword-search') {
       try {
         const body = await request.json();
@@ -272,8 +207,8 @@ export default {
   }
 };
 
-// 15초를 기본 타임아웃으로 통일시켜서 설정
-const DEFAULT_TIMEOUT = 1000; 
+// 10초를 기본 타임아웃으로 통일시켜서 설정
+const DEFAULT_TIMEOUT = 10000; 
 
 // ==============================================
 // 크롤링 함수들
@@ -320,6 +255,15 @@ async function searchGyeonggiEbookLibrary(searchText) {
       searchGyeonggiEbookOwned(searchText),
       searchGyeonggiEbookSubs(searchText)
     ]);
+
+    // 실패시 error 메시지 보내도록 변경
+    // 두 내부 검색이 모두 실패했는지 확인하는 로직 추가
+    if (ownedResults.status === 'rejected' && subscriptionResults.status === 'rejected') {
+        const ownedError = ownedResults.reason.message || '소장형 검색 실패';
+        const subsError = subscriptionResults.reason.message || '구독형 검색 실패';
+        // 두 검색이 모두 실패했다면, 명시적으로 에러를 던져서 상위 핸들러가 잡도록 함
+        throw new Error(`소장형(${ownedError}) 및 구독형(${subsError}) 검색 모두 실패`);
+    }
 
     // 결과 통합 및 처리 (안전장치 추가)
     const ownedBooks = (ownedResults.status === 'fulfilled' && Array.isArray(ownedResults.value)) ? ownedResults.value : [];
