@@ -6,6 +6,7 @@
 // 2025-08-09 - 과도한 콘솔 로그 정리 (운영 환경 최적화)
 
 // CloudFlare Workers - 도서관 재고 확인
+// 도서관에 병렬요청하여, 가장 오래 걸린 도서관을 기준으로 
 
 // ==============================================
 // 메인 핸들러
@@ -256,7 +257,7 @@ export default {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({}),
-        signal: AbortSignal.timeout(10000)
+        signal: AbortSignal.timeout(DEFAULT_TIMEOUT)
       });
 
       if (response.ok) {
@@ -271,6 +272,9 @@ export default {
   }
 };
 
+// 15초를 기본 타임아웃으로 통일시켜서 설정
+const DEFAULT_TIMEOUT = 15000; 
+
 // ==============================================
 // 크롤링 함수들
 // ==============================================
@@ -283,8 +287,7 @@ async function searchGwangjuLibrary(isbn) {
     method: 'POST', 
     headers: headers, 
     body: payload.toString(), 
-    // signal: AbortSignal.timeout(20000) 
-    signal: AbortSignal.timeout(5000) // 대기 시간을 20초 -> 5초로 줄임
+    signal: AbortSignal.timeout(DEFAULT_TIMEOUT) // [수정] 15초로 통일
   });
   if (!response.ok) throw new Error(`경기광주 HTTP ${response.status}`);
   const htmlContent = await response.text();
@@ -303,7 +306,7 @@ async function searchGyeonggiEduEbook(searchText, libraryCode) {
   url.searchParams.set("rowCount", "50");
 
   const headers = {'User-Agent': 'Mozilla/5.0'};
-  const response = await fetch(url.toString(), { method: 'GET', headers: headers, signal: AbortSignal.timeout(20000) });
+  const response = await fetch(url.toString(), { method: 'GET', headers: headers, signal: AbortSignal.timeout(DEFAULT_TIMEOUT) });
   if (!response.ok) throw new Error(`경기도교육청(${libraryCode}) HTTP ${response.status}`);
   const htmlContent = await response.text();
   return parseGyeonggiEduHTML(htmlContent, libraryCode);
@@ -396,7 +399,7 @@ async function searchGyeonggiEbookOwned(query) {
   const response = await fetch(apiUrl, { 
     method: 'GET', 
     headers: headers, 
-    signal: AbortSignal.timeout(25000) 
+    signal: AbortSignal.timeout(DEFAULT_TIMEOUT) 
   });
   
   if (!response.ok) {
@@ -467,13 +470,14 @@ async function searchGyeonggiEbookSubs(query) {
     const response = await fetch('https://api.bookers.life/v2/Api/books/search', {
       method: 'POST',
       headers: headers,
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT) // [추가] 15초 타임아웃 추가
     });
 
     if (!response.ok) {
       // 오류 발생 시, 서버가 보낸 실제 메시지를 확인
       const errorText = await response.text();
-      console.error(`[오류] 서버가 오류를 반환했습니다: ${errorText}`);
+      console.error(`[오류] 경기도 전자도서관 (구독) 검색 서버가 오류를 반환했습니다: ${errorText}`);
       
       // 더 구체적인 에러 메시지 제공
       let errorMessage = `서버 오류: ${response.status} ${response.statusText}`;
@@ -497,7 +501,7 @@ async function searchGyeonggiEbookSubs(query) {
     return parsedResults;
 
   } catch (error) {
-    console.error(`[오류] 구독형 도서 검색 실패: ${error.message}`);
+    console.error(`[오류] 경기도 전자도서관 (구독) 검색 실패: ${error.message}`);
     
     // 더 구체적인 에러 정보 제공
     if (error.name === 'TypeError' && error.message.includes('fetch')) {
@@ -637,7 +641,7 @@ async function searchSiripEbookOwned(searchTitle) {
     const response = await fetch(url, { 
       method: 'GET', 
       headers: headers, 
-      signal: AbortSignal.timeout(20000) 
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT) 
     });
     
     if (!response.ok) {
@@ -680,7 +684,7 @@ async function searchSiripEbookSubs(searchTitle) {
     const response = await fetch(url, { 
       method: 'GET', 
       headers: headers, 
-      signal: AbortSignal.timeout(20000) 
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT) 
     });
     
     if (!response.ok) {
@@ -1514,7 +1518,7 @@ async function searchGwangjuPaperKeyword(keyword) {
     const searchUrl = `https://lib.gjcity.go.kr:8443/kolaseek/plus/search/plusSearchResultList.do?searchType=SIMPLE&searchKey=ALL&searchKeyword=${encodedKeyword}&searchLibrary=ALL`;
 
     const response = await fetch(searchUrl, {
-      signal: AbortSignal.timeout(5000), // 5초 타임아웃
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT), // 5초 타임아웃
       headers: { 'User-Agent': 'Mozilla/5.0' }
     });
 
