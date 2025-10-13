@@ -8,7 +8,9 @@ import {
   SiripEbookResult,
   SiripEbookError,
   GyeonggiEbookLibraryResult,
-  GyeonggiEbookLibraryError
+  GyeonggiEbookLibraryError,
+  GwangjuPaperResult,      // [추가]
+  GwangjuPaperError        // [추가]
 } from './services/unifiedLibrary.service';
 
 // The 'Json' type is no longer exported from 'supabase-js'.
@@ -94,6 +96,7 @@ export type EBookInfo = {
 export type BookData = AladdinBookItem & {
   toechonStock: StockInfo;
   otherStock: StockInfo;
+  gwangjuPaperInfo?: GwangjuPaperResult | GwangjuPaperError; // [추가]
   ebookInfo?: EBookInfo; // New ebook information
   gyeonggiEbookInfo?: GyeonggiEbookLibraryResult | GyeonggiEbookLibraryError; // 경기도 전자도서관 정보 (원본)
   filteredGyeonggiEbookInfo?: GyeonggiEbookLibraryResult | GyeonggiEbookLibraryError; // ISBN 매칭 필터링된 경기도 전자도서관 정보

@@ -273,7 +273,7 @@ export default {
 };
 
 // 15초를 기본 타임아웃으로 통일시켜서 설정
-const DEFAULT_TIMEOUT = 15000; 
+const DEFAULT_TIMEOUT = 1000; 
 
 // ==============================================
 // 크롤링 함수들
