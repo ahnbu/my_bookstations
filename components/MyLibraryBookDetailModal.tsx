@@ -239,6 +239,16 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book }) => {
     );
 };
 
+    // // 기존 코드
+    // const book = useBookStore(state => state.myLibraryBooks.find(b => b.id === bookId));
+    // const { settings } = useSettingsStore();
+
+    // // 모달 열린 상태에서 책이 삭제되면, 모달을 닫는다
+    // useEffect(() => {
+    //     if (!book) {
+    //         onClose();
+    //     }
+    // }, [book, onClose]);
 
 // 도서관 재고 표시
 const renderStockInfo = (libraryName: '퇴촌' | '기타', bookTitle: string, customSearchTitle: string, stockInfo?: StockInfo, paperInfo?: GwangjuPaperResult | GwangjuPaperError) => {
@@ -290,18 +300,50 @@ const renderStockInfo = (libraryName: '퇴촌' | '기타', bookTitle: string, cu
 
 // 도서관 재고 외 상세 모달
 const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ bookId, onClose }) => {
-    const { updateReadStatus, updateRating, refreshingIsbn, refreshEBookInfo, refreshingEbookId, refreshAllBookInfo, addTagToBook, removeTagFromBook, setAuthorFilter, updateBookNote,updateCustomSearchTitle} = useBookStore();
+    const { getBookById, updateReadStatus, updateRating, refreshingIsbn, refreshEBookInfo, refreshingEbookId, refreshAllBookInfo, addTagToBook, removeTagFromBook, setAuthorFilter, updateBookNote,updateCustomSearchTitle} = useBookStore();
+
+    // [핵심 1] useBookStore에서 업데이트된 책 정보를 실시간으로 구독합니다.
+    const updatedBookFromStore = useBookStore(state => {
+        const allBooks = [...state.myLibraryBooks, ...state.librarySearchResults, ...state.libraryTagFilterResults];
+        // 중복 ID가 있을 경우 최신 정보가 담긴 객체를 사용하기 위해 Map을 사용
+        return Array.from(new Map(allBooks.map(b => [b.id, b])).values()).find(b => b.id === bookId);
+    });
     
-    const book = useBookStore(state => state.myLibraryBooks.find(b => b.id === bookId));
     const { settings } = useSettingsStore();
 
-    // 모달 열린 상태에서 책이 삭제되면, 모달을 닫는다
-    useEffect(() => {
-        if (!book) {
-            onClose();
-        }
-    }, [book, onClose]);
+    // [수정] book 상태를 로컬 state로 관리
+    const [book, setBook] = useState<SelectedBook | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
+
+    // [수정] bookId가 변경될 때마다 데이터를 가져오는 useEffect
+    useEffect(() => {
+        const fetchBook = async () => {
+            setIsLoading(true);
+            const fetchedBook = await getBookById(bookId);
+            setBook(fetchedBook);
+            setIsLoading(false);
+            if (!fetchedBook) {
+                // 책을 못 찾으면 모달 닫기
+                onClose();
+            }
+        };
+
+        // bookId가 유효할 때만 fetch 실행
+        if (bookId) {
+            fetchBook();
+        }
+    }, [bookId, getBookById, onClose]);
+
+    // [핵심 2] 스토어의 데이터 변경을 로컬 상태에 동기화하는 useEffect
+    useEffect(() => {
+        // updatedBookFromStore가 존재하고, 현재 로컬 book 상태와 다를 경우 업데이트
+        if (updatedBookFromStore && book !== updatedBookFromStore) {
+            setBook(updatedBookFromStore);
+        }
+    }, [updatedBookFromStore, book]);
+
+    
     // ==================
     // 메모 기능 Start 
     // ==================
@@ -320,6 +362,7 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
     if (!book) return null; // Render nothing while closing or if book not found
 
     const handleAuthorClick = (authorName: string) => {
+        if (!book) return; // [추가] book 객체 null 체크
         if (!authorName) return;
         // 현재 모달 닫기
         onClose();
@@ -329,11 +372,13 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
 
     // 메모 편집 시작
     const handleNoteEdit = () => {
+        if (!book) return; // [추가] book 객체 null 체크
         setEditingNote(true);
     };
 
     // 메모 저장
     const handleNoteSave = async () => {
+        if (!book) return; // [추가] book 객체 null 체크
         try {
             await updateBookNote(book.id, noteValue);
             setEditingNote(false);
@@ -344,12 +389,14 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
 
     // 메모 편집 취소
     const handleNoteCancel = () => {
+        if (!book) return; // [추가] book 객체 null 체크
         setNoteValue(book.note || '');
         setEditingNote(false);
     };
 
     // 메모 삭제
     const handleNoteDelete = async () => {
+        if (!book) return; // [추가] book 객체 null 체크
         try {
             await updateBookNote(book.id, '');
             setNoteValue('');
@@ -361,12 +408,33 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
 
     // 키보드 이벤트 처리
     const handleNoteKeyDown = (e: React.KeyboardEvent) => {
+        if (!book) return; // [추가] book 객체 null 체크
         if (e.key === 'Enter' && e.ctrlKey) {
             handleNoteSave();
         } else if (e.key === 'Escape') {
             handleNoteCancel();
         }
     };
+
+    // =======================================================
+    // [추가] 로딩 및 Null 체크 UI
+    // =======================================================
+    if (isLoading) {
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 p-4 transition-opacity duration-300">
+                <div className="bg-elevated rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col relative animate-fade-in">
+                    <div className="flex justify-center items-center h-96">
+                        <Spinner />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!book) {
+        // 책을 찾지 못했거나 에러가 발생한 경우, 아무것도 렌더링하지 않음 (useEffect에서 onClose가 호출됨)
+        return null; 
+    }
 
     // 레이아웃 로직 변수 정의
     const hasEbookLink = book.subInfo?.ebookList?.[0]?.link;

@@ -16,30 +16,104 @@ import { fetchBookAvailability, summarizeEBooks, GwangjuPaperResult, GyeonggiEbo
  * @param errorMessage DB 업데이트 실패 시 보여줄 알림 메시지
  */
 
+// old
+// async function updateBookInStoreAndDB(
+//   id: number,
+//   updates: Partial<Omit<BookData, 'id'>>,
+//   errorMessage: string = '책 정보 업데이트에 실패했습니다.'
+// ): Promise<void> {
+//   const { myLibraryBooks } = useBookStore.getState();
+//   const originalBook = myLibraryBooks.find(b => b.id === id);
+
+//   if (!originalBook) {
+//     console.warn(`[updateBook] Book with id ${id} not found.`);
+//     return;
+//   }
+
+//   // 1. 낙관적 업데이트: UI 상태를 즉시 변경
+//   // const updatedBook: SelectedBook = { ...originalBook, ...updates };
+//   // useBookStore.setState(state => ({
+//   //   myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? updatedBook : b)),
+//   //   selectedBook:
+//   //     state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
+//   //       ? updatedBook
+//   //       : state.selectedBook,
+//   // }));
+
+//   // 태그 필터 상태에서 메모 수정이 반영되도록 개선
+//   const updatedBook: SelectedBook = { ...originalBook, ...updates };
+//   useBookStore.setState(state => ({
+//     myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? updatedBook : b)),
+//     librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? updatedBook : b)),
+//     libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? updatedBook : b)),
+//     selectedBook:
+//       state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
+//         ? updatedBook
+//         : state.selectedBook,
+//   }));
+
+//   // 2. DB 업데이트: 백그라운드에서 실행
+//   // DB에 저장할 때는 id, detailedStockInfo 등 불필요한 속성을 제외합니다.
+//   const { id: bookId, detailedStockInfo, note, ...bookDataForDb } = updatedBook;
+//   try {
+//     // note 필드는 별도 컬럼으로, book_data는 JSONB로 저장
+//     const updateData: { book_data: Json; note?: string | null; title?: string; author?: string } = {
+//       title: updatedBook.title,
+//       author: updatedBook.author,
+//       book_data: bookDataForDb as unknown as Json
+//     };
+
+//     // note가 updates에 포함된 경우에만 DB의 note 컬럼 업데이트
+//     if ('note' in updates) {
+//       updateData.note = note || null;
+//     }
+
+//     const { error } = await supabase
+//       .from('user_library')
+//       .update(updateData)
+//       .eq('id', id);
+//     if (error) throw error;
+//   } catch (error) {
+//     // 3. 롤백: DB 업데이트 실패 시 UI 상태를 원래대로 되돌림
+
+//     console.error(`[updateBook] Failed to update book (id: ${id}) in DB:`, error);
+//     useUIStore.getState().setNotification({
+//       message: `${errorMessage} 변경사항이 저장되지 않았을 수 있습니다.`,
+//       type: 'error',
+//     });
+//     useBookStore.setState(state => ({
+//       myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? originalBook : b)),
+//       librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? originalBook : b)),
+//       libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? originalBook : b)),
+//       selectedBook:
+//         state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
+//           ? originalBook
+//           : state.selectedBook,
+//     }));
+//     // useBookStore.setState(state => ({
+//     //   myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? originalBook : b)),
+//     //   selectedBook:
+//     //     state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
+//     //       ? originalBook
+//     //       : state.selectedBook,
+//     // }));
+//   }
+// }
+
 async function updateBookInStoreAndDB(
   id: number,
   updates: Partial<Omit<BookData, 'id'>>,
   errorMessage: string = '책 정보 업데이트에 실패했습니다.'
 ): Promise<void> {
-  const { myLibraryBooks } = useBookStore.getState();
-  const originalBook = myLibraryBooks.find(b => b.id === id);
+  // [핵심 수정] getBookById를 호출하여 모든 데이터 소스에서 책을 찾음
+  const originalBook = await useBookStore.getState().getBookById(id);
 
   if (!originalBook) {
-    console.warn(`[updateBook] Book with id ${id} not found.`);
+    console.warn(`[updateBook] Book with id ${id} not found in any available source.`);
     return;
   }
 
-  // 1. 낙관적 업데이트: UI 상태를 즉시 변경
-  // const updatedBook: SelectedBook = { ...originalBook, ...updates };
-  // useBookStore.setState(state => ({
-  //   myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? updatedBook : b)),
-  //   selectedBook:
-  //     state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
-  //       ? updatedBook
-  //       : state.selectedBook,
-  // }));
-
-  // 태그 필터 상태에서 메모 수정이 반영되도록 개선
+  // 1. 낙관적 업데이트 (기존 로직과 동일)
   const updatedBook: SelectedBook = { ...originalBook, ...updates };
   useBookStore.setState(state => ({
     myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? updatedBook : b)),
@@ -51,30 +125,24 @@ async function updateBookInStoreAndDB(
         : state.selectedBook,
   }));
 
-  // 2. DB 업데이트: 백그라운드에서 실행
-  // DB에 저장할 때는 id, detailedStockInfo 등 불필요한 속성을 제외합니다.
+  // 2. DB 업데이트 (기존 로직과 동일)
   const { id: bookId, detailedStockInfo, note, ...bookDataForDb } = updatedBook;
   try {
-    // note 필드는 별도 컬럼으로, book_data는 JSONB로 저장
     const updateData: { book_data: Json; note?: string | null; title?: string; author?: string } = {
       title: updatedBook.title,
       author: updatedBook.author,
-      book_data: bookDataForDb as Json
+      book_data: bookDataForDb as unknown as Json
     };
-
-    // note가 updates에 포함된 경우에만 DB의 note 컬럼 업데이트
     if ('note' in updates) {
       updateData.note = note || null;
     }
-
     const { error } = await supabase
       .from('user_library')
       .update(updateData)
       .eq('id', id);
     if (error) throw error;
   } catch (error) {
-    // 3. 롤백: DB 업데이트 실패 시 UI 상태를 원래대로 되돌림
-
+    // 3. 롤백 (기존 로직과 동일)
     console.error(`[updateBook] Failed to update book (id: ${id}) in DB:`, error);
     useUIStore.getState().setNotification({
       message: `${errorMessage} 변경사항이 저장되지 않았을 수 있습니다.`,
@@ -89,17 +157,11 @@ async function updateBookInStoreAndDB(
           ? originalBook
           : state.selectedBook,
     }));
-    // useBookStore.setState(state => ({
-    //   myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? originalBook : b)),
-    //   selectedBook:
-    //     state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
-    //       ? originalBook
-    //       : state.selectedBook,
-    // }));
   }
 }
 
 interface BookState {
+  getBookById: (id: number) => Promise<SelectedBook | null>; // [추가]
   searchResults: AladdinBookItem[];
   selectedBook: AladdinBookItem | SelectedBook | null;
   myLibraryBooks: SelectedBook[];
@@ -158,7 +220,10 @@ interface BookState {
   addTagToBook: (id: number, tagId: string) => Promise<void>;
   removeTagFromBook: (id: number, tagId: string) => Promise<void>;
   updateBookTags: (id: number, tagIds: string[]) => Promise<void>;
-  updateMultipleBookTags: (bookUpdates: Array<{id: number, tagIds: string[]}>) => Promise<void>;
+  updateMultipleBookTags: (
+    bookUpdates: Array<{id: number, tagIds: string[]}>
+  ) => Promise<{ success: number; failed: number; failures: number[]; }>;
+  // updateMultipleBookTags: (bookUpdates: Array<{id: number, tagIds: string[]}>) => Promise<void>;
   toggleFavorite: (id: number) => Promise<void>;
   updateBookNote: (id: number, note: string) => Promise<void>;
   updateCustomSearchTitle: (id: number, title: string) => Promise<void>; // [추가]
@@ -221,6 +286,60 @@ export const useBookStore = create<BookState>(
         total: 0,
         failed: [],
       },
+
+      // [추가] ID로 단일 책 조회 함수
+      getBookById: async (id: number) => {
+          const { session } = useAuthStore.getState();
+          if (!session) return null;
+
+          // 1. 먼저 로컬 상태(myLibraryBooks, searchResults 등)에서 찾아보기
+          const localBooks = [
+              ...get().myLibraryBooks, 
+              ...get().librarySearchResults, 
+              ...get().libraryTagFilterResults
+          ];
+          const uniqueLocalBooks = Array.from(new Map(localBooks.map(b => [b.id, b])).values());
+          const foundBook = uniqueLocalBooks.find(b => b.id === id);
+          if (foundBook) {
+              return foundBook;
+          }
+
+          // 2. 로컬에 없으면 DB에 직접 요청
+          try {
+              const { data, error } = await supabase
+                  .from('user_library')
+                  .select('id, book_data, note')
+                  .eq('user_id', session.user.id)
+                  .eq('id', id)
+                  .single();
+
+              if (error) throw error;
+              if (!data || !data.book_data) return null;
+              
+              const bookDataWithDefaults = {
+                  ...{ readStatus: '읽지 않음', rating: 0 },
+                  ...data.book_data,
+              };
+              const fetchedBook: SelectedBook = {
+                  ...bookDataWithDefaults,
+                  id: data.id,
+                  note: data.note,
+              };
+
+              // (선택적) 가져온 책을 myLibraryBooks에 추가하여 캐싱 효과
+              set(state => ({
+                  myLibraryBooks: Array.from(new Map([...state.myLibraryBooks, fetchedBook].map(b => [b.id, b])).values())
+              }));
+
+              return fetchedBook;
+
+          } catch (error) {
+              console.error(`Error fetching book by ID (${id}):`, error);
+              useUIStore.getState().setNotification({ message: '책 정보를 불러오는 데 실패했습니다.', type: 'error' });
+              return null;
+          }
+      },
+
 
       // Actions
       fetchUserLibrary: async () => {
@@ -344,7 +463,7 @@ export const useBookStore = create<BookState>(
               if (updatedAladinBook && updatedAladinBook.subInfo?.ebookList?.[0]?.isbn13) {
                 const newSubInfo = updatedAladinBook.subInfo;
                 
-                const updatedBookData: BookData = {
+                const updatedBookData: SelectedBook  = {
                   ...book,
                   subInfo: newSubInfo, // 새로운 subInfo로 업데이트
                 };
@@ -357,7 +476,7 @@ export const useBookStore = create<BookState>(
                   .update({
                     title: updatedBookData.title,
                     author: updatedBookData.author,
-                    book_data: bookDataForDb as Json
+                    book_data: bookDataForDb as unknown as Json
                   })
                   .eq('id', book.id);
 
@@ -472,7 +591,7 @@ export const useBookStore = create<BookState>(
                     user_id: session.user.id,
                     title: newBookData.title,
                     author: newBookData.author,
-                    book_data: newBookData as Json
+                    book_data: newBookData as unknown as Json
                   }])
                   .select('id, book_data, note')
                   .single();
@@ -552,7 +671,7 @@ export const useBookStore = create<BookState>(
             .update({
               title: updatedBook.title,
               author: updatedBook.author,
-              book_data: bookDataForDb as Json
+              book_data: bookDataForDb as unknown as Json
             })
             .eq('id', id);
 
@@ -576,8 +695,12 @@ export const useBookStore = create<BookState>(
       refreshAllBookInfo: async (id, isbn13, title) => {
         set({ refreshingIsbn: isbn13, refreshingEbookId: id });
         
-        const originalBook = get().myLibraryBooks.find(b => b.id === id);
+        // [핵심 수정] getBookById를 호출하여 모든 데이터 소스에서 책을 찾음
+        // const originalBook = get().myLibraryBooks.find(b => b.id === id);
+        const originalBook = await get().getBookById(id);
+        
         if (!originalBook) {
+          console.warn(`[refreshAllBookInfo] Book with id ${id} not found.`);
           set({ refreshingIsbn: null, refreshingEbookId: null });
           return;
         }
@@ -618,8 +741,19 @@ export const useBookStore = create<BookState>(
           };
           if (result.gyeonggi_ebook_library) {
             bookWithLatestApiResult.gyeonggiEbookInfo = result.gyeonggi_ebook_library;
-            bookWithLatestApiResult.filteredGyeonggiEbookInfo = filterGyeonggiEbookByIsbn(bookWithLatestApiResult, result.gyeonggi_ebook_library);
+            
+            // [핵심 수정] API 호출이 성공했을 때만 필터링 함수를 호출
+            if (!('error' in result.gyeonggi_ebook_library)) {
+                bookWithLatestApiResult.filteredGyeonggiEbookInfo = filterGyeonggiEbookByIsbn(
+                    bookWithLatestApiResult,
+                    result.gyeonggi_ebook_library // 이 시점에서 이 변수는 GyeonggiEbookLibraryResult 타입임이 보장됨
+                );
+            } else {
+                // 에러가 발생한 경우, 필터링된 결과도 에러 객체로 설정
+                bookWithLatestApiResult.filteredGyeonggiEbookInfo = result.gyeonggi_ebook_library;
+            }
           }
+
           if (result.sirip_ebook) {
             bookWithLatestApiResult.siripEbookInfo = result.sirip_ebook;
           }
@@ -627,6 +761,8 @@ export const useBookStore = create<BookState>(
           // Zustand 스토어에 UI용 최신 상태 반영
           set(state => ({
             myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? bookWithLatestApiResult : b)),
+            librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? bookWithLatestApiResult : b)),
+            libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? bookWithLatestApiResult : b)),
             selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? bookWithLatestApiResult : state.selectedBook,
           }));
 
@@ -675,7 +811,7 @@ export const useBookStore = create<BookState>(
             .update({
               title: finalDataForDb.title,
               author: finalDataForDb.author,
-              book_data: finalDataForDb as Json,
+              book_data: finalDataForDb as unknown as Json,
             })
             .eq('id', id);
 
@@ -687,6 +823,8 @@ export const useBookStore = create<BookState>(
           
           set(state => ({
             myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? originalBook : b)),
+            librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? originalBook : b)),
+            libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? originalBook : b)),
             selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? originalBook : state.selectedBook,
           }));
 
@@ -694,94 +832,6 @@ export const useBookStore = create<BookState>(
           set({ refreshingIsbn: null, refreshingEbookId: null });
         }
       },
-
-      // old 버전
-      // refreshAllBookInfo: async (id, isbn13, title) => {
-      //   set({ refreshingIsbn: isbn13, refreshingEbookId: id });
-      //   try {
-      //     // 통합 API 호출
-      //     const result = await fetchBookAvailability(isbn13, title);
-
-      //     const bookToUpdate = get().myLibraryBooks.find(b => b.id === id);
-      //     if (!bookToUpdate) return;
-
-      //     let updatedBook = { ...bookToUpdate };
-
-      //     // 종이책 재고 업데이트
-      //     if ('availability' in result.gwangju_paper) {
-      //       const paperResult = result.gwangju_paper as GwangjuPaperResult;
-      //       const availability = paperResult.availability ?? [];
-      //       let toechonTotal = 0, toechonAvailable = 0, otherTotal = 0, otherAvailable = 0;
-            
-      //       // hasToechonStock 변수 제거 - 상세 정보 수집이 불필요해짐
-            
-      //       availability.forEach(item => {
-      //         // "정보 없음" 케이스 필터링 - 의미있는 도서관 정보가 있는 경우만 카운트
-      //         const libraryName = item['소장도서관'];
-      //         if (libraryName === '정보 없음' || libraryName === '알 수 없음' || !libraryName) {
-      //           return; // 이 항목은 카운트하지 않음
-      //         }
-              
-      //         const isToechon = libraryName === '퇴촌도서관';
-      //         const isAvailable = item['대출상태'] === '대출가능';
-      //         if (isToechon) { toechonTotal++; if (isAvailable) toechonAvailable++; } 
-      //         else { otherTotal++; if (isAvailable) otherAvailable++; }
-      //       });
-            
-      //       updatedBook.toechonStock = { total: toechonTotal, available: toechonAvailable };
-      //       updatedBook.otherStock = { total: otherTotal, available: otherAvailable };
-            
-      //       // detailedStockInfo 수집 제거 - 퇴촌도서관 상세페이지 연결 불가로 불필요
-      //       // 성능 최적화를 위해 상세 재고 정보 저장 로직 완전 제거
-      //     }
-
-      //     // 전자책 정보 업데이트
-      //     const ebookSummary = summarizeEBooks(result.gyeonggi_ebook_education);
-      //     updatedBook.ebookInfo = {
-      //       summary: ebookSummary,
-      //       details: result.gyeonggi_ebook_education,
-      //       lastUpdated: Date.now()
-      //     };
-
-      //     // 경기도 전자도서관 정보 업데이트
-      //     if (result.gyeonggi_ebook_library) {
-      //       updatedBook.gyeonggiEbookInfo = result.gyeonggi_ebook_library;
-      //       // ISBN 필터링을 데이터 갱신 시점에 수행하여 렌더링 성능 최적화
-      //       updatedBook.filteredGyeonggiEbookInfo = filterGyeonggiEbookByIsbn(updatedBook, result.gyeonggi_ebook_library);
-      //     }
-
-      //     // 시립도서관 전자책 정보 업데이트
-      //     if (result.sirip_ebook) {
-      //       updatedBook.siripEbookInfo = result.sirip_ebook;
-      //     }
-
-      //     // DB 저장 시 detailedStockInfo 필드 제외하여 저장공간 절약
-      //     const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBook;
-
-      //     const { error } = await supabase
-      //       .from('user_library')
-      //       .update({
-      //         title: updatedBook.title,
-      //         author: updatedBook.author,
-      //         book_data: bookDataForDb as Json
-      //       })
-      //       .eq('id', id);
-
-      //     if (error) throw error;
-
-      //     set(state => ({
-      //       myLibraryBooks: state.myLibraryBooks.map(book =>
-      //         book.id === id ? updatedBook : book
-      //       ),
-      //       selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBook : state.selectedBook
-      //     }));
-      //   } catch (error) {
-      //     console.error(`Failed to refresh all book info for ${title}`, error);
-      //     useUIStore.getState().setNotification({ message: '도서 정보 갱신에 실패했습니다.', type: 'error' });
-      //   } finally {
-      //     set({ refreshingIsbn: null, refreshingEbookId: null });
-      //   }
-      // },
 
       updateReadStatus: async (id, status) => {
         await updateBookInStoreAndDB(id, { readStatus: status }, '읽음 상태 변경에 실패했습니다.');
@@ -806,20 +856,26 @@ export const useBookStore = create<BookState>(
       },
 
       addTagToBook: async (id, tagId) => {
-        const book = get().myLibraryBooks.find(b => b.id === id);
+        // const book = get().myLibraryBooks.find(b => b.id === id);
+        const book = await get().getBookById(id); // [개선] getBookById 사용
         if (!book) return;
         const currentTags = book.customTags || [];
         if (currentTags.includes(tagId)) return;
-        await updateBookInStoreAndDB(id, { customTags: [...currentTags, tagId] }, '태그 추가에 실패했습니다.');
+        // [핵심 수정] 스프레드 연산자(...)를 사용해 항상 새로운 배열 생성
+        const newTags = [...currentTags, tagId];
+        await updateBookInStoreAndDB(id, { customTags: newTags }, '태그 추가에 실패했습니다.');
       },
       removeTagFromBook: async (id, tagId) => {
-        const book = get().myLibraryBooks.find(b => b.id === id);
+        // const book = get().myLibraryBooks.find(b => b.id === id);
+        const book = await get().getBookById(id); // [개선] getBookById 사용
         if (!book) return;
+        // [핵심 수정] filter 메서드는 항상 새로운 배열을 반환하므로 불변성을 지킴
         const updatedTags = (book.customTags || []).filter(t => t !== tagId);
         await updateBookInStoreAndDB(id, { customTags: updatedTags }, '태그 제거에 실패했습니다.');
       },
 
       updateBookTags: async (id, tagIds) => {
+        const book = await get().getBookById(id);
         await updateBookInStoreAndDB(id, { customTags: tagIds }, '태그 업데이트에 실패했습니다.');
       },
 
@@ -854,7 +910,7 @@ export const useBookStore = create<BookState>(
               .update({
                 title: updatedBookData.title,
                 author: updatedBookData.author,
-                book_data: bookDataForDb as Json
+                book_data: bookDataForDb as unknown as Json
               })
               .eq('id', id);
 
