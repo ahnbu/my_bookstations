@@ -9,23 +9,23 @@ import StarRating from './StarRating';
 import CustomTagComponent from './CustomTag';
 import AuthorButtons from './AuthorButtons';
 import { filterGyeonggiEbookByIsbn } from '../utils/isbnMatcher';
-// import { getStatusClass, getStatusEmoji, processGyeonggiEbookEduTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL, generateLibraryDetailURL, isLibraryStockClickable } from '../services/unifiedLibrary.service';
 import { 
   processGyeonggiEbookEduTitle, 
-  createGyeonggiEbookSearchURL,
+//   createGyeonggiEbookSearchURL,
   GwangjuPaperResult,
   GwangjuPaperError,
-  GyeonggiEbookLibraryResult
+  GyeonggiEbookLibraryResult,
+  createOptimalSearchTitle,
+  createLibraryOpenURL
 } from '../services/unifiedLibrary.service';
 
-// Use the standardized title processing function from ebook.service
-const createSearchSubject = processGyeonggiEbookEduTitle;
+// 제목 가공 함수 (3단어, 괄호 등 제거 후)
+const createSearchSubject = createOptimalSearchTitle;
 
 interface MyLibraryBookDetailModalProps {
   bookId: number;
   onClose: () => void;
 }
-
 
 // =======================================================
 // 1. LibraryStockSection 컴포넌트 독립적으로 분리
@@ -137,14 +137,14 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book }) => {
 
             {/* 실제 재고 표시 UI */}
             <div className="space-y-2 text-sm text-secondary bg-elevated p-4 rounded-md">
-                {renderStockInfo('퇴촌 도서관', book.title, book.toechonStock, book.gwangjuPaperInfo)}
-                {renderStockInfo('기타 도서관', book.title, book.otherStock, book.gwangjuPaperInfo)}
+                {renderStockInfo('퇴촌', book.title, book.customSearchTitle, book.toechonStock, book.gwangjuPaperInfo)}
+                {renderStockInfo('기타', book.title, book.customSearchTitle, book.otherStock, book.gwangjuPaperInfo)}
                 
                 <div className="flex justify-between items-center">
                     <span>전자책(교육):</span>
                     {(() => {
                         const info = book.ebookInfo;
-                        const searchUrl = `https://lib.goe.go.kr/elib/module/elib/search/index.do?menu_idx=94&search_text=${encodeURIComponent(createSearchSubject(book.title))}`;
+                        const searchUrl = createLibraryOpenURL('e교육', book.title, book.customSearchTitle);
                         if (!info) return <span className="text-tertiary">정보 없음</span>;
                         const hasError = info.details.some(d => 'error' in d);
                         const { 총개수, 대출가능 } = info.summary;
@@ -162,7 +162,7 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book }) => {
                     <span>전자책(시립구독):</span>
                     {(() => {
                         const info = book.siripEbookInfo;
-                        const searchUrl = `https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?schTxt=${encodeURIComponent(book.title.split(' ').slice(0, 3).join(' '))}`;
+                        const searchUrl = createLibraryOpenURL('e시립구독', book.title, book.customSearchTitle);
                         if (!info) return <span className="text-tertiary">정보 없음</span>;
                         const hasError = 'error' in info || !!info.details?.subscription?.error;
                         const total = info.details?.subscription?.total_count ?? 0;
@@ -181,7 +181,7 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book }) => {
                     <span>전자책(시립소장):</span>
                     {(() => {
                         const info = book.siripEbookInfo;
-                        const searchUrl = `https://lib.gjcity.go.kr:444/elibrary-front/search/searchList.ink?schTxt=${encodeURIComponent(book.title.split(' ').slice(0, 3).join(' '))}`;
+                        const searchUrl = createLibraryOpenURL('e시립소장', book.title, book.customSearchTitle);
                         if (!info) return <span className="text-tertiary">정보 없음</span>;
                         const hasError = 'error' in info || !!info.details?.owned?.error;
                         const total = info.details?.owned?.total_count ?? 0;
@@ -200,7 +200,7 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book }) => {
                     <span>전자책(경기):</span>
                     {(() => {
                         const info = book.gyeonggiEbookInfo;
-                        const searchUrl = createGyeonggiEbookSearchURL(book.title);
+                        const searchUrl = createLibraryOpenURL('e경기', book.title, book.customSearchTitle);
                         if (!info) {
                             return (
                                 <button onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title)} className="font-medium text-blue-400 hover:text-blue-300" disabled={refreshingEbookId === book.id}>
@@ -235,11 +235,12 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book }) => {
 
 
 // 도서관 재고 표시
-const renderStockInfo = (libraryName: string, bookTitle: string, stockInfo?: StockInfo, paperInfo?: GwangjuPaperResult | GwangjuPaperError) => {
-    const subject = createSearchSubject(bookTitle);
-    const searchUrl = libraryName === '퇴촌 도서관'
-        ? `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(subject)}`
-        : `https://lib.gjcity.go.kr/lay1/program/S1T446C461/jnet/resourcessearch/resultList.do?searchType=SIMPLE&searchKey=TITLE&searchLibrary=ALL&searchKeyword=${encodeURIComponent(subject)}`;
+const renderStockInfo = (libraryName: '퇴촌' | '기타', bookTitle: string, customSearchTitle: string, stockInfo?: StockInfo, paperInfo?: GwangjuPaperResult | GwangjuPaperError) => {
+    const subject = customSearchTitle || createSearchSubject(bookTitle);
+    const searchUrl = createLibraryOpenURL(libraryName, bookTitle, customSearchTitle);    
+    // const searchUrl = libraryName === '퇴촌 도서관'
+    //     ? `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(subject)}`
+    //     : `https://lib.gjcity.go.kr/lay1/program/S1T446C461/jnet/resourcessearch/resultList.do?searchType=SIMPLE&searchKey=TITLE&searchLibrary=ALL&searchKeyword=${encodeURIComponent(subject)}`;
     
     // 1. 에러 상태 확인
     const hasError = paperInfo && 'error' in paperInfo;

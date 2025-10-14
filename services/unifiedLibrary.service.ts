@@ -161,7 +161,7 @@ function debugLog(message: string, data?: any) {
  * @param title - 원본 제목
  * @returns 최적화된 검색어
  */
-function createOptimalSearchTitle(title: string): string {
+export function createOptimalSearchTitle(title: string): string {
   // // 1단계: 명백한 부제 구분자(:, -, ()를 기준으로 핵심 제목을 추출합니다.
   // const subtitleMarkers = /:|-|\(/; // 콜론, 하이픈, 여는 괄호
   // 1단계: 부제 구분자를 확장합니다. (닫는 괄호, 대괄호, 중괄호 추가)
@@ -202,20 +202,48 @@ export function processSiripEbookTitle(title: string): string {
   return createOptimalSearchTitle(title);
 }
 
-// /**
-//  * 경기도 전자도서관 검색 URL 생성 (올바른 인코딩)
-//  * @param title - 검색할 제목
-//  * @returns 검색 URL
-//  */
-// export function createGyeonggiEbookSearchURL(title: string): string {
-//   const processedTitle = processGyeonggiEbookTitle(title);
-//   // URL 수동 구성 (올바른 인코딩을 위해)
-//   const baseUrl = "https://ebook.library.kr/search";
-//   const encodedTitle = encodeURIComponent(processedTitle).replace(/'/g, '%27');
-//   const detailQuery = `TITLE:${encodedTitle}:true`;
-  
-//   return `${baseUrl}?detailQuery=${detailQuery}&OnlyStartWith=false&searchType=all&listType=list`;
-// }
+
+// services/unifiedLibrary.service.ts 파일
+
+// ... (기존 코드들)
+
+// [추가] 도서관별 바로가기 URL을 생성하는 통합 함수
+export type LibraryName = '퇴촌' | '기타' | 'e교육' | 'e시립구독' | 'e시립소장' | 'e경기';
+
+export function createLibraryOpenURL(
+  libraryName: LibraryName, 
+  bookTitle: string, 
+  customSearchTitle?: string
+): string {
+  // 1. 최종 검색어 결정: 커스텀 검색어가 있으면 최우선으로 사용, 없으면 기본 가공 로직 적용
+  const keyword = customSearchTitle || createOptimalSearchTitle(bookTitle);
+  const encodedKeyword = encodeURIComponent(keyword);
+
+  // 2. 도서관 이름(libraryName)에 따라 적절한 URL 반환
+  switch (libraryName) {
+    case '퇴촌':
+      return `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodedKeyword}`;
+    
+    case '기타':
+      return `https://lib.gjcity.go.kr/lay1/program/S1T446C461/jnet/resourcessearch/resultList.do?searchType=SIMPLE&searchKey=ALL&searchLibrary=ALL&searchKeyword=${encodedKeyword}`;
+      
+    case 'e교육':
+      return `https://lib.goe.go.kr/elib/module/elib/search/index.do?menu_idx=94&search_text=${encodedKeyword}&sortField=book_pubdt&sortType=desc&rowCount=20`;
+      
+    case 'e시립구독':
+      return `https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?schTxt=${encodedKeyword}`;
+      
+    case 'e시립소장':
+      return `https://lib.gjcity.go.kr:444/elibrary-front/search/searchList.ink?schTxt=${encodedKeyword}`;
+      
+    case 'e경기':
+      return `https://ebook.library.kr/search?OnlyStartWith=false&searchType=all&listType=list&keyword=${encodedKeyword}`;
+      
+    default:
+      // 혹시 모를 예외 상황에 대비하여 기본값 반환
+      return '#';
+  }
+}
 
 
 /**
@@ -224,17 +252,17 @@ export function processSiripEbookTitle(title: string): string {
  * @param title - 검색할 제목
  * @returns 검색 URL
  */
-export function createGyeonggiEbookSearchURL(title: string): string {
-  // 제목 처리 로직은 그대로 사용합니다.
-  const processedTitle = createOptimalSearchTitle(title);
+// export function createGyeonggiEbookSearchURL(title: string): string {
+//   // 제목 처리 로직은 그대로 사용합니다.
+//   const processedTitle = createOptimalSearchTitle(title);
   
-  // URL 생성 방식을 더 유연한 'keyword' 파라미터 방식으로 변경합니다.
-  const baseUrl = "https://ebook.library.kr/search";
-  const encodedTitle = encodeURIComponent(processedTitle);
+//   // URL 생성 방식을 더 유연한 'keyword' 파라미터 방식으로 변경합니다.
+//   const baseUrl = "https://ebook.library.kr/search";
+//   const encodedTitle = encodeURIComponent(processedTitle);
   
-  // searchType=all, listType=list 등의 파라미터는 유지하여 일관성을 확보합니다.
-  return `${baseUrl}?OnlyStartWith=false&searchType=all&listType=list&keyword=${encodedTitle}`;
-}
+//   // searchType=all, listType=list 등의 파라미터는 유지하여 일관성을 확보합니다.
+//   return `${baseUrl}?OnlyStartWith=false&searchType=all&listType=list&keyword=${encodedTitle}`;
+// }
 
 /**
  * 5-Way 통합 도서관 재고 확인 API 호출

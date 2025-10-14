@@ -9,10 +9,9 @@ import StarRating from './StarRating';
 import MyLibraryBookDetailModal from './MyLibraryBookDetailModal';
 import TagFilter from './TagFilter';
 import CustomTagComponent from './CustomTag';
-import { getStatusEmoji, isEBooksEmpty, hasAvailableEBooks, processGyeonggiEbookEduTitle, processGyeonggiEbookTitle, createGyeonggiEbookSearchURL, generateLibraryDetailURL, isLibraryStockClickable } from '../services/unifiedLibrary.service';
+import { getStatusEmoji, isEBooksEmpty, hasAvailableEBooks, createOptimalSearchTitle, processGyeonggiEbookEduTitle, processGyeonggiEbookTitle, processSiripEbookTitle, generateLibraryDetailURL, isLibraryStockClickable, createLibraryOpenURL} from '../services/unifiedLibrary.service';
 import { addHomeResetListener } from '../utils/events';
 // import { filterGyeonggiEbookByIsbn, debugIsbnMatching } from '../utils/isbnMatcher'; // 성능 최적화로 사용 안함
-
 
 // --- START: ReadStatusDropdown 로컬 컴포넌트 추가 ---
 interface CustomReadStatusDropdownProps {
@@ -818,8 +817,8 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
     return sortOptions[sortConfig.key] || '정렬';
   };
   
-  // Use the standardized title processing function from ebook.service
-  const createSearchSubject = processGyeonggiEbookEduTitle;
+  // 제목 가공 함수
+  const createSearchSubject = createOptimalSearchTitle;
 
   // Tag filtering handlers
   const handleTagClick = (tagId: string) => {
@@ -1023,8 +1022,8 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
 
     const { summary } = book.ebookInfo;
     
-    const processedTitle = createSearchSubject(book.title);
-    const ebookEduUrl = `https://lib.goe.go.kr/elib/module/elib/search/index.do?menu_idx=94&author_name=&viewPage=1&search_text=${encodeURIComponent(processedTitle)}&sortField=book_pubdt&sortType=desc&rowCount=20`;
+    const subject = book.customSearchTitle || createSearchSubject(book.title);
+    const ebookEduUrl = `https://lib.goe.go.kr/elib/module/elib/search/index.do?menu_idx=94&author_name=&viewPage=1&search_text=${encodeURIComponent(subject)}&sortField=book_pubdt&sortType=desc&rowCount=20`;
 
     if (summary.총개수 === 0 && summary.오류개수 > 0) {
       return (
@@ -1077,28 +1076,29 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
     const totalCount = siripInfo?.details?.subscription?.total_count || 0;
     const availableCount = siripInfo?.details?.subscription?.available_count || 0;
     
-    const titleForSearch = (() => {
-      let titleForSearch = book.title;
-      const dashIndex = titleForSearch.indexOf('-');
-      const parenthesisIndex = titleForSearch.indexOf('(');
+    // const titleForSearch = (() => {
+    //   let titleForSearch = book.title;
+    //   const dashIndex = titleForSearch.indexOf('-');
+    //   const parenthesisIndex = titleForSearch.indexOf('(');
       
-      // 대시(-) 또는 괄호시작("(") 중 더 앞에 있는 위치를 찾아서 그 이전까지만 사용
-      let cutIndex = -1;
-      if (dashIndex !== -1 && parenthesisIndex !== -1) {
-        cutIndex = Math.min(dashIndex, parenthesisIndex);
-      } else if (dashIndex !== -1) {
-        cutIndex = dashIndex;
-      } else if (parenthesisIndex !== -1) {
-        cutIndex = parenthesisIndex;
-      }
+    //   // 대시(-) 또는 괄호시작("(") 중 더 앞에 있는 위치를 찾아서 그 이전까지만 사용
+    //   let cutIndex = -1;
+    //   if (dashIndex !== -1 && parenthesisIndex !== -1) {
+    //     cutIndex = Math.min(dashIndex, parenthesisIndex);
+    //   } else if (dashIndex !== -1) {
+    //     cutIndex = dashIndex;
+    //   } else if (parenthesisIndex !== -1) {
+    //     cutIndex = parenthesisIndex;
+    //   }
       
-      if (cutIndex !== -1) {
-        titleForSearch = titleForSearch.substring(0, cutIndex).trim();
-      }
-      return titleForSearch.split(' ').slice(0, 3).join(' ');
-    })();
+    //   if (cutIndex !== -1) {
+    //     titleForSearch = titleForSearch.substring(0, cutIndex).trim();
+    //   }
+    //   return titleForSearch.split(' ').slice(0, 3).join(' ');
+    // })();
 
-    const sidokUrl = `https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent(titleForSearch)}`;
+    const subject = book.customSearchTitle || createSearchSubject(book.title);
+    const sidokUrl = `https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent(subject)}`;
 
     const showIcon = availableCount > 0;
     const iconClass = availableCount > 0 ? 'text-green-500' : 'text-tertiary opacity-50';
@@ -1207,28 +1207,29 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
     }
 
     // 시립도서관 전자책 검색 URL 생성
-    const titleForSearch = (() => {
-      let titleForSearch = book.title;
-      const dashIndex = titleForSearch.indexOf('-');
-      const parenthesisIndex = titleForSearch.indexOf('(');
+    // const titleForSearch = (() => {
+    //   let titleForSearch = book.title;
+    //   const dashIndex = titleForSearch.indexOf('-');
+    //   const parenthesisIndex = titleForSearch.indexOf('(');
       
-      // 대시(-) 또는 괄호시작("(") 중 더 앞에 있는 위치를 찾아서 그 이전까지만 사용
-      let cutIndex = -1;
-      if (dashIndex !== -1 && parenthesisIndex !== -1) {
-        cutIndex = Math.min(dashIndex, parenthesisIndex);
-      } else if (dashIndex !== -1) {
-        cutIndex = dashIndex;
-      } else if (parenthesisIndex !== -1) {
-        cutIndex = parenthesisIndex;
-      }
+    //   // 대시(-) 또는 괄호시작("(") 중 더 앞에 있는 위치를 찾아서 그 이전까지만 사용
+    //   let cutIndex = -1;
+    //   if (dashIndex !== -1 && parenthesisIndex !== -1) {
+    //     cutIndex = Math.min(dashIndex, parenthesisIndex);
+    //   } else if (dashIndex !== -1) {
+    //     cutIndex = dashIndex;
+    //   } else if (parenthesisIndex !== -1) {
+    //     cutIndex = parenthesisIndex;
+    //   }
       
-      if (cutIndex !== -1) {
-        titleForSearch = titleForSearch.substring(0, cutIndex).trim();
-      }
-      return titleForSearch.split(' ').slice(0, 3).join(' ');
-    })();
+    //   if (cutIndex !== -1) {
+    //     titleForSearch = titleForSearch.substring(0, cutIndex).trim();
+    //   }
+    //   return titleForSearch.split(' ').slice(0, 3).join(' ');
+    // })();
 
-    const siripUrl = `https://lib.gjcity.go.kr:444/elibrary-front/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent(titleForSearch)}`;
+    const subject = book.customSearchTitle || createSearchSubject(book.title);
+    const siripUrl = `https://lib.gjcity.go.kr:444/elibrary-front/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent(subject)}`;
 
     if (!book.siripEbookInfo) {
       return (
@@ -1847,10 +1848,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                   name="퇴촌"
                   totalBooks={book.toechonStock?.total || 0}
                   availableBooks={book.toechonStock?.available || 0}
-                  searchUrl={(() => {
-                    const subject = createSearchSubject(book.title);
-                    return `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(subject)}`;
-                  })()}
+                  searchUrl={createLibraryOpenURL("퇴촌", book.title, book.customSearchTitle)}
                   isError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false} // 추가
                 />
                 
@@ -1859,10 +1857,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                   name="기타"
                   totalBooks={book.otherStock?.total || 0}
                   availableBooks={book.otherStock?.available || 0}
-                  searchUrl={(() => {
-                    const subject = createSearchSubject(book.title);
-                    return `https://lib.gjcity.go.kr/lay1/program/S1T446C461/jnet/resourcessearch/resultList.do?searchType=SIMPLE&searchKey=TITLE&searchLibrary=ALL&searchKeyword=${encodeURIComponent(subject)}`;
-                  })()}
+                  searchUrl={createLibraryOpenURL("기타", book.title, book.customSearchTitle)}
                   isError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false} // 추가
                 />
                 
@@ -1871,10 +1866,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                   name="e교육"
                   totalBooks={book.ebookInfo?.summary.총개수 || 0}
                   availableBooks={book.ebookInfo?.summary.대출가능 || 0}
-                  searchUrl={(() => {
-                    const processedTitle = createSearchSubject(book.title);
-                    return `https://lib.goe.go.kr/elib/module/elib/search/index.do?menu_idx=94&author_name=&viewPage=1&search_text=${encodeURIComponent(processedTitle)}&sortField=book_pubdt&sortType=desc&rowCount=20`;
-                  })()}
+                  searchUrl={createLibraryOpenURL("e교육", book.title, book.customSearchTitle)}
                   isError={book.ebookInfo?.details.some(d => 'error' in d) || false}
                 />
                 
@@ -1889,28 +1881,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                     const siripInfo = book.siripEbookInfo;
                     return siripInfo?.details?.subscription?.available_count || 0;
                   })()}
-                  searchUrl={(() => {
-                    const titleForSearch = (() => {
-                      let titleForSearch = book.title;
-                      const dashIndex = titleForSearch.indexOf('-');
-                      const parenthesisIndex = titleForSearch.indexOf('(');
-                      
-                      let cutIndex = -1;
-                      if (dashIndex !== -1 && parenthesisIndex !== -1) {
-                        cutIndex = Math.min(dashIndex, parenthesisIndex);
-                      } else if (dashIndex !== -1) {
-                        cutIndex = dashIndex;
-                      } else if (parenthesisIndex !== -1) {
-                        cutIndex = parenthesisIndex;
-                      }
-                      
-                      if (cutIndex !== -1) {
-                        titleForSearch = titleForSearch.substring(0, cutIndex).trim();
-                      }
-                      return titleForSearch.split(' ').slice(0, 3).join(' ');
-                    })();
-                    return `https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent(titleForSearch)}`;
-                  })()}
+                  searchUrl={createLibraryOpenURL("e시립구독", book.title, book.customSearchTitle)}
                   isError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.subscription?.error) : false}
                 />
                 
@@ -1925,28 +1896,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                     const siripInfo = book.siripEbookInfo;
                     return siripInfo?.details?.owned?.available_count || 0;
                   })()}
-                  searchUrl={(() => {
-                    const titleForSearch = (() => {
-                      let titleForSearch = book.title;
-                      const dashIndex = titleForSearch.indexOf('-');
-                      const parenthesisIndex = titleForSearch.indexOf('(');
-                      
-                      let cutIndex = -1;
-                      if (dashIndex !== -1 && parenthesisIndex !== -1) {
-                        cutIndex = Math.min(dashIndex, parenthesisIndex);
-                      } else if (dashIndex !== -1) {
-                        cutIndex = dashIndex;
-                      } else if (parenthesisIndex !== -1) {
-                        cutIndex = parenthesisIndex;
-                      }
-                      
-                      if (cutIndex !== -1) {
-                        titleForSearch = titleForSearch.substring(0, cutIndex).trim();
-                      }
-                      return titleForSearch.split(' ').slice(0, 3).join(' ');
-                    })();
-                    return `https://lib.gjcity.go.kr:444/elibrary-front/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent(titleForSearch)}`;
-                  })()}
+                  searchUrl={createLibraryOpenURL("e시립소장", book.title, book.customSearchTitle)}
                   isError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.owned?.error) : false}
                 />
                 
@@ -1961,7 +1911,8 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                     const targetGyeonggiInfo = book.filteredGyeonggiEbookInfo || book.gyeonggiEbookInfo;
                     return targetGyeonggiInfo && 'available_count' in targetGyeonggiInfo ? targetGyeonggiInfo.available_count : 0;
                   })()}
-                  searchUrl={createGyeonggiEbookSearchURL(book.title)}
+                  // searchUrl={createGyeonggiEbookSearchURL(book.title)}
+                  searchUrl={createLibraryOpenURL("e경기", book.title, book.customSearchTitle)}
                   isError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
                 />
               </div>}
@@ -2194,30 +2145,21 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                     name="퇴촌"
                     totalBooks={book.toechonStock?.total || 0}
                     availableBooks={book.toechonStock?.available || 0}
-                    searchUrl={(() => {
-                      const subject = createSearchSubject(book.title);
-                      return `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(subject)}`;
-                    })()}
+                    searchUrl={createLibraryOpenURL("퇴촌", book.title, book.customSearchTitle)}
                     isError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false}
                   />
                   <LibraryTag
                     name="기타"
                     totalBooks={book.otherStock?.total || 0}
                     availableBooks={book.otherStock?.available || 0}
-                    searchUrl={(() => {
-                      const subject = createSearchSubject(book.title);
-                      return `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=ES&searchKeyword=${encodeURIComponent(subject)}`;
-                    })()}
+                    searchUrl={createLibraryOpenURL("기타", book.title, book.customSearchTitle)}
                     isError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false}
                   />
                   <LibraryTag
                     name="e교육"
                     totalBooks={book.ebookInfo?.summary.총개수 || 0}
                     availableBooks={book.ebookInfo?.summary.대출가능 || 0}
-                    searchUrl={(() => {
-                      const processedTitle = createSearchSubject(book.title);
-                      return `https://lib.goe.go.kr/elib/module/elib/search/index.do?menu_idx=94&author_name=&viewPage=1&search_text=${encodeURIComponent(processedTitle)}&sortField=book_pubdt&sortType=desc&rowCount=20`;
-                    })()}
+                    searchUrl={createLibraryOpenURL("e교육", book.title, book.customSearchTitle)}
                     isError={book.ebookInfo?.details.some(d => 'error' in d) || false}
                   />
                   <LibraryTag
@@ -2230,24 +2172,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                       const siripInfo = book.siripEbookInfo;
                       return siripInfo?.details?.subscription?.available_count || 0;
                     })()}
-                    searchUrl={(() => {
-                      let titleForSearch = book.title;
-                      const dashIndex = titleForSearch.indexOf('-');
-                      const parenthesisIndex = titleForSearch.indexOf('(');
-                      let cutIndex = -1;
-                      if (dashIndex !== -1 && parenthesisIndex !== -1) {
-                        cutIndex = Math.min(dashIndex, parenthesisIndex);
-                      } else if (dashIndex !== -1) {
-                        cutIndex = dashIndex;
-                      } else if (parenthesisIndex !== -1) {
-                        cutIndex = parenthesisIndex;
-                      }
-                      if (cutIndex !== -1) {
-                        titleForSearch = titleForSearch.substring(0, cutIndex).trim();
-                      }
-                      titleForSearch = titleForSearch.split(' ').slice(0, 3).join(' ');
-                      return `https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent(titleForSearch)}`;
-                    })()}
+                    searchUrl={createLibraryOpenURL("e시립구독", book.title, book.customSearchTitle)}
                     isError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.subscription?.error) : false}
                   />
                   <LibraryTag
@@ -2260,10 +2185,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                       const siripInfo = book.siripEbookInfo;
                       return siripInfo?.details?.owned?.available_count || 0;
                     })()}
-                    searchUrl={(() => {
-                      const processedTitle = createSearchSubject(book.title);
-                      return `https://ebook.gjcity.go.kr/search/searchList.ink?searchType=SimpleSearch&searchKeyword=${encodeURIComponent(processedTitle)}&searchCategoryCode=all&reSch=true&currentPageNo=1`;
-                    })()}
+                    searchUrl={createLibraryOpenURL("e시립소장", book.title, book.customSearchTitle)}
                     isError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.owned?.error) : false}
                   />
                   <LibraryTag
@@ -2276,10 +2198,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                       const targetGyeonggiInfo = book.filteredGyeonggiEbookInfo || book.gyeonggiEbookInfo;
                       return targetGyeonggiInfo && 'available_count' in targetGyeonggiInfo ? targetGyeonggiInfo.available_count : 0;
                     })()}
-                    searchUrl={(() => {
-                      const processedTitle = createSearchSubject(book.title);
-                      return `https://ebook.library.go.kr/search/searchList.ink?searchType=SimpleSearch&searchKeyword=${encodeURIComponent(processedTitle)}&searchCategoryCode=all&reSch=true&currentPageNo=1`;
-                    })()}
+                    searchUrl={createLibraryOpenURL("e경기", book.title, book.customSearchTitle)}
                     isError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
                   />
                 </div>}
