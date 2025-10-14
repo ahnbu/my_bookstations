@@ -74,6 +74,8 @@ const renderStockInfo = (libraryName: string, bookTitle: string, stockInfo?: Sto
     );
 };
 
+// 도서관 재고 외 상세 모달
+
 const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ bookId, onClose }) => {
     const { updateReadStatus, updateRating, refreshingIsbn, refreshEBookInfo, refreshingEbookId, refreshAllBookInfo, addTagToBook, removeTagFromBook, setAuthorFilter, updateBookNote } = useBookStore();
     const book = useBookStore(state => state.myLibraryBooks.find(b => b.id === bookId));
@@ -310,7 +312,63 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                 </div>
                 
                 <div className="p-6 overflow-y-auto">
-                    {/* 리팩토링 : 재고정보 코드가 1단표시, 2단표시 중복 표시 해결*/}                    
+                    {/* [복원] 도서 상세 정보 블록 */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="md:col-span-1 flex justify-center items-start">
+                        <img src={book.cover.replace('coversum', 'cover')} alt={book.title} className="w-48 h-auto object-cover rounded-lg shadow-lg" />
+                        </div>
+                        <div className="md:col-span-2 text-secondary">
+                        <h3 className="text-2xl font-bold text-primary mb-2">{book.title}</h3>
+                        <p className="text-lg text-secondary mb-1">
+                            <strong>저자:</strong>{' '}
+                            <AuthorButtons
+                            authorString={book.author}
+                            onAuthorClick={handleAuthorClick}
+                            className="text-blue-400 hover:text-blue-300 hover:underline cursor-pointer transition-colors"
+                            />
+                        </p>
+                        <p className="text-md text-tertiary mb-1"><strong>출판사:</strong> {book.publisher}</p>
+                        <p className="text-md text-tertiary mb-1"><strong>출간일:</strong> {book.pubDate}</p>
+                        <p className="text-md text-tertiary mb-1"><strong>ISBN:</strong> {book.isbn13}</p>
+                        {book.subInfo?.ebookList?.[0]?.isbn13 && (
+                            <p className="text-md text-tertiary mb-4"><strong>ISBN:</strong> {book.subInfo.ebookList[0].isbn13} (전자책)</p>
+                        )}
+                        
+                        <div className="flex items-baseline mb-4">
+                            <p className="text-2xl font-bold text-blue-400">{book.priceSales.toLocaleString()}원</p>
+                            <p className="text-md text-tertiary line-through ml-3">{book.priceStandard.toLocaleString()}원</p>
+                        </div>
+
+                        <p className="text-sm text-tertiary leading-relaxed mb-6 line-clamp-4">{book.description || "제공된 설명이 없습니다."}</p>
+                        
+                        <div className="flex flex-wrap gap-4">
+                            <a
+                            href={book.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors duration-300"
+                            >
+                            <BookOpenIcon className="w-5 h-5" />
+                            알라딘 보기
+                            </a>
+                            <a
+                            href={hasEbookLink || '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => !hasEbookLink && e.preventDefault()}
+                            className={`inline-flex items-center justify-center gap-2 px-5 py-2 bg-sky-500 text-white font-semibold rounded-lg transition-colors duration-300 ${
+                                !hasEbookLink ? 'opacity-50 cursor-not-allowed' : 'hover:bg-sky-600'
+                            }`}
+                            title={!hasEbookLink ? "알라딘에서 제공하는 전자책 정보가 없습니다" : "알라딘에서 전자책 보기"}
+                            >
+                            <BookOpenIcon className="w-5 h-5" />
+                            전자책 보기
+                            </a>
+                        </div>
+                        </div>
+                    </div>
+                
+                    {/* 리팩토링 : 재고정보 1단표시, 2단표시 중복 해결*/}                    
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-secondary rounded-lg p-6">
                         
                         {/* 왼쪽 컬럼: 일반 정보 (별점, 태그 등) */}
