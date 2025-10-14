@@ -49,7 +49,13 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book }) => {
         setValue(book.customSearchTitle || '');
     }, [book.customSearchTitle]);
 
-    const handleEdit = () => setIsEditing(true);
+    const handleEdit = () => {
+        // 편집 시작 시, input의 초기값을 설정
+        // 커스텀 검색어가 있으면 그것을, 없으면 기본 검색어를 사용
+        setValue(book.customSearchTitle || createSearchSubject(book.title));
+        setIsEditing(true);
+    };
+    
     const handleCancel = () => {
         setValue(book.customSearchTitle || '');
         setIsEditing(false);
