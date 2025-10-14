@@ -153,67 +153,6 @@ function debugLog(message: string, data?: any) {
   }
 }
 
-// /**
-//  * 전자책 검색용 책 제목 처리 함수
-//  * 특수문자를 공백으로 변경 후 3개 chunk로 제한
-//  * @param title - 원본 제목
-//  * @returns 처리된 제목 (최대 3개 chunk)
-//  */
-// export function processBookTitle(title: string): string {
-//   // 특수문자를 공백으로 변경
-//   const processedTitle = title.replace(/[^\w\s가-힣]/g, ' ');
-  
-//   // 공백으로 분리하고 빈 문자열 제거
-//   const chunks = processedTitle.split(' ').filter(chunk => chunk.trim() !== '');
-  
-//   // 3개 이하면 그대로 반환, 3개 초과면 첫 3개만 반환
-//   if (chunks.length <= 3) {
-//     return chunks.join(' ');
-//   }
-  
-//   return chunks.slice(0, 3).join(' ');
-// }
-
-// /**
-//  * 경기도 전자도서관 검색용 책 제목 처리 함수
-//  * 특수문자 발견 시 그 이후 내용 제거, 최대 3단어 제한
-//  * @param title - 원본 제목
-//  * @returns 처리된 제목
-//  */
-// export function processGyeonggiEbookTitle(title: string): string {
-//   // 특수문자 목록 (쉼표, 하이픈, 콜론, 세미콜론, 괄호 등)
-//   const specialChars = /[,\-:;()[\]{}]/;
-  
-//   // 특수문자가 있으면 그 위치까지만 추출
-//   let processedTitle = title;
-//   const match = title.search(specialChars);
-//   if (match !== -1) {
-//     processedTitle = title.substring(0, match).trim();
-//   }
-  
-//   // 공백으로 분리하고 빈 문자열 제거
-//   const words = processedTitle.split(' ').filter(word => word.trim() !== '');
-  
-//   // 최대 3단어까지만 사용
-//   return words.slice(0, 3).join(' ');
-// }
-
-// /** 1차 개선 (2025.10.10) (경기교육 검색로직 변경)
-// /** 특수문자 제거 후 3단어 (50% 성공) -> 특수문자 포함 3단어or2단어(90%)
-//  * 전자책 검색용 책 제목 처리 함수 (성공률 100% 로직으로 개선)
-//  * 원본 제목에서 띄어쓰기 기준으로 앞 3단어만 사용
-//  * @param title - 원본 제목
-//  * @returns 처리된 제목 (최대 3개 단어)
-//  */
-// export function processBookTitle(title: string): string {
-//   // 1. 원본 제목을 바로 공백으로 분리하고, 혹시 모를 연속 공백 등을 처리
-//   const chunks = title.split(' ').filter(chunk => chunk.trim() !== '');
-  
-//   // 2. 앞에서 3단어만 선택하여 다시 공백으로 합침 -> 2단어로 변경
-//   // return chunks.slice(0, 3).join(' ');
-//   return chunks.slice(0, 2).join(' ');
-// }
-
 
 /** 2차 개선 (2025.10.10)
  * [최종 개선안] 도서관 검색용 제목을 생성하는 통합 함수 (2단계 정제 전략)
@@ -301,28 +240,39 @@ export function createGyeonggiEbookSearchURL(title: string): string {
  * 5-Way 통합 도서관 재고 확인 API 호출
  * @param isbn - 종이책 검색용 ISBN
  * @param title - 전자책 검색용 제목
+ * @param customTitle - (선택) 사용자 지정 검색어
  * @returns Promise<LibraryApiResponse>
  */
-export async function fetchBookAvailability(isbn: string, title: string): Promise<LibraryApiResponse> {
+export async function fetchBookAvailability(
+  isbn: string, 
+  title: string,
+  customTitle?: string // [추가] customTitle 파라미터
+): Promise<LibraryApiResponse> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
-  // 제목을 처리하여 3개 chunk로 제한 (기존 도서관용 - 한글만)
-  // [변경] 변수명 변경: processedTitle -> processedEduTitle
-  // const processedTitle = processBookTitle(title);
-  const processedTitleGyeonggiEdu = processGyeonggiEbookEduTitle(title);
-  
-  // 경기도 전자도서관용 제목 처리 (숫자/영어 포함, 특수문자에서 자름)
-  const ProcessedTitleGyeonggi = processGyeonggiEbookTitle(title);
-  
-  // 시립도서관 전자책용 제목 처리 (동일한 로직 사용)
-  const ProcessedTitleSirip = processSiripEbookTitle(title);
+  // [핵심 수정] customTitle 처리 로직 변경
+  let processedTitleGyeonggiEdu: string;
+  let ProcessedTitleGyeonggi: string;
+  let ProcessedTitleSirip: string;
+
+  if (customTitle) {
+    // customTitle이 존재하면, 가공 없이 그대로 사용
+    processedTitleGyeonggiEdu = customTitle;
+    ProcessedTitleGyeonggi = customTitle;
+    ProcessedTitleSirip = customTitle;
+  } else {
+    // customTitle이 없으면, 기존 방식대로 원본 title을 가공
+    processedTitleGyeonggiEdu = processGyeonggiEbookEduTitle(title);
+    ProcessedTitleGyeonggi = processGyeonggiEbookTitle(title);
+    ProcessedTitleSirip = processSiripEbookTitle(title);
+  }
   
   // 디버그용 로그 추가
   debugLog('제목 처리:', {
     originalTitle: title,
-    // processedTitle: processedTitle,
-    processedEduTitle: processedTitleGyeonggiEdu, // [변경]
+    customTitle: customTitle,
+    processedEduTitle: processedTitleGyeonggiEdu,
     gyeonggiProcessedTitle: ProcessedTitleGyeonggi,
     siripProcessedTitle: ProcessedTitleSirip
   });
@@ -331,8 +281,8 @@ export async function fetchBookAvailability(isbn: string, title: string): Promis
     debugLog(`API 호출 시작 - 엔드포인트: ${API_ENDPOINT}`);
     debugLog('요청 데이터:', {
       isbn: isbn,
-      // title: processedTitle,
-      eduTitle: processedTitleGyeonggiEdu, // [변경]
+      customTitle: customTitle,
+      eduTitle: processedTitleGyeonggiEdu,
       gyeonggiTitle: ProcessedTitleGyeonggi,
       siripTitle: ProcessedTitleSirip
     });
@@ -344,7 +294,7 @@ export async function fetchBookAvailability(isbn: string, title: string): Promis
       },
       body: JSON.stringify({
         isbn: isbn,
-        // title: processedTitle, 
+        customTitle: customTitle, // 커스텀 검색어
         eduTitle: processedTitleGyeonggiEdu, // 경기도 교육청 전자도서관용
         gyeonggiTitle: ProcessedTitleGyeonggi, // 경기도 전자도서관용
         siripTitle: ProcessedTitleSirip, // 시립도서관 전자책용

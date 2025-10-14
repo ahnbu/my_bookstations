@@ -123,6 +123,7 @@ export type BookData = AladdinBookItem & {
   customTags?: string[]; // 태그 ID 배열
   isFavorite: boolean;
   note?: string; // 사용자 메모 (최대 50자)
+  customSearchTitle?: string; // [추가] 커스텀 검색어
 };
 
 // This represents a book object within the application's state, including its database ID.

@@ -161,6 +161,7 @@ interface BookState {
   updateMultipleBookTags: (bookUpdates: Array<{id: number, tagIds: string[]}>) => Promise<void>;
   toggleFavorite: (id: number) => Promise<void>;
   updateBookNote: (id: number, note: string) => Promise<void>;
+  updateCustomSearchTitle: (id: number, title: string) => Promise<void>; // [추가]
   setResetLibraryFilters: (resetFn?: () => void) => void;
   setAuthorFilter: (author: string) => void;
   clearAuthorFilter: () => void;
@@ -583,7 +584,11 @@ export const useBookStore = create<BookState>(
 
         try {
           // 1. 통합 API 호출
-          const result = await fetchBookAvailability(isbn13, title);
+          const result = await fetchBookAvailability(
+            isbn13, 
+            title,
+            originalBook.customSearchTitle // customSearchTitle을 세 번째 인자로 전달
+          );
 
           // 2. UI 상태 즉시 업데이트 (API 결과를 그대로 반영)
           const bookWithLatestApiResult = { ...originalBook };
@@ -917,6 +922,12 @@ export const useBookStore = create<BookState>(
         // 50자 제한 적용
         const trimmedNote = note.trim().slice(0, 50);
         await updateBookInStoreAndDB(id, { note: trimmedNote }, '메모 저장에 실패했습니다.');
+      },
+
+      // [추가] 커스텀 검색어 업데이트 함수
+      updateCustomSearchTitle: async (id, title) => {
+        const trimmedTitle = title.trim();
+        await updateBookInStoreAndDB(id, { customSearchTitle: trimmedTitle }, '커스텀 검색어 저장에 실패했습니다.');
       },
 
       setResetLibraryFilters: (resetFn) => {
