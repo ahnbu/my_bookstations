@@ -245,37 +245,6 @@ export function createLibraryOpenURL(
   }
 }
 
-export function generateLibraryDetailURL(recKey: string, bookKey: string, publishFormCode: string): string {
-  // 퇴촌도서관의 URL 연결 방식을 기타도서관과 동일하게 변경
-  // 안정성을 위해 제목 기반 검색 결과 페이지로 연결
-  
-  // 기타도서관과 동일한 URL 패턴 사용
-  // searchLibraryArr=MN (퇴촌도서관 코드)
-  // 제목 기반 검색으로 안정성 확보
-  const searchURL = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${recKey}`;
-  
-  return searchURL;
-}
-
-
-/**
- * 경기도 전자도서관 검색 URL 생성 
- * (기존) 제목필드 한정 -> (변경) keyword 검색 (매칭확률up)
- * @param title - 검색할 제목
- * @returns 검색 URL
- */
-// export function createGyeonggiEbookSearchURL(title: string): string {
-//   // 제목 처리 로직은 그대로 사용합니다.
-//   const processedTitle = createOptimalSearchTitle(title);
-  
-//   // URL 생성 방식을 더 유연한 'keyword' 파라미터 방식으로 변경합니다.
-//   const baseUrl = "https://ebook.library.kr/search";
-//   const encodedTitle = encodeURIComponent(processedTitle);
-  
-//   // searchType=all, listType=list 등의 파라미터는 유지하여 일관성을 확보합니다.
-//   return `${baseUrl}?OnlyStartWith=false&searchType=all&listType=list&keyword=${encodedTitle}`;
-// }
-
 /**
  * 5-Way 통합 도서관 재고 확인 API 호출
  * @param isbn - 종이책 검색용 ISBN

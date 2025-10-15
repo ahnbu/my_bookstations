@@ -8,10 +8,7 @@ import Spinner from './Spinner';
 import StarRating from './StarRating';
 import CustomTagComponent from './CustomTag';
 import AuthorButtons from './AuthorButtons';
-import { filterGyeonggiEbookByIsbn } from '../utils/isbnMatcher';
 import { 
-  processGyeonggiEbookEduTitle, 
-//   createGyeonggiEbookSearchURL,
   GwangjuPaperResult,
   GwangjuPaperError,
   GyeonggiEbookLibraryResult,

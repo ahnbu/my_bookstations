@@ -5,8 +5,6 @@ import { useBookStore } from '../stores/useBookStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useAuthStore } from '../stores/useAuthStore';
 import { SelectedBook, ReadStatus, StockInfo } from '../types';
-import { generateLibraryDetailURL, isLibraryStockClickable } from '../services/unifiedLibrary.service';
-import StarRating from './StarRating';
 import Spinner from './Spinner';
 import AuthorButtons from './AuthorButtons';
 
@@ -17,67 +15,6 @@ const createSearchSubject = (title: string): string => {
   }
   return chunks.slice(0, 3).join(' ');
 };
-
-const renderStockInfo = (libraryName: string, stock: StockInfo | undefined, bookTitle: string, detailedStockInfo?: any) => {
-    if (!stock) {
-        return <div className="flex justify-between items-center"><span>{libraryName}:</span> <span className="text-tertiary">정보 없음</span></div>;
-    }
-    const { total, available } = stock;
-    const statusColor = available > 0 ? 'text-green-400' : 'text-red-400';
-    const statusText = available > 0 ? '대출가능' : '대출불가';
-    
-    const subject = createSearchSubject(bookTitle);
-    let searchUrl = '';
-    let searchTitle = '';
-    
-    // 퇴촌도서관의 경우 상세 재고 정보에서 URL 파라미터 확인
-    if (libraryName === '퇴촌 도서관' && detailedStockInfo?.gwangju_paper?.availability) {
-        const toechonItem = detailedStockInfo.gwangju_paper.availability.find((item: any) => 
-            item.소장도서관 === '퇴촌도서관' && 
-            item.recKey && 
-            item.bookKey && 
-            item.publishFormCode
-        );
-        
-        if (toechonItem) {
-            searchUrl = generateLibraryDetailURL(toechonItem.recKey, toechonItem.bookKey, toechonItem.publishFormCode);
-            searchTitle = `퇴촌도서관 상세 페이지로 이동`;
-            // console.log('퇴촌도서관 상세 URL 생성:', searchUrl); // 성능 개선을 위해 주석 처리
-        } else {
-            // 파라미터가 없으면 향상된 검색 URL 사용 (제목 + 저자)
-            const authorName = bookTitle.includes(' - ') ? '' : ` ${bookTitle.split(' by ')[1] || ''}`.trim();
-            const enhancedKeyword = authorName ? `${subject} ${authorName}` : subject;
-            searchUrl = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(enhancedKeyword)}`;
-            searchTitle = `퇴촌 도서관에서 '${enhancedKeyword}' 검색`;
-            // console.log('퇴촌도서관 URL 파라미터 없음, 향상된 검색 URL 사용:', enhancedKeyword); // 성능 개선을 위해 주석 처리
-        }
-    } else if (libraryName === '기타 도서관') {
-        searchUrl = `https://lib.gjcity.go.kr/lay1/program/S1T446C461/jnet/resourcessearch/resultList.do?searchType=SIMPLE&searchKey=TITLE&searchLibrary=ALL&searchKeyword=${encodeURIComponent(subject)}`;
-        searchTitle = `광주시립도서관에서 '${subject}' 검색`;
-    }
-
-    return (
-        <div className="flex justify-between items-center">
-            <span>{libraryName}:</span>
-            {searchUrl ? (
-                <a
-                    href={searchUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`font-medium ${statusColor} hover:text-blue-400 hover:underline cursor-pointer transition-colors`}
-                    title={`${searchTitle} - ${statusText} ${available}권, 총 ${total}권 소장`}
-                >
-                    {available} / {total}
-                </a>
-            ) : (
-                <span className={`font-medium ${statusColor}`} title={`${statusText} ${available}권, 총 ${total}권 소장`}>
-                    {available} / {total}
-                </span>
-            )}
-        </div>
-    );
-};
-
 
 const BookDetails: React.FC = () => {
   const {

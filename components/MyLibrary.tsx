@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
-import { SelectedBook, StockInfo, SortKey, ReadStatus, CustomTag } from '../types';
-import { DownloadIcon, TrashIcon, RefreshIcon, CheckIcon, SearchIcon, CloseIcon, HeartIcon, MessageSquareIcon } from './Icons';
+import { SelectedBook, SortKey, ReadStatus, CustomTag } from '../types';
+import { TrashIcon, RefreshIcon, CheckIcon, SearchIcon, CloseIcon, HeartIcon, MessageSquareIcon } from './Icons';
 import Spinner from './Spinner';
 import { useBookStore } from '../stores/useBookStore';
 import { useAuthStore } from '../stores/useAuthStore';
@@ -9,9 +9,8 @@ import StarRating from './StarRating';
 import MyLibraryBookDetailModal from './MyLibraryBookDetailModal';
 import TagFilter from './TagFilter';
 import CustomTagComponent from './CustomTag';
-import { getStatusEmoji, isEBooksEmpty, hasAvailableEBooks, createOptimalSearchTitle, processGyeonggiEbookEduTitle, processGyeonggiEbookTitle, processSiripEbookTitle, generateLibraryDetailURL, isLibraryStockClickable, createLibraryOpenURL} from '../services/unifiedLibrary.service';
+import { createLibraryOpenURL} from '../services/unifiedLibrary.service';
 import { addHomeResetListener } from '../utils/events';
-// import { filterGyeonggiEbookByIsbn, debugIsbnMatching } from '../utils/isbnMatcher'; // 성능 최적화로 사용 안함
 
 // --- START: ReadStatusDropdown 로컬 컴포넌트 추가 ---
 interface CustomReadStatusDropdownProps {
