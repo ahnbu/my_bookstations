@@ -34,7 +34,7 @@ const BookDetails: React.FC = () => {
   // 개발 환경에서만 디버깅 로그 출력
   useEffect(() => {
     if (import.meta.env.DEV) {
-      console.log('BookDetails - selectedBook changed:', selectedBook);
+      // console.log('BookDetails - selectedBook changed:', selectedBook);
     }
   }, [selectedBook]);
   

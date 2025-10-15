@@ -1,8 +1,10 @@
-import { fileURLToPath, URL } from 'url';
-import { defineConfig, loadEnv } from 'vite';
+// vite.config.ts
 
-export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, '.', '');
+import { fileURLToPath, URL } from 'url';
+import { defineConfig, loadEnv, type ConfigEnv } from 'vite';
+
+export default defineConfig(({ mode }: ConfigEnv) => {
+    const env = loadEnv(mode, process.cwd(), '');
     return {
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
@@ -10,20 +12,17 @@ export default defineConfig(({ mode }) => {
       },
       resolve: {
         alias: {
-          '@': fileURLToPath(new URL('.', import.meta.url)),
+          // [핵심 수정] @가 프로젝트 루트('.')를 가리키도록 수정
+          '@': fileURLToPath(new URL('.', import.meta.url))
         }
       },
       server: {
         hmr: {
-          // WebSocket 연결 안정성 향상
-          overlay: false, // 오류 오버레이 비활성화로 DOM 간섭 방지
+          overlay: false,
         },
         proxy: {
-          // '/ttb/api'로 시작하는 요청을 위한 프록시 규칙
           '/ttb/api': {
-            // 실제 API 서버 주소
             target: 'http://www.aladin.co.kr',
-            // CORS 문제를 피하기 위해 origin을 변경
             changeOrigin: true,
           },
         },

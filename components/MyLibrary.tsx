@@ -9,8 +9,16 @@ import StarRating from './StarRating';
 import MyLibraryBookDetailModal from './MyLibraryBookDetailModal';
 import TagFilter from './TagFilter';
 import CustomTagComponent from './CustomTag';
-import { createLibraryOpenURL} from '../services/unifiedLibrary.service';
 import { addHomeResetListener } from '../utils/events';
+// [핵심 수정] import 문 정리
+import { 
+    createLibraryOpenURL,
+    processGyeonggiEbookEduTitle, // createOptimalSearchTitle 대신 이 함수를 import
+    type LibraryName // type 키워드를 사용하여 타입 전용 import임을 명시
+} from '../services/unifiedLibrary.service';
+
+// [핵심 수정] createSearchSubject 정의 변경
+const createSearchSubject = processGyeonggiEbookEduTitle;
 
 // --- START: ReadStatusDropdown 로컬 컴포넌트 추가 ---
 interface CustomReadStatusDropdownProps {

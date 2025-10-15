@@ -1,38 +1,27 @@
+// tsconfig.json
+
 {
+  "references": [{ "path": "./tsconfig.node.json" }],
   "compilerOptions": {
     "target": "ES2022",
-    "experimentalDecorators": true,
     "useDefineForClassFields": false,
     "module": "ESNext",
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     "moduleResolution": "bundler",
-    "isolatedModules": true,
-    "moduleDetection": "force",
-    "allowJs": true,
-    "jsx": "react-jsx",
-    "paths": {
-      "@/*": [
-        "./*"
-      ]
-    },
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    
+    /* [핵심 수정] 경로 별칭(@)이 프로젝트 루트를 가리키도록 설정 */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "library-checker",
-    "docs",
-    "utils/__tests__",
-    "api"
-  ]
+  /* [핵심 수정] include 범위를 프로젝트 전체로 설정 */
+  "include": ["**/*.ts", "**/*.tsx", "vite-env.d.ts"],
+  "exclude": ["node_modules", "dist", "library-checker", "api"]
 }

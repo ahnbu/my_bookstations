@@ -1,11 +1,13 @@
 import { create } from 'zustand';
+// [개선] 타입을 별도로 빼서 재사용하면 더 좋습니다.
+export type NotificationType = 'success' | 'error' | 'warning' | 'info';
 
 interface UIState {
   // Global loading states
   isLoading: boolean;
 
   // Notification state
-  notification: { message: string; type: 'success' | 'error' | 'warning' } | null;
+  notification: { message: string; type: NotificationType } | null;
 
   // Modal states
   isBookSearchListModalOpen: boolean;
@@ -35,7 +37,7 @@ interface UIState {
 
   // Actions
   setIsLoading: (isLoading: boolean) => void;
-  setNotification: (notification: { message: string; type: 'success' | 'error' | 'warning' } | null) => void;
+  setNotification: (notification: { message: string; type: NotificationType } | null) => void;
   
   openBookSearchListModal: () => void;
   closeBookSearchListModal: () => void;

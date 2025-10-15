@@ -1,0 +1,18 @@
+// tsconfig.node.json
+
+{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    
+    /* [추가] vite.config.ts 내에서 @ 경로를 사용하기 위한 설정 */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["vite.config.ts"]
+}
