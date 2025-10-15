@@ -664,11 +664,16 @@ const SettingsModal: React.FC = () => {
                           <button
                             key={color.value}
                             onClick={() => setNewTagColor(color.value)}
-                            className={`px-3 py-1 text-xs font-semibold rounded-md border ${color.class} ${
+                            className={`px-3 py-1 text-xs font-semibold rounded-md border ${color.class} transition-opacity focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
                               newTagColor === color.value
-                                ? 'ring-2 ring-ring ring-offset-2'
+                                ? '' // 선택 시 full opacity (ring 제거)
                                 : 'opacity-70 hover:opacity-100'
                             }`}
+                            // className={`px-3 py-1 text-xs font-semibold rounded-md border ${color.class} ${
+                            //   newTagColor === color.value
+                            //     ? 'ring-2 ring-ring ring-offset-2'
+                            //     : 'opacity-70 hover:opacity-100'
+                            // }`}
                             title={color.label}
                           >
                             {color.label}
@@ -888,12 +893,19 @@ const SettingsModal: React.FC = () => {
                       <button
                         key={color.value}
                         onClick={() => handleUpdateTag(editingTag.id, { color: color.value })}
-                        className={`px-3 py-1 text-xs font-semibold rounded-md border ${color.class} ${
+                        className={`px-3 py-1 text-xs font-semibold rounded-md border ${color.class} transition-opacity focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
                           editingTag.color === color.value
-                            ? 'ring-2 ring-ring ring-offset-2'
+                            ? '' // 선택 시 full opacity (ring 제거)
                             : 'opacity-70 hover:opacity-100'
                         }`}
                         title={color.label}
+                      //   onClick={() => handleUpdateTag(editingTag.id, { color: color.value })}
+                      //   className={`px-3 py-1 text-xs font-semibold rounded-md border ${color.class} ${
+                      //     editingTag.color === color.value
+                      //       ? 'ring-2 ring-ring ring-offset-2'
+                      //       : 'opacity-70 hover:opacity-100'
+                      //   }`}
+                      //   title={color.label}
                       >
                         {color.label}
                       </button>
