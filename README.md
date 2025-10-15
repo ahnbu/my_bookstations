@@ -9,6 +9,173 @@
 ![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
 ![Zustand](https://img.shields.io/badge/Zustand-000000?style=flat-square&logo=zustand&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white)
+![Cloudflare Workers](https://img.shields.io/badge/Cloudflare_Workers-F38020?style=flat-square&logo=cloudflare&logoColor=white)
+
+## 🎯 서비스 목표
+
+- **원스톱 도서 서비스**: 검색부터 재고 확인, 개인 관리까지 한 곳에서
+- **실시간 재고 확인**: 여러 도서관의 재고 상태를 동시에 확인
+- **개인화된 서재 관리**: 독서 상태, 별점, 태그, 즐겨찾기 등 체계적인 도서 관리
+- **편리한 접근성**: 직관적인 UI/UX로 누구나 쉽게 사용
+
+## ✨ 주요 기능
+
+### 📖 도서 검색
+- **알라딘 API 연동**: 제목, 저자, 출판사별 검색 및 페이지네이션 지원
+- **검색 결과 필터링**: '[세트]'로 시작하는 도서를 자동으로 제외하여 검색 결과의 정확성 향상
+- **상세 정보 제공**: 도서 정보, 가격, ISBN, 전자책 유무, 알라딘 구매 링크 등 상세 정보 표시
+- **키워드 통합 검색**: 단일 키워드로 여러 도서관의 소장 자료를 한 번에 검색하는 기능
+
+### 📍 통합 도서 재고 확인
+- **실시간 통합 조회**: 종이책(광주 시립도서관), 전자책(경기도 교육청 통합 도서관), 전자책(광주 시립도서관 구독형), 전자책(경기도 전자도서관 API) 재고를 한 번의 요청으로 동시에 확인
+- **커스텀 검색어**: 기본 검색어로 조회가 어려운 도서의 경우, 사용자가 직접 검색어를 지정하여 조회 정확도 향상
+- **정확도 높은 재고**: ISBN 필터링(경기도 전자도서관), "정보 없음" 데이터 제외(광주 시립) 등 정확한 정보 제공
+- **도서관 바로가기**: 재고 확인 셀 클릭 시, 해당 도서관의 도서 검색 결과 페이지로 바로 이동
+- **재고 새로고침**: 클릭 한 번으로 최신 재고 상태 업데이트
+
+#### 연동 도서관 목록
+- **종이책**: 광주 중앙, 송정, 오포, 퇴촌 도서관 및 기타 시립도서관
+- **전자책**: 경기도 교육청 통합전자도서관, 성남교육도서관
+- **전자책**: 광주 시립도서관 구독형(교보문고) 및 소장형
+- **전자책**: 경기도 전자도서관 (소장형+구독형 통합)
+
+### 👤 개인 서재 관리
+- **내 서재**: 관심 도서를 개인 서재에 저장 및 관리
+- **독서 기록**: 읽음 상태(읽지 않음/읽는 중/완독) 및 별점(1-5점) 기록
+- **🏷️ 커스텀 태그**: 사용자 정의 태그 생성/편집/삭제 및 태그 기반 필터링
+- **❤️ 좋아하는 책**: 하트 아이콘으로 즐겨찾기 표시 및 필터링
+- **📝 한 줄 메모**: 책별로 최대 50자의 간단한 메모 기록 및 수정
+- **🔍 서버 기반 검색**: 페이지네이션과 무관하게 DB 전체를 대상으로 제목, 저자별 실시간 검색
+- **다양한 정렬**: 추가순, 제목순, 저자순, 출간일순, 별점순, 읽음순 정렬
+- **⚡ 페이지네이션**: 사용자 설정(25/50/100/200권)에 따라 초기 데이터를 부분 로딩하여 렌더링 성능 95% 개선
+- **대량 작업**: 여러 책을 선택하여 태그 일괄 변경, 삭제 등 대량 작업 지원
+- **일괄 재고 갱신**: 내 서재의 모든 책 재고 정보를 한 번에 업데이트 (일시정지/재개/취소 가능)
+- **데이터 내보내기**: 서재 데이터를 CSV 파일로 내보내기 (파일명에 날짜 자동 포함)
+
+### ⚙️ 맞춤 설정 시스템
+- **표시 옵션**: 독서 상태, 별점, 태그, 메모, 도서관 재고, 좋아요 아이콘 표시 여부 설정
+- **🌙 테마 시스템**: 다크/라이트/시스템 테마 선택
+- **📱 모바일 최적화**: 반응형 디자인으로 모든 기기에서 최적화된 경험 제공
+- **기본값 설정**: 관리자를 통한 신규 사용자 기본 설정값 관리
+
+### 🔐 사용자 인증 및 계정 관리
+- **Google 소셜 로그인**: 간편한 Google 계정 연동
+- **이메일 회원가입/로그인**: 이메일과 비밀번호를 통한 인증
+- **계정 관리**: 비밀번호 변경, 프로필 관리
+- **안전한 회원탈퇴**: 2단계 확인 절차를 통한 계정 삭제 (Supabase Admin API 연동)
+
+### 💬 사용자 피드백 시스템
+- **의견 보내기**: 프로필 메뉴에서 간편한 피드백 전송
+- **보안 강화**: Supabase Edge Function을 통해 안전하게 피드백 처리
+
+### 👨‍💼 관리자 기능
+- **관리자 전용 페이지**: 이메일 기반 권한 관리 시스템
+- **주요 기능**: 대량 도서 조회, API 테스트 도구, 개발 노트, 신규 사용자 기본값 설정 등
+
+## 🏗️ 기술 스택
+
+### Frontend
+- **React 19** & **TypeScript**
+- **Vite**: 빠른 개발 서버 및 빌드
+- **Tailwind CSS**: 유틸리티 우선 CSS 프레임워크
+- **Lucide React**: 일관성 있는 아이콘 시스템
+
+### State Management
+- **Zustand**: 경량 상태 관리 (인증, 도서, UI, 설정별 분리)
+
+### Backend & Database
+- **Supabase**: PostgreSQL 데이터베이스, 인증, 실시간 동기화
+- **Supabase Edge Functions**: 서버리스 로직 (피드백 처리)
+- **Cloudflare Workers**: 도서관 재고 크롤링 및 키워드 검색 API
+- **Vercel Serverless Functions**: Aladin API 프록시 처리
+
+### Data Validation
+- **Zod**: 런타임 타입 검증으로 외부 API 응답 안정성 확보
+
+## 🚀 빠른 시작
+
+### 필수 조건
+- Node.js 18 이상
+- Git
+
+### 설치 및 실행
+1.  **저장소 클론**
+    ```bash
+    git clone <repository-url>
+    cd my_bookstation
+    ```
+2.  **의존성 설치**
+    ```bash
+    npm install
+    ```
+3.  **환경 변수 설정** (`.env.local` 파일 생성)
+    ```bash
+    VITE_SUPABASE_URL=your_supabase_url
+    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+    VITE_ALADIN_TTB_KEY=your_aladin_ttb_key
+    ```
+4.  **개발 서버 실행**
+    ```bash
+    npm run dev
+    ```
+5.  **브라우저에서 확인**: `http://localhost:5173`
+
+## 🚀 최신 기술적 개선사항
+
+### 커스텀 검색어 및 URL 중앙화 (2025-10-14)
+- **🎯 조회 정확도 향상**: 사용자가 직접 도서관 검색어를 지정하는 '커스텀 검색어' 기능 추가.
+- **🛠️ 유지보수성 개선**: 여러 컴포넌트에 흩어져 있던 도서관 바로가기 URL 생성 로직을 `createLibraryOpenURL` 단일 함수로 중앙화하여 일관성 확보 및 버그 수정.
+- **🐛 버그 해결**: 커스텀 검색어가 바로가기 URL에 반영되지 않던 문제를 해결하여 API 호출과 사용자 경험 일치.
+
+### 상세 모달 안정성 강화 (2025-10-14)
+- **🔄 실시간 데이터 동기화**: 상세 모달이 열린 상태에서 태그, 메모 등을 수정해도 UI가 즉시 업데이트되도록 상태 동기화 로직 추가.
+- **🔧 타입 안정성 확보**: TypeScript 타입 불일치 및 안전하지 않은 타입 단언 문제를 해결하여 코드 신뢰성 향상.
+
+### API 에러 처리 UX 개선 (2025-10-14)
+- **💡 직관적 피드백**: 재고 조회 실패 시 `(에러)` 텍스트 대신 상태 점(dot)을 빨간색으로 변경하여 시각적 피로도 감소.
+- **ℹ️ 정보 보존**: API 실패 시에도 과거 재고 데이터를 함께 표시하여 사용자에게 더 풍부한 정보 제공.
+
+### 관리자 시스템 및 계정 관리 (2025-09-15)
+- **관리자 권한 시스템**: 이메일 기반의 안전한 관리자 권한 부여.
+- **회원탈퇴 기능**: Supabase Admin API를 연동한 2단계 확인 절차로 안전성 강화.
+- **Race Condition 버그 수정**: 사용자 설정 생성 시 발생하던 동시성 문제를 해결하여 안정성 확보.
+
+### 사용자 피드백 시스템 (2025-09-15)
+- **Supabase Edge Function 연동**: 서버리스 백엔드로 안전하고 확장성 있게 피드백 처리.
+- **보안 강화**: 민감한 정보를 환경변수로 분리하여 GitHub 노출 방지.
+
+### 페이지네이션 및 성능 최적화 (2025-09-15)
+- **95% 렌더링 성능 향상**: 초기 로딩 시 사용자 설정에 따라 데이터 일부만 표시.
+- **사용자 경험 개선**: '전체 보기' 버튼으로 필요시 모든 데이터를 볼 수 있는 유연성 제공.
+
+## 🔗 관련 문서
+
+- **[개발 가이드](docs/DEVELOPMENT.md)** - 개발환경 설정, 아키텍처, 기술 상세 정보
+- **[변경 내역](docs/changelog.md)** - 버전별 업데이트 기록
+
+## 🤝 기여하기
+
+프로젝트에 기여하고 싶으시다면 이슈를 통해 버그 리포트나 기능 제안을 해주시거나, Pull Request를 통해 코드 기여를 해주세요.
+
+## 📄 라이선스
+
+이 프로젝트는 MIT 라이선스 하에 배포됩니다.
+
+---
+**made by planninghighway 2025**
+<!-- 
+# 📚 마이북스테이션 (My BookStation) 
+
+**도서 검색 및 도서관 재고 확인 서비스**
+
+알라딘 API와 연동하여 도서를 검색하고, 여러 도서관의 재고 현황을 실시간으로 확인할 수 있는 웹 애플리케이션입니다. 개인 서재 관리 기능을 통해 관심 도서를 체계적으로 관리할 수 있습니다.
+
+![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
+![Zustand](https://img.shields.io/badge/Zustand-000000?style=flat-square&logo=zustand&logoColor=white)
 
 ## 🎯 서비스 목표
 
@@ -363,3 +530,5 @@ const headers = {
 - 📊 **ISBN 필터링으로 재고 정확도 75% 향상**
 - 🛠️ **Race Condition 버그 완전 해결**
 - 🚀 **Vercel Serverless Function으로 API 프록시 안정화**
+
+-->

@@ -2,1002 +2,287 @@
 
 마이북스테이션 프로젝트의 개발자를 위한 기술 문서입니다.
 
-## 🎯 제품 요구사항 (Product Requirements)
-
-### 서비스 비전
-마이북스테이션은 도서 검색부터 재고 확인, 개인 서재 관리까지 원스톱으로 제공하는 통합 도서 서비스입니다.
-
-### 핵심 비즈니스 요구사항
-1. **통합 검색**: 알라딘 API를 통한 전국 도서 검색
-2. **실시간 재고**: 여러 도서관 재고 상태 동시 확인
-3. **개인 서재**: 사용자별 도서 관리 및 독서 기록
-4. **접근성**: 직관적 UI/UX로 모든 사용자 지원
-
-### 기능 우선순위
-- **P0 (필수)**: 도서 검색, 재고 확인, 사용자 인증
-- **P1 (중요)**: 개인 서재, 독서 상태 관리
-- **P2 (개선)**: CSV 내보내기, 고급 정렬 옵션
-
 ## 🏗️ 시스템 아키텍처
 
 ### 전체 아키텍처 개요
 ```mermaid
-graph TB
-    subgraph "Frontend (React)"
-        A[React Components] --> B[Zustand Store]
+graph TD
+    subgraph "User Interface (React + Vite)"
+        A[React Components] --> B[Zustand Stores]
         B --> C[Service Layer]
     end
-    
+
+    subgraph "Backend Services"
+        F[Supabase]
+        G[Cloudflare Workers]
+        H[Vercel Serverless]
+        I[Supabase Edge Functions]
+    end
+
     subgraph "External APIs"
         D[Aladin API]
-        E[Library APIs]
+        E[Library Crawling Targets]
     end
-    
-    subgraph "Backend Services"
-        F[Supabase Auth/DB]
-        G[Cloudflare Workers]
-    end
-    
-    C --> D
-    C --> E
-    C --> F
-    C --> G
+
+    C -- "DB/Auth/Realtime" --> F
+    C -- "Stock Check API" --> G
+    C -- "Aladin Proxy" --> H
+    C -- "Feedback" --> I
+
+    H -- "REST API" --> D
+    G -- "HTML Crawling" --> E
 ```
 
 ### 프론트엔드 아키텍처
-```
-┌─────────────────────────────────────────────────┐
-│                 React Components                │
-├─────────────────────────────────────────────────┤
-│          Zustand State Management               │
-│  ┌─────────────┬─────────────┬─────────────┐    │
-│  │ useUIStore  │useAuthStore │useBookStore │    │
-│  └─────────────┴─────────────┴─────────────┘    │
-├─────────────────────────────────────────────────┤
-│                Service Layer                    │
-│  ┌─────────────────┬─────────────────────────┐  │
-│  │ aladin.service  │ unifiedLibrary.service  │  │
-│  └─────────────────┴─────────────────────────┘  │
-├─────────────────────────────────────────────────┤
-│              External APIs                      │
-│  ┌─────────────────┬─────────────────────────┐  │
-│  │ Aladin API      │ Library Stock API       │  │
-│  └─────────────────┴─────────────────────────┘  │
-└─────────────────────────────────────────────────┘
-```
-
-### 상태 관리 의존성 구조
-```
-useUIStore (기본 UI 상태)
-    ↑
-useAuthStore (인증 상태)
-    ↑  
-useBookStore (비즈니스 로직)
-```
+- **컴포넌트**: UI를 구성하는 재사용 가능한 블록 (`/components`)
+- **상태 관리 (Zustand)**: 전역 상태를 관리하는 훅 기반 스토어 (`/stores`)
+  - `useAuthStore`: 사용자 인증 및 세션 관리
+  - `useUIStore`: 모달, 알림 등 UI 상태 관리
+  - `useBookStore`: 도서 데이터, 내 서재, API 연동 등 핵심 비즈니스 로직
+  - `useSettingsStore`: 사용자 맞춤 설정 관리
+- **서비스 계층**: 외부 API와의 통신을 담당하는 모듈 (`/services`)
+  - `aladin.service.ts`: Vercel 프록시를 통해 알라딘 API 호출
+  - `unifiedLibrary.service.ts`: Cloudflare Worker로 통합된 도서관 재고 API 호출, 도서관 링크 생성 담당
+  - `feedback.service.ts`: Supabase Edge Function으로 피드백 전송
 
 ## 📁 프로젝트 구조
 
 ```
 my_bookstation/
+├── api/                     # Vercel Serverless Functions (Aladin 프록시)
+│   └── search.ts
 ├── components/              # React 컴포넌트
-│   ├── layout/             # 레이아웃 관련 컴포넌트
-│   │   ├── Header.tsx      # 상단 헤더 (로그인/로그아웃)
-│   │   └── Footer.tsx      # 하단 푸터
-│   ├── Auth.tsx            # 인증 폼
-│   ├── AuthModal.tsx       # 인증 모달
-│   ├── BookModal.tsx       # 도서 검색 결과 모달
-│   ├── BookDetails.tsx     # 선택된 도서 상세 정보
-│   ├── MyLibrary.tsx       # 개인 서재 관리
+│   ├── layout/              # Header, Footer 등 레이아웃
+│   ├── AdminPanel.tsx       # 관리자 전용 기능 모달
+│   ├── BookSearchListModal.tsx # 도서 검색 결과 모달
+│   ├── MyLibrary.tsx        # 개인 서재 (핵심 기능)
 │   ├── MyLibraryBookDetailModal.tsx # 내 서재 상세 정보 모달
-│   ├── LibraryStock.tsx    # 도서관 재고 정보
-│   ├── SearchForm.tsx      # 도서 검색 폼
-│   ├── StarRating.tsx      # 별점 평가 컴포넌트
-│   ├── Notification.tsx    # 알림 메시지
-│   ├── Spinner.tsx         # 로딩 스피너
-│   ├── Icons.tsx           # Lucide React 아이콘 컴포넌트 (일관된 아이콘 시스템)
-│   └── APITest.tsx         # API 테스트 컴포넌트 (개발용)
-├── stores/                 # Zustand 상태 관리
-│   ├── useAuthStore.ts     # 사용자 인증 상태
-│   ├── useBookStore.ts     # 도서 및 서재 관련 상태
-│   └── useUIStore.ts       # UI 상태 (모달, 로딩, 알림)
-├── services/               # API 서비스 계층
-│   ├── aladin.service.ts   # 알라딘 도서 검색 API
-│   └── unifiedLibrary.service.ts  # 통합 도서관 재고 확인 API
-├── lib/                    # 라이브러리 설정
-│   └── supabaseClient.ts   # Supabase 클라이언트 초기화
-├── library-checker/        # Cloudflare Workers 서버 (도서관 재고 확인 API)
-│   └── src/index.js        # Workers 메인 스크립트
-├── temp/                   # 임시 파일 및 테스트 파일 관리
-│   ├── README.md          # temp 폴더 사용 가이드
-│   ├── tests/             # 테스트 관련 파일들
-│   │   ├── title-processing/ # 제목 처리 로직 테스트
-│   │   ├── api-testing/   # API 연동 테스트
-│   │   └── ui-testing/    # UI 관련 테스트
-│   └── screenshots/       # 개발 과정 스크린샷
-└── types.ts                # TypeScript 타입 정의
-├── index.css               # 전역 스타일시트
+│   └── ... (기타 UI 컴포넌트)
+├── library-checker/         # Cloudflare Workers (재고 확인 API)
+│   └── src/index.js
+├── services/                # API 서비스 계층
+│   ├── aladin.service.ts
+│   └── unifiedLibrary.service.ts
+├── stores/                  # Zustand 상태 관리 스토어
+│   ├── useAuthStore.ts
+│   ├── useBookStore.ts
+│   ├── useSettingsStore.ts
+│   └── useUIStore.ts
+├── supabase/                # Supabase 설정 및 Functions
+│   └── functions/
+│       └── send-feedback-email/ # 피드백 처리 Edge Function
+├── utils/                   # 공통 유틸리티 함수
+│   ├── adminCheck.ts        # 관리자 이메일 확인
+│   ├── isbnMatcher.ts       # ISBN 기반 도서 매칭
+│   └── ...
+├── App.tsx                  # 메인 애플리케이션 컴포넌트
+├── types.ts                 # 전역 TypeScript 타입 정의
+└── ... (설정 파일)
 ```
 
 ## 🔧 기술 스택 상세
 
-### Frontend Framework
-- **React 19**: 최신 React 기능 및 훅 활용
-- **TypeScript**: 정적 타입 체킹으로 런타임 에러 방지
-- **Vite**: 빠른 HMR(Hot Module Replacement) 개발 환경
-
-### 상태 관리
-- **Zustand 4.5.4**: 
-  - Redux 대비 간단한 보일러플레이트
-  - TypeScript 완벽 지원
-  - 분리된 스토어로 관심사 분리
-
-### UI/UX
+- **React 19 & TypeScript**: 최신 React 기능 활용 및 정적 타입 체킹
+- **Zustand**: 경량화된 전역 상태 관리
+- **Supabase**: PostgreSQL 데이터베이스, 인증, Row Level Security(RLS)
+- **Cloudflare Workers**: 도서관 재고 크롤링 및 키워드 통합 검색 API 서버
+- **Vercel Serverless Functions**: Aladin API 키 보호를 위한 프록시 서버
+- **Supabase Edge Functions**: 보안이 필요한 서버 사이드 로직 (피드백 이메일 전송)
 - **Tailwind CSS**: 유틸리티 우선 CSS 프레임워크
-- **Lucide React**: 일관된 아이콘 시스템으로 전체 UI 통일
-- **반응형 디자인**: 모바일 및 데스크톱 환경 지원
-- **@tanstack/react-virtual**: 대용량 데이터 가상화 처리 (500-1000권 최적화)
-
-### 데이터 검증
-- **Zod 3**: 
-  - 런타임 타입 검증
-  - 외부 API 응답 안정성 보장
-  - TypeScript 타입 추론 지원
-
-### Backend & Authentication
-- **Supabase**:
-  - PostgreSQL 데이터베이스
-  - 실시간 구독 기능
-  - Row Level Security (RLS)
-  - Google OAuth & 이메일/비밀번호 인증
-
-### 서버리스 백엔드
-- **Cloudflare Workers**:
-  - 도서관 재고 크롤링
-  - CORS 프록시 기능
-  - 실시간 HTML 파싱
-  - Supabase Keep-Alive 스케줄링
+- **Zod**: 런타임 데이터 검증
 
 ## 🚀 개발 환경 설정
 
-### 필수 요구사항
-- **Node.js**: 18.0 이상
-- **npm**: 8.0 이상
-- **Git**: 최신 버전
-
 ### 로컬 개발 설정
-
-1. **저장소 클론**
-   ```bash
-   git clone <repository-url>
-   cd my_bookstation
-   ```
-
-2. **의존성 설치**
-   ```bash
-   npm install
-   ```
-
-3. **환경 변수 설정**
-   
-   `.env.local` 파일 생성:
-   ```bash
-   # Supabase 설정
-   VITE_SUPABASE_URL=https://your-project.supabase.co
-   VITE_SUPABASE_ANON_KEY=your-anon-key
-   
-   # 개발 모드 설정
-   VITE_DEV_MODE=true
-   ```
-
-4. **Cloudflare Workers 설정**
-   
-   `library-checker/.dev.vars` 파일 생성:
-   ```bash
-   # Supabase 연결 정보
-   SUPABASE_URL=https://your-project.supabase.co
-   SUPABASE_ANON_KEY=your-anon-key
-   
-   # 개발 환경 설정
-   ENVIRONMENT=development
-   DEBUG=true
-   ```
-
-5. **개발 서버 실행**
-   ```bash
-   # 메인 애플리케이션 실행
-   npm run dev
-   
-   # Cloudflare Workers 실행 (별도 터미널)
-   cd library-checker
-   npm run dev
-   ```
-
-### Cloudflare Workers 서버 실행
-
-1. **터미널에서 `library-checker` 디렉토리로 이동:**
-   ```bash
-   cd library-checker
-   ```
-
-2. **의존성 설치:**
-   ```bash
-   npm install
-   ```
-
-3. **개발 서버 시작:**
-   ```bash
-   npm run dev
-   # 또는
-   wrangler dev --test-scheduled --port 8787
-   ```
-
-4. **API 테스트:**
-   ```bash
-   # 상태 확인
-   curl -X GET "http://127.0.0.1:8787"
-   
-   # 도서 검색 테스트
-   curl -X POST "http://127.0.0.1:8787" \
-     -H "Content-Type: application/json" \
-     -d '{"isbn": "9788934985822", "title": "아몬드", "gyeonggiTitle": "아몬드"}'
-   ```
-
-## 🧪 테스트 파일 관리
-
-### temp 폴더 사용 지침
-
-프로젝트 개발 중 생성되는 테스트 파일들은 **반드시 `temp` 폴더 내에서 관리**해야 합니다.
-
-#### 📁 temp 폴더 구조
-- `temp/tests/title-processing/` - 제목 처리 로직 테스트
-- `temp/tests/api-testing/` - API 연동 테스트  
-- `temp/tests/ui-testing/` - UI 관련 테스트
-- `temp/screenshots/` - 개발 과정 스크린샷
-
-#### 🔧 테스트 파일 생성 규칙
-1. **위치**: 프로젝트 최상단이 아닌 `temp/tests/` 하위에 생성
-2. **명명**: `test_[기능명]_[날짜].[확장자]` 형식 사용
-3. **정리**: 개발 완료 후 즉시 정리
-4. **백업**: 중요한 실험 결과는 적절한 위치에 백업
-
-#### ⚠️ 주의사항
-- **금지**: 프로젝트 최상단에 테스트 파일 생성
-- **보안**: 민감한 정보 포함 파일은 temp 폴더에도 저장 금지
-- **정리**: 클로드 세션 종료 전 불필요한 파일들 정리
-- **Git**: temp 폴더 대부분 파일은 `.gitignore`에 포함됨
-
-#### 💡 베스트 프랙티스
-1. 테스트 전 `temp/README.md` 가이드라인 확인
-2. 테스트 파일은 해당 기능별 폴더에 분류
-3. 세션 종료 시 또는 기능 개발 완료 시 정리
-4. 장기적으로 필요한 파일만 적절한 위치로 이동
-
-### 디버깅 워크플로우
-1. **문제 정의** → 2. **temp/tests/에 테스트 파일 생성** → 3. **실험 및 검증** → 4. **결과 적용** → 5. **테스트 파일 정리**
+1.  **저장소 클론 및 의존성 설치**
+    ```bash
+    git clone <repository-url>
+    cd my_bookstation
+    npm install
+    ```
+2.  **프론트엔드 환경 변수 설정** (`.env.local` 파일 생성 - Git 제외)
+    ```env
+    VITE_SUPABASE_URL=your_supabase_url
+    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+    VITE_ALADIN_TTB_KEY=your_aladin_ttb_key
+    ```
+3.  **Cloudflare Workers 로컬 실행** (별도 터미널)
+    ```bash
+    cd library-checker
+    npm install
+    npm run dev
+    ```
+    - Worker는 기본적으로 `http://127.0.0.1:8787`에서 실행됩니다.
+4.  **프론트엔드 개발 서버 실행**
+    ```bash
+    npm run dev
+    ```
 
 ## 📊 API 명세
 
-### 알라딘 도서 검색 API
-- **엔드포인트**: `http://www.aladin.co.kr/ttb/api/ItemSearch.aspx`
-- **인증**: TTB Key 필요
-- **응답 형식**: JSON/XML
-- **주요 파라미터**:
-  - `Query`: 검색어
-  - `QueryType`: 검색 유형 (Title, Author, Publisher 등)
-  - `MaxResults`: 최대 결과 수
-  - `output`: 출력 형식 (JSON)
+### 1. Aladin API 프록시 (Vercel Serverless)
+- **엔드포인트**: `/api/search`
+- **역할**: 클라이언트로부터 받은 검색 파라미터를 사용하여 서버 측에서 Aladin API를 호출합니다. 이를 통해 TTB Key를 클라이언트에 노출하지 않습니다.
 
-### 통합 도서관 재고 API (Cloudflare Workers)
-- **로컬**: `http://127.0.0.1:8787`
-- **프로덕션**: `https://library-checker.byungwook-an.workers.dev`
-- **메서드**: POST
-- **요청 형식**:
+### 2. 통합 도서관 재고 API (Cloudflare Workers)
+- **엔드포인트**:
+  - 로컬: `http://127.0.0.1:8787`
+  - 프로덕션: `https://library-checker.byungwook-an.workers.dev`
+- **메서드**: `POST`
+- **요청 본문**:
   ```json
   {
-    "isbn": "9788934985822",
-    "title": "아몬드",
-    "gyeonggiTitle": "아몬드",
-    "siripTitle": "아몬드"
+    "isbn": "9791165211387",      // 종이책 검색용 ISBN
+    "eduTitle": "일 잘하는 사람은", // 경기도 교육청 도서관 검색용 제목
+    "gyeonggiTitle": "일 잘하는 사람은", // 경기도 전자도서관 검색용 제목
+    "siripTitle": "일 잘하는 사람은",    // 광주 시립 전자도서관 검색용 제목
+    "customTitle": "사용자 지정 검색어" // (Optional) 지정 시 위 3개 title 대신 사용
   }
   ```
-- **응답 형식**:
+- **응답 본문 (예시)**:
   ```json
   {
+    "title": "일 잘하는 사람은", // 요청 시 사용된 최종 검색어
+    "isbn": "9791165211387",
     "gwangju_paper": {
-      "book_title": "도서 제목",
-      "availability": [...]
+      "book_title": "일 잘하는 사람은 단순하게 말합니다",
+      "availability": [
+        {
+          "소장도서관": "퇴촌도서관",
+          "청구기호": "325.26-박55일",
+          "대출상태": "대출가능",
+          "반납예정일": "-"
+        },
+        ...
+      ]
     },
-    "gyeonggi_ebook_education": [...],
+    "gyeonggi_ebook_education": [
+      {
+        "소장도서관": "성남도서관",
+        "도서명": "일 잘하는 사람은 알기 쉽게 말한다",
+        "대출상태": "대출가능",
+        ...
+      },
+      ...
+    ],
     "gyeonggi_ebook_library": {
       "library_name": "경기도 전자도서관",
-      "total_count": 1,
-      "available_count": 1,
-      "books": [...]
+      "total_count": 4,
+      "available_count": 4,
+      "owned_count": 2,
+      "subscription_count": 2,
+      "books": [
+        {
+          "title": "일 잘하는 사람은 알기 쉽게 말한다",
+          "type": "소장형",
+          "isLoanable": true,
+          ...
+        },
+        ...
+      ]
     },
     "sirip_ebook": {
-      "library_name": "광주시립중앙도서관-전자책",
-      "total_count": 1,
-      "available_count": 1,
-      "books": [...]
+      "시립도서관_통합_결과": {
+        "library_name": "광주시립중앙도서관-통합",
+        "total_count": 1,
+        "available_count": 1,
+        ...
+      },
+      "details": {
+        "owned": { "total_count": 0, "books": [] },
+        "subscription": {
+          "total_count": 1,
+          "books": [
+            {
+              "type": "구독형",
+              "title": "일 잘하는 사람은 논어에서 배운다",
+              "isAvailable": true,
+              ...
+            }
+          ]
+        }
+      }
     }
   }
   ```
 
-### 제목 처리 로직
-
-#### 기본 도서관용 제목 처리 (processBookTitle)
-```typescript
-function processBookTitle(title: string): string {
-  // 한글 외의 문자를 공백으로 변경
-  const processedTitle = title.replace(/[^가-힣\s]/g, ' ');
-  
-  // 공백으로 분리하고 빈 문자열 제거
-  const chunks = processedTitle.split(' ').filter(chunk => chunk.trim() !== '');
-  
-  // 3개 이하면 그대로 반환, 3개 초과면 첫 3개만 반환
-  return chunks.length <= 3 ? chunks.join(' ') : chunks.slice(0, 3).join(' ');
-}
-```
-
-#### 경기도 전자도서관용 제목 처리 (processGyeonggiEbookTitle)
-```typescript
-function processGyeonggiEbookTitle(title: string): string {
-  // 특수문자 목록 (쉼표, 하이픈, 콜론, 세미콜론, 괄호 등)
-  const specialChars = /[,\-:;()[\]{}]/;
-  
-  // 특수문자가 있으면 그 위치까지만 추출
-  let processedTitle = title;
-  const match = title.search(specialChars);
-  if (match !== -1) {
-    processedTitle = title.substring(0, match).trim();
-  }
-  
-  // 공백으로 분리하고 빈 문자열 제거
-  const words = processedTitle.split(' ').filter(word => word.trim() !== '');
-  
-  // 최대 3단어까지만 사용
-  return words.slice(0, 3).join(' ');
-}
-```
-
-## 📚 도서관별 검색어 처리 시스템
-
-프로젝트에서 관리하는 6개 도서관의 크롤링 및 URL 클릭시 search_term 처리 기준을 상세히 정리합니다.
-
-### 도서관 시스템 개요
-
-| 도서관 | 크롤링 방식 | URL 생성 방식 | 제목 처리 함수 |
-|--------|-------------|---------------|----------------|
-| 퇴촌lib | ISBN 기반 | 제목 기반 | `processBookTitle()` |
-| 기타lib | ISBN 기반 | 제목 기반 | `processBookTitle()` |
-| e북.교육 | 제목 기반 | 제목 기반 | `processBookTitle()` |
-| e북.시독 | 크롤링 없음 | 특수 제목 처리 | 인라인 함수 |
-| e북.시립소장 | 제목 기반 | 특수 제목 처리 | 인라인 함수 |
-| e북.경기 | 제목 기반 | 제목 기반 | `processGyeonggiEbookTitle()` |
-
-### 1. 퇴촌lib (경기도 광주시 퇴촌도서관)
-
-#### 크롤링 처리
-```javascript
-// library-checker/src/index.js
-async function searchGwangjuLibrary(isbn) {
-  const payload = new URLSearchParams({
-    'searchType': 'DETAIL',
-    'searchKey5': 'ISBN',  // ISBN 기반 검색
-    'searchKeyword5': isbn,
-    'searchLibrary': 'ALL'
-  });
-}
-```
-
-#### URL 클릭시 처리
-```typescript
-// components/MyLibrary.tsx
-const subject = createSearchSubject(book.title); // processBookTitle() 호출
-const toechonSearchUrl = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(subject)}`;
-```
-
-**참고**: `generateLibraryDetailURL` 함수는 현재 사용되지 않음
-- **이전**: `recKey`, `bookKey`, `publishFormCode`를 사용한 상세페이지 직접 접근
-- **현재**: 경기도 광주시 퇴촌도서관 웹 방화벽 차단으로 인해 제목 기반 검색으로 대체
-- **함수 위치**: `services/unifiedLibrary.service.ts`
-
-#### 상세페이지 URL 문제점 및 해결방안
-
-**문제 상황**:
-- 경기도 광주시 퇴촌도서관 상세페이지 URL에 직접 접근 시 웹 방화벽에 의해 차단됨
-- 에러 메시지: "The request / response that are contrary to the Web firewall security policies have been blocked"
-
-**문제가 발생한 URL 패턴**:
-```
-https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcedetail/detail.do?recKey=318521578&bookKey=318521581&publishFormCode=BO
-```
-
-**원인 분석**:
-1. **웹 방화벽 정책**: 직접적인 상세페이지 URL 접근을 차단
-2. **URL 구조**: `resourcedetail/detail.do` 경로가 방화벽 정책에 위배
-3. **파라미터 접근**: `recKey`, `bookKey`, `publishFormCode`를 통한 직접 접근 차단
-
-**해결 방안**:
-1. **제목 기반 검색으로 우회**: 상세페이지 대신 검색 결과 페이지를 통해 접근
-2. **안정성 우선**: 정확도보다는 연결 안정성을 우선시
-3. **일관된 처리**: 0(0)인 경우와 동일한 로직으로 모든 상태 처리
-
-**최종 적용된 로직**:
-```typescript
-// 경기도 광주시 퇴촌도서관의 경우 안정성을 위해 제목 기반 검색으로 연결
-// 0(0)인 경우와 동일한 로직 적용
-const toechonSearchUrl = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(subject)}`;
-```
-
-**적용 효과**:
-- **안정성 향상**: 웹 방화벽 차단 없이 안정적으로 연결
-- **일관성**: 모든 경기도 광주시 퇴촌도서관 링크가 동일한 방식으로 처리
-- **사용자 경험**: 검색 결과에서 해당 도서를 쉽게 찾을 수 있음
-
-### 2. 기타lib (경기도 광주시 퇴촌도서관 이외 도서관)
-
-#### 크롤링 처리
-```javascript
-// 경기도 광주시 퇴촌도서관과 동일한 searchGwangjuLibrary() 함수 사용
-// ISBN 기반 검색으로 종이책 재고 확인
-```
-
-#### URL 클릭시 처리
-```typescript
-// components/MyLibrary.tsx
-const subject = createSearchSubject(book.title); // processBookTitle() 호출
-const otherSearchUrl = `https://lib.gjcity.go.kr/lay1/program/S1T446C461/jnet/resourcessearch/resultList.do?searchType=SIMPLE&searchKey=TITLE&searchLibrary=ALL&searchKeyword=${encodeURIComponent(subject)}`;
-```
-
-### 3. e북.교육 (경기도 교육청 전자도서관)
-
-#### 크롤링 처리
-```javascript
-// library-checker/src/index.js
-async function searchGyeonggiEbookEducation(searchText, libraryCode) {
-  const url = new URL("https://lib.goe.go.kr/elib/module/elib/search/index.do");
-  url.searchParams.set("search_text", searchText); // 제목 기반 검색
-  url.searchParams.set("library_code", libraryCode); // "10000004" 또는 "10000009"
-}
-```
-
-#### URL 클릭시 처리
-```typescript
-// components/MyLibraryBookDetailModal.tsx
-href={`https://lib.goe.go.kr/elib/module/elib/search/index.do?menu_idx=94&search_text=${encodeURIComponent(createSearchSubject(book.title))}&sortField=book_pubdt&sortType=desc&rowCount=20`}
-```
-
-### 4. e북.시독 (경기도 광주시 시립 구독형 전자도서관)
-
-#### 크롤링 처리
-- **크롤링 없음**: 별도의 API가 없으므로 크롤링하지 않음
-- 항상 고정값 `1(1)` 표시
-
-#### URL 클릭시 처리
-```typescript
-// components/MyLibrary.tsx
-const renderSidokEbookCell = (book: SelectedBook) => {
-  const titleForSearch = (() => {
-    let titleForSearch = book.title;
-    // 1단계: 하이픈(-) 이후 내용 제거
-    const dashIndex = titleForSearch.indexOf('-');
-    if (dashIndex !== -1) {
-      titleForSearch = titleForSearch.substring(0, dashIndex).trim();
-    }
-    // 2단계: 공백으로 분리하여 최대 3단어만 사용
-    return titleForSearch.split(' ').slice(0, 3).join(' ');
-  })();
-
-  const sidokUrl = `https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent(titleForSearch)}`;
-}
-```
-
-**처리 예시:**
-- 입력: "해리포터와 마법사의 돌- 1권"
-- 1단계: "해리포터와 마법사의 돌" (하이픈 이후 제거)
-- 2단계: "해리포터와 마법사의 돌" (3단어만 사용)
-
-### 5. e북.시립소장 (경기도 광주시 시립 소장형 전자도서관)
-
-#### 크롤링 처리
-```javascript
-// library-checker/src/index.js
-async function searchSiripEbook(searchTitle) {
-  const encodedTitle = encodeURIComponent(searchTitle);
-  const url = `https://lib.gjcity.go.kr:444/elibrary-front/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodedTitle}`;
-  
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+### 3. 키워드 통합 검색 API (Cloudflare Workers)
+- **엔드포인트**: `/keyword-search`
+- **메서드**: `POST`
+- **요청 본문**: `{ "keyword": "검색어" }`
+- **응답 본문**: 연결된 모든 도서관의 검색 결과를 정규화한 평탄화된 배열
+  ```json
+  [
+    {
+      "type": "종이책",
+      "libraryName": "퇴촌",
+      "title": "도서 제목",
+      "author": "저자",
+      "publisher": "출판사",
+      "pubDate": "2024",
+      "isAvailable": true
     },
-    signal: AbortSignal.timeout(20000)
-  });
-  
-  return parseSiripEbookHTML(htmlContent, searchTitle);
-}
-```
-
-#### URL 클릭시 처리
-```typescript
-// components/MyLibrary.tsx - renderSiripEbookCell 함수
-const titleForSearch = (() => {
-  let titleForSearch = book.title;
-  const dashIndex = titleForSearch.indexOf('-');
-  const parenthesisIndex = titleForSearch.indexOf('(');
-  
-  // 대시(-) 또는 괄호시작("(") 중 더 앞에 있는 위치를 찾아서 그 이전까지만 사용
-  let cutIndex = -1;
-  if (dashIndex !== -1 && parenthesisIndex !== -1) {
-    cutIndex = Math.min(dashIndex, parenthesisIndex);
-  } else if (dashIndex !== -1) {
-    cutIndex = dashIndex;
-  } else if (parenthesisIndex !== -1) {
-    cutIndex = parenthesisIndex;
-  }
-  
-  if (cutIndex !== -1) {
-    titleForSearch = titleForSearch.substring(0, cutIndex).trim();
-  }
-  return titleForSearch.split(' ').slice(0, 3).join(' ');
-})();
-
-const siripUrl = `https://lib.gjcity.go.kr:444/elibrary-front/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodeURIComponent(titleForSearch)}`;
-```
-
-**특징:**
-- **항상 클릭 가능**: 조회 실패 또는 검색 결과 없음 시에도 직접 검색 유도
-- **제목 최적화**: 하이픈(-) 또는 괄호(() 이전 내용만 사용하여 검색 정확도 향상
-- **3단어 제한**: 검색 범위를 적절히 조절
-
-**처리 예시:**
-- 입력: "해리포터와 마법사의 돌 - 1권"
-- 1단계: "해리포터와 마법사의 돌" (하이픈 이전까지)
-- 2단계: "해리포터와 마법사의" (3단어로 제한)
-
-### 6. e북.경기 (경기도 전자도서관 : 구독형과 소장형 통합)
-
-#### 크롤링 처리
-```javascript
-// library-checker/src/index.js
-async function searchGyeonggiEbookLibrary(searchText) {
-  // 소장형과 구독형 병렬 검색
-  const [ownedResults, subscriptionResults] = await Promise.allSettled([
-    searchOwnedBooks(searchText),      // 소장형 API
-    searchSubscriptionBooks(searchText) // 구독형 API
-  ]);
-}
-```
-
-#### URL 클릭시 처리
-```typescript
-// services/unifiedLibrary.service.ts
-export function createGyeonggiEbookSearchURL(title: string): string {
-  const processedTitle = processGyeonggiEbookTitle(title);
-  const baseUrl = "https://ebook.library.kr/search";
-  const encodedTitle = encodeURIComponent(processedTitle).replace(/'/g, '%27');
-  const detailQuery = `TITLE:${encodedTitle}:true`;
-  
-  return `${baseUrl}?detailQuery=${detailQuery}&OnlyStartWith=false&searchType=all&listType=list`;
-}
-```
-
-### 검색어 처리 함수 비교
-
-#### processBookTitle() - 한글 전용
-```typescript
-// 퇴촌lib, 기타lib, e북.교육에서 사용
-function processBookTitle(title: string): string {
-  // 한글 외의 문자(영어, 숫자, 특수문자 등)를 공백으로 변경
-  const processedTitle = title.replace(/[^가-힣\s]/g, ' ');
-  
-  // 공백으로 분리하고 빈 문자열 제거
-  const chunks = processedTitle.split(' ').filter(chunk => chunk.trim() !== '');
-  
-  // 3개 이하면 그대로 반환, 3개 초과면 첫 3개만 반환
-  return chunks.length <= 3 ? chunks.join(' ') : chunks.slice(0, 3).join(' ');
-}
-```
-
-#### processGyeonggiEbookTitle() - 특수문자 제거
-```typescript
-// e북.경기에서만 사용
-function processGyeonggiEbookTitle(title: string): string {
-  // 특수문자 목록 (쉼표, 하이픈, 콜론, 세미콜론, 괄호 등)
-  const specialChars = /[,\-:;()[\]{}]/;
-  
-  // 특수문자가 있으면 그 위치까지만 추출
-  let processedTitle = title;
-  const match = title.search(specialChars);
-  if (match !== -1) {
-    processedTitle = title.substring(0, match).trim();
-  }
-  
-  // 공백으로 분리하고 빈 문자열 제거
-  const words = processedTitle.split(' ').filter(word => word.trim() !== '');
-  
-  // 최대 3단어까지만 사용
-  return words.slice(0, 3).join(' ');
-}
-```
-
-#### e북.시독 인라인 처리
-```typescript
-// 하이픈 제거 + 3단어 제한
-const titleForSearch = (() => {
-  let titleForSearch = book.title;
-  const dashIndex = titleForSearch.indexOf('-');
-  if (dashIndex !== -1) {
-    titleForSearch = titleForSearch.substring(0, dashIndex).trim();
-  }
-  return titleForSearch.split(' ').slice(0, 3).join(' ');
-})();
-```
-
-#### e북.시립소장 인라인 처리
-```typescript
-// 하이픈(-) 또는 괄호(() 제거 + 3단어 제한
-const titleForSearch = (() => {
-  let titleForSearch = book.title;
-  const dashIndex = titleForSearch.indexOf('-');
-  const parenthesisIndex = titleForSearch.indexOf('(');
-  
-  let cutIndex = -1;
-  if (dashIndex !== -1 && parenthesisIndex !== -1) {
-    cutIndex = Math.min(dashIndex, parenthesisIndex);
-  } else if (dashIndex !== -1) {
-    cutIndex = dashIndex;
-  } else if (parenthesisIndex !== -1) {
-    cutIndex = parenthesisIndex;
-  }
-  
-  if (cutIndex !== -1) {
-    titleForSearch = titleForSearch.substring(0, cutIndex).trim();
-  }
-  return titleForSearch.split(' ').slice(0, 3).join(' ');
-})();
-```
-
-### URL 패턴 정리
-
-| 도서관 | 기본 URL | 검색 파라미터 | 인코딩 방식 |
-|--------|----------|---------------|-------------|
-| 퇴촌lib | `lib.gjcity.go.kr/tc/lay1/program/...` | `searchKeyword` | `encodeURIComponent()` |
-| 기타lib | `lib.gjcity.go.kr/lay1/program/...` | `searchKeyword` | `encodeURIComponent()` |
-| e북.교육 | `lib.goe.go.kr/elib/module/...` | `search_text` | `encodeURIComponent()` |
-| e북.시독 | `gjcitylib.dkyobobook.co.kr/search/...` | `schTxt` | `encodeURIComponent()` |
-| e북.시립소장 | `lib.gjcity.go.kr:444/elibrary-front/search/...` | `schTxt` | `encodeURIComponent()` |
-| e북.경기 | `ebook.library.kr/search` | `detailQuery=TITLE:...` | `encodeURIComponent() + replace()` |
-
-## 🎯 최신 기능 및 개선사항
-
-### ISBN 필터링 시스템 (2025-01-09)
-
-경기도 전자도서관 검색 결과의 정확도를 높이기 위해 ISBN 기반 필터링 시스템을 구현했습니다.
-
-#### 핵심 로직
-```typescript
-// utils/isbnMatcher.ts
-export function isBookMatched(book: BookData, ebookResult: any): boolean {
-  const paperIsbn = book.isbn13 // 종이책 ISBN
-  const ebookIsbn = book.subInfo?.ebookList?.[0]?.isbn13 // 전자책 ISBN
-  const resultIsbn = ebookResult.isbn // 검색 결과 ISBN
-  
-  // 종이책 또는 전자책 ISBN과 매칭 확인
-  return isIsbnMatch(paperIsbn, resultIsbn) || isIsbnMatch(ebookIsbn, resultIsbn)
-}
-
-export function filterGyeonggiEbookByIsbn(
-  book: BookData, 
-  gyeonggiResult: GyeonggiEbookLibraryResult
-): GyeonggiEbookLibraryResult {
-  // ISBN이 매칭되는 책만 필터링하여 정확한 카운트 제공
-  const matchedBooks = gyeonggiResult.books?.filter(ebookResult => 
-    isBookMatched(book, ebookResult)
-  ) || []
-  
-  return {
-    ...gyeonggiResult,
-    total_count: matchedBooks.length,
-    available_count: matchedBooks.filter(book => book.isLoanable || book.available).length,
-    // ... 기타 카운트 재계산
-    books: matchedBooks
-  }
-}
-```
-
-#### 적용 효과
-- **검색 정확도 개선**: 제목 유사 책들을 제외하고 정확히 일치하는 책만 카운트
-- **예시**: "내 손으로, 시베리아 횡단열차" 검색 시 4(3) → 1(0)으로 정확한 재고 표시
-- **적용 위치**: `MyLibrary.tsx`, `MyLibraryBookDetailModal.tsx`
-
-### 종이책 재고 오류 수정 (2025-01-10)
-
-"정보 없음" 상태의 도서관 재고가 잘못 카운트되는 문제를 해결했습니다.
-
-#### 문제 상황
-```json
-{
-  "gwangju_paper": {
-    "availability": [
-      {
-        "소장도서관": "정보 없음",  // ← 이 값이 otherTotal로 카운트됨
-        "청구기호": "정보 없음",
-        "대출상태": "알 수 없음"
-      }
-    ]
-  }
-}
-```
-
-#### 해결 방안
-```typescript
-// stores/useBookStore.ts
-availability.forEach(item => {
-  // "정보 없음" 케이스 필터링 - 의미있는 도서관 정보가 있는 경우만 카운트
-  const libraryName = item['소장도서관'];
-  if (libraryName === '정보 없음' || libraryName === '알 수 없음' || !libraryName) {
-    return; // 이 항목은 카운트하지 않음
-  }
-  
-  const isToechon = libraryName === '퇴촌도서관';
-  const isAvailable = item['대출상태'] === '대출가능';
-  if (isToechon) { toechonTotal++; if (isAvailable) toechonAvailable++; } 
-  else { otherTotal++; if (isAvailable) otherAvailable++; }
-});
-```
-
-#### 적용 효과
-- **정확한 재고 표시**: 실제 재고가 없는 경우 0(0)으로 정확히 표시
-- **예시**: "네이비씰 균형의 기술" 기타lib 1(0) → 0(0)으로 수정
-
-### 구독형 크롤링 시스템 (2025-01-09)
-
-경기도 전자도서관의 구독형 전자책 크롤링 로직을 안정화했습니다.
-
-#### 핵심 기술적 해결사항
-
-1. **동적 인증 토큰 생성**
-```javascript
-// 한국 표준시(KST) 기준 토큰 생성
-const now = new Date(new Date().getTime() + 9 * 60 * 60 * 1000);
-const timestamp = `${yyyy}${mm}${dd}${hh}${min}`;
-const tokenString = `${timestamp},0000000685`;
-const dynamicToken = Buffer.from(tokenString).toString('base64');
-```
-
-2. **Cloudflare Workers 환경 차이 해결**
-- **로컬 환경**: `Buffer.from().toString('base64')` 사용
-- **Cloudflare Workers**: `btoa()` 내장 함수 사용
-- **헤더 설정**: `token`, `Referer`, `User-Agent` 필수 포함
-
-3. **에러 처리 및 안정성**
-```javascript
-// 간소화된 에러 처리
-if (!response.ok) {
-  console.error('구독형 크롤링 실패:', response.status);
-  return { books: [] };
-}
-```
-
-### API 테스트 개선 (2025-01-10)
-
-개발자 도구의 API 테스트 기능을 대폭 개선했습니다.
-
-#### 주요 개선사항
-
-1. **통합된 검색 시스템**
-   - 기존 `SearchForm` 컴포넌트 재활용
-   - 검색 결과에서 클릭으로 책 선택 가능
-   - 선택된 책으로 자동 API 테스트 실행
-
-2. **통합된 API 결과 표시**
-   - **기존**: 3개 분리된 박스 (종이책, 전자책 교육청, 전자책 경기도)
-   - **개선**: 1개 통합된 박스로 전체 API 응답 표시
-   - 전체 데이터 구조를 한 눈에 파악 가능
-
-3. **복사 기능 추가**
-```typescript
-const copyToClipboard = async (text: string, label: string) => {
-  try {
-    await navigator.clipboard.writeText(text);
-    setCopyFeedback(`${label} 결과 복사 완료!`);
-    setTimeout(() => setCopyFeedback(null), 2000);
-  } catch (err) {
-    setCopyFeedback('복사 실패 - 브라우저가 지원하지 않을 수 있습니다.');
-  }
-};
-```
-
-4. **사용자 피드백 개선**
-   - 인라인 성공/실패 메시지 (기존 `alert()` 팝업 대체)
-   - 2초간 성공 메시지, 3초간 실패 메시지 표시
-
-## 🔒 보안 고려사항
-
-### 환경 변수 관리
-- **개발**: `.env.local` 파일 사용 (Git 제외)
-- **프로덕션**: Vercel/Netlify 환경 변수 설정
-- **Workers**: `.dev.vars` 파일 사용 (Git 제외)
-
-### API 키 보호
-- 클라이언트 사이드에서 민감한 키 노출 금지
-- Cloudflare Workers를 통한 API 프록시
-- Supabase RLS(Row Level Security) 활용
-
-### 사용자 데이터 보호
-- Supabase의 내장 보안 기능 활용
-- 사용자별 데이터 격리
-- HTTPS 강제 사용
-
-## 🐛 트러블슈팅
-
-### 일반적인 문제들
-
-1. **CORS 에러**
-   - 개발 환경: corsproxy.io 사용
-   - 프로덕션 환경: 백엔드 프록시 설정 필요
-
-2. **알라딘 API 응답 지연**
-   - 타임아웃 설정 확인 (30초)
-   - 네트워크 상태 점검
-
-3. **Supabase 연결 에러**
-   - 환경 변수 확인
-   - Row Level Security (RLS) 정책 확인
-
-4. **가상화 테이블 성능 이슈**
-   - 데이터량에 따른 동적 가상화 설정 확인
-   - `estimateSize` 값과 실제 행 높이 일치 여부 검증
-   - `overscan` 값 조정으로 스크롤 성능 최적화
-
-5. **Cloudflare Workers 디버깅**
-   ```bash
-   # 실시간 로그 확인
-   wrangler tail
-   
-   # 로컬 디버깅
-   wrangler dev --test-scheduled --port 8787
-   ```
-
-6. **경기도 광주시 퇴촌도서관 상세페이지 웹 방화벽 차단**
-   - **증상**: 상세페이지 URL 접근 시 "Web firewall security policies have been blocked" 에러
-   - **원인**: `resourcedetail/detail.do` 경로에 대한 직접 접근 차단
-   - **해결**: 제목 기반 검색 결과 페이지로 우회 접근
-   - **적용**: `generateLibraryDetailURL` 함수 대신 `toechonSearchUrl` 사용
-
-   **상세 문제 분석**:
-   
-   **문제가 발생한 URL 패턴**:
-   ```
-   https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcedetail/detail.do?recKey=318521578&bookKey=318521581&publishFormCode=BO
-   ```
-   
-   **원인 분석**:
-   1. **웹 방화벽 정책**: 직접적인 상세페이지 URL 접근을 차단
-   2. **URL 구조**: `resourcedetail/detail.do` 경로가 방화벽 정책에 위배
-   3. **파라미터 접근**: `recKey`, `bookKey`, `publishFormCode`를 통한 직접 접근 차단
-   4. **보안 정책**: 도서관 시스템의 보안 강화로 인한 외부 직접 접근 제한
-   
-   **기존 구현 방식**:
-   ```typescript
-   // services/unifiedLibrary.service.ts (사용되지 않는 함수)
-   export function generateLibraryDetailURL(
-     recKey: string, 
-     bookKey: string, 
-     publishFormCode: string
-   ): string {
-     return `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcedetail/detail.do?recKey=${recKey}&bookKey=${bookKey}&publishFormCode=${publishFormCode}`;
-   }
-   ```
-   
-   **해결 방안**:
-   1. **제목 기반 검색으로 우회**: 상세페이지 대신 검색 결과 페이지를 통해 접근
-   2. **안정성 우선**: 정확도보다는 연결 안정성을 우선시
-   3. **일관된 처리**: 0(0)인 경우와 동일한 로직으로 모든 상태 처리
-   4. **사용자 경험 개선**: 검색 결과에서 해당 도서를 쉽게 찾을 수 있도록 안내
-   
-   **최종 적용된 로직**:
-   ```typescript
-   // components/MyLibrary.tsx
-   const subject = createSearchSubject(book.title); // processBookTitle() 호출
-   const toechonSearchUrl = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(subject)}`;
-   ```
-   
-   **적용 효과**:
-   - **안정성 향상**: 웹 방화벽 차단 없이 안정적으로 연결
-   - **일관성**: 모든 경기도 광주시 퇴촌도서관 링크가 동일한 방식으로 처리
-   - **사용자 경험**: 검색 결과에서 해당 도서를 쉽게 찾을 수 있음
-   - **유지보수성**: 복잡한 URL 파라미터 관리 불필요
-   
-   **향후 개선 방향**:
-   1. **도서관 API 연동**: 공식 API가 제공될 경우 상세페이지 직접 접근 방식 재검토
-   2. **캐싱 시스템**: 자주 검색되는 도서에 대한 검색 결과 캐싱 고려
-   3. **사용자 피드백**: 검색 결과에서 원하는 도서를 찾기 어려운 경우 개선 방안 모색
-
-### 성능 최적화
-
-1. **번들 크기 최적화**
-   ```bash
-   # 번들 분석
-   npm run build
-   npm run analyze
-   ```
-
-2. **가상화 설정 최적화**
-   - 대용량 데이터 처리 시 `@tanstack/react-virtual` 사용
-   - 적절한 `overscan` 값 설정
-
-3. **API 응답 캐싱**
-   - 브라우저 캐시 활용
-   - 적절한 Cache-Control 헤더 설정
-
-### 디버깅 도구
-- **React Developer Tools**: 컴포넌트 상태 확인
-- **Browser DevTools**: 네트워크 요청 모니터링
-- **Zustand DevTools**: 상태 변화 추적
-- **Wrangler Tail**: Cloudflare Workers 로그 실시간 확인
-
-## 🚀 배포
-
-### 프론트엔드 배포 (Vercel)
-1. **Vercel 프로젝트 생성**
-2. **환경 변수 설정**
-3. **자동 배포 설정**
-
-### Cloudflare Workers 배포
-```bash
-cd library-checker
-npm run deploy
-```
-
-### 환경별 설정
-- **개발**: 로컬 개발 서버
-- **스테이징**: 테스트용 배포 환경
-- **프로덕션**: 실제 서비스 환경
-
-## 📋 코딩 컨벤션
-
-### TypeScript 규칙
-- 모든 함수와 변수에 타입 명시
-- `interface` 사용 권장 (`type` 대신)
-- Enum보다는 Union Type 사용
-
-### React 컨벤션
-- 함수형 컴포넌트 사용
-- Custom Hook 활용으로 로직 분리
-- Props는 interface로 정의
-
-### 파일 구조 규칙
-- 컴포넌트는 PascalCase
-- 서비스 파일은 camelCase.service.ts
-- 타입 정의는 별도 파일로 분리
-
-### UI/UX 컨벤션
-- **아이콘 시스템**: `components/Icons.tsx`에서 통일된 Lucide React 아이콘 사용
-- **아이콘 사용법**: 직접 Lucide import 금지, Icons.tsx의 래핑된 컴포넌트 사용
-- **아이콘 크기**: `w-3 h-3` (작은), `w-5 h-5` (일반), `w-6 h-6` (큰) 표준 사용
-- **아이콘 색상**: Tailwind 색상 시스템 준수 (`text-green-500`, `text-red-400` 등)
-
-## 📚 참고 자료
-
-### 공식 문서
-- [React 19 Documentation](https://react.dev/)
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
-- [Vite Guide](https://vitejs.dev/guide/)
-- [Supabase Docs](https://supabase.com/docs)
-- [Cloudflare Workers](https://developers.cloudflare.com/workers/)
-
-### 사용된 라이브러리
-- [Zustand](https://github.com/pmndrs/zustand)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [Lucide React](https://lucide.dev/guide/packages/lucide-react)
-- [Zod](https://zod.dev/)
-- [React Virtual](https://tanstack.com/virtual/v3)
+    {
+      "type": "전자책",
+      "libraryName": "e경기",
+      ...
+    },
+    ...
+  ]
+  ```
+
+### 4. 사용자 피드백 API (Supabase Edge Function)
+- **엔드포인트**: `https://<project>.supabase.co/functions/v1/send-feedback-email`
+- **메서드**: `POST`
+- **인증**: `Authorization: Bearer <User JWT>` (Supabase Auth)
 
 ---
 
-**문서 최종 수정일**: 2025-01-11  
-**작성자**: 개발팀
+## 📚 도서관별 검색어 및 URL 생성 시스템 (중앙화 관리)
+
+**`services/unifiedLibrary.service.ts`** 파일의 **`createLibraryOpenURL`** 함수를 통해 모든 도서관 외부 링크 생성을 중앙에서 관리합니다. 이는 코드의 일관성을 유지하고 유지보수를 용이하게 합니다.
+
+### 검색어 처리 로직 우선순위
+1.  **커스텀 검색어**: 사용자가 책별로 지정한 `customSearchTitle`이 있으면 최우선으로 사용합니다.
+2.  **자동 생성 검색어**: 커스텀 검색어가 없는 경우, `createOptimalSearchTitle(title)` 함수를 통해 원본 제목을 가공하여 사용합니다.
+    - **`createOptimalSearchTitle`**: 제목에서 콜론(`:`), 하이픈(`-`), 괄호(`()[]_{}`) 등 부제를 나타내는 특수문자 이후의 내용을 제거하고, 앞 3단어만 추출하여 검색 정확도를 높입니다.
+
+### URL 생성 규칙 (`createLibraryOpenURL`)
+
+| LibraryName (`libraryName`) | 도서관 | 생성 URL 패턴 (GET 방식) | 비고 |
+| :--- | :--- | :--- | :--- |
+| `퇴촌` | 광주 퇴촌도서관 (종이책) | `.../resultList.do?searchLibraryArr=MN&searchKeyword={검색어}` | 웹 방화벽 우회를 위해 상세페이지 대신 검색 결과 페이지 사용 |
+| `기타` | 광주 기타 시립도서관 (종이책)| `.../resultList.do?searchLibrary=ALL&searchKeyword={검색어}` | |
+| `e교육` | 경기도 교육청 전자도서관 | `.../search/index.do?search_text={검색어}` | |
+| `e시립구독`| 광주 시립 구독형 전자책 | `.../search/searchList.ink?schTxt={검색어}` | 교보문고 플랫폼 |
+| `e시립소장`| 광주 시립 소장형 전자책 | `.../search/searchList.ink?schTxt={검색어}` | 예스24 플랫폼 |
+| `e경기` | 경기도 전자도서관 | `.../search?keyword={검색어}` | 소장형/구독형 통합 검색 페이지 |
+
+**클라이언트 코드 사용 예시:**
+```typescript
+import { createLibraryOpenURL } from '../services/unifiedLibrary.service';
+
+// ... 컴포넌트 내부
+const searchUrl = createLibraryOpenURL("e경기", book.title, book.customSearchTitle);
+```
+
+---
+
+## 🐛 트러블슈팅 가이드
+
+### 1. 경기도 광주시 퇴촌도서관 상세페이지 웹 방화벽 차단
+- **증상**: 크롤링 데이터에 포함된 상세페이지 URL(`resourcedetail/detail.do?...`)로 직접 접근 시 "Web firewall security policies have been blocked" 에러 페이지가 표시됨.
+- **원인**: 도서관 시스템의 보안 정책 강화로 외부에서의 상세페이지 직접 링크가 차단됨.
+- **해결**: `createLibraryOpenURL` 함수에서 '퇴촌' 케이스 처리 시, 상세페이지 URL 대신 **제목 기반 검색 결과 페이지 URL**을 생성합니다. 사용자는 검색 결과 목록에서 해당 도서를 클릭하여 상세 정보를 확인할 수 있습니다.
+
+### 2. API 요청 타임아웃 (전체 응답 지연)
+- **증상**: 하나의 도서관 서버 응답이 지연되면 전체 재고 조회(`Promise.allSettled`)가 늦어짐.
+- **해결**: Cloudflare Worker(`library-checker/src/index.js`)에서 각 도서관 `fetch` 요청에 `AbortSignal.timeout(15000)` (15초)을 설정했습니다. 특정 서버가 15초 내에 응답하지 않으면 해당 요청만 실패 처리하고 나머지 결과를 반환합니다.
+
+### 3. 경기도 전자도서관 검색 결과 0건 (특수문자 문제)
+- **증상**: 책 제목에 특수문자가 포함된 경우 검색 결과가 0건으로 나옴.
+- **해결**: API 호출 방식을 복잡한 `detailQuery` 파라미터 대신, 실제 웹사이트 검색창과 동일하게 동작하는 `keyword` 파라미터 방식으로 변경하여 검색 정확도를 높였습니다.
+
+---
+**문서 최종 수정일**: 2025-10-15
+```
