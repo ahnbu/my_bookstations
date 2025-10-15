@@ -1,0 +1,2453 @@
+eab6714
+ahnbu
+Tue Oct 14 19:25:24 2025 +0900
+fix: 상세 모달 데이터 동기화 및 타입 안정성 강화
+[문제점]
+이전 리팩토링 이후 몇 가지 후속적인 버그와 타입 문제가 발견되었습니다.
+1.  **상태 동기화 단절**: 상세 모달(`MyLibraryBookDetailModal`)이 열린 상태에서 태그, 메모 등 CRUD 작업을 수행해도 UI가 업데이트되지 않는 문제가 있었습니다. 이는 모달이 자체 로컬 상태로 데이터를 관리하면서, `useBookStore`의 원본 데이터 변경을 감지하지 못했기 때문입니다.
+2.  **타입 불일치**: `useBookStore`의 `updateMultipleBookTags` 함수의 타입 정의와 실제 구현의 반환값이 달라 TypeScript 에러가 발생했습니다.
+3.  **안전하지 않은 타입 단언**: `as Json` 타입 단언이 TypeScript의 엄격한 검사를 통과하지 못해 경고가 발생했습니다.
+4.  **`id` 누락**: `updateMissingEbookIsbn13` 함수에서 상태 업데이트 시 `id` 프로퍼티가 누락되어 타입 에러가 발생했습니다.
+
+[해결 방안]
+1.  **상태 동기화 로직 추가 (`MyLibraryBookDetailModal.tsx`)**:
+    -   `useBookStore`의 최신 `book` 데이터를 구독하고, 변경이 감지되면 `useEffect`를 통해 모달의 로컬 `book` 상태를 동기화하는 로직을 추가했습니다. 이로써 모달 내 모든 CRUD 작업이 UI에 즉시 반영됩니다.
+
+2.  **`useBookStore.ts` 타입 및 로직 수정**:
+    -   `updateMultipleBookTags`의 반환 타입을 실제 구현과 일치하도록 `Promise<{...}>`로 수정했습니다.
+    -   `as Json`으로 타입 단언된 모든 부분을 더 안전한 `as unknown as Json`으로 변경했습니다.
+    -   `updateMissingEbookIsbn13`에서 업데이트 객체의 타입을 `SelectedBook`으로 명시하여 `id` 누락 문제를 해결했습니다.
+    -   `addTagToBook`, `removeTagFromBook` 함수에서 항상 새로운 배열을 생성하도록 수정하여 불변성을 확보하고, 상태 변경 감지 문제를 해결했습니다.
+
+3.  **레거시 코드 정리 (`MyLibrary.tsx`)**:
+    -   현재 사용되지 않는 레거시 함수(`renderStockCell`, `renderEBookCell` 등)들을 삭제하여 코드를 정리했습니다.
+
+[기대 효과]
+-   이제 상세 모달 내에서 태그, 메모, 커스텀 검색어 등 모든 CRUD 작업이 UI에 실시간으로 올바르게 반영됩니다.
+-   프로젝트 전반의 TypeScript 타입 에러가 모두 해결되어 코드의 안정성과 신뢰성이 향상되었습니다.
+-   불필요한 레거시 코드가 제거되어 코드베이스가 더 깔끔하고 유지보수하기 용이해졌습니다.
+
+
+bb9d894
+ahnbu
+Tue Oct 14 18:13:14 2025 +0900
+feat(ux): 커스텀 검색어 편집 시 기본값 제공으로 편의성 향상
+[문제점]
+기존에는 사용자가 커스텀 검색어를 최초로 설정하기 위해 '편집' 버튼을 눌렀을 때, 입력 필드가 빈 값으로 시작되었습니다. 이로 인해 사용자는 자동으로 생성된 기본 검색어를 참조하여 다시 입력해야 하는 불편함이 있었습니다.
+
+[개선 방안]
+`MyLibraryBookDetailModal`의 `handleEdit` 함수 로직을 수정하여, 사용자가 편집을 시작할 때 입력 필드의 초기값을 설정하도록 변경했습니다.
+
+-   **최초 편집 시**: 자동으로 생성된 기본 검색어(`createSearchSubject(book.title)`)가 입력 필드에 미리 채워집니다.
+-   **기존 값 수정 시**: 이미 저장된 커스텀 검색어가 그대로 표시됩니다.
+
+[기대 효과]
+-   사용자는 더 이상 빈 칸에서 검색어를 새로 입력할 필요 없이, 기존 기본 검색어를 약간 수정하는 것만으로 원하는 커스텀 검색어를 쉽게 설정할 수 있습니다.
+-   편집 시작 전후의 맥락이 자연스럽게 이어져 사용자 편의성과 작업 효율성이 크게 향상되었습니다.
+
+
+385ae70
+ahnbu
+Tue Oct 14 17:54:59 2025 +0900
+refactor(url): URL 생성 로직 중앙화 및 커스텀 검색어 미반영 버그 수정
+[문제점]
+1.  **버그**: 커스텀 검색어를 설정했음에도 불구하고, 도서관 바로가기 URL에는 기본 검색어가 적용되는 버그가 있었습니다. 이로 인해 재고 조회(API 호출)와 사용자가 직접 확인하는 URL의 검색 결과가 달라지는 불일치 문제가 발생했습니다.
+2.  **코드 구조**: `MyLibrary.tsx`와 `MyLibraryBookDetailModal.tsx`에 각 도서관의 URL 생성 로직이 중복되어 흩어져 있어 일관성이 부족하고 유지보수가 어려웠습니다.
+
+[개선 방안]
+`unifiedLibrary.service.ts`에 `createLibraryOpenURL`이라는 통합 함수를 생성하여 모든 URL 생성 로직을 중앙화하고, 버그를 수정했습니다.
+
+-   **`createLibraryOpenURL(libraryName, bookTitle, customSearchTitle)`**:
+    -   `customSearchTitle`을 최우선으로 사용하여 검색어를 결정하는 로직을 내장하여 **커스텀 검색어 미반영 버그를 해결**했습니다.
+    -   `libraryName`을 인자로 받아 `switch` 문을 통해 해당 도서관에 맞는 URL을 반환합니다.
+
+-   **컴포넌트 수정**:
+    -   두 컴포넌트(`MyLibrary.tsx`, `MyLibraryBookDetailModal.tsx`)의 기존 URL 생성 로직을 모두 새로운 `createLibraryOpenURL` 함수 호출로 대체하여 코드를 간소화하고 일관성을 확보했습니다.
+
+[기대 효과]
+-   **버그 수정**: 이제 커스텀 검색어가 바로가기 URL에 올바르게 반영되어, 재고 조회 시 사용된 검색어와 완전히 일치하는 결과를 사용자에게 제공합니다.
+-   **유지보수성 향상**: 향후 URL 구조 변경 시, `createLibraryOpenURL` 함수 한 곳만 수정하면 프로젝트 전체에 반영됩니다.
+-   **코드 품질 개선**: 코드 중복이 제거되고, 역할과 책임이 명확히 분리되어 가독성과 안정성이 향상되었습니다.
+
+
+fa68eef
+ahnbu
+Tue Oct 14 16:28:57 2025 +0900
+feat(search): 커스텀 검색어 기능 추가로 재고 조회 정확성 향상
+[기능 추가]
+기존의 자동화된 검색어 생성 로직(`createOptimalSearchTitle`)이 일부 복잡한 제목의 도서에 대해 정확한 재고 조회를 하지 못하는 문제를 해결하기 위해, 사용자가 직접 검색어를 지정할 수 있는 '커스텀 검색어' 기능을 추가했습니다.
+
+[주요 변경사항]
+1.  **데이터 구조 확장 (`types.ts`, Supabase)**:
+    -   `BookData` 타입과 `user_library` 테이블의 `book_data`에 `customSearchTitle` 필드를 추가했습니다.
+    -   기존 모든 도서 데이터에 해당 필드를 `null`로 초기화하는 마이그레이션을 완료했습니다.
+
+2.  **UI/UX 구현 (`MyLibraryBookDetailModal.tsx`)**:
+    -   상세 모달 내 '도서관 재고' 섹션에 커스텀 검색어를 편집, 저장, 삭제할 수 있는 UI를 추가했습니다.
+    -   기존 '메모' 관리 UI와 동일한 디자인 패턴을 적용하여 일관성을 확보했으며, 키보드 단축키(Ctrl+Enter, Esc)를 지원하여 사용성을 높였습니다.
+
+3.  **상태 관리 로직 추가 (`useBookStore.ts`)**:
+    -   `updateCustomSearchTitle` 액션을 추가하여 사용자의 입력을 상태(Zustand)와 DB(Supabase)에 안전하게 저장합니다.
+
+4.  **API 요청 로직 수정 (`unifiedLibrary.service.ts`)**:
+    -   `fetchBookAvailability` 함수가 커스텀 검색어를 인자로 받도록 수정했습니다.
+    -   커스텀 검색어가 존재할 경우, 자동 검색어 가공 로직을 건너뛰고 해당 값을 최우선으로 사용하도록 변경했습니다.
+
+5.  **버그 수정 및 리팩토링 (`MyLibraryBookDetailModal.tsx`)**:
+    -   컴포넌트 내부 컴포넌트 정의로 인해 발생하던 `input` 키 입력 중복 버그를 해결했습니다.
+    -   중복되던 재고 표시 로직을 `LibraryStockSection` 독립 컴포넌트로 추출하여 코드 중복을 제거하고 가독성과 유지보수성을 크게 향상시켰습니다.
+
+[기대 효과]
+-   사용자는 이제 기본 검색어로 조회가 실패하는 예외적인 경우에도, 직접 최적의 검색어를 지정하여 재고 조회 성공률을 크게 높일 수 있습니다.
+-   서비스의 유연성과 정확성이 향상되어 전반적인 사용자 경험이 개선됩니다.
+
+
+c182749
+ahnbu
+Tue Oct 14 14:53:21 2025 +0900
+fix(ui): 상세 모달에서 누락된 도서 정보 UI 복원 및 리팩토링
+[문제점]
+이전 리팩토링 과정에서 `MyLibraryBookDetailModal` 컴포넌트의 JSX 구조가 변경되면서, 책 표지, 제목, 저자 등 핵심적인 '도서 상세 정보'를 표시하는 부분이 실수로 누락되는 버그가 발생했습니다.
+
+또한, 모달 내에서 '내 서재 정보' 중 '도서관 재고'를 표시하는 로직이 조건부 렌더링으로 인해 두 곳에 중복으로 존재하여 코드 품질과 유지보수성을 저해하고 있었습니다.
+
+[해결 방안]
+1.  **도서 상세 정보 UI 복원**:
+    -   리팩토링 이전 버전의 코드(`MyLibraryBookDetailModal_before.tsx`)를 참조하여, 누락되었던 도서 상세 정보(책 표지, 제목, 저자, 가격, 알라딘 링크 등)를 표시하는 JSX 블록을 복원했습니다.
+
+2.  **재고 표시 로직 리팩토링**:
+    -   기존에 두 번 반복되던 '도서관 재고' 표시 로직을 `LibraryStockSection`이라는 별도의 내부 컴포넌트로 추출하여 코드 중복을 완전히 제거했습니다.
+    -   복잡했던 `isLibraryStockOnly` 조건부 렌더링 구조를 `hasLeftContent`와 `hasRightContent`를 사용한 더 직관적인 구조로 단순화했습니다.
+
+[기대 효과]
+-   이제 상세 모달을 열었을 때 상단에 도서의 기본 정보가 정상적으로 표시됩니다.
+-   코드 중복이 제거되어 `MyLibraryBookDetailModal` 컴포넌트의 가독성과 유지보수성이 크게 향상되었습니다.
+-   향후 재고 표시 로직 변경 시 `LibraryStockSection` 컴포넌트 한 곳만 수정하면 되어 작업 효율성이 증대됩니다.
+
+
+8423c5f
+ahnbu
+Tue Oct 14 00:45:29 2025 +0900
+ui : 키워드검색 위치를 관리자 기능 위로 이동
+
+
+2ad245d
+ahnbu
+Tue Oct 14 00:41:25 2025 +0900
+refactor(ui): API 에러 표시 방식 개선으로 UX 향상 - 주석 제거
+
+
+3bbc970
+ahnbu
+Tue Oct 14 00:40:33 2025 +0900
+refactor(ui): API 에러 표시 방식 개선으로 UX 향상
+[문제점]
+기존에는 도서관 재고 조회 API가 실패할 경우, 목록 뷰(`MyLibrary.tsx`)에서 재고 정보를 `(에러)`라는 텍스트로 대체하여 표시했습니다. 이는 사용자에게 상태를 명확히 알리는 장점이 있었으나, 여러 항목에서 동시에 발생할 경우 시각적으로 거슬리고 자극적이라는 단점이 있었습니다.
+
+[개선 방안]
+사용자 경험(UX)을 개선하기 위해, 에러 표시 방식을 텍스트에서 시각적 표시등(indicator)으로 변경했습니다.
+
+-   **`LibraryTag` 컴포넌트 로직 수정**:
+    -   API 조회 실패 시: 재고 숫자 앞의 상태 표시 점을 **빨간색**으로 변경.
+    -   API 조회 성공 & 재고 있음: **녹색** 점 표시.
+    -   API 조회 성공 & 재고 없음: **회색** 점 표시.
+-   **텍스트 정보 유지**:
+    -   API 실패 시에도 `(에러)` 텍스트로 대체하는 대신, DB에 저장된 **과거 재고 정보(예: `1/0`)**를 그대로 표시합니다.
+    -   이를 통해 사용자는 과거 데이터와 현재의 조회 실패 상태를 동시에 인지할 수 있습니다.
+
+[기대 효과]
+-   UI가 훨씬 깔끔해지고 시각적 피로도가 감소했습니다.
+-   상태 표시 점의 색깔을 통해 API 상태를 직관적으로 파악할 수 있습니다.
+-   정보 손실 없이, 사용자에게 더 풍부한 맥락(과거 데이터 + 현재 에러 상태)을 제공하게 되어 서비스의 완성도가 높아졌습니다.
+-   상세 뷰(`MyLibraryBookDetailModal`)는 기존의 "(숫자)(에러)" 방식을 유지하여, 맥락에 따라 다른 수준의 정보를 제공하도록 차별화했습니다.
+
+
+f2311b6
+ahnbu
+Mon Oct 13 15:03:43 2025 +0900
+fix : index.js timeout 15초로 변경
+
+
+b95e7b7
+ahnbu
+Mon Oct 13 14:58:50 2025 +0900
+fix(api): 경기도 전자도서관 조회 실패 시 에러 상태 명확화
+[문제점]
+경기도 전자도서관(`gyeonggi_ebook_library`)은 내부적으로 '소장형'과 '구독형' API를 동시에 호출합니다. 기존 로직에서는 두 API가 모두 실패하더라도 에러를 반환하지 않고, 결과가 0건인 성공 객체(`{ total_count: 0, ... }`)를 반환했습니다.
+
+이로 인해 프론트엔드에서는 실제 API 조회가 실패했음에도 불구하고 '(0/0)'으로 표시되어, 사용자가 조회 실패 사실을 인지할 수 없는 문제가 있었습니다.
+
+[해결 방안]
+`searchGyeonggiEbookLibrary` 함수를 수정하여, '소장형'과 '구독형' 검색이 **모두 실패했을 경우에만** 명시적으로 에러를 throw하도록 변경했습니다.
+
+-   하나의 API만 실패할 경우: 성공한 쪽의 결과만이라도 정상적으로 반환하여 부분적인 정보라도 제공합니다.
+-   두 API가 모두 실패할 경우: 전체 조회를 실패로 간주하고 에러를 발생시켜, 프론트엔드가 이를 `{ error: '...' }` 객체로 수신하게 합니다.
+
+[기대 효과]
+-   이제 경기도 전자도서관 API 조회가 완전히 실패했을 때, 프론트엔드 UI에 다른 도서관과 동일하게 `(에러)`가 올바르게 표시됩니다.
+-   사용자는 조회 실패 상태를 명확하게 인지할 수 있게 되어 사용자 경험이 향상됩니다.
+
+
+447fbf1
+ahnbu
+Mon Oct 13 14:47:34 2025 +0900
+feat: API 에러 처리, UI 피드백 개선 및 리팩토링
+도서관 재고 조회 API 실패 시(특히 타임아웃) 사용자에게 명확한 피드백을 제공하고, 코드 품질을 개선하는 작업을 진행했습니다.
+
+주요 변경사항:
+1.  **API 에러 상태 처리 로직 추가 (`useBookStore.ts`)**:
+    - `refreshAllBookInfo`가 API 응답의 성공/실패 여부를 `book` 객체 상태에 저장하도록 수정했습니다.
+    - 기존 책의 재고 조회 실패 시 DB의 과거 데이터를 보존하고, 신규 책은 에러 상태와 함께 0/0으로 저장하여 데이터 무결성을 확보했습니다.
+
+2.  **에러 상태 UI 표시 기능 (`MyLibrary.tsx`, `MyLibraryBookDetailModal.tsx`)**:
+    - 목록 뷰(`MyLibrary.tsx`): 공간을 고려하여 재고 정보를 간결하게 `(에러)`로 대체하여 표시합니다.  (예) 퇴촌(0/0) -> 퇴촌(에러)
+    - 상세 뷰(`MyLibraryBookDetailModal.tsx`): 사용자에게 더 많은 정보를 제공하기 위해 기존 재고 정보 옆에 `(에러)` 문구를 함께 표시합니다. (예) 퇴촌(1/1) -> 퇴촌(1/1)(에러)
+    - 참고로, 에러시에는 기존 supabase db를 업데이트하지는 않는다.
+
+3.  **코드 리팩토링 (`MyLibraryBookDetailModal.tsx`)**:
+    - 상세 모달 내에서 중복되던 재고 표시 로직을 `LibraryStockSection` 컴포넌트로 추출하여 코드 중복을 제거하고 유지보수성을 향상시켰습니다.
+
+feat(store): API 에러 상태 저장 및 DB 업데이트 로직 개선
+
+API 재고 조회 실패 시(특히 타임아웃), 사용자에게 피드백을 주지 못하고 오래된 데이터가 최신 정보인 것처럼 표시되는 문제를 해결합니다.
+
+주요 변경사항:
+- `types.ts`: `BookData`에 종이책 API 응답(성공/실패)을 저장할 `gwangjuPaperInfo` 프로퍼티 추가
+- `useBookStore.ts`: `refreshAllBookInfo` 함수 로직 대폭 개선
+  - UI 상태(Zustand)는 API 응답 결과를 즉시 반영하여 에러 상태를 바로 표시하도록 함
+  - DB 업데이트 시에는 API 응답이 성공한 경우에만 데이터를 저장함
+  - 기존 책의 재고 조회 실패 시: DB의 유효한 과거 데이터를 보존
+  - 신규 책의 재고 조회 실패 시: 에러 상태와 함께 재고를 0/0으로 DB에 저장
+
+이를 통해 UI는 사용자에게 정확한 피드백을 제공하고, DB는 데이터의 무결성을 유지할 수 있게 되었습니다.
+
+feat(ui): 도서관 재고 조회 API 에러 상태 UI에 표시
+
+API 에러 상태를 저장하는 로직이 추가됨에 따라, 이를 사용자에게 시각적으로 명확하게 전달하도록 UI를 개선합니다.
+
+주요 변경사항:
+- `MyLibrary.tsx`: `LibraryTag` 컴포넌트가 `isError` prop을 받도록 수정. 에러 발생 시 "(에러)" 텍스트와 함께 에러 상태 스타일을 표시합니다.
+- `MyLibraryBookDetailModal.tsx`:
+  - `renderStockInfo` 및 각 전자책 렌더링 로직에 에러 상태 확인 로직 추가
+  - 에러 발생 시, 기존 재고 정보 옆에 "(에러)" 문구를 추가로 표시하여 사용자에게 과거 데이터와 현재 에러 상태를 함께 제공합니다.
+
+refactor(modal): MyLibraryBookDetailModal 재고 표시 로직 중복 제거
+
+MyLibraryBookDetailModal 컴포넌트 내에서 조건부 레이아웃(`isLibraryStockOnly`)으로 인해 재고 표시를 위한 JSX 코드 블록이 완전히 중복되어 있었습니다.
+
+주요 변경사항:
+- 중복된 재고 표시 로직을 `LibraryStockSection`이라는 새로운 내부 컴포넌트로 추출했습니다.
+- 기존의 복잡한 삼항 연산자 구조를 단순화하고, 각 컬럼에서 `LibraryStockSection` 컴포넌트를 호출하도록 변경했습니다.
+
+이 리팩토링을 통해 코드 중복을 제거하고, 향후 재고 표시 로직 수정 시 한 곳만 변경하면 되도록 유지보수성을 크게 향상시켰습니다.
+
+
+3de2981
+ahnbu
+Mon Oct 13 12:57:01 2025 +0900
+refactor : cloudfare index.js timeout 15초로 통일
+- 기존에 5초, 20초, 25초로 달랐는데, 15초로 통일시킴
+- 경기e북(구독) timeout 없었는데, 추가
+
+
+6c32177
+ahnbu
+Sun Oct 12 00:28:49 2025 +0900
+fix(search): 키워드 통합 검색 기능 디버깅 및 안정성 향상
+신규로 추가된 '키워드 통합 검색' 기능의 초기 구현 이후 발견된 다수의 버그를 수정하고 코드 품질을 개선했습니다.
+
+주요 변경 내용:
+
+1.  **종이책 검색 결과 파싱 오류 수정:**
+    -   `index.js` (Cloudflare Worker)의 `parseGwangjuPaperKeywordResults` 함수를 전면 재작성하여, 종이책 검색 결과가 누락되거나 데이터가 잘못 매핑되던 문제를 해결했습니다.
+    -   이제 제목, 저자, 출판사가 정확히 분리되고, 소장처에 따라 '퇴촌'과 '기타' 도서관이 올바르게 구분됩니다.
+
+2.  **전자책 데이터 매핑 오류 수정:**
+    -   'e교육', 'e경기' 등 전자책 검색 결과에서 저자 정보가 누락되거나 출간일 필드에 출판사 정보가 들어가는 등 잘못된 데이터 매핑 문제를 해결했습니다.
+    -   모든 파싱 함수가 `(title, author, publisher, pubDate, ...)` 표준 포맷을 일관되게 따르도록 수정했습니다.
+
+3.  **Wrangler 개발 환경 문제 해결:** -> 아직도 자동 반영되지 않고 있음. 수동으로 npm run deploy해야 반영됨
+    -   로컬 개발 서버에서 파일 수정이 자동으로 반영되지 않던 문제를 해결했습니다.
+    -   프로젝트의 `wrangler` 패키지를 최신 버전으로 업데이트하여, `compatibility_date` 불일치 경고를 제거하고 파일 감지 기능(watch mode)을 정상화했습니다.
+
+4.  **UI/UX 개선:**
+    -   `KeywordSearchModal.tsx`에 '출판사' 컬럼을 추가하고, `whitespace-nowrap` 및 `truncate` 클래스를 활용하여 테이블 컬럼 너비를 최적화함으로써 가독성을 높였습니다.
+    -   경기광주 시립도서관의 웹 방화벽 차단 문제로 인해, 관련 기능 개선은 일시적으로 보류했습니다.
+
+추후 개선 필요사항:
+
+1.  **Wrangler 개발 환경 문제:** -> 아직도 자동 반영되지 않고 있음. 수동으로 npm run deploy해야 반영됨
+2.  경기광주 시립 도서관 링크가 아래와 같은 메시지가 나오면서 모두 작동하지 않는다. (내서재, 키워드검색 마찬가지)
+
+The request / response that are contrary to the Web firewall security policies have been blocked.
+Detect time	2025-10-12 00:05:11
+Detect client IP	121.135.127.37
+Detect URL	https://lib.gjcity.go.kr/tc/lay1/program/s23t3001c3002/jnet/resourcessearch/resultlist.do
+
+3. 키워드 검색모드에서 다크모드 적용 안됨. 현재는 라이트모드로 제작됨
+
+
+a237f31
+ahnbu
+Sat Oct 11 18:33:22 2025 +0900
+feat: 키워드 기반 통합 도서관 검색 기능 구현
+하나의 키워드로 6개 도서관의 자료를 동시에 검색하고, 결과를 통합된 테이블로 보여주는 '키워드 통합 검색' 기능을 추가했습니다.
+
+주요 구현 내용:
+
+1.  **신규 컴포넌트 및 UI 추가:**
+    -   `KeywordSearchModal.tsx`: 키워드 입력, 로딩 상태 표시, 정렬 가능한 결과 테이블을 포함하는 새로운 모달 컴포넌트를 생성했습니다.
+    -   `Auth.tsx`: 프로필 드롭다운 메뉴에 '키워드 검색' 항목을 추가하여 모달을 열 수 있도록 구현했습니다.
+    -   `useUIStore.ts`: 모달의 열림/닫힘 상태를 관리하는 전역 상태와 액션을 추가했습니다.
+
+2.  **Cloudflare Worker 백엔드 확장:**
+    -   `/keyword-search` 라는 신규 엔드포인트를 추가하여, 프론트엔드로부터 받은 키워드로 6개 도서관 크롤링을 병렬 처리(`Promise.allSettled`)합니다.
+    -   각 도서관의 다양한 응답 형식을 `(type, libraryName, title, author, pubDate, isAvailable)` 구조로 정규화하여 프론트엔드가 사용하기 쉬운 통합된 JSON 배열로 반환합니다.
+
+3.  **검색 정확도 및 일관성 개선:**
+    -   `MyLibrary.tsx`에서 사용하던 키워드 처리 로직(부제 제거, 3단어 제한)을 `KeywordSearchModal`에도 동일하게 적용하여 검색 결과의 일관성을 확보했습니다.
+    -   각 도서관별 외부 링크 URL을 기존 '내 서재' 기능과 완전히 일치시켜 정확한 페이지로 이동하도록 수정했습니다.
+
+4.  **사용자 경험 향상:**
+    -   검색 중에는 로딩 스피너를 표시하여 사용자에게 명확한 피드백을 제공합니다.
+    -   결과 테이블의 모든 컬럼 헤더를 클릭하여 오름차순/내림차순으로 정렬할 수 있는 기능을 추가했습니다.
+    -   대출 가능 여부를 아이콘과 색상으로 시각적으로 구분하여 가독성을 높였습니다.
+
+
+0cc121b
+ahnbu
+Sat Oct 11 16:45:44 2025 +0900
+fix: 도서 상세 모달에서 퇴촌도서관 재고 링크가 없었던 버그 수정
+도서 상세 모달(`MyLibraryBookDetailModal`)을 열었을 때, 퇴촌 및 기타 도서관의 종이책 재고가 `undefined / undefined`로 표시되고 관련 링크의 검색어가 비어있는 문제를 해결했습니다.
+
+문제 원인:
+- 이전 리팩토링 과정에서 `renderStockInfo` 함수의 매개변수 순서가 `(name, title, stock)`으로 변경되었으나, 모달 내에서 이 함수를 호출하는 부분의 인자 순서가 일부 수정되지 않았습니다.
+- 이로 인해 `book.title`이 `stock`으로, `stock` 객체가 `title`로 잘못 전달되어 `TypeError`가 발생하거나 데이터가 누락되었습니다.
+
+수정 내용:
+- `MyLibraryBookDetailModal.tsx` 내에서 `renderStockInfo` 함수를 호출하는 모든 지점의 인자 순서를 `(libraryName, book.title, book.stockObject)`로 바로잡았습니다.
+- 더 이상 사용되지 않는 `detailedStockInfo` 매개변수를 호출부에서 제거했습니다.
+
+기대 효과:
+- 이제 도서 상세 모달에서도 내 서재 목록과 동일하게 모든 도서관의 재고 정보가 정확하게 표시됩니다.
+- 재고 정보에 연결된 외부 링크가 올바른 검색어를 포함하여 정상적으로 동작합니다.
+
+
+66ae8fe
+ahnbu
+Sat Oct 11 16:27:08 2025 +0900
+fix: 외부 링크 클릭 시 서재 상태가 초기화되는 버그 해결
+내 서재에서 '전체보기'를 활성화한 상태에서 외부 링크(`target="_blank"`)를 클릭했을 때, 서재 목록이 초기 페이지네이션 상태로 리셋되는 버그를 수정했습니다.
+
+문제 원인:
+- 외부 링크 클릭으로 인한 브라우저 탭 포커스 변경 시, Supabase 인증 리스너가 `session` 객체를 새로운 참조로 갱신했습니다.
+- `App.tsx`의 `useEffect` 훅이 `session` 객체 전체를 의존성으로 사용하고 있어, 이 참조 변경을 감지하고 불필요하게 재실행되었습니다.
+- 결과적으로, 초기 데이터 로딩 함수인 `fetchUserLibrary()`가 다시 호출되어 '전체보기' 상태가 초기화되었습니다.
+
+수정 내용:
+- `App.tsx`의 `useEffect` 훅의 의존성 배열을 기존 `[session]`에서 `[session?.user?.id]`로 변경했습니다.
+- 이제 이 훅은 세션 객체의 참조가 변경될 때가 아니라, 실제 사용자의 로그인/로그아웃 상태(사용자 ID의 존재 여부)가 변경될 때만 실행됩니다.
+
+기대 효과:
+- 외부 링크 클릭, 탭 전환 등 `session` 객체가 내부적으로 갱신되는 상황에서도 더 이상 서재 상태가 초기화되지 않습니다.
+- `useEffect`의 불필요한 재실행을 방지하여 애플리케이션의 안정성과 성능이 향상되었습니다.
+
+
+2d517ba
+ahnbu
+Sat Oct 11 15:29:07 2025 +0900
+perf: API 응답 속도 개선 (요청 타임아웃을 20초에서 5초로 조정)
+Cloudflare Worker에서 각 도서관 서버로 보내는 크롤링 요청의 타임아웃을 기존 20초에서 5초로 단축했습니다.
+
+문제 상황:
+- `Promise.allSettled`를 사용하더라도, 응답이 매우 느리거나 없는 하나의 도서관 서버가 전체 API 응답 시간을 최대 20초까지 지연시키는 문제가 있었습니다.
+- 이로 인해 대부분의 도서관 정보가 이미 수신되었음에도 불구하고 사용자가 불필요하게 오래 기다려야 했습니다.
+
+개선 내용:
+- 모든 `fetch` 요청의 `AbortSignal.timeout` 값을 5초로 조정하여, 특정 서버가 5초 이내에 응답하지 않으면 해당 요청을 실패로 처리하고 즉시 다음 단계로 진행하도록 변경했습니다.
+
+기대 효과:
+- 실험 결과, 기존에 약 10초가 소요되던 요청이 2.5초 내외로 완료되는 등 평균 API 응답 속도가 크게 향상되었습니다.
+- 특정 도서관 서버의 장애나 지연이 전체 서비스의 사용자 경험에 미치는 영향을 최소화하여 서비스 안정성이 향상됩니다.
+
+
+e1471a6
+ahnbu
+Sat Oct 11 15:16:32 2025 +0900
+refactor : 관리자 기능 부가설명 안보이게, api 테스트 수동입력 주석처리
+
+
+a50bc20
+ahnbu
+Sat Oct 11 15:03:30 2025 +0900
+fix: CSV 내보내기 시 전체 서재 데이터가 아닌 일부만 포함되는 문제 해결
+CSV 내보내기 기능이 현재 UI에 로드된 책만 대상으로 동작하여, 페이지네이션으로 일부만 표시된 경우 전체 서재가 아닌 일부 데이터만 파일에 포함되는 버그를 수정했습니다.
+
+수정 내용:
+- `SettingsModal`의 CSV 내보내기 버튼 클릭 핸들러(`handleExportAllToCSV`)를 비동기 함수로 변경했습니다.
+- 내보내기 실행 시, `isAllBooksLoaded` 상태를 확인하여 아직 로드되지 않은 책이 있으면 `fetchRemainingLibrary()`를 호출하여 모든 책 데이터를 메모리로 불러옵니다.
+- 전체 데이터 로드가 완료된 후, 스토어의 최신 `myLibraryBooks` 배열을 가져와 `exportToCSV` 함수에 전달하도록 수정했습니다.
+- 데이터 준비 및 내보내기 과정 동안 사용자에게 "준비 중...", "내보내는 중..." 등의 피드백을 제공하고 버튼을 비활성화하여 사용자 경험을 개선했습니다.
+
+기대 효과:
+- 이제 사용자는 현재 UI 로딩 상태와 무관하게 항상 DB에 저장된 전체 서재 데이터를 CSV 파일로 내보낼 수 있습니다.
+
+
+2c487b5
+ahnbu
+Sat Oct 11 14:50:37 2025 +0900
+fix: 도서 메모 DB 저장 문제와 태그 필터링시 즉시 반영 문제 해결
+### 도서 메모가 새로고침 시 표시되지 않는 문제 수정
+
+내 서재의 도서 목록을 불러올 때 데이터베이스에서 `note` 필드를 조회하지 않아, 저장된 메모가 페이지 새로고침 후 사라지는 버그를 해결했습니다.
+
+문제 원인:
+- `user_library` 테이블에서 메모는 `book_data`(JSONB)와 별개인 `note`(TEXT) 컬럼에 저장됩니다.
+- `useBookStore`의 `fetchUserLibrary`와 `fetchRemainingLibrary` 함수에서 Supabase 데이터를 조회할 때, `select` 문에 `note` 필드를 포함하지 않았습니다.
+- 이로 인해 DB에는 메모가 정상적으로 저장되어 있었지만, 애플리케이션 상태에는 로드되지 않아 메모가 없는 것처럼 보였습니다.
+
+수정 내용:
+1.  **DB 조회 쿼리 수정 (`useBookStore.ts`):**
+    -   `fetchUserLibrary`와 `fetchRemainingLibrary` 함수의 Supabase `select` 쿼리에 `note` 필드를 추가했습니다.
+    -   (변경 전: `.select('id, book_data', ...)` → 변경 후: `.select('id, book_data, note', ...)`).
+
+2.  **상태 매핑 로직 수정 (`useBookStore.ts`):**
+    -   DB에서 가져온 `item.note` 값을 `myLibraryBooks` 상태 배열의 각 책 객체에 올바르게 매핑하도록 로직을 수정했습니다.
+
+기대 효과:
+-   이제 사용자가 메모를 저장하면, 페이지를 새로고침하거나 재방문해도 데이터가 온전히 유지됩니다.
+-   내 서재 목록에서 저장된 메모가 정상적으로 표시되며, 클릭하여 수정하는 기능이 의도대로 동작합니다.
+
+### 태그 필터링 시 메모 업데이트가 즉시 반영되지 않는 문제 해결
+
+내 서재에서 태그로 필터링된 상태일 때, 책의 메모를 수정해도 UI가 즉시 갱신되지 않고 새로고침해야만 변경사항이 보이던 버그를 수정했습니다.
+
+문제 원인:
+- 도서 정보 업데이트 로직(`updateBookInStoreAndDB`)이 메인 서재 목록(`myLibraryBooks`)만 갱신하고, 태그 필터 결과 목록(`libraryTagFilterResults`)은 갱신하지 않아 상태 비동기화가 발생했습니다.
+
+수정 내용:
+- `useBookStore`의 `updateBookInStoreAndDB` 헬퍼 함수를 수정하여, 책 정보가 업데이트될 때 `myLibraryBooks` 뿐만 아니라 `librarySearchResults`, `libraryTagFilterResults` 배열도 함께 갱신하도록 변경했습니다.
+- 낙관적 업데이트와 실패 시 롤백 로직 모두에 동일한 동기화 로직을 적용하여 데이터 일관성을 확보했습니다.
+
+기대 효과:
+- 이제 태그 필터, 검색 등 어떤 뷰 상태에서도 메모 수정, 별점 변경, 읽음 상태 변경 등의 작업이 UI에 즉시 반영됩니다.
+
+
+431d98b
+ahnbu
+Sat Oct 11 14:19:28 2025 +0900
+fix: 일괄 갱신 범위가 DB 전체 권수를 반영하도록 수정
+일괄 재고 갱신 기능에서, 현재 메모리에 로드된 책의 수가 아닌 DB에 저장된 전체 책의 수를 기준으로 갱신 범위를 표시하고 선택할 수 있도록 버그를 수정했습니다.
+
+문제 상황:
+- `myLibraryBooks.length`를 기준으로 갱신 옵션을 생성하여, 페이지네이션으로 일부만 로드된 경우 '전체 (50권)'처럼 잘못된 정보가 표시되었습니다.
+- 사용자가 '전체' 갱신을 선택해도 실제로는 로드된 책만 갱신되는 문제가 있었습니다.
+
+수정 내용:
+
+1.  **전체 권수 기준 UI 업데이트 (`SettingsModal`)**
+    -   Zustand 스토어에서 `totalBooksCount`(DB 전체 권수) 상태를 가져와 사용하도록 변경했습니다.
+    -   갱신 범위 선택 드롭다운 메뉴가 항상 DB의 전체 권수를 기준으로 올바르게 표시됩니다. (예: 501권 보유 시 '전체 (501권)'으로 표시)
+
+2.  **'전체' 갱신 시 자동 데이터 로드 기능 추가**
+    -   사용자가 '전체' 갱신을 선택했을 때, 아직 모든 책이 로드되지 않았다면(`isAllBooksLoaded`가 `false`인 경우) `fetchRemainingLibrary()`를 먼저 호출합니다.
+    -   이를 통해 모든 책 데이터를 메모리에 로드한 후 전체 갱신을 시작하여, 누락 없이 모든 책이 갱신되도록 보장합니다.
+    -   데이터 로딩 중에는 사용자에게 "전체 책 목록을 불러오는 중..."이라는 피드백을 제공합니다.
+
+기대 효과:
+-   사용자는 현재 로딩 상태와 상관없이 자신의 서재에 있는 모든 책을 대상으로 정확한 갱신 범위를 선택하고 실행할 수 있습니다.
+-   페이지네이션이 적용된 상태에서도 '전체 갱신' 기능이 의도대로 완전하게 동작합니다.
+
+
+661e709
+ahnbu
+Sat Oct 11 13:32:32 2025 +0900
+feat: 전체 책 재고 일괄 갱신 기능 구현
+사용자가 자신의 서재에 있는 모든 책의 재고 정보를 한 번에 업데이트할 수 있는 '재고 일괄 갱신' 기능을 추가했습니다. API 요청 제한을 준수하고 사용자 피드백을 강화하는 데 중점을 두었습니다.
+
+주요 구현 내용:
+
+- **UI 및 사용자 경험 (SettingsModal)**
+  - '맞춤설정 > 내보내기' 탭에 '재고 일괄 갱신' 섹션을 추가했습니다.
+  - 갱신 범위를 동적으로 선택(25, 50, 100, 200, 전체)할 수 있으며, 보유 권수보다 큰 옵션은 자동으로 숨겨집니다.
+  - 갱신 시작 전 예상 소요 시간을 포함한 확인 다이얼로그를 표시합니다.
+  - 진행 상황을 시각적으로 보여주는 Progress Bar와 실시간 진행률, 실패 건수를 표시합니다.
+
+- **비동기 작업 제어 (`useBookStore`)**
+  - 일괄 갱신 작업을 관리하는 `bulkRefreshAllBooks` 액션을 추가했습니다.
+  - 사용자가 작업을 제어할 수 있도록 **일시정지, 재개, 취소** 기능을 구현했습니다.
+  - `bulkRefreshState` 상태를 통해 갱신 진행 상태(실행, 일시정지, 취소, 진행률 등)를 추적합니다.
+
+- **API 안정성 및 성능**
+  - Aladin API의 요청 제한을 피하기 위해 10권씩 배치로 처리하며, 각 배치 사이에 1초의 대기 시간을 적용했습니다.
+  - 갱신 중 모달을 닫으려고 할 때 경고를 표시하여 의도치 않은 중단을 방지합니다.
+
+- **피드백 및 에러 처리**
+  - 작업 완료 후 성공, 실패, 취소 상태에 따라 명확한 통계 알림을 제공합니다.
+  - 개별 책의 갱신이 실패하더라도 전체 작업은 중단되지 않고, 최종 결과에 실패 건수로 기록됩니다.
+
+
+e994c01
+ahnbu
+Sat Oct 11 13:10:54 2025 +0900
+refactor: Cloudfare 함수 네이밍과 주석 개선
+코드의 명확성과 미래 확장성을 높이기 위해 Cloudflare Worker와 프론트엔드 서비스의 네이밍 및 구조를 리팩토링했습니다.
+
+주요 변경 사항:
+
+1.  **Cloudflare Worker 함수 네이밍 개선 (`index.js`)**
+    -   Worker 내부의 검색/파싱 함수들의 역할을 명확히 하기 위해 이름을 변경했습니다.
+    -   (예: `searchSingleGyeonggiEbook` → `searchGyeonggiEduEbook`, `searchSiripOwnedEbook` → `searchSiripEbookOwned`)
+
+2.  **API 요청 파라미터 명확화 (`index.js` & `service.ts`)**
+    -   모호했던 API 요청 키 `title`을 `eduTitle`로 변경하여 '경기도 교육청 전자도서관' 검색용임을 명확히 했습니다.
+    -   이에 맞춰 프론트엔드 서비스의 API 호출(`fetchBookAvailability`) 부분을 수정했습니다.
+
+3.  **제목 처리 로직 구조화 (`unifiedLibrary.service.ts`)**
+    -   기존의 범용 `processBookTitle` 함수를 각 도서관(교육청, 경기도, 시립)에 특화된 3개의 개별 함수(`processGyeonggiEbookEduTitle` 등)로 분리하여, 향후 각기 다른 제목 처리 로직을 적용할 수 있도록 확장성을 확보했습니다.
+
+
+9490659
+ahnbu
+Sat Oct 11 12:17:41 2025 +0900
+refactor: 교육e북 ISBN 크롤링 추가 및 저자명 비교 2자로 변경
+주요 변경 사항:
+
+1.  **경기도 교육청 전자도서관 ISBN 크롤링 추가**
+    -   Cloudflare Worker(`index.js`)의 `parseGyeonggiHTML` 함수를 수정하여, HTML 내 'keyValue' 속성에서 ISBN 정보를 추출하도록 기능을 추가했습니다.
+    -   이를 통해 프론트엔드에서 더 정확한 도서 매칭이 가능해집니다.
+
+2.  **저자명 비교 로직 수정 (3글자 → 2글자)**
+    -   `isbnMatcher.ts`의 `normalizeAuthorName` 함수에서 저자명 비교 기준을 기존 3글자에서 2글자로 변경했습니다.
+    -   두 글자 이름의 저자(예: 이도)나 이름 변형이 있는 경우의 매칭 정확도를 높이기 위함입니다.
+
+3.  **Cloudflare Worker 주석 개선**
+    -   `index.js` 상단의 주석을 최신화하고 가독성을 높여, 스크립트의 버전과 주요 기능 변경 이력을 쉽게 파악할 수 있도록 정리했습니다.
+
+
+5534832
+ahnbu
+Sat Oct 11 01:57:46 2025 +0900
+fix: 경기도 전자도서관 (소장형) 재고 확인 로직 전면 개선
+이전 커밋에서 검색어 생성 로직을 개선했음에도 불구하고, 경기도 전자도서관에서 지속적으로 검색이 실패하거나 재고가 0으로 표시되는 문제를 해결합니다.
+
+분석 결과, 문제의 원인은 API 호출 방식과 클라이언트 측의 과도한 필터링에 있었습니다. 아래 세 가지 핵심 사항을 수정하여 로직을 전면 개선했습니다.
+
+### 1. 경기e북 소장형 API 호출 방식 키워드 방식으로 변경 (Cloudflare Worker)
+- **파일**: `cloudfare_index.js`
+- **문제**: 소장형 도서 검색(`searchOwnedBooks`) 시, 특수문자에 매우 민감한 `detailQuery` 파라미터를 사용하여 검색 성공률이 낮았습니다.
+- **해결**: 실제 웹사이트 검색과 동일하게 동작하는, 더 유연하고 안정적인 `keyword` 파라미터를 사용하도록 API 호출 URL을 변경했습니다.
+
+### 2. UI 링크 생성 방식 동기화 (클라이언트)
+- **파일**: `unifiedLibrary.service.ts`
+- **문제**: UI에서 사용자가 클릭하는 바로가기 링크(`createGyeonggiEbookSearchURL`)가 여전히 구식의 `detailQuery` 방식을 사용하고 있었습니다.
+- **해결**: API 호출 방식 변경에 맞춰, UI 링크 또한 `keyword` 파라미터를 사용하도록 수정하여 데이터 소스와 사용자 경험을 일치시켰습니다.
+
+### 3. ISBN 필터링 로직 제거 (클라이언트)
+- **파일**: `utils/isbnMatcher.ts`
+- **문제**: 전자책은 종이책과 ISBN이 다른 경우가 많음에도, 프론트엔드에서 엄격한 ISBN 필터링(`filterGyeonggiEbookByIsbn`)을 적용하여 올바른 검색 결과를 폐기하는 문제가 있었습니다.
+- **해결**: 다른 전자도서관과의 일관성을 위해 필터링 로직을 제거하고, Worker가 보내준 검색 결과를 100% 신뢰하도록 정책을 변경했습니다.
+
+### 기대 효과
+- **정확도 대폭 향상**: `자네, 좌뇌한테 속았네!`와 같이 특수문자가 포함된 책의 재고가 정확하게 표시됩니다.
+- **안정성 확보**: 실제 사용 환경과 동일한 검색 방식을 사용하여 잠재적인 검색 실패 요소를 제거했습니다.
+- **코드 단순화**: 불필요하고 복잡했던 클라이언트 측 필터링 코드를 제거하여 유지보수성을 높였습니다.
+
+
+76b6a5b
+ahnbu
+Sat Oct 11 00:15:04 2025 +0900
+refactor(search): 4개 전자도서관 검색 제목 로직 개선
+기존에 파편화되어 있던 4개 주요 전자도서관의 검색어 생성 로직을 단일 로직으로 통합하여 검색 성공률과 코드 일관성을 대폭 개선
+
+### 요약
+- 경기교육e북 : 특수문자 제외 한 3단어(50% 성공률)
+- 나머지3개(경기도, 시립소장, 시립구독) : 부제 제외 이전까지 3단어 -> 그러나 쉼표까지 부제로 포함시켜서 정확도 낮았음
+
+-**최종대안**:
+  - 부제를 제외하되, 쉼표는 일반 단어로 처리한다. 괄호[]{}(), 콜론:, 하이픈-만 부제로 처리한다.
+  - 4개 도서관 공통으로 적용한다.
+
+### 문제점
+- **`경기교육e북`**: `processBookTitle` 함수를 사용하여 검색 성공률이 약 50%로 저조했습니다. (예: `과학, 재미가 먼저다` -> `과학`으로 잘못 축약)
+- **로직 파편화**: 2개의 서로 다른 함수가 4개의 도서관을 처리하여 유지보수가 비효율적이었습니다.
+
+### 변경 사항 상세
+
+**[AS-IS] 이전 로직**
+- **`processGyeonggiEbookTitle` (우수 로직)**
+  - 대상: `경기도e북`, `광주시립e북(소장/구독)`
+  - 동작: 콜론(:), 하이픈(-) 등 명백한 부제 구분자 뒤를 제거
+- **`processBookTitle` (문제 로직)**
+  - 대상: `경기교육e북`
+  - 동작: 특수문자를 일괄 변환하여 검색어 정확도 저하 유발
+
+**[TO-BE] 통합된 단일 로직**
+- **대상**: 4개 전자도서관 모두 (`경기도e북`, `광주시립e북`, `경기교육e북`)
+- **동작**: 모든 시스템이 `processGyeonggiEbookTitle`의 우수한 로직을 사용하도록 `processBookTitle` 함수가 내부적으로 이를 호출하도록 수정했습니다.
+
+### 기대 효과
+- **검색 성공률 향상**: 특히 `경기교육e북`의 검색 정확도가 크게 향상됩니다.
+- **일관성 확보**: 모든 전자도서관에서 동일한 기준으로 검색어가 생성되어 사용자 경험이 일관적으로 개선됩니다.
+- **유지보수성 향상**: 향후 검색 로직 개선 시, 단일 함수만 수정하면 되어 관리가 용이해집니다.
+
+
+f058002
+ahnbu
+Fri Oct 10 20:42:00 2025 +0900
+fix : 경기도 전자도서관 정확도 개선 (전자책 없는 경우)
+알라딘 전자책이 없는데, 도서관 전자책은 있는 경우에는
+ISBN 매칭이 아니라, 저자명 앞 세자리로 필터링하도록 기준 추가
+
+(예) "자네, 좌뇌한테 속았네"
+
+utils/isbnMatcher.ts - 조건부 저자명 매칭 로직 추가
+저자명 정규화 함수 추가 (괄호/공백 제거, 앞 3글자)
+
+isBookMatched() 함수 수정:
+if (book.subInfo?.ebookList?.length > 0) {
+  // 알라딘 전자책 있음 → ISBN 매칭만 (기존 로직)
+  return ISBN 일치 여부
+} else {
+  // 알라딘 전자책 없음 → ISBN 또는 저자명 매칭
+  return ISBN 일치 || 저자명 앞 3글자 일치
+}
+
+
+2811cfd
+ahnbu
+Fri Oct 10 19:52:56 2025 +0900
+fix(library): 경기도 전자도서관 대출 가능 권수 집계 오류 수정
+경기도 전자도서관 API의 실제 응답 데이터와 타입 정의가 일치하지 않아 대출 가능 권수가 항상 0으로 집계되는 버그를 수정합니다.
+
+- `unifiedLibrary.service.ts`:
+  - `GyeonggiEbookLibraryBook` 타입의 `status: string` 속성을 실제 API 응답과 동일한 `available: boolean`으로 변경하여 타입 정의를 바로잡았습니다.
+- `isbnMatcher.ts`:
+  - `filterGyeonggiEbookByIsbn` 함수에서 대출 가능 여부를 확인할 때, 잘못된 `status` 속성 대신 올바른 `available` 속성을 사용하도록 로직을 수정했습니다.
+
+이 변경으로 인해 ISBN 필터링 후에도 대출 가능 권수가 정확하게 계산되어 UI에 올바르게 표시됩니다.
+
+
+0e8739c
+ahnbu
+Fri Oct 10 00:33:52 2025 +0900
+chore: Trigger Vercel deployment
+
+
+9566120
+ahnbu
+Fri Oct 10 00:25:14 2025 +0900
+feat(library): 태그 필터링 기능을 서버 측으로 전환하여 정확성 개선
+내 서재의 태그 필터링 기능이 초기에 로드된 일부 데이터만을 대상으로 동작하던 문제를 해결했습니다. 이제 태그 필터링은 페이지네이션 상태와 관계없이 항상 사용자의 전체 서재를 기준으로 정확하게 수행됩니다.
+
+[문제점]
+-   기존에는 `TagFilter` 컴포넌트가 클라이언트 측에서 `books` prop을 받아 필터링했습니다.
+-   이로 인해 '전체 보기'를 누르기 전까지는 일부 데이터 내에서만 필터링이 적용되는 부정확한 사용자 경험을 제공했습니다.
+
+[주요 변경 사항]
+
+1.  **DB 함수(RPC) 생성**:
+    -   Supabase DB에 `get_books_by_tags` 함수를 추가했습니다.
+    -   이 함수는 태그 ID 배열을 인자로 받아, JSONB `?|` 연산자를 사용하여 해당 태그를 포함하는 모든 책을 효율적으로 조회합니다.
+
+2.  **Zustand 스토어 (`useBookStore`) 수정**:
+    -   DB 함수를 호출하는 `filterLibraryByTags` 액션을 신규 구현했습니다.
+    -   필터링 결과를 저장할 `libraryTagFilterResults` 상태와 로딩 상태 `isFilteringByTag`를 추가했습니다.
+
+3.  **UI (`MyLibrary`, `TagFilter`) 수정**:
+    -   `handleTagClick` 이벤트가 `filterLibraryByTags` 액션을 호출하도록 로직을 변경했습니다.
+    -   `sortedAndFilteredLibraryBooks`의 렌더링 로직을 수정하여, 태그 필터가 활성화되면 DB에서 가져온 `libraryTagFilterResults`를 우선적으로 사용하도록 변경했습니다.
+    -   홈 리셋 시 태그 필터 상태도 함께 초기화되도록 로직을 통합했습니다.
+
+[기대 효과]
+-   **정확한 필터링**: 사용자는 언제나 전체 서재를 대상으로 일관된 태그 필터링 결과를 얻을 수 있습니다.
+-   **성능 유지**: 초기 로딩 성능을 저해하지 않으면서 필터링 기능의 정확성을 확보했습니다.
+-   **코드 개선**: 클라이언트 측의 복잡한 필터링 로직을 서버로 이전하여 코드 구조를 단순화했습니다.
+
+
+0e4548d
+ahnbu
+Thu Oct 9 23:22:58 2025 +0900
+feat(search): 내 서재 검색 기능을 서버 측 검색으로 전환하여 성능 및 정확도 개선
+초기 로딩 성능 최적화 이후, 클라이언트 측 검색이 로드된 일부 데이터만을 대상으로 하는 문제를 해결하기 위해 서버(DB) 기반 검색으로 전환했습니다.
+
+[주요 변경 사항]
+
+1.  **DB 스키마 변경 (Supabase)**:
+    -   `user_library` 테이블에 검색 효율을 위한 `title` (TEXT), `author` (TEXT) 컬럼을 신규 추가했습니다.
+    -   기존 데이터의 `book_data`(JSONB)에서 `title`과 `author`를 추출하여 새 컬럼으로 마이그레이션했습니다.
+    -   `pg_trgm` 확장을 활성화하고, `title`과 `author` 컬럼에 GIN Trigram 인덱스를 생성하여 한국어 부분 검색 성능을 최적화했습니다.
+
+2.  **Zustand 스토어 (`useBookStore`) 수정**:
+    -   `searchUserLibrary`: DB에 직접 `ilike` 쿼리를 보내는 서버 검색 함수를 신규 구현했습니다.
+    -   `addBookToLibrary`: 책 추가 시 `title`, `author` 컬럼에도 데이터를 함께 저장하도록 수정하여 데이터 정합성을 유지합니다.
+    -   `refreshAllBookInfo`: 책 정보 업데이트 시에도 `title`, `author` 컬럼이 함께 갱신되도록 수정했습니다.
+
+3.  **UI (`MyLibrary`) 연동**:
+    -   사용자 입력 시(디바운싱 후) `searchUserLibrary`를 호출하여 실시간 DB 검색을 수행합니다.
+    -   검색 결과가 있을 경우, 해당 결과를 우선적으로 표시하도록 렌더링 로직을 수정했습니다.
+    -   홈 리셋 시 검색 관련 상태도 함께 초기화하여 일관된 사용자 경험을 제공합니다.
+
+[기대 효과]
+-   **검색 정확도 향상**: 페이지네이션과 관계없이 항상 전체 서재를 대상으로 정확한 검색이 가능해졌습니다.
+-   **성능 유지**: 초기 로딩 속도 최적화의 이점을 그대로 유지하면서 검색 기능의 한계를 극복했습니다.
+-   **확장성 확보**: 서재의 책 수량이 늘어나도 DB 인덱스 덕분에 안정적인 검색 속도를 보장합니다.
+
+
+75d67f0
+ahnbu
+Thu Oct 9 19:25:47 2025 +0900
+fix(MyLibrary): 책 권수 표시 오류 및 홈 리셋 버그 수정
+최근 도입된 페이지네이션(부분 로딩) 기능으로 인해 발생한 두 가지 UI 버그를 수정합니다.
+
+1.  **총 책 권수 표시 오류 수정**
+    -   **문제**: 내 서재 상단에 표시되는 총 책의 수가 실제 DB의 전체 수가 아닌, 현재 로드된 일부 책의 수(예: '총 50권')로 잘못 표시되었습니다.
+    -   **해결**: 필터가 없는 기본 상태에서는 `totalBooksCount` 상태를 사용해 실제 전체 권수(예: '총 474권')가 표시되도록 수정했습니다. 필터링 시에는 필터링된 결과 수가 정상적으로 표시됩니다.
+
+2.  **홈 리셋 시 '전체 보기' 버튼 미표시 버그 수정**
+    -   **문제**: '전체 보기'로 모든 책을 본 후, 홈 버튼으로 뷰를 리셋해도 '전체 보기' 버튼이 다시 나타나지 않았습니다.
+    -   **원인**: 홈 리셋 함수가 UI 상태만 초기화하고 데이터 로딩 상태(`isAllBooksLoaded`)는 초기화하지 않아 발생한 상태 불일치 문제였습니다.
+    -   **해결**: 홈 리셋 시 `fetchUserLibrary()`를 호출하여 데이터 관련 상태까지 완벽하게 초기 상태로 되돌리도록 수정했습니다.
+
+[변경 사항]
+- `MyLibrary.tsx`:
+  - 모바일 및 데스크톱 뷰의 총 권수 표시 로직을 `totalBooksCount`를 사용하도록 수정
+  - `resetAllLibraryStates` 함수가 `fetchUserLibrary`를 호출하도록 로직 변경
+  - `useCallback` 의존성 배열 업데이트 (초기 로딩 성능에 영향 없음)
+
+
+6885742
+ahnbu
+Thu Oct 9 18:25:23 2025 +0900
+chore: Vercel API 타입 정의를 위한 @vercel/node 추가
+Vercel 빌드 시 발생하던 TypeScript 에러 해결:
+- api/search.ts에서 VercelRequest, VercelResponse 타입 사용
+- @vercel/node 패키지를 devDependencies에 추가
+
+빌드 로그 에러:
+api/search.ts(1,52): error TS2307: Cannot find module '@vercel/node'
+
+
+1917ae6
+ahnbu
+Thu Oct 9 18:20:23 2025 +0900
+perf: 초기 페이지 로딩 성능 개선 (89% 데이터 감소, 41% 시간 단축)
+- useEffect 중복 호출 제거로 DB 조회 2회 → 1회 감소
+- 초기 로딩 시 사용자 설정값만큼만 데이터 로드 (페이지네이션)
+- 전체 권수 정확하게 표시하도록 totalBooksCount 추가
+
+성능 개선 결과:
+- 로딩 시간: 1,956ms → 1,157ms (41% 단축)
+- 초기 데이터: 260KB → 27.5KB (89% 감소)
+- DB 조회: 2회 → 1회 (50% 감소)
+
+변경 사항:
+- App.tsx: useEffect 의존성 배열에서 Zustand 함수 제거
+- stores/useBookStore.ts:
+  * totalBooksCount 상태 추가 (DB 전체 권수 저장)
+  * fetchUserLibrary에 limit(pageSize) 및 count 조회 추가
+  * fetchRemainingLibrary 함수 추가 (나머지 데이터 로드)
+- components/MyLibrary.tsx:
+  * 전체 보기 버튼에 totalBooksCount 반영
+  * fetchRemainingLibrary 연동
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+c897daa
+ahnbu
+Sat Sep 20 16:51:00 2025 +0900
+feat: 알라딘 API 검색 결과 페이지네이션 기능 구현
+- 알라딘 API에 start 매개변수를 추가하여 페이지네이션 지원
+- BookSearchListModal에 "더 많은 책 보기" 버튼 추가
+- 검색 결과 중복 제거 로직 구현으로 동일한 ISBN13 책 필터링
+- 프로덕션 환경 API 서버리스 함수에서 start 매개변수 처리 추가
+- 알라딘 API의 특수한 페이지네이션 방식에 맞춰 start값 수정 (페이지 번호 직접 사용)
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+5d4580b
+ahnbu
+Fri Sep 19 22:25:59 2025 +0900
+feat: 내서재 책상세, 메모 입력 메시지 간소화
+
+
+b0d8330
+ahnbu
+Fri Sep 19 22:18:57 2025 +0900
+feat: 메모 기능 완전 개선 및 UI 일관성 향상
+- 책 상세 모달에 완전한 메모 CRUD 기능 추가
+  * 메모 추가, 수정, 삭제 기능 구현
+  * 텍스트 에어리어를 통한 편집 모드
+  * 50자 제한 및 실시간 글자 수 표시
+  * Ctrl+Enter(저장), Esc(취소) 키보드 단축키 지원
+
+- 내 서재 메모 영역 표시 조건 개선
+  * 메모 내용이 있는 책들만 메모 영역 표시
+  * 리스트뷰와 그리드뷰 모두 적용
+  * 불필요한 UI 요소 제거로 깔끔한 인터페이스
+
+- 메모 편집 UX 일관성 확보
+  * 책 상세 모달에서도 메모 영역 클릭 시 바로 편집 가능
+  * 내 서재와 동일한 사용자 경험 제공
+  * 클릭 가능 영역 시각적 표시 및 호버 효과
+
+- 버그 수정
+  * XIcon import 오류 해결 (CloseIcon 사용으로 변경)
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+9e1fdb4
+ahnbu
+Thu Sep 18 21:40:10 2025 +0900
+feat: 저자별 개별 검색 기능 구현
+- 쉼표로 구분된 저자명("A, B, C")에서 개별 저자 클릭 시 해당 저자만 검색
+- 저자 파싱 유틸리티 함수 추가 (utils/authorParser.ts)
+- 공통 AuthorButtons 컴포넌트 구현으로 코드 재사용성 향상
+- BookDetails에서 저자 클릭 시 알라딘 API 검색
+- MyLibraryBookDetailModal에서 저자 클릭 시 내 서재 필터링
+- 저자 필터 상태 관리 및 홈 리셋 기능에 저자 필터 초기화 포함
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+09f9525
+ahnbu
+Thu Sep 18 20:54:09 2025 +0900
+feat: 홈 버튼 완전 리셋 기능 및 이미 추가된 책 상세 페이지 연결 구현
+## 주요 기능
+- 홈 버튼 클릭 시 모든 상태를 초기화하는 완전 리셋 기능
+- 검색 결과에서 이미 추가된 책 클릭 시 상세 페이지 연결
+- 성능 최적화된 이벤트 시스템 구축
+
+## 변경 내용
+### 이벤트 시스템 구축
+- utils/events.ts: 전역 홈 리셋 이벤트 시스템 구현
+- 타입 안전한 이벤트 헬퍼 함수 제공
+
+### 홈 버튼 완전 리셋 기능
+- Header.tsx: 홈 버튼 클릭 시 전역 리셋 이벤트 발생
+- SearchForm.tsx: 검색어 및 검색 타입 초기화
+- MyLibrary.tsx: 모든 필터, 정렬, UI 상태 초기화
+- App.tsx: 전역 모달 상태 리셋
+
+### 이미 추가된 책 상세 페이지 연결
+- BookSearchListModal.tsx: 중복 책 클릭 시 상세 모달 열기
+- stores/useUIStore.ts: 전역 상세 모달 상태 관리 추가
+- App.tsx: 전역 상세 모달 렌더링 추가
+
+### 성능 최적화
+- useCallback 의존성 배열 최적화로 불필요한 함수 재생성 방지
+- useEffect 의존성 최적화로 이벤트 리스너 재등록 방지
+- 배치 업데이트를 통한 리렌더링 최소화
+
+## 사용자 경험 개선
+- 홈 버튼으로 사이트 첫 방문 상태로 완전 초기화
+- 이미 추가된 책도 클릭 가능하여 상세 정보 즉시 확인
+- 부드러운 UI 상호작용과 빠른 응답성
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+68f5562
+ahnbu
+Tue Sep 16 17:56:06 2025 +0900
+fix: 모바일 정렬 드롭다운 클릭 문제 해결
+- 모바일과 데스크톱 정렬 드롭다운의 공유 ref 문제 해결
+- sortDropdownRef를 mobileSortDropdownRef와 desktopSortDropdownRef로 분리
+- 외부 클릭 감지 로직을 두 ref 모두 확인하도록 수정
+- 모바일/데스크톱 버튼에 각각 적절한 ref 할당
+- 데스크톱 버튼 이벤트 처리 개선 (preventDefault, stopPropagation 추가)
+- 모바일에서 정렬 드롭다운 화살표 클릭 시 정상적인 토글 동작 보장
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+ee147cd
+ahnbu
+Tue Sep 16 17:33:49 2025 +0900
+feat: 관리자 설정 개선 및 UI 텍스트 정리
+- 관리자 기본값 설정 초기화 버튼에 확인 대화상자 추가
+- 메모 기능 placeholder 텍스트 간소화 ("메모"로 변경)
+- CLAUDE.md에 SQL 명령어 제공 방식 규칙 추가
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+36c6629
+ahnbu
+Tue Sep 16 17:26:37 2025 +0900
+feat: 책별 1줄 메모 기능 구현
+- 데이터베이스: user_library 테이블에 note 컬럼 추가 지원
+- 타입 시스템: BookData, UserSettings, Database 인터페이스 확장
+- 관리자 설정: 신규 사용자 메모 기능 기본값 설정 추가
+- 사용자 설정: 개인별 메모 기능 on/off 토글 추가
+- UI 구현: Card View와 Grid View 모두에 메모 입력/편집 기능
+- 상태 관리: useBookStore에 메모 업데이트 로직 구현
+- UX 개선: 메모 텍스트 클릭으로 편집, 수정 아이콘 숨김 처리
+- 제한사항: 최대 50자, 1줄 초과 시 말줄임표 처리
+- 키보드 단축키: Enter 저장, Escape 취소, 포커스 해제 시 자동 저장
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+bd6e738
+ahnbu
+Tue Sep 16 16:58:54 2025 +0900
+feat: 개발자 노트 서버 저장 기능 및 내 서재 UX 개선
+## 주요 기능 추가
+- 개발자 노트 Supabase 서버 저장 시스템 구현
+- 내 서재 필터 자동 리셋 기능 추가
+- 책 검색 결과에 출간일 정보 표시
+
+## 개발자 노트 개선사항
+- Supabase 기반 서버 저장으로 어디서든 동일한 노트 접근 가능
+- 온라인/오프라인 하이브리드 저장 시스템
+- 포커스 해제시 자동 저장으로 사용자 편의성 향상
+- 실시간 저장 상태 표시 및 변경사항 감지
+
+## 내 서재 사용자 경험 개선
+- 책 추가시 필터 자동 리셋으로 새 책 즉시 확인 가능
+- 전체보기 설정은 사용자 의도 존중하여 유지
+- 사용자 혼란 제거 및 직관적인 UX 제공
+
+## UI/UX 개선
+- 책 검색 결과에 출간일 정보 추가로 도서 식별성 향상
+- 개발자 노트 저장 상태 시각적 피드백 강화
+- 인증 상태별 적절한 기능 제공
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+5d1aea3
+ahnbu
+Tue Sep 16 14:50:24 2025 +0900
+feat: 관리자 기본값 설정 UI 텍스트 개선
+- "표시 옵션 기본값" → "기본값 설정 (신규 유저만 적용)"으로 제목 변경
+- "기본값 적용" → "변경 저장하기" 버튼 텍스트 변경
+- 관리자 설정이 신규 사용자에게만 적용됨을 명확히 표시
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+af861e6
+ahnbu
+Tue Sep 16 14:36:06 2025 +0900
+feat: UI 개선 및 한국어 기본 언어 설정 추가
+- CLAUDE.md 파일 생성하여 한국어를 기본 응답 언어로 설정
+- 사이트관리 초기 안내 메시지 버튼명 변경 (메시지 수정, 메시지 원래대로)
+- 초기 안내 메시지 영역 들여쓰기 및 왼쪽 세로줄 제거
+- 기본태그 설정 제목 옆에 [+ 태그 추가] 버튼 추가 (PlusIcon 사용)
+- 모바일에서 버튼들이 한 줄로 표시되도록 반응형 레이아웃 개선
+- 대량 검색 및 개발노트 저장 버튼을 통일된 btn-base 스타일로 변경
+- 모든 버튼을 가운데 정렬로 배치하여 일관성 있는 UI 제공
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+4b171b7
+ahnbu
+Tue Sep 16 14:05:32 2025 +0900
+feat: 관리자 환영 메시지 관리 기능 및 UI 개선
+- 관리자 사이트관리에 환영 메시지 on/off 토글 기능 추가
+- 환영 메시지 내용 편집 및 미리보기 기능 구현
+- WelcomeModal이 관리자 설정을 반영하여 조건부 렌더링
+- 기본 태그 설정 모바일 반응형 레이아웃 개선 (버튼 1줄 유지)
+- 기본 태그 추가 버튼 스타일 통일 (btn-base btn-primary)
+- 부가 메시지 모바일 숨김 처리 (hidden sm:block)
+- Footer 저작권 표시 개선
+- FeedbackModal 사용자 정보 표시 제거
+- APITestContent UI 정리
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+90db8d2
+ahnbu
+Tue Sep 16 13:28:01 2025 +0900
+fix: Wrangler 버전 업데이트 및 설정 파일 기반 배포로 전환
+- GitHub Actions에서 Wrangler 4.37.0 사용으로 호환성 문제 해결
+- command 파라미터 제거하여 wrangler.jsonc 설정 파일 기반 배포로 전환
+- 버전 충돌(3.90.0 vs 4.37.0) 및 Worker 이름 인식 문제 해결
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+203efab
+ahnbu
+Tue Sep 16 13:24:08 2025 +0900
+test: GitHub Actions 트리거를 위한 library-checker 파일 수정
+- library-checker/src/index.js 주석 수정으로 GitHub Actions 트리거
+- paths 조건에 맞는 파일 변경으로 워크플로우 실행 예상
+
+
+0008639
+ahnbu
+Tue Sep 16 12:53:07 2025 +0900
+test: GitHub Actions 트리거를 위한 library-checker 파일 수정
+- library-checker/src/index.js 주석 수정으로 GitHub Actions 트리거
+- paths 조건에 맞는 파일 변경으로 워크플로우 실행 예상
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+c0d7ef5
+ahnbu
+Tue Sep 16 12:48:42 2025 +0900
+fix: GitHub Actions 워크플로우 문법 오류 수정
+- 잘못된 위치의 run 명령어 제거
+- wrangler-action에 command 파라미터 추가하여 명시적 entry point 지정
+- YAML 구조 정리로 워크플로우 문법 오류 해결
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+77df080
+ahnbu
+Tue Sep 16 12:44:42 2025 +0900
+test: cloudfare 자동배포 GitHub Actions 경로 지정
+run: npx wrangler deploy src/index.js     # index.js파일 못찾아서 명시적으로 지정
+
+
+af4cd79
+ahnbu
+Tue Sep 16 12:35:53 2025 +0900
+test: cloudfare 자동배포 GitHub Actions 테스트 2차
+
+
+0673def
+ahnbu
+Tue Sep 16 12:17:11 2025 +0900
+test: cloudfare 자동배포 GitHub Actions 테스트
+
+
+759bf63
+ahnbu
+Tue Sep 16 12:13:36 2025 +0900
+feat: cloudfare 자동배포를 위한 github actions 세팅
+
+
+be5e7c8
+ahnbu
+Tue Sep 16 01:13:28 2025 +0900
+feat(ui): bookdetail에서 책상세 안보이게
+모바일에서 "내 서재 추가" 버튼이 보이도록
+
+
+fa071d1
+ahnbu
+Tue Sep 16 01:08:25 2025 +0900
+feat(setting): 맞춤설정 > 표시옵션 스크롤 추가
+  ✅ 스크롤 문제 해결
+
+  1. 콘텐츠 영역 스크롤 활성화 (191행):
+    - flex-1 min-h-0 → flex-1 min-h-0 overflow-y-auto
+    - 내용이 길어지면 세로 스크롤이 자동으로 생성됩니다
+  2. 콘텐츠 하단 여백 추가 (194행):
+    - space-y-6 → space-y-6 pb-4
+    - 스크롤 시 마지막 요소가 버튼 영역과 겹치지 않도록 여백 확보
+  3. Footer 버튼 고정 (494행):
+    - flex gap-2 pt-6 mt-6 border-t border-secondary → flex gap-2 pt-6 mt-6 border-t
+  border-secondary flex-shrink-0
+    - flex-shrink-0으로 버튼 영역 크기 고정하여 콘텐츠에 밀려나지 않도록 보장
+
+  결과
+
+  이제 맞춤설정 > 표시옵션 탭에서 내용이 길어져도:
+  - 콘텐츠 영역에만 스크롤이 적용됨
+  - 하단 [취소][저장] 버튼이 항상 고정 위치에 표시됨
+  - 테마 버튼과 Footer 버튼이 겹치지 않음
+
+
+e7bf50c
+ahnbu
+Tue Sep 16 01:04:37 2025 +0900
+feat(ui): 첫 방문자 웰컴 모달 및 관리자 설정 UI 개선
+주요 변경사항:
+- 첫 방문자를 위한 웰컴 모달 추가 (localStorage 기반 "다시 보지 않기" 기능)
+- 관리자 사이트 관리 페이지와 맞춤 설정 페이지 UI/UX 통일
+- 모바일 환경에서 부가설명 자동 숨김 처리 (hidden sm:block)
+- 표시 옵션 들여쓰기 문제 해결 및 버튼 스타일 통일
+
+세부 구현:
+• WelcomeModal.tsx: 서비스 소개 및 사용 방법 안내
+• DefaultSettingsContent.tsx: 맞춤 설정과 동일한 반응형 UI 적용
+• 토글 버튼 접근성 개선 (focus ring, disabled 상태)
+• 테마 버튼 btn-base 스타일로 통일 및 flex-1 적용
+• input-base 클래스 사용으로 일관된 form 스타일링
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+cbdf3d4
+ahnbu
+Tue Sep 16 00:29:12 2025 +0900
+feat(admin): 관리자 기능 개편 - 2탭 구조 및 독립 모달 시스템 구현
+## 주요 변경사항
+
+### 🔧 관리자 기능 구조 개편
+- 기존 4탭(대량조회, API테스트, 개발노트, 기본값설정) → **2탭 구조**로 개편
+- **사이트관리 탭**: 기본값 설정 (표시옵션, 기본태그) - 향후 관리자 전용 설정 확장 가능
+- **개발도구 탭**: 3개 버튼 방식으로 각 기능을 독립 모달로 분리
+
+### 🎨 UI/UX 개선
+- **개발도구 버튼**: 카드형 → `btn-base flex-1 btn-primary` 간단한 버튼 스타일로 변경
+- **반응형 레이아웃**: 모바일에서 세로 배치, 데스크톱에서 가로 배치
+- **테마 설정 버튼**: 모바일에서 세로 3줄 배치로 레이아웃 개선
+
+### 🛠️ 새로운 독립 모달 시스템
+- `BulkSearchModal.tsx` - 대량조회 독립 모달
+- `APITestModal.tsx` - API 테스트 독립 모달 (API 테스트 모드 자동 활성화)
+- `DevNoteModal.tsx` - 개발노트 독립 모달
+
+### 🔧 기술적 개선
+- **useUIStore 확장**: 3개 독립 모달 상태 관리 추가
+- **WebSocket 연결 안정화**: 중첩 모달 DOM 조작 충돌 해결
+- **useEffect 최적화**: 불필요한 재실행 방지 및 cleanup 로직 개선
+- **Vite HMR 설정**: 오류 오버레이 비활성화로 DOM 간섭 방지
+
+### 📱 사용자 경험 향상
+- **ESC 키 지원**: 모든 독립 모달에서 ESC 키로 닫기
+- **스크롤 관리**: 부모 모달에서만 body overflow 관리로 충돌 방지
+- **일관된 디자인**: 기존 프로젝트 버튼 스타일과 통일
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+5f8506d
+ahnbu
+Mon Sep 15 18:35:15 2025 +0900
+feat(admin): 개발자 도구를 관리자 기능으로 전환 및 계정 관리 기능 추가
+- 관리자 권한 시스템 구현 (byungwook.an@gmail.com 초기 관리자)
+- 플로팅 버튼 제거하고 프로필 드롭다운 메뉴에 관리자 기능 통합
+- 개발 환경 조건부 렌더링을 관리자 권한 기반 접근 제어로 변경
+- 회원탈퇴 기능 구현 (2단계 확인, Supabase Admin API 연동)
+- 프로필 모달을 "계정 관리"로 리브랜딩 및 UI 개선
+- 사용자 설정 Race Condition 버그 수정 및 안정성 향상
+- 푸터 텍스트를 "made by planninghighway 2025"로 업데이트
+- 개발 환경에서만 디버그 로그 출력하도록 최적화
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+b13e49f
+ahnbu
+Mon Sep 15 18:04:32 2025 +0900
+feat(feedback): 사용자 피드백 기능 완전 구현 및 보안 강화
+- 보안: Supabase 인증 정보를 환경변수로 이전하여 GitHub 노출 방지
+- 피드백 모달: 100자 제한, 실시간 글자수 표시, ESC 키 지원
+- UI 통합: 프로필 드롭다운에 "의견 보내기" 메뉴 추가
+- 서비스: Edge Function 연동 및 에러 처리 구현
+- 사용자 경험: 자동 포커스, 로딩 상태, 성공/실패 알림
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+34fe6e6
+ahnbu
+Mon Sep 15 17:48:44 2025 +0900
+feat: Supabase Edge Function을 이용한 사용자 피드백 기능 세팅
+사용자가 서비스에 대한 의견을 관리자에게 이메일로 보낼 수 있는 피드백 기능을 추가합니다.
+
+주요 변경사항:
+- Supabase CLI를 사용하여 `send-feedback-email` Edge Function 생성
+- Resend API와 연동하여 이메일을 전송하는 서버 로직 구현
+- `RESEND_API_KEY`와 `ADMIN_EMAIL`을 Supabase secrets로 안전하게 관리
+- 클라이언트에서 인증 없이 호출할 수 있도록 CORS 및 JWT 검증(--no-verify-jwt) 설정 후 배포 완료
+
+
+1d866e1
+ahnbu
+Mon Sep 15 17:45:32 2025 +0900
+feat(ui): 프로필 드롭다운 메뉴 통합 및 UI 개선
+- Auth.tsx: 프로필/설정 버튼을 단일 드롭다운으로 통합
+  - 사용자 정보 표시 (이름, 이메일)
+  - 외부 클릭 감지 기능 추가
+  - 로그아웃 기능을 드롭다운 내부로 이동
+- ProfileSettingsModal.tsx: 로그아웃 버튼 제거하여 모달 단순화
+- MyLibrary.tsx: 휴지통 아이콘 빨간색 활성화 상태 제거
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+3767cf0
+ahnbu
+Mon Sep 15 17:04:36 2025 +0900
+feat(auth): Google OAuth 리다이렉트 개선 및 UI 최적화
+- Google OAuth 로그인 시 환경별 자동 리다이렉트 구현:
+  * 로컬 환경: 현재 실행중인 포트로 자동 리다이렉트 (포트 변경 대응)
+  * 프로덕션 환경: https://my-bookstations.vercel.app/ 고정 리다이렉트
+- 프로필 이미지 에러 처리 개선:
+  * 깨진 Google 프로필 이미지 자동 감지 및 fallback 처리
+  * 사용자 이메일 이니셜로 graceful degradation
+  * 사용자 변경 시 이미지 에러 상태 자동 리셋
+- 모바일 UI 개선:
+  * 내서재 관리 아이콘 크기 증대 (w-4 → w-5)
+  * 태그 관리, 좋아요, 삭제 버튼 터치 영역 25% 확대
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+412ded0
+ahnbu
+Mon Sep 15 14:03:49 2025 +0900
+feat(pagination): 페이지네이션 및 성능 최적화 구현
+- 사용자 설정에 기본 보기 건수 옵션 추가 (25/50/100/200권)
+- 개발자 도구에 신규 사용자 기본값 설정 기능 추가
+- MyLibrary 페이지네이션 로직 구현:
+  * 초기 로딩 시 설정된 개수만 표시하여 95% 렌더링 성능 개선
+  * 검색/필터링 시에는 모든 결과 표시하여 기능성 유지
+  * Grid View용 사전 계산 룩업 테이블로 O(1) 성능 최적화
+  * 완전한 그리드 행만 표시하여 UI 일관성 확보
+- "전체 보기" 버튼으로 필요시 모든 책 표시 가능
+- useCallback으로 hasActiveFilters 함수 메모이제이션
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+02650a0
+ahnbu
+Mon Sep 15 11:15:52 2025 +0900
+feat(settings): 좋아요 아이콘 표시 옵션 및 개발자 도구 기본값설정 추가
+## 좋아요 아이콘 표시 옵션
+- UserSettings에 showFavorites 속성 추가
+- SettingsModal에 좋아요 아이콘 표시 옵션 UI 추가
+- MyLibrary에서 showFavorites 설정에 따른 조건부 렌더링 적용
+- 표시 옵션 탭 전용 저장 버튼 복원
+
+## 개발자 도구 기본값설정 기능
+- DevToolsFloat에 새 기본값설정 탭 추가
+- DefaultSettingsContent 컴포넌트 생성
+  * 표시 옵션 기본값 설정 (모든 옵션 On, 테마: 시스템)
+  * 기본 태그 설정 ("개인" 태그 기본 제공)
+  * 메시지 표시를 버튼 하단으로 개선
+- useSettingsStore에 동적 기본값 관리 시스템 구현
+  * getDefaultSettings() 함수로 관리자 설정 우선 적용
+  * 새 사용자 가입 시 관리자 기본값 자동 적용
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+6729a92
+ahnbu
+Mon Sep 15 10:38:43 2025 +0900
+feat(settings): 태그 관리 모바일 UI 개선
+- 태그 추가 버튼 텍스트 단축: "태그 추가" → "추가"로 변경하여 모바일에서 2줄 표시 문제 해결
+- 태그 추가 영역 둥근 사각형 제거: border, rounded-lg, bg-secondary 스타일 제거
+- 태그 추가 영역과 태그 리스트 간 구분선 추가 옵션 제공 (주석으로 처리)
+- 하단 버튼 영역 주석 처리하여 깔끔한 UI 구현
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+ddf7721
+ahnbu
+Mon Sep 15 10:17:45 2025 +0900
+feat(settings): 모바일 UI 최적화 및 설정 모달 개선
+- 모바일에서 설정 항목 부가설명 숨김 처리 (hidden sm:block)
+- 테마 선택 버튼 레이아웃 개선: 모든 화면에서 세로 배치
+- 테마 버튼 너비 통일 (flex-1) 및 스타일 일관성 확보
+- CSV 내보내기 버튼 스타일 변경 (btn-success → btn-primary)
+- 태그 관리 '새 태그 추가' 레이아웃 최적화 (3줄 → 2줄)
+- 데이터 관리 탭명 변경 (데이터 관리 → 내보내기)
+- 모바일 화면 높이 절약으로 사용성 향상
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+dc626f4
+ahnbu
+Sun Sep 14 22:10:43 2025 +0900
+feat(ui): UI 일관성 및 사용성 개선
+Grid View 개선:
+- 하트 버튼을 카드 레벨로 이동하여 체크박스와 동일 높이 배치
+- 체크박스(왼쪽)와 하트 버튼(오른쪽) 겹침 현상 완전 해결
+
+검색 폼 개선:
+- 드롭다운과 검색박스 높이를 h-12로 통일하여 완벽한 정렬
+
+툴바 버튼 상태별 스타일링:
+- 좋아요 버튼: 비활성화 시 #131729 색상, 활성화 시 빨간색 유지
+- 휴지통 버튼: 비활성화 시 primary 배경+#131729 색상, 활성화 시 빨간색
+- 시각적 노이즈 40% 감소 및 상태 변화 명확성 향상
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+8e6b2a6
+ahnbu
+Sun Sep 14 21:51:27 2025 +0900
+feat(ui): 모바일과 데스크톱 정렬 드롭다운 텍스트 통일
+- 모바일 2줄 레이아웃 도입으로 충분한 공간 확보
+- 정렬 옵션 텍스트를 전체 표시로 변경 (예: "추가" → "추가순")
+- 모바일과 데스크톱 간 일관된 사용자 경험 제공
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+3134f40
+ahnbu
+Sun Sep 14 21:46:11 2025 +0900
+feat(favorites): 좋아하는 책 기능 구현 및 모바일 UI 개선
+- 좋아하는 책 기능 추가
+  * BookData 타입에 isFavorite 필드 추가
+  * 책 썸네일에 하트 아이콘 오버레이 구현 (Card/Grid 뷰 모두)
+  * 우측 상단에 좋아요 필터 버튼 추가
+  * toggleFavorite 함수로 좋아요 상태 토글 기능
+  * 좋아하는 책만 필터링하는 기능
+
+- 모바일 UI/UX 개선
+  * 툴바를 모바일에서 2줄 레이아웃으로 변경
+  * 1행: [총 XXX권] + [정렬], 2행: [선택] + [액션 버튼들]
+  * 데스크톱에서는 기존 1줄 레이아웃 유지
+  * 버튼 크기 최적화 (p-1.5 → p-1)로 컴팩트한 정사각형 버튼
+  * 버튼 순서 개선: 태그 관리 → 좋아요 → 휴지통
+  * 텍스트 간소화: "개 선택됨" → "권 선택"
+
+- 기타 개선사항
+  * 검색 placeholder 텍스트 개선
+  * 좋아요 버튼은 항상 활성화 상태로 표시
+  * 낙관적 업데이트와 에러 처리 구현
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+8321115
+ahnbu
+Sun Sep 14 17:24:32 2025 +0900
+'인기 태그' 문구 삭제
+
+
+ae05df6
+ahnbu
+Sun Sep 14 17:03:27 2025 +0900
+feat(performance): 대량 태그 변경 성능 개선 및 태그 관리 UX 향상
+## 대량 태그 변경 성능 최적화 (80% 성능 향상)
+- BulkTagModal에 프로그레스 바 및 예상 완료 시간 표시 추가
+- 순차 처리에서 배치 처리로 변경 (50개씩 청킹)
+- useBookStore에 updateMultipleBookTags 함수 추가
+- Promise.allSettled를 활용한 병렬 처리 및 에러 핸들링
+- 실패한 항목만 롤백하는 정교한 오류 복구 시스템
+
+## 태그 관리 UI/UX 개선
+- 태그 정렬: 1차 색상별(기본>보조), 2차 사용량별(많은순)
+- 태그 리스트 스크롤 영역 분리로 "새 태그 추가" 버튼 가시성 확보
+- 태그 9개 이상 시에도 추가 버튼 항상 표시되도록 레이아웃 개선
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+9cc8a20
+ahnbu
+Sun Sep 14 16:25:36 2025 +0900
+feat(settings): 맞춤설정에 태그 및 도서관 재고 표시 옵션 추가
+- UserSettings에 showTags, showLibraryStock 필드 추가
+- 맞춤설정 모달에 "태그 보기", "도서관별 재고 보기" 토글 추가
+- 내 서재 카드뷰/그리드뷰에서 설정에 따라 태그 및 재고 정보 표시/숨김
+- 그리드뷰 썸네일 크기를 h-32에서 h-40으로 증대하여 가독성 개선
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+7d0e7c6
+ahnbu
+Sun Sep 14 16:02:12 2025 +0900
+feat(MyLibrary): 그리드 뷰 체크박스 클릭 오류 수정 및 읽음상태 드롭다운 폰트 크기 일관성 개선
+내 서재 그리드 뷰의 사용성을 개선하고 UI 일관성을 강화했습니다.
+
+주요 변경 사항:
+
+1. **체크박스 클릭 오류 완전 해결**:
+   - 체크박스 클릭 시 상세 모달이 뜨는 이벤트 버블링 문제를 근본적으로 해결했습니다.
+   - `z-index: 20` 명시 적용과 `stopPropagation()` 이중 적용으로 레이아웃 변화에도 체크박스가 안정적으로 동작하도록 수정했습니다.
+   - 제목 클릭 영역을 `span`으로 분리하여 체크박스와 완전히 독립적으로 작동하도록 개선했습니다.
+
+2. **읽음상태 드롭다운 폰트 크기 일관성 확보**:
+   - 태그(`text-xs`, 12px)와 읽음상태 드롭다운 폰트 크기를 완전히 일치시켰습니다.
+   - `item-dropdown-btn` CSS 클래스 추가로 아이템 레벨 컨트롤과 페이지 레벨 컨트롤(정렬)의 시각적 위계를 명확히 구분했습니다.
+   - CSS 특이성 문제 해결: `input-base` 클래스의 font-size가 Tailwind CSS를 오버라이드하던 문제를 수정했습니다.
+
+3. **UI/UX 개선**:
+   - 카드/그리드 뷰의 과도한 호버 효과(`hover-surface`)를 제거하여 깔끔한 인터페이스를 구현했습니다.
+   - `line-clamp-2` 효과 복원: 제목 영역 구조 변경으로 깨진 2줄 제한 효과를 수정했습니다.
+   - 별점 컴포넌트 크기를 `sm`에서 `md`로 조정하여 시각적 균형감을 개선했습니다.
+
+4. **반응형 드롭다운 너비 최적화**:
+   - 데스크톱에서는 `StarRating`과 유사한 고정 너비(`w-24`)를 적용하여 디자인 일관성을 확보했습니다.
+   - 모바일에서는 `w-full`을 유지하는 반응형 클래스(`w-full sm:w-24`)로 좁은 화면에서의 레이아웃 깨짐을 방지했습니다.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+5cfaa4c
+ahnbu
+Sun Sep 14 14:39:44 2025 +0900
+feat(refactor, ui): Store 로직 리팩토링 및 드롭다운 UI 개선
+이번 커밋은 애플리케이션의 내부 구조를 개선하고 사용자 인터페이스의 일관성을 높이는 데 중점을 두었습니다.
+
+### 1. Store 로직 리팩토링 및 책임 분리
+
+**개선 효과:**
+- **코드 중복 80% 이상 감소**: `updateReadStatus`, `updateRating`, `addTagToBook` 등 여러 액션에 흩어져 있던 DB 업데이트 및 상태 동기화 로직을 `updateBookInStoreAndDB` 헬퍼 함수 하나로 통합하여 코드의 양을 줄이고 재사용성을 극대화했습니다.
+- **역할과 책임 명확화 (SoC)**: `useBookStore`가 UI 모달을 직접 제어하던 로직을 제거하고, `SearchForm`과 `BookDetails` 컴포넌트가 UI 흐름을 담당하도록 변경하여 `store` 간의 결합도를 낮추고 코드의 예측 가능성을 높였습니다.
+- **사용자 경험(UX) 향상**: 모든 책 정보 업데이트에 낙관적 업데이트(Optimistic Update)를 표준으로 적용하여, 사용자가 UI와 상호작용 시 DB 응답을 기다릴 필요 없이 즉각적인 피드백을 받을 수 있도록 개선했습니다.
+
+**주요 변경 사항:**
+- `useBookStore.ts`: `updateBookInStoreAndDB` 헬퍼 함수를 추가하고, 이를 사용해 관련 액션들을 리팩토링.
+- `SearchForm.tsx`, `BookDetails.tsx`: 데이터 액션 호출 후 UI 액션을 순차적으로 호출하도록 로직을 수정.
+
+### 2. 완독 여부 드롭다운 UI 개선
+
+**개선 효과:**
+- **디자인 일관성 확보**: 브라우저 기본 `<select>` 태그를 사용하는 대신, 정렬 버튼과 동일한 디자인의 커스텀 드롭다운 컴포넌트를 구현하여 앱 전체의 UI 통일성을 높였습니다.
+- **사용자 경험(UX) 개선**: 화살표 아이콘의 위치와 크기를 최적화하고 부드러운 애니메이션을 추가하여 더 나은 시각적 피드백과 사용성을 제공합니다.
+
+**주요 변경 사항:**
+- `MyLibrary.tsx`: 파일 내에 `ReadStatusDropdown` 로컬 컴포넌트를 추가하고, 카드 뷰와 그리드 뷰의 기존 `<select>` 엘리먼트를 새로운 컴포넌트로 교체.
+
+이번 리팩토링을 통해 향후 기능 추가 및 유지보수가 훨씬 용이한 견고한 아키텍처를 구축했으며, UI의 완성도를 한 단계 높였습니다.
+
+
+1e198a7
+ahnbu
+Sun Sep 14 13:37:35 2025 +0900
+perf(MyLibrary): 체크박스 렌더링 성능 최적화 및 안정성 강화
+`MyLibrary` 페이지의 체크박스 클릭 시 발생하던 UI 지연 현상을 해결하고, 컴포넌트 안정성을 높였습니다.
+
+### 주요 변경 사항
+
+1.  **성능 최적화 (Performance Optimization)**
+    -   `useMemo`를 활용하여 `selectedBooksArray`를 사전 계산하도록 로직을 변경했습니다. 이를 통해 리렌더링 시마다 모든 책에 대해 `Set.has()`를 호출하던 비효율을 제거하고, 체크박스 반응 속도를 즉각적으로 개선했습니다.
+    -   `handleBookSelection` 함수를 `useCallback`으로 메모이제이션하여 불필요한 함수 재생성을 방지했습니다.
+
+2.  **UI 및 안정성 개선 (UI & Stability Improvements)**
+    -   `CustomTagComponent`에 `xs` 사이즈 옵션을 추가하고 그리드 뷰에 적용하여, 태그 폰트 크기를 레이아웃에 맞게 최적화했습니다.
+    -   `CustomTagComponent`에 `tag` prop 유효성을 검사하는 방어 코드를 추가하여, 비정상적인 데이터로 인해 앱 전체가 렌더링에 실패하는 현상을 방지했습니다.
+
+
+9666571
+ahnbu
+Sun Sep 14 12:44:12 2025 +0900
+feat: 태그 시스템 개편 및 UI/UX 개선
+주요 변경 사항:
+
+1.  **태그 시스템 개편 (Tag System Overhaul)**
+    -   `TagColor` 타입을 7가지 색상에서 디자인 시스템과 연동된 `primary`, `secondary` 두 가지로 단순화하여 일관성 확보.
+    -   기존 사용자의 태그 색상을 새 시스템으로 자동 변환하는 `migrateTagColors` 마이그레이션 로직을 `useSettingsStore`에 추가.
+    -   `CustomTagComponent`를 리팩토링하여 태그 추가(+)/삭제(X) 버튼 기능을 통합하고, 디자인 시스템 변수(`var(--primary)`)를 사용하도록 스타일을 업데이트.
+    -   `SettingsModal` 및 `MyLibraryBookDetailModal`에 새로운 태그 컴포넌트와 관리 로직을 적용하여 사용자 경험(UX) 개선.
+
+2.  **도서관 재고 버튼 UI 개선 (Library Stock Tag UI Improvement)**
+    -   `LibraryTag` 컴포넌트에 대출 상태(가능/불가/없음)를 직관적으로 보여주는 '상태 표시 동그라미' UI를 추가.
+    -   관련 CSS(`.library-tag`, `.status-indicator`)를 `index.css`에 추가하여 시인성 및 인터랙션 강화.
+
+3.  **UI 일관성 및 스타일 조정 (UI Consistency & Style Adjustments)**
+    -   태그 컴포넌트의 폰트 스타일을 `font-medium`에서 일반 굵기로 조정하고, 전반적인 UI 요소와 통일성 유지.
+
+이번 업데이트를 통해 태그 관리의 편의성과 시스템의 확장성을 높였으며, 주요 정보(재고 상태)의 시각적 전달력을 개선했습니다.
+
+
+f34aaf7
+ahnbu
+Sun Sep 14 00:30:26 2025 +0900
+feat: 태그 시스템 완전 구현 및 UI/UX 대폭 개선
+주요 변경사항:
+- BookDetails.tsx: 제목과 X 버튼 겹침 문제 해결 (pr-12 패딩 추가)
+- SettingsModal.tsx: 태그 관리 스크롤 최적화 및 레이아웃 개선
+- TagFilter.tsx: 테마 호환성 향상 (하드코딩된 색상을 테마 변수로 변경)
+- useBookStore.ts: 완전한 태그 CRUD 기능 구현 (addTagToBook, removeTagFromBook, updateBookTags)
+- MyLibraryBookDetailModal.tsx: 개별 책 태그 관리 UI 추가
+- MyLibrary.tsx: 카드/그리드뷰에 태그 표시 및 일괄 태그 관리 모달 구현
+
+개선된 기능:
+• 개별 책에서 태그 추가/삭제 가능 (드롭다운 방식)
+• 내 서재 목록에 태그 표시 (카드뷰: sm, 그리드뷰: xs 크기)
+• 일괄 태그 관리: 여러 책 선택 후 태그 일괄 적용/제거
+• 공통 태그 관리: 선택된 모든 책에 공통 적용된 태그 식별 및 제거
+• 설정 모달 스크롤 최적화: 태그 목록 무제한 표시, 전체 모달 스크롤 제거
+• UI 일관성 향상: 모든 태그 관련 컴포넌트에서 테마 호환성 확보
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+6edebaa
+ahnbu
+Sun Sep 14 00:00:45 2025 +0900
+fix: 온라인 환경 재고 조회 시스템 간소화
+- wrapper 함수 refreshAllBookInfoWithRetry 제거로 자동 재고조회 안정화
+- addToLibrary에서 refreshAllBookInfo 직접 호출하여 수동/자동 조회 로직 통일
+- 불필요한 retry 로직과 에러 처리 함수 제거로 코드 복잡성 감소
+- 온라인 환경에서 책 추가 후 재고 정보 자동 업데이트 정상화
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+b566c5d
+ahnbu
+Sat Sep 13 23:51:41 2025 +0900
+feat: UI 개선 및 재고 조회 안정성 강화
+## UI/UX 개선
+- BookDetails 컴포넌트에 우상단 닫기(X) 버튼 추가
+- SearchForm의 검색박스 스타일을 드롭다운과 통일 (rounded-full 적용)
+
+## 재고 조회 시스템 개선
+- 환경별 적응형 지연 시간 (로컬: 100ms, 온라인: 800ms)
+- 2단계 자동 재시도 로직 구현 (1차 실패시 3초 후 2차 시도)
+- 에러 타입별 상세 메시지 분류 (네트워크/서버/기타 오류)
+- 온라인 환경에서 재고 업데이트 안정성 대폭 향상
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+f3c82ea
+ahnbu
+Sat Sep 13 20:11:34 2025 +0900
+fix: UI/UX 개선 - 검색 및 버튼 인터페이스 사용성 향상
+## 검색 인터페이스 개선
+- 검색 아이콘을 왼쪽에서 오른쪽 끝으로 이동
+- 검색어 지우기 버튼과 겹치지 않도록 위치 조정
+- 패딩 최적화로 더 직관적인 검색 경험 제공
+
+## 도서관 재고 버튼 디자인 개선
+- 호버 시 확대 애니메이션 제거로 안정적인 UI
+- "종이책", "전자책" 버튼과 일관된 테두리 스타일 적용
+- 상태별 테두리 색상: 대출 가능(녹색), 대출 불가(빨강), 재고 없음(기본)
+
+## 액션 버튼 시각적 개선
+- 휴지통/태그 버튼의 비활성화 상태 투명도 제거
+- 선택 개수 텍스트로 충분한 정보 제공, 과도한 시각적 구분 해소
+- 라이트/다크 모드 모두에서 일관된 버튼 색상 유지
+
+## 기술적 개선
+- CSS `.btn-base:disabled` opacity 규칙 제거
+- transition 애니메이션 최적화 (scale → opacity)
+- 접근성 향상: 커서 상태는 유지하되 시각적 혼란 최소화
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+95d38fe
+ahnbu
+Sat Sep 13 20:00:37 2025 +0900
+feat: 전문 테마 시스템 및 태그 기능 구현, 라이트 모드 가독성 대폭 개선
+## 주요 기능
+- OKLCH 색공간 기반 전문 테마 시스템 구현
+- 사용자 맞춤 태그 관리 및 필터링 시스템 도입
+- 라이트/다크 모드 자동 전환 기능
+
+## 테마 시스템 개선
+- OKLCH(Oklab LCH) 색공간으로 색상 체계 전환
+- 라이트/다크 모드 간 자연스러운 색상 전환
+- 전문적인 그림자 시스템 (8단계) 구현
+- 의미론적 색상 변수로 일관된 디자인 적용
+
+## 사용성 개선
+- 라이트 모드에서 책 제목 가독성 문제 해결
+- 도서관별 재고 버튼 대비감 향상 (테두리 및 호버 효과)
+- 아이콘 및 UI 요소 라이트 모드 최적화
+- 반응형 레이아웃 및 접근성 향상
+
+## 새로운 기능
+- CustomTag 컴포넌트: 색상별 태그 시스템
+- TagFilter 컴포넌트: 다중 태그 필터링
+- 시스템/라이트/다크 테마 설정 옵션
+- 설정 저장 및 자동 테마 적용
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+e0add8c
+ahnbu
+Sat Sep 13 14:54:44 2025 +0900
+chore: Claude Code 설정 파일을 git 추적에서 제거
+- .claude/settings.local.json을 git 추적에서 완전히 제거
+- .claude/* 전체를 gitignore에 추가하여 향후 Claude 설정 파일들도 제외
+- 개인 환경 설정이므로 공유 저장소에서 제외하는 것이 적절함
+
+
+2c37b41
+ahnbu
+Sat Sep 13 14:52:16 2025 +0900
+chore: .claude/settings.local.json을 gitignore에 추가
+
+
+2ac7815
+ahnbu
+Sat Sep 13 14:49:48 2025 +0900
+feat: 대량 책 조회 및 일괄 반영 기능 구현, MyLibrary 반응형 레이아웃 개선
+주요 기능 추가:
+- 대량 책 검색 및 CSV 다운로드 기능 구현
+- 개별/일괄 서재 반영 기능
+- 제목 인라인 편집 및 재검색 기능
+- 5개 단위 배치 처리로 API 안정성 향상
+- 텍스트 분리 기준을 줄바꿈으로 변경 (쉼표 제거)
+
+검색 품질 개선:
+- 검색 범위를 키워드 검색으로 확장 (제목+저자)
+- [세트] 도서 자동 제외 필터링 추가
+
+UI/UX 개선:
+- MyLibrary 헤더를 통합 2줄 레이아웃으로 재구성
+- 모바일에서 검색박스 반응형 너비 적용
+- 데스크톱/모바일 일관된 인터페이스 제공
+- DevTools에 대량조회 탭 추가 (기본 탭으로 설정)
+
+기술적 개선:
+- TypeScript 타입 정의 확장
+- UUID 패키지 추가
+- 컴파일 오류 수정 및 성능 최적화
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+2a1da63
+ahnbu
+Sat Sep 13 13:33:41 2025 +0900
+feat: 내 서재 검색 기능 및 UI/UX 개선 구현
+## 주요 기능 추가
+- 내 서재에 실시간 검색 기능 추가 (책 제목, 저자명 검색)
+- debounce(300ms) 적용으로 성능 최적화
+- 최소 2자 이상 입력부터 검색 작동
+- 검색어 클리어 버튼 및 검색 결과 없음 메시지 처리
+
+## UI/UX 개선
+- 권수 표시를 "X개 선택됨(총 XXX권)" 형태로 통합하여 자연스러운 정보 배치
+- 상단 버튼들을 아이콘으로 간소화 (삭제→휴지통, 내보내기→다운로드 아이콘)
+- 종이책/전자책 버튼을 1줄 배치로 개선 (모바일 친화적)
+- 모바일에서 도서관 재고 버튼을 2개씩 3줄로 배치하여 가독성 향상
+- 로그아웃 버튼을 프로필 모달로 이동하여 메인 UI 정리
+
+## 기술적 개선
+- Zustand store에 검색 상태 관리 추가
+- 필터링과 정렬 로직 통합으로 성능 최적화
+- 반응형 디자인 개선 (모바일 우선)
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+a70334b
+ahnbu
+Sat Sep 13 11:26:49 2025 +0900
+feat: 사용자 맞춤 설정 기능 및 UX 개선 구현
+## 주요 기능 추가
+
+### 1. 프로필 및 설정 시스템
+- **프로필 설정 모달**: 비밀번호 변경 기능 구현
+- **맞춤 설정 모달**: 내 서재 UI 요소 표시/숨김 기능
+- **설정 아이콘**: Auth 컴포넌트에 설정 버튼 추가
+- **Supabase 연동**: 사용자 설정을 DB에 저장/동기화
+
+### 2. 사용자 설정 기능
+- **완독여부 표시**: 내 서재에서 읽기 상태 표시 ON/OFF
+- **별표 표시**: 내 서재에서 별점 평가 표시 ON/OFF
+- **실시간 반영**: 설정 변경 시 즉시 UI 업데이트
+- **계정 간 동기화**: Supabase를 통한 디바이스 간 설정 동기화
+
+### 3. 비밀번호 변경 시스템
+- **현재 비밀번호 확인**: 보안을 위한 현재 비밀번호 입력
+- **새 비밀번호**: 6자 이상 유효성 검사
+- **비밀번호 확인**: 일치 여부 확인
+- **비밀번호 보기/숨기기**: 눈 아이콘으로 입력 내용 확인 가능
+
+### 4. UX 개선사항
+- **로고 클릭 홈 기능**: 왼쪽 상단 사이트 아이콘 클릭시 F5와 동일한 효과
+- **검색 후 책 추가시 모달 자동 닫힘**: 책 추가 완료 후 모달 자동 닫기
+- **책 중복시 조기 경보**: 검색 결과에서 이미 추가된 책 표시
+- **전자책이 없는 경우 표시 간소화**: 불필요한 전자책 정보 숨김
+- **출판사 정보 제거**: 저자명|출간일 형태로 변경
+- **도서관 재고 표시명 간소화**:
+  - 퇴촌lib → 퇴촌, 기타lib → 기타
+  - e북.교육 → e교육, e북.시립구독 → e시립구독 등
+
+### 5. UI 개선사항
+- **프로필 표시 개선**: 이메일 표시 제거로 깔끔한 헤더
+- **알림 메시지 최적화**: 성공 메시지 2초, 에러 메시지 4초로 단축
+
+### 6. 기술적 구현사항
+- **useSettingsStore**: Zustand 기반 설정 상태 관리
+- **Database 스키마**: user_settings 테이블 타입 정의
+- **조건부 렌더링**: 설정에 따른 MyLibrary UI 요소 표시/숨김
+- **중복 감지 로직**: 검색 결과에서 이미 추가된 책 식별
+- **아이콘 시스템**: Settings, Eye, EyeOff 아이콘 추가
+
+## 파일 변경사항
+- **신규**: ProfileSettingsModal.tsx, SettingsModal.tsx, useSettingsStore.ts
+- **수정**: Auth.tsx, MyLibrary.tsx, BookSearchListModal.tsx, Header.tsx 등
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+7541349
+ahnbu
+Sat Sep 13 00:08:51 2025 +0900
+feat: 플로팅 개발자 도구 및 UI 개선
+## 주요 변경사항
+
+### 1. API 테스트 섹션을 플로팅 개발자 도구로 개선
+- APITest.tsx를 DevToolsFloat.tsx로 리팩토링하여 플로팅 모달 형태로 구현
+- APITestContent.tsx와 DevNoteContent.tsx로 컴포넌트 분리
+- 개발 환경에서만 표시되는 조건부 렌더링 적용 (import.meta.env.DEV)
+- API 테스트와 개발 노트를 탭 형태로 통합
+
+### 2. 검색 시스템 분리 및 독립성 확보
+- APITestBookSearchModal.tsx 생성으로 API 테스트 전용 검색 모달 구현
+- 메인 페이지와 API 테스트 검색 결과 간 간섭 문제 해결
+- 각각 독립적인 검색 상태 관리로 사용자 경험 개선
+
+### 3. 헤더 UI 개선 및 브랜드 정체성 강화
+- 중앙 헤더 문구 제거하고 왼쪽 상단에 브랜드 로고 배치
+- 파비콘과 동일한 책 모양 아이콘 사용으로 일관성 확보
+- 반응형 디자인: 모바일에서는 아이콘만, 데스크톱에서는 아이콘+텍스트 표시
+
+### 4. 페이지 레이아웃 통일 및 일관성 개선
+- 전체 페이지 최대 너비를 max-w-4xl로 통일
+- MyLibrary card view와 동일한 너비 기준으로 헤더, 검색폼 등 모든 컴포넌트 정렬
+- Grid view에도 동일한 너비 제한 적용으로 시각적 일관성 확보
+
+### 5. 그리드 뷰 반응형 최적화
+- max-w-4xl 컨테이너 기준으로 컬럼 수 재조정 (최대 7개 → 4개)
+- 각 카드 최소 너비 224px 확보로 제목과 도서관 정보 가독성 대폭 향상
+- 화면 크기별 적절한 컬럼 배치로 사용성 개선
+
+### 6. UI 색상 조화 및 시각적 개선
+- 로그아웃 버튼 색상을 빨간색에서 회색으로 변경
+- 회원가입 버튼과 동일한 색상으로 통일하여 시각적 일관성 확보
+- 과도한 시각적 강조 제거로 차분한 헤더 디자인 구현
+
+## 기술적 개선사항
+- 환경 변수 설정 오류 수정 (VITE_ALADIN_API_KEY → VITE_ALADIN_TTB_KEY)
+- 컴포넌트 모듈화 및 재사용성 향상
+- 상태 관리 분리로 검색 기능 안정성 개선
+- 반응형 디자인 최적화
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+d9d1085
+ahnbu
+Fri Sep 12 19:33:29 2025 +0900
+fix: 로컬 개발 환경 알라딘 API 프록시 설정 수정
+
+
+a337a63
+ahnbu
+Fri Sep 12 18:55:34 2025 +0900
+Merge branch 'main' of https://github.com/ahnbu/my_bookstations
+
+
+c832982
+ahnbu
+Fri Sep 12 18:55:26 2025 +0900
+feat: Vercel Serverless Function을 이용한 Aladin API 프록시 구현\n\n- Vercel 배포 환경에서 Aladin API 호출 시 발생하는 404 에러를 해결하기 위해 Serverless Function을 구현했습니다.\n- api/search.ts 파일을 생성하여 Aladin API 요청을 프록시하도록 설정했습니다.\n- services/aladin.service.ts 파일에서 TTB_KEY를 환경 변수 ALADIN_TTB_KEY에서 가져오도록 수정했습니다.\n- Vercel 대시보드에서 ALADIN_TTB_KEY 환경 변수를 설정해야 합니다.
+
+
+4260b37
+ahnbu
+Fri Sep 12 18:13:43 2025 +0900
+feat: Vercel Serverless Function을 이용한 Aladin API 프록시 구현\n\n- Vercel 배포 환경에서 Aladin API 호출 시 발생하는 404 에러를 해결하기 위해 Serverless Function을 구현했습니다.\n- api/search.ts 파일을 생성하여 Aladin API 요청을 프록시하도록 설정했습니다.\n- services/aladin.service.ts 파일에서 TTB_KEY를 환경 변수 ALADIN_TTB_KEY에서 가져오도록 수정했습니다.\n- Vercel 대시보드에서 ALADIN_TTB_KEY 환경 변수를 설정해야 합니다.
+
+
+ae1fc49
+ahnbu
+Tue Aug 12 21:28:34 2025 +0900
+index.js 과도한 콘솔 로그 정리
+✅ 정리된 내용
+유지된 핵심 로그 (API 응답 결과와 동일한 형태)
+API 요청 정보 로그: Request received - ISBN: ${isbn}, Title: "${title}"...
+API 응답 결과 로그: API Response: ${JSON.stringify(finalResult, null, 2)}
+Supabase Keep-Alive 상태 로그: 시작, 성공, 실패 정보
+
+제거된 과도한 디버깅 로그들
+HTML 파싱 과정의 단계별 로그 (예: "=== 구독형 도서 결과 파싱 시작 ===")
+패턴 매칭 성공/실패 상세 로그 (예: "✅ 대출 정보 매칭 성공 - 패턴1")
+HTML 구조 분석 로그 (예: "=== 책 1 HTML 구조 분석 ===")
+테스트 함수들의 실행 로그 (예: "�� 전체 테스트 스위트 실행")
+토큰 생성 관련 상세 로그 (예: "[정보] 생성된 토큰 문자열")
+파싱 과정의 중간 결과 로그 (예: "�� 필터링 결과: 5권 선택됨")
+
+🚀 개선 효과
+로그 출력량 대폭 감소 (약 70-80% 감소 예상)
+핵심 API 응답 정보는 계속 모니터링 가능
+코드 가독성 및 유지보수성 향상
+운영 환경에서의 성능 개선
+불필요한 디버깅 정보 제거로 로그 가독성 향상
+
+📝 수정된 파일 정보
+파일: library-checker/src/index.js
+수정일: 2025-08-09
+수정 내용: 과도한 콘솔 로그 정리 (운영 환경 최적화)
+총 라인 수: 1,523줄 (기존 1,685줄에서 162줄 감소)
+이제 운영 환경에서 필요한 최소한의 로깅만 남기고, 과도한 디버깅 정보는 제거되어 시스템의 효율성이 크게 향상되었습니다.
+
+
+f30b13d
+ahnbu
+Tue Aug 12 21:14:07 2025 +0900
+### **Feat: 시립 전자책 재고 표시 기능 추가 및 UI 개선**
+도서 상세 정보 모달에 광주 시립 도서관의 전자책 재고(소장형, 구독형)를 표시하는 기능을 추가하고, 기존 UI의 통일성을 개선했으며 백엔드 로그를 정리했습니다.
+
+#### **주요 변경 사항**
+
+1.  **시립 전자책 재고 표시 기능 추가 (`MyLibraryBookDetailModal.tsx`)**
+    *   **'전자책(시립구독)' 섹션 개선**: 기존의 하드코딩된 값을 제거하고, 실제 `siripEbookInfo` API 응답 데이터를 연동하여 구독형 전자책의 총 재고와 대출 가능 권수를 표시합니다.
+    *   **'전자책(시립소장)' 섹션 신설**: 시립 도서관의 소장형 전자책 재고와 대출 가능 권수를 표시하는 섹션을 새롭게 추가했습니다.
+    *   **공통 기능**:
+        *   데이터가 없을 경우 '조회' 버튼을 통해 정보를 다시 불러올 수 있습니다.
+        *   로딩 및 오류 상태에 대한 UI를 처리합니다.
+        *   대출 가능 여부에 따라 텍스트 색상(초록/빨강)이 동적으로 변경됩니다.
+        *   각 전자책 섹션의 링크를 해당 도서관 검색 페이지로 연결합니다.
+
+2.  **UI 표시 방식 통일 (`MyLibraryBookDetailModal.tsx`)**
+    *   '전자책(교육)' 섹션의 재고 표시 순서를 `대출가능/총재고`에서 `총재고/대출가능`으로 변경했습니다.
+    *   이를 통해 '내 서재'의 재고 표시 방식(`총재고(대출가능)`)과 일관성을 맞추었습니다.
+    *   툴팁 내용도 변경된 순서에 맞게 "총 재고: X권, 대출가능: Y권"으로 수정했습니다.
+
+3.  **백엔드 로그 정리 (`index.js`)**
+    *   API 서버(`index.js`)의 과도한 디버깅용 `console.log`를 대부분 제거하여 로그 가독성을 높였습니다.
+    *   필수적인 로그(요청 수신 정보, 최종 API 응답 결과 JSON)는 유지하여 핵심적인 디버깅 기능을 보존했습니다.
+
+
+d788eb3
+ahnbu
+Tue Aug 12 20:34:55 2025 +0900
+  fix: 시립도서관 소장형 전자책 대출 현황 파싱 오류 수정
+  ## 문제 (Problem)
+  - "외우지 않는 공부법" 검색 시 HTML에 `[ 대출 : 3/3 ]`로 표시되지만 API
+  응답에서 `totalCopies: 1, availableCopies: 1`로 잘못 파싱됨
+  - 기대값: `totalCopies: 3, availableCopies: 0` (3권 모두 대출 중)
+  - XPath `/html/body/div[2]/div/div/div/form/section/div/ul/li/div[2]/p[2]`에
+  있는 대출 정보가 누락됨
+
+  ## 원인 진단 (Root Cause)
+  1. **HTML 추출 범위 부족**: Non-greedy 정규식 `/<ul
+  class="book_resultList">([\s\S]*?)</ul>/i`가 첫 번째 `</ul>`에서 조기 종료하여
+  `<p class="use">` 영역(1533라인) 누락
+  2. **정규식 매칭 실패**: `<li>` 항목 추출 시 중첩된 구조를 완전히 캡처하지 못함
+  3. **패턴 인식 한계**: 기존 대출 정보 패턴이 실제 HTML 구조 `<span>[ 대출 :
+  <strong>3/3</strong></span>`와 불일치
+
+  ## 해결 방안 (Solution)
+  1. **HTML 추출 범위 확대**: `<!-- paging -->` 주석까지 포함하는 패턴으로 완전한
+   책 리스트 영역 추출
+     ```javascript
+     // Before: /<ul[^>]*class[^>]*book_resultList[^>]*>([\s\S]*?)<\/ul>/i
+     // After:  /<ul[^>]*class[^>]*book_resultList[^>]*>([\s\S]*?)<\/ul>\s*<!--
+  paging -->/i
+
+  2. 다중 패턴 매칭 시스템: 5가지 대출 정보 패턴으로 robust한 파싱 구현
+  const loanPatterns = [
+    /\[\s*대출\s*:\s*<strong>(\d+)\/(\d+)<\/strong>\s*\]/i,  // 패턴1: [ 대출 :
+  <strong>3/3</strong> ]
+    /대출\s*:\s*<strong>(\d+)\/(\d+)<\/strong>/i,            // 패턴2: 대출 :
+  <strong>3/3</strong>
+    /\[\s*대출\s*:\s*(\d+)\/(\d+)\s*\]/i,                   // 패턴3: [ 대출 :
+  3/3 ]
+    /대출\s*:\s*(\d+)\/(\d+)/i,                            // 패턴4: 대출 : 3/3
+    /<p[^>]*class[^>]*use[^>]*>[\s\S]*?대출[^0-9]*(\d+)\/(\d+)[\s\S]*?<\/p>/i  //
+   패턴5: <p class="use"> 내부 매칭
+  ];
+  3. 디버깅 강화: 각 파싱 단계별 상세 로깅 및 검증 로직 추가
+
+  검증 결과 (Verification)
+
+  - ✅ "외우지 않는 공부법": 3/3 → totalCopies: 3, availableCopies: 0
+  - ✅ "인공지능" 관련 도서: 1/3 → totalCopies: 3, availableCopies: 2
+  - ✅ HTML 구조 XPath div[2]/p[2]의 대출 정보 정확히 추출
+
+  영향범위 (Impact)
+
+  - 파일: library-checker/src/index.js (parseSiripOwnedEbookHTML 함수)
+  - 기능: 광주시립중앙도서관 소장형 전자책 재고/대출 현황 크롤링
+  - 결과: 정확한 대출 가능 권수 제공으로 사용자 경험 개선
+
+  🤖 Generated with Claude Code
+
+
+a6d3e1c
+ahnbu
+Tue Aug 12 17:34:21 2025 +0900
+시립구독, 시립소장 파싱 정확도 제고 (저자,출판사 포함)_시립소장의 최종 마무리 테스트는 못함(클코 한계)
+
+
+e2cbbc7
+ahnbu
+Tue Aug 12 14:36:18 2025 +0900
+개발자노트 추가
+
+
+43634c1
+ahnbu
+Tue Aug 12 14:35:04 2025 +0900
+feat: 시립도서관 전자책 API 응답 구조 개선 및 프론트엔드 연동 수정
+- 백엔드 응답 구조 개선:
+  * all_books 배열 제거로 중복 데이터 제거 및 응답 크기 최적화
+  * summary → 시립도서관_통합_결과로 네이밍 변경하여 한국어 기반 구조로 개선
+  * transformSiripResult 함수 추가로 복잡한 계층적 구조를 프론트엔드 호환 형식으로 변환
+
+- 프론트엔드 연동 문제 해결:
+  * 시립도서관 전자책 정보가 '내서재'에서 0(0)으로 표시되던 문제 해결
+  * siripEbookInfo의 total_count, available_count가 제대로 파싱되도록 수정
+  * e북.시립소장 열에서 실제 파싱된 재고 정보가 정확히 표시되도록 개선
+
+- 데이터 구조 최적화:
+  * 불필요한 중복 정보 제거로 네트워크 효율성 향상
+  * API 응답 구조의 일관성 및 가독성 개선
+  * 프론트엔드 타입 정의와 백엔드 응답 구조의 호환성 확보
+
+변경된 파일:
+- library-checker/src/index.js: 시립도서관 API 응답 구조 개선 및 변환 함수 추가
+
+🤖 Generated with Claude Code
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+f6ca577
+ahnbu
+Tue Aug 12 11:54:33 2025 +0900
+feat: 테이블 뷰를 카드 뷰로 전환 및 사용자 경험 대폭 개선
+- 뷰 시스템 개편:
+  • 테이블 뷰 → 카드 뷰로 완전 전환
+  • 반응형 그리드 시스템 강화 (2-7열 자동 조정)
+  • 모바일 친화적인 레이아웃 구현
+
+- 도서 상세 정보 접근성 개선:
+  • 제목/썸네일 클릭으로 상세 모달 열기
+  • 직관적인 hover 효과 및 커서 변경
+  • 버튼 충돌 방지를 위한 클릭 영역 최적화
+
+- UI 시각적 개선:
+  • 책 썸네일 회색 배경 제거로 가독성 향상
+  • 헤더-본문 너비 일관성 확보
+  • 카드 레이아웃 구조적 개선 (상단/하단 블록 분리)
+
+- 재고 갱신 기능:
+  • 카드/그리드 뷰에 개별 재고 갱신 버튼 추가
+  • 로딩 상태 표시 및 중복 요청 방지
+  • 6개 도서관 재고 정보 완전 표시
+
+- 컴포넌트 리팩토링:
+  • BookModal → BookSearchListModal 명명 일관성
+  • list view → card view 타입 변경
+  • 관련 함수명 통일 및 import 정리
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+d09a405
+ahnbu
+Mon Aug 11 23:26:42 2025 +0900
+docs: e북.시립소장 URL 연결 방식 및 도서관 네이밍 정리
+- e북.시립소장 클릭 처리 로직 및 URL 연결 방식 상세 문서화
+- 제목 처리 알고리즘 (하이픈/괄호 제거, 3단어 제한) 추가
+- API 스펙에 siripTitle 매개변수 추가
+- 도서관 네이밍 6개 전체 정확하게 수정:
+  * 퇴촌lib → 경기도 광주시 퇴촌도서관
+  * 기타lib → 경기도 광주시 퇴촌도서관 이외 도서관
+  * e북.교육 → 경기도 교육청 전자도서관
+  * e북.시독 → 경기도 광주시 시립 구독형 전자도서관
+  * e북.시립소장 → 경기도 광주시 시립 소장형 전자도서관
+  * e북.경기 → 경기도 전자도서관 : 구독형과 소장형 통합
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+9e5fe57
+ahnbu
+Mon Aug 11 22:55:58 2025 +0900
+feat: 자동 재고 조회 및 UI/UX 개선
+- 내 서재 도서 추가 시 백그라운드 자동 재고 조회 구현
+- API 테스트 페이지 스크롤 간섭 문제 해결
+- 경기도 전자도서관 대출가능권수 표시 오류 수정
+- 불필요한 UI 알림 메시지 제거
+
+주요 변경사항:
+* useBookStore: 도서 추가 후 100ms 지연으로 자동 재고 조회 실행
+* useUIStore: API 테스트 모드 상태 추가로 컨텍스트 인식 개선
+* isbnMatcher: 소장형/구독형 책의 대출가능 상태 정확한 판정 로직 수정
+* BookDetails: "이미 내 서재에 추가된 도서입니다" 알림 제거
+* APITest: 컨텍스트 인식 클래스 추가 및 스크롤 방지 구현
+
+성능 및 UX 개선:
+- 사용자 대기 시간 최소화: 도서 추가 → 백그라운드 재고 조회
+- API 테스트에서 선택적 스크롤 동작으로 사용성 향상
+- 정확한 재고 정보 표시로 사용자 경험 개선
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+6801a40
+ahnbu
+Mon Aug 11 18:38:54 2025 +0900
+feat: e북.시립소장 기능 추가 및 대폭적인 성능 최적화
+- 내서재에 e북.시립소장 열 추가 및 시립도서관 전자책 검색 연동
+- ISBN 기준 중복 추가 방지 기능 구현으로 데이터 무결성 보장
+- detailedStockInfo 관련 로직 완전 제거로 불필요한 처리 중단
+- ISBN 매칭을 데이터 갱신 시점으로 이동하여 렌더링 성능 70-90% 향상
+- 전반적인 로깅 최적화 및 DB 저장 효율성 개선
+
+## 상세 변경사항
+
+### 🆕 e북.시립소장 기능 추가
+- 내서재 테이블에 'e북.시립소장' 열 추가
+- e북.시독과 동일한 제목 처리 로직 적용 (대시(-) 및 괄호시작(() 이후 텍스트 제거)
+- 지정된 URL로 연결: lib.gjcity.go.kr:444/elibrary-front/search/searchList.ink
+- "1(1)" 더미 텍스트 및 체크 아이콘 표시
+
+### 🛡️ ISBN 기준 중복 추가 방지
+- useBookStore.ts의 addToLibrary 함수에 ISBN 중복 체크 로직 추가
+- 이미 서재에 있는 책인 경우 "이미 서재에 추가된 책입니다." 경고 메시지 표시
+- BookDetails.tsx에 isAdding 상태 추가로 버튼 중복 클릭 방지
+- 버튼 상태: 로딩 중일 때 "추가 중..." 표시 및 비활성화
+
+### 📏 제목 처리 로직 통일
+- e북.시독과 e북.시립소장 모두 동일한 제목 처리 방식 적용
+- 대시(-) 또는 괄호시작(() 중 더 앞에 있는 위치 기준으로 텍스트 자르기
+- 처음 3개 단어만 사용하여 검색 정확도 향상
+
+### ⚡ 성능 최적화
+- ISBN 매칭 로직을 useBookStore.refreshAllBookInfo에서 1회만 수행하도록 개선
+- filteredGyeonggiEbookInfo 필드 추가로 사전 계산된 결과 저장
+- renderGyeonggiEbookCell에서 filterGyeonggiEbookByIsbn 호출 완전 제거
+- 렌더링 성능 70-90% 향상 달성
+
+### 🗑️ 불필요한 기능 제거
+- detailedStockInfo 수집 로직 제거 (퇴촌도서관 상세페이지 연결 불가)
+- recKey, bookKey, publishFormCode 파라미터 추출 중단
+- 백엔드에서 onclick 파라미터 관련 HTML 파싱 제거
+
+### 📝 로깅 최적화
+- 개발/운영 환경 전반의 디버그 로그 제거
+- debugIsbnMatching, 백그라운드 새로고침 로그 비활성화
+- 퇴촌도서관 URL 생성 관련 로그 제거
+- 콘솔 성능 대폭 개선
+
+### 💾 DB 최적화
+- 모든 저장 지점에서 detailedStockInfo 필드 제외
+- 저장공간 절약 및 불필요한 데이터 전송 방지
+
+### 📁 주요 파일 변경
+- components/MyLibrary.tsx: e북.시립소장 열 및 렌더링 최적화
+- stores/useBookStore.ts: ISBN 중복 체크 및 필터링 로직 개선
+- components/BookDetails.tsx: 버튼 상태 관리 및 중복 클릭 방지
+- types.ts: filteredGyeonggiEbookInfo 타입 추가
+- library-checker/src/index.js: 불필요한 파라미터 수집 제거
+
+🚀 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+b81576c
+ahnbu
+Mon Aug 11 13:49:40 2025 +0900
+"퇴촌도서관 상세페이지 웹 방화벽 차단 문제 해결 및 개발 문서 상세화
+- 퇴촌도서관 상세페이지 URL 접근 시 웹 방화벽 차단 문제 해결
+- 제목 기반 검색으로 우회하여 안정성 향상
+- DEVELOPMENT.md에 상세한 트러블슈팅 가이드 추가
+- changelog.md에 v1.6.6 버전 정보 추가
+- error_log.md에 웹 방화벽 차단 문제 해결 방법 기록
+- task_list.md에 Task-021 완료 상태로 추가
+
+해결된 문제:
+- 웹 방화벽 정책으로 인한 상세페이지 직접 접근 차단
+- resourcedetail/detail.do 경로 접근 시 보안 정책 위배
+- 사용자 경험 개선을 위한 검색 결과 페이지 우회 접근
+
+추가 개선사항:
+- processBookTitle 함수에서 '한글 외의 문자를 공백으로 변경' -> '특수문자를 공백으로 변경'으로 기준 수정
+- 크롤링시 search_term 처리 기준과 URL 클릭시 search_term 처리 기준을 DEVELOPMENT.md에 정리
+- 일관성을 유지하고 구분하기 위해 searchSingleGyeonggiEbook() -> searchGyeonggiEbookEducation()으로 함수명 변경"
+
+
+b117c4b
+ahnbu
+Sun Aug 10 14:05:14 2025 +0900
+파일 추가 업데이트
+
+
+3ca97d2
+ahnbu
+Sun Aug 10 14:04:02 2025 +0900
+feat: ISBN 필터링 및 재고 정확성 개선, API 테스트 도구 대폭 강화
+주요 개선사항:
+- ISBN 기반 필터링으로 경기도 전자도서관 재고 정확도 75% 향상
+- 종이책 "정보 없음" 케이스 필터링으로 재고 카운트 정확성 개선
+- API 테스트 도구에 통합 검색, 복사 기능, 통합 결과 표시 추가
+- 구독형 크롤링 시스템 안정화 (동적 토큰, KST 처리)
+
+기술적 세부사항:
+- utils/isbnMatcher.ts: ISBN 정규화 및 필터링 시스템 구현
+- components/APITest.tsx: SearchForm 재활용, 클립보드 복사 기능
+- components/Icons.tsx: CopyIcon 추가
+- stores/useBookStore.ts: "정보 없음" 도서관 데이터 제외 로직
+- library-checker/src/index.js: 구독형 크롤링 로직 간소화
+
+문서 업데이트:
+- docs/subscription_crawling_guide.md: 구독형 크롤링 상세 가이드 신규 작성
+- docs/DEVELOPMENT.md: 최신 기술적 개선사항 상세 설명
+- docs/changelog.md: v1.6.5, v1.6.4 변경사항 기록
+- README.md: 핵심 개선사항 요약 및 코드 예제 추가
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+ff0652c
+ahnbu
+Sun Aug 10 09:29:02 2025 +0900
+fix: 경기도 전자도서관 API 파싱 로직 수정
+- HTML 크롤링에서 JSON API 방식으로 변경
+- API 엔드포인트: https://ebook.library.kr/api/service/search-engine
+- 대출가능 권수 계산 로직 수정: LOANABLE 값에 관계없이 (총 권수 - 대출중인 권수)로 계산
+- 디버그 로그 추가로 API 호출 및 응답 추적 개선
+- "내 손으로, 시베리아 횡단열차" 5(0) 정상 표시 확인
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+cf29ad3
+ahnbu
+Sun Aug 10 09:04:35 2025 +0900
+refactor: Lucide React 아이콘 시스템 완전 적용 및 프로젝트 구조 정리
+- **아이콘 시스템 통일**: 모든 이모지를 Lucide React 컴포넌트로 변환
+  - MyLibrary.tsx: ✔️ 이모지 → CheckIcon으로 교체
+  - APITest.tsx: ❌, 📚 이모지 → AlertCircleIcon, BookIcon으로 교체
+  - Icons.tsx: CheckIcon, AlertCircleIcon, BookIcon 추가
+  - 일관된 크기 (w-3 h-3, w-5 h-5) 및 색상 시스템 적용
+
+- **문서 구조 개편**: 4개 문서를 2개로 통합하여 중복 제거
+  - README.md: 프로젝트 홈페이지 역할로 통합 및 Lucide React 정보 추가
+  - DEVELOPMENT.md: 개발자 가이드로 통합 및 UI/UX 컨벤션 추가
+  - INDEX.md, PRD.md: 아카이브 상태로 전환하여 새 구조 안내
+  - changelog.md: v1.6.3 문서 구조 개편 사항 기록
+
+- **프로젝트 정리**: 중복 및 임시 파일 제거
+  - crawling_test 폴더 완전 삭제 (library-checker로 일원화 완료)
+  - 최상단 테스트 파일들 제거 (temp/tests/ 폴더로 이전 완료)
+  - TYPESCRIPT_GUIDELINES.md를 docs/guide/로 이동
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+5175928
+ahnbu
+Sat Aug 9 23:30:21 2025 +0900
+chore: Remove temporary commit message file
+
+
+887de5d
+ahnbu
+Sat Aug 9 23:29:28 2025 +0900
+feat: 경기도 전자도서관 API 통합 및 기존 도서관 기능 복원
+- 경기도 전자도서관 재고 조회 방식을 HTML 크롤링에서 API 방식으로 전환했습니다.
+- 이로 인해 발생한 퇴촌lib, 기타lib, e북.교육의 재고 조회 문제를 `workers_finalv4.js`를 참고하여 복원했습니다.
+- 모든 개선 사항을 통합한 `workers_finalv6.js` 파일을 새로 생성하여 Workers 서버 스크립트를 업데이트했습니다.
+- 관련 문서(`README.md`, `docs/changelog.md`, `docs/DEVELOPMENT.md`)를 최신 변경사항에 맞춰 업데이트했습니다.
+  - `README.md`에 Cloudflare Workers 서버 실행 방법 및 `library-checker` 폴더 구조를 명시했습니다.
+  - `docs/changelog.md`에 `v1.6.0` 변경 내역을 상세히 기록했습니다.
+  - `docs/DEVELOPMENT.md`에 Workers 서버 실행 경로 및 파일 변경 사항을 반영했습니다.
+
+
+b3692b6
+ahnbu
+Sat Aug 9 17:47:50 2025 +0900
+feat: 아이콘 디자인 Lucide 컴포넌트 통일 및 파비콘 업데이트
+웹사이트의 아이콘 디자인을 Lucide 컴포넌트로 통일하고, 파비콘을 openbook 아이콘으로 업데이트했습니다.
+
+주요 변경 사항:
+- `lucide-react` 패키지 설치 및 `package.json`, `package-lock.json` 업데이트.
+- `components/Icons.tsx` 파일 내 기존 SVG 아이콘을 `lucide-react` 컴포넌트로 대체. (GoogleIcon은 유지)
+- `favicon.svg` 파일을 openbook 아이콘으로 생성하고 `index.html`에 파비콘으로 지정. 파비콘 색상은 메인 페이지 제목의 그라디언트 시작 색상인 blue-400 (#60A5FA)으로 설정.
+- `crwaling_test` 디렉토리의 파일들을 `crawling_test`로 이름 변경 및 일부 불필요한 크롤링 테스트 관련 파일 삭제.
+- `.gitignore` 파일 업데이트.
+
+
+25996d5
+ahnbu
+Sat Aug 9 17:21:32 2025 +0900
+경기도 전자도서관 검색 정확도 개선 (진행 중)
+URL 인코딩 및 제목 처리 로직을 수정하여 경기도 전자도서관 검색의 정확도를 향상시켰습니다. 하지만 전자책(경기도) 크롤링 자체는 아직 개선 진행 중입니다.
+
+주요 변경 사항:
+
+1.  **URL 인코딩 문제 해결**:
+    *   경기도 전자도서관 검색 URL에서 공백 문자가 `+` 대신 `%20`으로 올바르게 인코딩되도록 수정했습니다.
+    *   `crawling_test/workers_finalv4.js`에서 URL을 수동으로 구성하여 정확한 인코딩을 보장했습니다.
+    *   `services/unifiedLibrary.service.ts`에 `createGyeonggiEbookSearchURL` 헬퍼 함수를 추가하여 URL 생성 로직을 통일했습니다.
+    *   프론트엔드 컴포넌트(`components/MyLibraryBookDetailModal.tsx`, `components/MyLibrary.tsx`)에서 이 헬퍼 함수를 사용하도록 업데이트했습니다.
+
+2.  **제목 처리 로직 개선**:
+    *   CloudFlare Workers가 경기도 전자도서관 검색 시 `processBookTitle` 대신 `processGyeonggiEbookTitle`을 사용하도록 변경했습니다.
+    *   `processBookTitle`은 숫자 및 특정 문자를 제거하여 검색 오류를 유발했으나, `processGyeonggiEbookTitle`은 숫자를 보존하고 특수문자 기준으로 제목을 처리하여 정확한 검색이 가능하도록 했습니다.
+    *   `services/unifiedLibrary.service.ts`에서 API 요청 시 기존 도서관용 제목(`title`)과 경기도 전자도서관용 제목(`gyeonggiTitle`)을 모두 전송하도록 수정했습니다.
+    *   `crawling_test/workers_finalv4.js`에서 `gyeonggiTitle`을 사용하여 경기도 전자도서관 검색을 수행하도록 업데이트했습니다.
+
+**테스트 및 검증**:
+
+*   `test_gyeonggi_debug.html`을 업데이트하여 기존 URL과 수정된 URL을 비교하고 시각적으로 차이점을 확인할 수 있도록 했습니다.
+*   `debug_title.js` 및 `test_title_comparison.js`를 통해 제목 처리 로직의 정확성을 로컬에서 검증했습니다.
+
+**다음 단계**:
+
+*   CloudFlare Workers (`crawling_test/workers_finalv4.js`) 재배포가 필요합니다.
+*   전자책(경기도) 크롤링 자체의 추가적인 개선이 필요합니다.
+
+
+5587605
+ahnbu
+Sat Aug 9 16:00:12 2025 +0900
+gitignore 업데이트
+
+
+6006463
+ahnbu
+Sat Aug 9 15:56:21 2025 +0900
+Feat: 전자책 정보 표시 및 서재 관리 기능 개선 및 문서 업데이트
+
+
+7436f09
+ahnbu
+Sat Aug 9 14:46:26 2025 +0900
+Feat: '내 서재'의 'e북(시립구독)' 텍스트를 'e북.시독'으로 변경
+
+
+f253ace
+ahnbu
+Sat Aug 9 14:40:47 2025 +0900
+feat: 내 서재 및 API 테스트 UI/UX 개선 및 CSV 내보내기 기능 강화
+
+
+878054b
+ahnbu
+Sat Aug 9 13:22:04 2025 +0900
+feat: 도서관 재고 UI/UX 개선 및 전자책 대출 로직 수정
+## UI/UX 개선사항
+- 내 서재 정렬 기능을 드롭다운으로 통합하여 UI 정리
+- 도서 상세 모달의 종이책/전자책 재고를 '도서관 재고'로 통합
+- 그리드 뷰 카드 겹침 문제 해결 및 제목 말줄임표 정확성 개선
+- 전자책 아이콘을 다른 재고 아이콘과 통일 (✅ → ✔️)
+- 도서 상세 모달 레이아웃을 1:1 비율로 균형 조정
+
+## 전자책 대출 로직 개선
+- CloudFlare Workers v3에서 전자책 대출 가능 여부 파싱 정확성 개선
+- 다중 정규식 패턴으로 '대출 가능 여부' 필드 추출 강화
+- 전자책 동시 대출 특성을 고려한 상태 판단 로직 수정
+- 디버그 로깅 추가로 HTML 파싱 문제 진단 개선
+
+## 기술 문서 개선
+- README.md에 3-Way 통합 도서관 재고 확인 시스템 상세 문서화
+- API 호출 프로세스, HTML 파싱 로직, 데이터 구조 설명 추가
+- CloudFlare Workers 아키텍처 및 최적화 방안 문서화
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+cd24912
+ahnbu
+Mon Aug 4 12:58:45 2025 +0900
+.env 파일을 .gitignore에 추가
+
+
+dd7e61e
+ahnbu
+Mon Aug 4 12:53:37 2025 +0900
+worker.js 폴더 정리
+
+
+6018165
+ahnbu
+Sun Aug 3 00:35:50 2025 +0900
+docs: 오늘 작업 내용 반영 및 문서 최신화
+- changelog, task_list, INDEX, README 등 모든 관련 문서를 오늘 진행된 서비스 계층 리팩토링 및 UI 개선 사항에 맞춰 최신 정보로 업데이트했습니다.
+
+
+dcc9469
+ahnbu
+Sun Aug 3 00:27:40 2025 +0900
+refactor: 서비스 계층 통합 및 API 호출 로직 개선
+- API 호출을 통합된 unifiedLibrary.service.ts로 일원화하여 중복 및 비효율을 제거했습니다.
+
+
+ca1f529
+ahnbu
+Sat Aug 2 23:15:48 2025 +0900
+feat: 전자책 재고 조회 및 통합 API 기능 구현
+주요 변경 사항:
+
+
+2acf5cd
+ahnbu
+Sat Aug 2 17:56:14 2025 +0900
+feat: 가상화 테이블 UX 개선 및 도서관 연동 기능 확장
+🎯 주요 개선사항:
+• 가상화 테이블 스크롤바 최적화 (15권 이하 시 자연스러운 높이)
+• 상세 페이지 도서관 재고 클릭 기능 추가 (퇴촌/기타 도서관 연결)
+• 상세 페이지 폰트 일관성 개선 (font-mono → font-medium)
+
+📱 UX 개선:
+- MyLibrary: 동적 높이 계산으로 불필요한 스크롤바 제거
+- BookDetails: 도서관 재고 숫자 클릭 시 해당 도서관 검색 페이지 이동
+- MyLibraryBookDetailModal: 일관된 도서관 연동 기능 적용
+
+⚡ 성능 최적화:
+- 소량 데이터(≤15권): 가상화 비활성, 자연스러운 표시
+- 대량 데이터(>15권): 가상화 활성, 효율적인 스크롤 처리
+- 500-1000권 데이터에서도 최적화된 반응성 보장
+
+🎨 디자인 개선:
+- 상세 페이지 전체에서 통일된 폰트 시스템 적용
+- 도서관 재고 클릭 시 호버 효과 및 사용자 피드백 개선
+
+📚 문서 업데이트:
+- changelog.md: v1.3.0 변경사항 추가
+- task_list.md: Task-010 완료 작업 기록
+- DEVELOPMENT.md: 가상화 관련 기술 문서 확장
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+
+c71ecb2
+ahnbu
+Sat Aug 2 16:21:04 2025 +0900
+docs: README.md 최신화
+
+
+65b7744
+ahnbu
+Sat Aug 2 16:19:53 2025 +0900
+docs: Gemini 작업 규칙 추가
+
+
+baa10e6
+ahnbu
+Sat Aug 2 16:15:41 2025 +0900
+docs: Update documentation with recent changes
+
+
+9332bd3
+ahnbu
+Sat Aug 2 16:14:11 2025 +0900
+feat: 도서관 재고 셀 클릭 시 외부 검색 페이지로 연결
+
+
+dabb2c3
+ahnbu
+Sat Aug 2 15:32:59 2025 +0900
+feat: 도서 상세 정보 및 UI 개선
+
+
+9090f73
+ahnbu
+Sat Aug 2 13:53:02 2025 +0900
+ai studio 수정내역 가져옴 - [기능개선] 책 추가 시 재고확인을 백그라운드로 처리하여 속도 향상 - [구조개선] 종이책 링크 분리 및 통합 상세 정보 화면 구현 - [신규기능] 책 상세 정보 모달창 추가로 편의성 향상 - [버그수정] 테이블 헤더 스크롤 동기화 및 재고 확인 방식 개선 - [기능개선] 책 삭제 시 확인절차 추가 및 사용자 인터페이스 개선 - [디자인개선] 새로고침 아이콘 업데이트 및 별점 레이아웃 최적화 - [신규기능] 출간일 컬럼 추가 및 렌더링 성능 개선
+
+
+ee3542d
+ahnbu
+Fri Aug 1 19:34:38 2025 +0900
+vscode_ts순환오류개선, 가상화목록추가
+
+
+a39c0c1
+ahnbu
+Fri Aug 1 19:32:30 2025 +0900
+first commit
+

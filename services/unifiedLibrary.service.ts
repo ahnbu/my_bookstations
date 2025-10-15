@@ -245,6 +245,18 @@ export function createLibraryOpenURL(
   }
 }
 
+export function generateLibraryDetailURL(recKey: string, bookKey: string, publishFormCode: string): string {
+  // 퇴촌도서관의 URL 연결 방식을 기타도서관과 동일하게 변경
+  // 안정성을 위해 제목 기반 검색 결과 페이지로 연결
+  
+  // 기타도서관과 동일한 URL 패턴 사용
+  // searchLibraryArr=MN (퇴촌도서관 코드)
+  // 제목 기반 검색으로 안정성 확보
+  const searchURL = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${recKey}`;
+  
+  return searchURL;
+}
+
 
 /**
  * 경기도 전자도서관 검색 URL 생성 
@@ -449,17 +461,6 @@ export function hasAvailableEBooks(ebooks: (EBookAvailability | EBookError)[]): 
  * @param publishFormCode - 출판 형태 코드
  * @returns 상세 페이지 URL
  */
-export function generateLibraryDetailURL(recKey: string, bookKey: string, publishFormCode: string): string {
-  // 퇴촌도서관의 URL 연결 방식을 기타도서관과 동일하게 변경
-  // 안정성을 위해 제목 기반 검색 결과 페이지로 연결
-  
-  // 기타도서관과 동일한 URL 패턴 사용
-  // searchLibraryArr=MN (퇴촌도서관 코드)
-  // 제목 기반 검색으로 안정성 확보
-  const searchURL = `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${recKey}`;
-  
-  return searchURL;
-}
 
 /**
  * 퇴촌도서관 재고 클릭 가능 여부 확인
