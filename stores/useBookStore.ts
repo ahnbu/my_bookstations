@@ -879,89 +879,182 @@ export const useBookStore = create<BookState>(
         await updateBookInStoreAndDB(id, { customTags: tagIds }, '태그 업데이트에 실패했습니다.');
       },
 
+      // [교체] updateMultipleBookTags 함수 전체를 아래 코드로 교체
       updateMultipleBookTags: async (bookUpdates) => {
-        const { myLibraryBooks } = get();
+          const { getBookById } = get(); // getBookById 함수를 가져옴
 
-        // 1. 낙관적 업데이트: UI 상태를 먼저 업데이트
-        const updatedBooks = new Map<number, SelectedBook>();
-        bookUpdates.forEach(({ id, tagIds }) => {
-          const book = myLibraryBooks.find(b => b.id === id);
-          if (book) {
-            updatedBooks.set(id, { ...book, customTags: tagIds });
-          }
-        });
+          // 1. 낙관적 업데이트: UI 상태를 먼저 업데이트
+          const updatedBooksMap = new Map<number, SelectedBook>();
+          // Promise.all을 사용하여 book 객체를 병렬로 가져옴
+          await Promise.all(bookUpdates.map(async ({ id, tagIds }) => {
+              const book = await getBookById(id);
+              if (book) {
+                  updatedBooksMap.set(id, { ...book, customTags: tagIds });
+              }
+          }));
 
-        useBookStore.setState(state => ({
-          myLibraryBooks: state.myLibraryBooks.map(book =>
-            updatedBooks.has(book.id) ? updatedBooks.get(book.id)! : book
-          )
-        }));
+          useBookStore.setState(state => ({
+            myLibraryBooks: state.myLibraryBooks.map(book => updatedBooksMap.get(book.id) || book),
+            librarySearchResults: state.librarySearchResults.map(book => updatedBooksMap.get(book.id) || book),
+            libraryTagFilterResults: state.libraryTagFilterResults.map(book => updatedBooksMap.get(book.id) || book),
+          }));
 
-        // 2. 배치 DB 업데이트 (병렬 처리)
-        const updatePromises = bookUpdates.map(async ({ id, tagIds }) => {
-          const book = myLibraryBooks.find(b => b.id === id);
-          if (!book) return { success: false, id, error: 'Book not found' };
+          // 2. 배치 DB 업데이트 (병렬 처리)
+          const updatePromises = bookUpdates.map(async ({ id, tagIds }) => {
+            // [핵심 수정] getBookById를 사용하여 모든 데이터 소스에서 책을 찾음
+            const book = await getBookById(id);
+            
+            if (!book) {
+              console.warn(`[updateMultipleBookTags] Book with id ${id} not found.`);
+              return { success: false, id, error: 'Book not found' };
+            }
 
-          try {
-            const updatedBookData = { ...book, customTags: tagIds };
-            const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBookData;
-            const { error } = await supabase
-              .from('user_library')
-              .update({
-                title: updatedBookData.title,
-                author: updatedBookData.author,
-                book_data: bookDataForDb as unknown as Json
-              })
-              .eq('id', id);
+            try {
+              // ... (기존 DB 업데이트 로직은 동일)
+              const updatedBookData = { ...book, customTags: tagIds };
+              const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBookData;
+              
+              const { error } = await supabase
+                .from('user_library')
+                .update({
+                  title: updatedBookData.title,
+                  author: updatedBookData.author,
+                  book_data: bookDataForDb as unknown as Json,
+                })
+                .eq('id', id);
 
-            if (error) throw error;
-            return { success: true, id };
-          } catch (error) {
-            console.error(`Failed to update book ${id}:`, error);
-            return { success: false, id, error };
-          }
-        });
-
-        // 3. 결과 처리
-        const results = await Promise.allSettled(updatePromises);
-        const failures: number[] = [];
-
-        results.forEach((result, index) => {
-          if (result.status === 'fulfilled' && !result.value.success) {
-            failures.push(result.value.id);
-          } else if (result.status === 'rejected') {
-            failures.push(bookUpdates[index].id);
-          }
-        });
-
-        // 4. 실패한 항목들 롤백
-        if (failures.length > 0) {
-          const originalBooks = new Map<number, SelectedBook>();
-          failures.forEach(id => {
-            const originalBook = myLibraryBooks.find(b => b.id === id);
-            if (originalBook) {
-              originalBooks.set(id, originalBook);
+              if (error) throw error;
+              return { success: true, id };
+            } catch (error) {
+              console.error(`Failed to update tags for book ${id}:`, error);
+              return { success: false, id, error };
             }
           });
 
-          useBookStore.setState(state => ({
-            myLibraryBooks: state.myLibraryBooks.map(book =>
-              originalBooks.has(book.id) ? originalBooks.get(book.id)! : book
-            )
-          }));
-
-          useUIStore.getState().setNotification({
-            message: `${failures.length}개 책의 태그 업데이트에 실패했습니다. 변경사항이 저장되지 않았을 수 있습니다.`,
-            type: 'error',
+          // 3. 결과 처리 (기존과 동일)
+          const results = await Promise.allSettled(updatePromises);
+          const failures: number[] = [];
+          results.forEach((result, index) => {
+              if (result.status === 'fulfilled' && result.value && !result.value.success) {
+                  failures.push(result.value.id);
+              } else if (result.status === 'rejected') {
+                  failures.push(bookUpdates[index].id);
+              }
           });
-        }
 
-        return {
-          success: bookUpdates.length - failures.length,
-          failed: failures.length,
-          failures
-        };
+          // 4. 실패한 항목들 롤백 (기존과 동일, 하지만 이제 원본을 찾아 롤백 가능)
+          if (failures.length > 0) {
+            const originalBooksMap = new Map<number, SelectedBook>();
+            await Promise.all(failures.map(async (id) => {
+                const originalBook = await getBookById(id); // 원본을 다시 찾아옴
+                if(originalBook) {
+                    originalBooksMap.set(id, originalBook);
+                }
+            }));
+            
+            // ... (기존 롤백 로직 수정)
+            useBookStore.setState(state => ({
+              myLibraryBooks: state.myLibraryBooks.map(book => originalBooksMap.get(book.id) || book),
+              librarySearchResults: state.librarySearchResults.map(book => originalBooksMap.get(book.id) || book),
+              libraryTagFilterResults: state.libraryTagFilterResults.map(book => originalBooksMap.get(book.id) || book),
+            }));
+
+            useUIStore.getState().setNotification({
+              message: `${failures.length}개 책의 태그 업데이트에 실패했습니다. 변경사항이 저장되지 않았을 수 있습니다.`,
+              type: 'error',
+            });
+          }
+
+          return {
+            success: bookUpdates.length - failures.length,
+            failed: failures.length,
+            failures,
+          };
       },
+
+      // updateMultipleBookTags: async (bookUpdates) => {
+      //   const { myLibraryBooks } = get();
+
+      //   // 1. 낙관적 업데이트: UI 상태를 먼저 업데이트
+      //   const updatedBooks = new Map<number, SelectedBook>();
+      //   bookUpdates.forEach(({ id, tagIds }) => {
+      //     const book = myLibraryBooks.find(b => b.id === id);
+      //     if (book) {
+      //       updatedBooks.set(id, { ...book, customTags: tagIds });
+      //     }
+      //   });
+
+      //   useBookStore.setState(state => ({
+      //     myLibraryBooks: state.myLibraryBooks.map(book =>
+      //       updatedBooks.has(book.id) ? updatedBooks.get(book.id)! : book
+      //     )
+      //   }));
+
+      //   // 2. 배치 DB 업데이트 (병렬 처리)
+      //   const updatePromises = bookUpdates.map(async ({ id, tagIds }) => {
+      //     const book = myLibraryBooks.find(b => b.id === id);
+      //     if (!book) return { success: false, id, error: 'Book not found' };
+
+      //     try {
+      //       const updatedBookData = { ...book, customTags: tagIds };
+      //       const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBookData;
+      //       const { error } = await supabase
+      //         .from('user_library')
+      //         .update({
+      //           title: updatedBookData.title,
+      //           author: updatedBookData.author,
+      //           book_data: bookDataForDb as unknown as Json
+      //         })
+      //         .eq('id', id);
+
+      //       if (error) throw error;
+      //       return { success: true, id };
+      //     } catch (error) {
+      //       console.error(`Failed to update book ${id}:`, error);
+      //       return { success: false, id, error };
+      //     }
+      //   });
+
+      //   // 3. 결과 처리
+      //   const results = await Promise.allSettled(updatePromises);
+      //   const failures: number[] = [];
+
+      //   results.forEach((result, index) => {
+      //     if (result.status === 'fulfilled' && !result.value.success) {
+      //       failures.push(result.value.id);
+      //     } else if (result.status === 'rejected') {
+      //       failures.push(bookUpdates[index].id);
+      //     }
+      //   });
+
+      //   // 4. 실패한 항목들 롤백
+      //   if (failures.length > 0) {
+      //     const originalBooks = new Map<number, SelectedBook>();
+      //     failures.forEach(id => {
+      //       const originalBook = myLibraryBooks.find(b => b.id === id);
+      //       if (originalBook) {
+      //         originalBooks.set(id, originalBook);
+      //       }
+      //     });
+
+      //     useBookStore.setState(state => ({
+      //       myLibraryBooks: state.myLibraryBooks.map(book =>
+      //         originalBooks.has(book.id) ? originalBooks.get(book.id)! : book
+      //       )
+      //     }));
+
+      //     useUIStore.getState().setNotification({
+      //       message: `${failures.length}개 책의 태그 업데이트에 실패했습니다. 변경사항이 저장되지 않았을 수 있습니다.`,
+      //       type: 'error',
+      //     });
+      //   }
+
+      //   return {
+      //     success: bookUpdates.length - failures.length,
+      //     failed: failures.length,
+      //     failures
+      //   };
+      // },
 
       toggleFavorite: async (id) => {
         const { myLibraryBooks } = get();

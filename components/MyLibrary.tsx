@@ -348,7 +348,7 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
       // 잠시 완료 상태를 보여준 후 모달 닫기
       setTimeout(() => {
         onClearSelection();
-      }, 1000);
+      }, 900);
     } catch (error) {
       console.error('일괄 태그 적용 실패:', error);
       setProgress(prev => ({
@@ -359,7 +359,7 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
       setTimeout(() => {
         setProcessing(false);
         setProgress({ current: 0, total: 0 });
-      }, 2000);
+      }, 1500);
     }
   };
 
@@ -429,10 +429,16 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
         currentOperation: `완료! ${processedCount}권의 책에서 "${tagName}" 태그가 제거되었습니다.`
       }));
 
-      // 잠시 완료 상태를 보여준 후
+      // // 잠시 완료 상태를 보여준 후
+      // setTimeout(() => {
+      //   setProgress({ current: 0, total: 0 });
+      // }, 1000);
+      
+      // [핵심 수정] 태그 추가와 동일하게, 성공 후 모달을 닫고 선택 해제
       setTimeout(() => {
-        setProgress({ current: 0, total: 0 });
-      }, 1000);
+          onClearSelection();
+      }, 900); // 1초 후 실행하여 사용자에게 완료 메시지를 보여줄 시간을 줌
+
     } catch (error) {
       console.error('공통 태그 제거 실패:', error);
       setProgress(prev => ({
@@ -443,7 +449,7 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
       setTimeout(() => {
         setProcessing(false);
         setProgress({ current: 0, total: 0 });
-      }, 2000);
+      }, 1500);
     }
   };
 
@@ -1944,7 +1950,9 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
         <BulkTagModal
           isOpen={bulkTagModalOpen}
           onClose={() => setBulkTagModalOpen(false)}
-          selectedBooks={Array.from(selectedBooks).map(id => myLibraryBooks.find(book => book.id === id)!).filter(Boolean)}
+          // [핵심 수정] myLibraryBooks 대신 sortedAndFilteredLibraryBooks에서 책을 찾도록 변경
+          // selectedBooks={Array.from(selectedBooks).map(id => myLibraryBooks.find(book => book.id === id)!).filter(Boolean)}
+          selectedBooks={Array.from(selectedBooks).map(id => sortedAndFilteredLibraryBooks.find(book => book.id === id)!).filter(Boolean)}
           availableTags={settings.tagSettings?.tags || []}
           onAddTag={(bookId, tagId) => addTagToBook(bookId, tagId)}
           onRemoveTag={(bookId, tagId) => removeTagFromBook(bookId, tagId)}
