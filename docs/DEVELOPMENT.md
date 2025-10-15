@@ -270,18 +270,81 @@ const searchUrl = createLibraryOpenURL("e경기", book.title, book.customSearchT
 
 ## 🐛 트러블슈팅 가이드
 
-### 1. 경기도 광주시 퇴촌도서관 상세페이지 웹 방화벽 차단
+### 경기도 광주시 퇴촌도서관 상세페이지 웹 방화벽 차단
 - **증상**: 크롤링 데이터에 포함된 상세페이지 URL(`resourcedetail/detail.do?...`)로 직접 접근 시 "Web firewall security policies have been blocked" 에러 페이지가 표시됨.
 - **원인**: 도서관 시스템의 보안 정책 강화로 외부에서의 상세페이지 직접 링크가 차단됨.
 - **해결**: `createLibraryOpenURL` 함수에서 '퇴촌' 케이스 처리 시, 상세페이지 URL 대신 **제목 기반 검색 결과 페이지 URL**을 생성합니다. 사용자는 검색 결과 목록에서 해당 도서를 클릭하여 상세 정보를 확인할 수 있습니다.
 
-### 2. API 요청 타임아웃 (전체 응답 지연)
+### API 요청 타임아웃 (전체 응답 지연)
 - **증상**: 하나의 도서관 서버 응답이 지연되면 전체 재고 조회(`Promise.allSettled`)가 늦어짐.
 - **해결**: Cloudflare Worker(`library-checker/src/index.js`)에서 각 도서관 `fetch` 요청에 `AbortSignal.timeout(15000)` (15초)을 설정했습니다. 특정 서버가 15초 내에 응답하지 않으면 해당 요청만 실패 처리하고 나머지 결과를 반환합니다.
 
-### 3. 경기도 전자도서관 검색 결과 0건 (특수문자 문제)
+### 경기도 전자도서관 검색 결과 0건 (특수문자 문제)
 - **증상**: 책 제목에 특수문자가 포함된 경우 검색 결과가 0건으로 나옴.
 - **해결**: API 호출 방식을 복잡한 `detailQuery` 파라미터 대신, 실제 웹사이트 검색창과 동일하게 동작하는 `keyword` 파라미터 방식으로 변경하여 검색 정확도를 높였습니다.
+
+### 초기 로딩된 데이터에만 기능이 작동하는 경우
+
+**증상:**
+-   '내 서재' 검색 또는 태그 필터링 후 나타난 책에 대해 특정 기능(예: 상세 모달 열기, 재고 새로고침, 태그/메모 CRUD)이 작동하지 않는다.
+-   반면, 페이지를 처음 로드했을 때 보이는 책들(예: 25/50권)에 대해서는 동일한 기능이 정상적으로 작동한다.
+-   React 개발자 도구에서는 상태 변경이 일어나는 것처럼 보이지만, UI에는 아무런 변화가 없다.
+
+**원인 분석: 제한된 데이터 소스 참조 (The "Wrong Drawer" Problem)**
+
+이 문제는 대부분의 경우 프론트엔드 상태 관리 로직에서 발생합니다. 우리 프로젝트는 성능을 위해 초기에는 일부 데이터(`myLibraryBooks`)만 로드하고, 검색/필터 시에는 별도의 상태(`librarySearchResults`, `libraryTagFilterResults`)를 사용합니다.
+
+문제는 특정 기능을 수행하는 함수(예: `updateBookInStoreAndDB`, `refreshAllBookInfo`)가 업데이트할 대상 객체를 찾을 때, **오직 `myLibraryBooks`라는 하나의 "서랍"에서만** 객체를 찾으려고 시도하기 때문에 발생합니다. 만약 사용자가 다른 서랍(`librarySearchResults`)에 있는 객체에 대해 작업을 요청하면, 함수는 대상을 찾지 못하고 아무것도 하지 않거나 에러를 반환합니다.
+
+**진단 워크플로우:**
+
+1.  **기능 확인**: 작동하지 않는 기능(예: `addTagToBook`)이 의존하는 핵심 함수(예: `updateBookInStoreAndDB`)를 `useBookStore.ts`에서 찾습니다.
+2.  **데이터 소스 추적**: 해당 함수가 업데이트할 원본 객체(`originalBook`)를 어디서 가져오는지 확인합니다. 아래와 같은 코드가 있다면 의심해야 합니다.
+    ```typescript
+    const { myLibraryBooks } = get();
+    const originalBook = myLibraryBooks.find(b => b.id === id); // << 문제의 코드
+    ```
+3.  **재현**: '내 서재'에서 '전체 보기'를 누르지 않은 상태로, 스크롤을 내려 보이지 않는 책의 제목을 검색합니다. 검색 결과로 나온 책에 대해 해당 기능을 실행했을 때 문제가 재현되는지 확인합니다.
+
+**해결 방안: 중앙화된 데이터 조회 함수 사용**
+
+이 문제를 근본적으로 해결하려면, 객체를 찾을 때 모든 잠재적인 데이터 소스를 검색하는 중앙화된 조회 함수를 사용해야 합니다.
+
+1.  **`getBookById` 함수 활용**:
+    `useBookStore.ts`에 이미 `getBookById` 함수가 구현되어 있습니다. 이 함수는 `myLibraryBooks`, `librarySearchResults`, `libraryTagFilterResults`를 모두 검색하고, 그래도 없으면 DB에 직접 요청하는 가장 견고한 방법입니다.
+
+2.  **기존 코드 수정**:
+    문제가 되는 함수 내부에서 `myLibraryBooks.find(...)`를 사용하는 대신, `getBookById`를 호출하도록 수정합니다.
+
+    **수정 전:**
+    ```typescript
+    const { myLibraryBooks } = get();
+    const originalBook = myLibraryBooks.find(b => b.id === id);
+    if (!originalBook) return;
+    // ...
+    ```
+
+    **수정 후:**
+    ```typescript
+    const { getBookById } = get();
+    const originalBook = await getBookById(id);
+    if (!originalBook) return;
+    // ...
+    ```
+
+3.  **UI 상태 동시 업데이트**:
+    데이터를 업데이트하는 함수(`updateBookInStoreAndDB`, `refreshAllBookInfo`)는 `setState`를 호출할 때 **모든 관련 상태 배열**(`myLibraryBooks`, `librarySearchResults`, `libraryTagFilterResults`)을 동시에 업데이트해야 합니다. 이를 통해 어떤 뷰(기본, 검색, 필터)에 있더라도 UI가 일관되게 변경됩니다.
+
+    ```typescript
+    // 좋은 예시
+    useBookStore.setState(state => ({
+      myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? updatedBook : b)),
+      librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? updatedBook : b)),
+      libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? updatedBook : b)),
+    }));
+    ```
+
+**핵심 원칙**: 사용자 인터랙션의 대상이 되는 객체를 찾거나 수정할 때는, 현재 화면에 보이는 데이터의 출처(`myLibraryBooks`, `librarySearchResults` 등)와 관계없이, **존재하는 모든 데이터 소스를 포괄하는 단일 통로(`getBookById`)**를 통해 접근해야 합니다.
 
 ---
 **문서 최종 수정일**: 2025-10-15
