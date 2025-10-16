@@ -11,6 +11,7 @@
 // ==============================================
 // 메인 핸들러
 // ==============================================
+
 export default {
   async fetch(request) {
     const corsHeaders = {
@@ -207,13 +208,15 @@ export default {
   }
 };
 
-// 10초를 기본 타임아웃으로 통일시켜서 설정
+// 기본 타임아웃으로 통일시켜서 설정
 const DEFAULT_TIMEOUT = 15000; 
 
 // ==============================================
 // 크롤링 함수들
 // ==============================================
+
 // 경기 광주시 시립도서관 종이책 검색 (iframe 안의 주소로 요청)
+
 async function searchGwangjuLibrary(isbn) {
   const url = "https://lib.gjcity.go.kr:8443/kolaseek/plus/search/plusSearchResultList.do";
   const payload = new URLSearchParams({'searchType': 'DETAIL','searchKey5': 'ISBN','searchKeyword5': isbn,'searchLibrary': 'ALL','searchSort': 'SIMILAR','searchRecordCount': '30'});
@@ -248,61 +251,32 @@ async function searchGyeonggiEduEbook(searchText, libraryCode) {
 }
 
 // 경기도 전자도서관 (소장+구독) 통합 검색
+
 async function searchGyeonggiEbookLibrary(searchText) {
   try {
-    // 소장형 도서와 구독형 도서를 병렬로 검색
     const [ownedResults, subscriptionResults] = await Promise.allSettled([
       searchGyeonggiEbookOwned(searchText),
-      searchGyeonggiEbookSubs(searchText)
+      searchGyeonggiEbookSubs(searchText),
     ]);
 
-    // 실패시 error 메시지 보내도록 변경
-    // 두 내부 검색이 모두 실패했는지 확인하는 로직 추가
-    if (ownedResults.status === 'rejected' && subscriptionResults.status === 'rejected') {
-        const ownedError = ownedResults.reason.message || '소장형 검색 실패';
-        const subsError = subscriptionResults.reason.message || '구독형 검색 실패';
-        // 두 검색이 모두 실패했다면, 명시적으로 에러를 던져서 상위 핸들러가 잡도록 함
-        throw new Error(`소장형(${ownedError}) 및 구독형(${subsError}) 검색 모두 실패`);
-    }
-
-    // 결과 통합 및 처리 (안전장치 추가)
+    // [핵심 수정] 변수를 먼저 안전하게 선언하고 값을 할당합니다.
     const ownedBooks = (ownedResults.status === 'fulfilled' && Array.isArray(ownedResults.value)) ? ownedResults.value : [];
-    let subscriptionBooks = (subscriptionResults.status === 'fulfilled' && Array.isArray(subscriptionResults.value)) ? subscriptionResults.value : [];
-    
-    // 구독형 검색 실패 시 로그
-    if (subscriptionResults.status === 'rejected') {
-      subscriptionBooks = [];
+    const subscriptionBooks = (subscriptionResults.status === 'fulfilled' && Array.isArray(subscriptionResults.value)) ? subscriptionResults.value : [];
+
+    // [핵심 수정] 두 검색이 모두 실패했는지 확인하는 로직을 변수 선언 *이후*로 옮깁니다.
+    if (ownedResults.status === 'rejected' && subscriptionResults.status === 'rejected') {
+      const ownedError = ownedResults.reason.message || '소장형 검색 실패';
+      const subsError = subscriptionResults.reason.message || '구독형 검색 실패';
+      // 두 검색이 모두 실패했다면, 에러를 던져서 상위 핸들러가 잡도록 합니다.
+      throw new Error(`소장형(${ownedError}) 및 구독형(${subsError}) 검색 모두 실패`);
     }
+
+    // 이제 ownedBooks와 subscriptionBooks는 안전하게 사용할 수 있습니다.
+    const combinedBooks = [...ownedBooks, ...subscriptionBooks];
     
-    // 최종 안전장치
-    if (!Array.isArray(subscriptionBooks)) {
-      subscriptionBooks = [];
-    }
-    
-    // 테스트 환경과 동일한 응답 구조로 변경
-    const owned = ownedBooks.map(book => ({
-      title: book.title,
-      author: book.author,
-      publisher: book.publisher,
-      isbn: book.isbn,
-      totalCopies: book.total_copies,
-      availableCopies: book.available_copies,
-      isLoanable: book.available,
-      type: book.type,
-      library: book.library_name,
-      detailUrl: book.detail_url
-    }));
+    const totalStock = combinedBooks.length;
+    const availableCount = combinedBooks.filter(book => book.available).length;
 
-    // subscriptionBooks는 이미 parseSubscriptionResults에서 파싱된 배열이므로 그대로 사용
-    const subscription = subscriptionBooks;
-
-    // 총 재고 및 대출 가능 권수 계산
-    const totalStock = ownedBooks.length + subscriptionBooks.length;
-    const ownedAvailableCount = ownedBooks.filter(book => book.available).length;
-    const subscriptionAvailableCount = subscriptionBooks.filter(book => book.available).length;
-    const availableCount = ownedAvailableCount + subscriptionAvailableCount;
-
-    // 프론트엔드에서 기대하는 GyeonggiEbookLibraryResult 형식으로 반환
     return {
       library_name: '경기도 전자도서관',
       total_count: totalStock,
@@ -310,7 +284,7 @@ async function searchGyeonggiEbookLibrary(searchText) {
       unavailable_count: totalStock - availableCount,
       owned_count: ownedBooks.length,
       subscription_count: subscriptionBooks.length,
-      books: [...owned, ...subscription]
+      books: combinedBooks,
     };
   } catch (error) {
     console.error('경기도 전자도서관 검색 오류:', error);
@@ -318,7 +292,8 @@ async function searchGyeonggiEbookLibrary(searchText) {
   }
 }
 
-// 경기도 전자도서관 (소장) 검색
+
+// 경기도 전자도서관 (소장) 검색 - JSON 응답
 async function searchGyeonggiEbookOwned(query) {
   const encodedTitle = encodeURIComponent(query);
   const timestamp = Date.now();
@@ -326,7 +301,6 @@ async function searchGyeonggiEbookOwned(query) {
   // BUG FIX: API 호출 방식 변경 
   // 불안정한 detailQuery 대신, 안정적인 keyword 파라미터를 사용하는 API URL로 교체합니다.
   // detailQuery 파라미터는 빈 값으로 남겨두어 충돌을 방지합니다.
-  // const apiUrl = `https://ebook.library.kr/api/service/search-engine?contentType=EB&searchType=all&detailQuery=TITLE:${encodedTitle}:true&sort=relevance&asc=desc&loanable=false&withFacet=true&page=1&size=20&_t=${timestamp}`;
 
   const apiUrl = `https://ebook.library.kr/api/service/search-engine?contentType=EB&searchType=all&detailQuery=&sort=relevance&loanable=false&page=1&size=20&keyword=${encodedTitle}&_t=${timestamp}`;
   // ====================================================================
@@ -355,7 +329,7 @@ async function searchGyeonggiEbookOwned(query) {
   return parseGyenggiEbookOwnedResults(jsonData);
 }
 
-// 경기도 전자도서관 (구독) 검색
+// 경기도 전자도서관 (구독) 검색 - HTML 응답
 async function searchGyeonggiEbookSubs(query) {
   try {
     
@@ -438,7 +412,11 @@ async function searchGyeonggiEbookSubs(query) {
     }
 
     const data = await response.json();
-    
+
+    // [핵심 수정] JSON.stringify를 사용하여 객체 내용을 문자열로 변환하여 출력
+    // 세 번째 인자 '2'는 JSON을 예쁘게 들여쓰기(pretty-print)하여 가독성을 높여줍니다.
+    // console.log(`[DEBUG/구독형] API 원본 응답 데이터:\n${JSON.stringify(data, null, 2)}`);
+
     // parseSubscriptionResults 함수를 사용하여 파싱
     const parsedResults = parseGyenggiEbookSubsResults(data, query);
     
@@ -459,6 +437,7 @@ async function searchGyeonggiEbookSubs(query) {
     throw error;
   }
 }
+
 
 // 경기광주 시립도서관 전자책 (소장+구독) 통합 검색
 // 현재는 소장, 구독이 나눠져 있으나 추후 합칠 수 있으므로 그대로 유지
@@ -661,15 +640,15 @@ function parseGwangjuHTML(html) {
 
     const firstBookHtml = bookItems[0][1];
     const titleMatch = firstBookHtml.match(/<dt[^>]*class[^>]*tit[^>]*>[\s\S]*?<a[^>]*>([^<]+)<\/a>/i);
-    let title = titleMatch ? titleMatch[1].trim().replace(/^\d+\.\s*/, '') : "제목 정보 없음";
+    let title = titleMatch ? titleMatch[1].trim().replace(/^\d+\.\s*/, '') : "제목 정보없음";
     
     // onclick 파라미터 추출 로직 제거 - 상세페이지 연결 불가로 불필요
     // (퇴촌도서관 서버 차단으로 recKey, bookKey, publishFormCode 사용 불가)
     
     const availability = bookItems.map(item => {
         const bookHtml = item[1];
-        const library = bookHtml.match(/<dd[^>]*class[^>]*site[^>]*>[\s\S]*?<span[^>]*>도서관:\s*([^<]+)<\/span>/i)?.[1].trim() || "정보 없음";
-        const callNo = bookHtml.match(/청구기호:\s*([^\n<]+?)(?:\s*<|$)/i)?.[1].trim() || "정보 없음";
+        const library = bookHtml.match(/<dd[^>]*class[^>]*site[^>]*>[\s\S]*?<span[^>]*>도서관:\s*([^<]+)<\/span>/i)?.[1].trim() || "정보없음";
+        const callNo = bookHtml.match(/청구기호:\s*([^\n<]+?)(?:\s*<|$)/i)?.[1].trim() || "정보없음";
         const baseCallNo = callNo.split('=')[0];
         let status = "알 수 없음";
         let dueDate = "-";
@@ -698,7 +677,8 @@ function parseGwangjuHTML(html) {
   } catch (error) { throw new Error(`광주 파싱 오류: ${error.message}`); }
 }
 
-// 경기도 교육청 전자도서관 HTML 결과 정리
+// 경기도 교육청 전자도서관 HTML 파싱
+
 function parseGyeonggiEduHTML(html, libraryCode) {
   try {
     const libraryNameMap = { '10000004': '성남도서관', '10000009': '통합도서관' };
@@ -709,69 +689,39 @@ function parseGyeonggiEduHTML(html, libraryCode) {
     }
 
     const searchResultsMatch = html.match(/<div id="search-results" class="search-results">([\s\S]*?)<div id="cms_paging"/i);
-    if (!searchResultsMatch) {
-      return { library_name: `경기도교육청-${branchName}`, availability: [] };
-    }
+    if (!searchResultsMatch) return { library_name: `경기도교육청-${branchName}`, availability: [] };
+
     const searchResultsHtml = searchResultsMatch[1];
-    
-    const bookItemsPattern = /<div class="row">[\s\S]*?<\/div>\s*(?=<div class="row">|$)/gi;
+    const bookItemsPattern = /<div class="row">([\s\S]*?)<\/div>\s*(?=<div class="row">|$)/gi;
     const bookItems = [...searchResultsHtml.matchAll(bookItemsPattern)];
-    
-    if (bookItems.length === 0) {
-      return { library_name: `경기도교육청-${branchName}`, availability: [] };
-    }
+    if (bookItems.length === 0) return { library_name: `경기도교육청-${branchName}`, availability: [] };
 
     const availability = bookItems.map(match => {
       const bookHtml = match[0];
       
-      let title = bookHtml.match(/<a[^>]+class="name goDetail"[^>]*>([\s\S]*?)<\/a>/i)?.[1].trim() || "정보 없음";
-      title = title.replace(/<[^>]*>/g, '').trim();
-
+      let title = (bookHtml.match(/<a[^>]+class="name goDetail"[^>]*>([\s\S]*?)<\/a>/i)?.[1] || "정보 없음").replace(/<[^>]*>/g, '').trim();
       const infoBlock = bookHtml.match(/<div class="bif">([\s\S]*?)<\/div>/i)?.[1] || "";
       
-      const author = infoBlock.match(/저자\s*:\s*(.*?)(?:<span|<br|\s*│)/i)?.[1]?.trim() || "정보 없음";
-      const publisher = infoBlock.match(/출판사\s*:\s*(.*?)(?:<span|<br|\s*│)/i)?.[1]?.trim() || "정보 없음";
-      const pubDate = infoBlock.match(/발행일자\s*:\s*(.*?)(?:<span|<br|\s*│)/i)?.[1]?.trim() || "정보 없음";
+      // [핵심 개선] 실제 HTML 구조에 정확히 맞춰 저자 정보 추출
+      // "저자 : " 뒤에 오는 <span...> 태그 안의 내용을 가져옵니다.
+      const authorMatch = infoBlock.match(/저자\s*:\s*<span[^>]*>([\s\S]*?)<\/span>/i);
+      const author = authorMatch ? authorMatch[1].replace(/<[^>]*>/g, '').trim() : "정보 없음";
 
-      // [추가] ISBN 추출 로직 시작
-      let isbn = "정보 없음"; // 기본값 설정
+      // 나머지 정보 추출 로직은 기존의 안정적인 방식을 유지
+      const publisher = (infoBlock.match(/출판사\s*:\s*([^<]+)/i)?.[1] || "정보 없음").trim();
+      const pubDate = (infoBlock.match(/발행일자\s*:\s*([^<]+)/i)?.[1] || "정보 없음").trim();
+      
+      let isbn = "정보 없음";
+      // ISBN은 keyValue 속성에서 추출하는 것이 가장 안정적
       const keyValueMatch = bookHtml.match(/keyValue="([^"]*)"/i);
       if (keyValueMatch && keyValueMatch[1]) {
         const keyValueParts = keyValueMatch[1].split('///');
-        // keyValue가 '제목///발간년도///저자///출판사///ISBN' 순서이므로 5번째 요소 확인
-        if (keyValueParts.length > 4) {
-          isbn = keyValueParts[4].trim();
-        }
+        if (keyValueParts.length > 4) isbn = keyValueParts[4].trim();
       }
-      // [추가] ISBN 추출 로직 끝
 
-      // 대출 가능 여부 추출을 위한 더 유연한 패턴들
-      let statusText = "정보 없음";
-      const statusPatterns = [
-        /대출\s*가능\s*여부\s*:\s*(.*?)(?:<br|<span|\s*│|$)/i,
-        /대출\s*가능\s*여부\s*:\s*(.*?)(?:\n|<|$)/i,
-        /대출\s*가능\s*여부\s*:\s*([^<\n]+)/i,
-        /대출.*?가능.*?여부.*?:\s*(.*?)(?:<br|<span|\s*│|$)/i
-      ];
-      
-      for (const pattern of statusPatterns) {
-        const match = infoBlock.match(pattern);
-        if (match && match[1]) {
-          statusText = match[1].trim();
-          break;
-        }
-      }
-      
-      // 디버깅 로그 제거 (운영 환경 최적화)
-      
-      // 개선된 대출 상태 판단 로직
       let status = "알 수 없음";
-      if (statusText.includes("대출 가능") || statusText.includes("대출가능")) {
-        // 전자책은 동시 대출이 가능하므로 "대출 가능"이라고 표시되면 실제로 대출 가능
-        status = "대출가능";
-      } else if (statusText.includes("대출중") || statusText.includes("대출 불가") || statusText.includes("대출불가")) {
-        status = "대출불가";
-      }
+      if (infoBlock.includes("대출 가능")) status = "대출가능";
+      else if (infoBlock.includes("대출중") || infoBlock.includes("대출 불가")) status = "대출불가";
       
       return { 
         '소장도서관': branchName, 
@@ -779,8 +729,8 @@ function parseGyeonggiEduHTML(html, libraryCode) {
         '저자': author, 
         '출판사': publisher, 
         '발행일': pubDate, 
-        '대출상태': status,
-        'isbn': isbn // 추출한 ISBN 추가
+        '대출상태': status, 
+        'isbn': isbn
       };
     });
     
@@ -792,36 +742,30 @@ function parseGyeonggiEduHTML(html, libraryCode) {
 }
 
 // 경기도 전자도서관 (소장) 결과 정리
+
 function parseGyenggiEbookOwnedResults(data) {
   try {
-    if (!data || data.httpStatus !== 'OK' || !data.data) {
-      return [];
-    }
-
+    if (!data || data.httpStatus !== 'OK' || !data.data) return [];
     const contents = data.data.contents || [];
-    
-    if (contents.length === 0) {
-      return [];
-    }
+    if (contents.length === 0) return [];
 
-    return contents.map(book => {
-      const totalCopies = parseInt(book.COPYS || 0, 10);
-      const loanCount = parseInt(book.LOAN_CNT || 0, 10);
-      const availableCopies = Math.max(0, totalCopies - loanCount);
-      const isAvailable = availableCopies > 0;
+    // console.log(`[DEBUG/소장형] 파싱 시작. ${contents.length}개의 책을 처리합니다.`);
+
+    return contents.map((book, index) => {
+      const isAvailable = (parseInt(book.COPYS || 0, 10) - parseInt(book.LOAN_CNT || 0, 10)) > 0;
+      const pubDate = book.PUBLISH_DATE ? book.PUBLISH_DATE.split(' ')[0] : '정보 없음';
+
+      // [핵심 로그] 모든 책에 대해 pubDate를 확인
+      // console.log(`[DEBUG/소장형] ${index + 1}번째 책: "${book.TITLE}" -> pubDate: ${pubDate}`);
       
       return {
+        type: '소장형',
         title: book.TITLE || book.TITLE_N || '전자책',
         author: book.AUTHOR || book.AUTHOR_N || '',
         publisher: book.PUBLISHER || book.PUBLISHER_N || '',
         isbn: book.ISBN || '',
-        status: isAvailable ? '대출가능' : '대출불가',
-        total_copies: totalCopies,
-        loan_count: loanCount,
-        available_copies: availableCopies,
+        pubDate: pubDate,
         available: isAvailable,
-        detail_url: `https://ebook.library.kr/detail?contentType=EB&id=${book.BOOK_ID || ''}`,
-        library_name: '경기도전자도서관'
       };
     });
   } catch (error) {
@@ -831,94 +775,56 @@ function parseGyenggiEbookOwnedResults(data) {
 }
 
 // 경기도 전자도서관 (구독) 결과 정리
+
 function parseGyenggiEbookSubsResults(data, query) {
   try {
-    // 응답 데이터 유효성 검증
-    if (!data) {
-      return [];
-    }
-    
-    if (typeof data !== 'object') {
-      return [];
-    }
-    
-    // bookSearchResponses 필드를 우선적으로 찾기 (subscription_solution.md 기준)
-    let books = null;
-    if (data.bookSearchResponses && Array.isArray(data.bookSearchResponses)) {
-      books = data.bookSearchResponses;
-    } else {
-      // 대안 필드들 확인
-      const possibleFields = ['books', 'items', 'results', 'data', 'list'];
-      for (const field of possibleFields) {
-        if (data[field] && Array.isArray(data[field])) {
-          books = data[field];
-          break;
-        }
-      }
-      
-      if (!books) {
-        return [];
-      }
-    }
-    
-    if (books.length === 0) {
-      return [];
-    }
+    if (!data || !Array.isArray(data.bookSearchResponses)) return [];
 
-    // 제목 기반 필터링 개선
-    const filteredBooks = books.filter((book, index) => {
-      if (!book || typeof book !== 'object') {
-        return false;
-      }
-      
-      // 다양한 제목 필드 확인 (API 응답 구조에 맞춤)
-      const titleFields = ['ucm_title', 'title', 'bookTitle', 'name', 'bookName', 'subject'];
-      let bookTitle = '';
-      
-      for (const field of titleFields) {
-        if (book[field]) {
-          bookTitle = book[field].toString();
-          break;
-        }
-      }
-      
-      if (!bookTitle) {
-        return false;
-      }
-      
+    // 응답결과
+    // {
+    //   "ucm_code": "UCM0000169589",
+    //   "ucm_title": "직장인의 글쓰기",
+    //   "ucm_writer": "강원국",
+    //   "ucp_brand": "메디치미디어",
+    //   "ucm_ebook_pubdate": "2025-06-20", // <- 바로 여기입니다!
+    //   "ucm_ebook_isbn": "9791157064441",
+    //   "ucm_file_type": "EPUB",
+    //   // ...
+    // }
+    
+    const books = data.bookSearchResponses;
+    if (books.length === 0) return [];
+
+    // console.log(`[DEBUG/구독형] 파싱 시작. ${books.length}개의 책을 처리합니다.`);
+
+    // 제목 필터링 로직은 유지 (API가 부정확한 결과를 줄 수 있으므로)
+    const filteredBooks = books.filter(book => {
+      if (!book || typeof book !== 'object') return false;
+      const bookTitle = book.ucm_title || book.title || '';
+      if (!bookTitle) return false;
       const normalizedBookTitle = bookTitle.toLowerCase().trim();
       const normalizedQuery = query.toLowerCase().trim();
-      
-      // 다양한 매칭 방식
-      const isExactMatch = normalizedBookTitle === normalizedQuery;
-      const isPartialMatch = normalizedBookTitle.includes(normalizedQuery);
-      const isReversedMatch = normalizedQuery.includes(normalizedBookTitle);
-      
-      // 공백 제거 후 매칭도 시도
-      const titleNoSpaces = normalizedBookTitle.replace(/\s+/g, '');
-      const queryNoSpaces = normalizedQuery.replace(/\s+/g, '');
-      const isSpaceIgnoreMatch = titleNoSpaces.includes(queryNoSpaces) || queryNoSpaces.includes(titleNoSpaces);
-      
-      const isMatch = isExactMatch || isPartialMatch || isReversedMatch || isSpaceIgnoreMatch;
-      
-      return isMatch;
+      return normalizedBookTitle.includes(normalizedQuery);
     });
 
-    // 도서 정보 매핑 (실제 API 응답 구조에 맞춤)
-    const mappedBooks = filteredBooks.map((book, index) => {
-      const mappedBook = {
-        title: book.ucm_title || book.title || book.bookTitle || book.name || '전자책',
-        author: book.ucm_writer || book.author || book.writer || book.creator || '',
-        publisher: book.ucp_brand || book.publisher || book.pubCompany || '',
-        isbn: book.ucm_ebook_isbn || book.isbn || book.isbn13 || '',
-        available: true, // 구독형은 항상 대출 가능
-        library_name: '경기도 전자도서관'
+    return filteredBooks.map((book, index) => {
+      // [핵심 수정] 올바른 키 이름 'ucm_ebook_pubdate'를 사용합니다.
+      const pubDateRaw = book.ucm_ebook_pubdate || '';
+      const pubDate = pubDateRaw ? pubDateRaw.split(' ')[0] : '정보 없음';
+
+      const title = book.ucm_title || book.title || '전자책';
+      // console.log(`[DEBUG/구독형] ${index + 1}번째 책: "${title}" -> 원본 pubDate: ${pubDateRaw}, 파싱된 pubDate: ${pubDate}`);
+
+      return {
+        type: '구독형',
+        title: title,
+        author: book.ucm_writer || book.author || '',
+        publisher: book.ucp_brand || book.publisher || '',
+        isbn: book.ucm_ebook_isbn || book.isbn || '',
+        pubDate: pubDate, // <- 올바르게 파싱된 값을 할당
+        available: true,
       };
-      
-      return mappedBook;
     });
-
-    return mappedBooks;
 
   } catch (error) {
     console.error('❌ 구독형 도서 결과 파싱 오류:', error.message);
@@ -1108,13 +1014,13 @@ function parseSiripEbookOwnedHTML(html) {
 
         books.push({
           type: '소장형',
-          title: title || '제목 정보 없음',
-          author: author || '저자 정보 없음',
-          publisher: publisher || '출판사 정보 없음',
+          title: title || '제목 정보없음',
+          author: author || '저자 정보없음',
+          publisher: publisher || '출판사 정보없음',
           totalCopies: totalCopies,
           availableCopies: availableCopies,
           isAvailable: isAvailable,
-          publishDate: publishDate || '출간일 정보 없음'
+          publishDate: publishDate || '출간일 정보없음'
         });
 
       } catch (itemError) {
@@ -1241,11 +1147,11 @@ function parseSiripEbookSubsHTML(html) {
 
         books.push({
           type: '구독형',
-          title: title || '제목 정보 없음',
-          author: author || '저자 정보 없음',
-          publisher: publisher || '출판사 정보 없음',
+          title: title || '제목 정보없음',
+          author: author || '저자 정보없음',
+          publisher: publisher || '출판사 정보없음',
           isAvailable: true, // 구독형은 항상 대출 가능
-          publishDate: publishDate || '출간일 정보 없음'
+          publishDate: publishDate || '출간일 정보없음'
         });
 
       } catch (itemError) {
@@ -1421,261 +1327,121 @@ if (typeof globalThis !== 'undefined' && globalThis.environment === 'development
 // 키워드 통합 검색 전용 함수들
 // ==============================================
 
-// 광주 종이책 키워드 검색 (통합 검색 URL 사용)
-// async function searchGwangjuPaperKeyword(keyword) {
-//   const results = [];
-
-//   try {
-//     const encodedKeyword = encodeURIComponent(keyword);
-
-//     // 광주시 통합 검색 URL 사용
-//     const searchUrl = `https://lib.gjcity.go.kr:8443/kolaseek/plus/search/plusSearchResultList.do?searchType=SIMPLE&searchKey=ALL&searchKeyword=${encodedKeyword}&searchLibrary=ALL`;
-
-//     const response = await fetch(searchUrl, {
-//       signal: AbortSignal.timeout(10000),
-//       headers: {
-//         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-//         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-//         'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7'
-//       }
-//     });
-
-//     if (response.ok) {
-//       const html = await response.text();
-//       const books = parseGwangjuPaperKeywordResults(html);
-//       results.push(...books);
-//     } else {
-//       console.error(`광주 종이책 검색 HTTP 오류: ${response.status} ${response.statusText}`);
-//     }
-
-//   } catch (error) {
-//     console.error('광주 종이책 키워드 검색 오류:', error.message);
-//   }
-
-//   return results;
-// }
-
+// 광주 종이책 키워드 검색 - '기타'와 '퇴촌'을 병렬로 검색 후 결과 통합
 async function searchGwangjuPaperKeyword(keyword) {
   try {
     const encodedKeyword = encodeURIComponent(keyword);
-    // 정확한 크롤링용 URL 사용
-    const searchUrl = `https://lib.gjcity.go.kr:8443/kolaseek/plus/search/plusSearchResultList.do?searchType=SIMPLE&searchKey=ALL&searchKeyword=${encodedKeyword}&searchLibrary=ALL`;
 
-    const response = await fetch(searchUrl, {
-      signal: AbortSignal.timeout(DEFAULT_TIMEOUT), // 5초 타임아웃
-      headers: { 'User-Agent': 'Mozilla/5.0' }
+    // 1. 두 도서관 그룹에 대한 검색 요청을 병렬로 생성
+    const searchPromises = [
+      // 요청 1: '기타' 도서관 (전체)
+      fetch(`https://lib.gjcity.go.kr:8443/kolaseek/plus/search/plusSearchResultList.do?searchType=SIMPLE&searchKey=ALL&searchKeyword=${encodedKeyword}&searchLibrary=ALL`, {
+        signal: AbortSignal.timeout(15000),
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      }),
+      // 요청 2: '퇴촌' 도서관 (MN 코드 사용)
+      fetch(`https://lib.gjcity.go.kr:8443/kolaseek/plus/search/plusSearchResultList.do?searchType=SIMPLE&searchKey=ALL&searchKeyword=${encodedKeyword}&searchLibraryArr=MN`, {
+        signal: AbortSignal.timeout(15000),
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      })
+    ];
+
+    const responses = await Promise.allSettled(searchPromises);
+
+    // 2. 각 응답을 비동기적으로 파싱
+    const parsingPromises = responses.map(async (result, index) => {
+      const libraryGroupName = index === 0 ? '기타' : '퇴촌';
+      if (result.status === 'fulfilled' && result.value.ok) {
+        const html = await result.value.text();
+        return parseGwangjuPaperKeywordResults(html); // 파싱 함수는 재사용
+      } else {
+        console.error(`광주 종이책(${libraryGroupName}) 검색 HTTP 오류:`, result.reason || result.value.status);
+        return []; // 실패 시 빈 배열 반환
+      }
     });
 
-    if (response.ok) {
-      const html = await response.text();
-      // 아래에서 새로 만들 파싱 함수를 호출
-      return parseGwangjuPaperKeywordResults(html); 
-    } else {
-      console.error(`광주 종이책 키워드 검색 HTTP 오류: ${response.status}`);
-      return []; // 실패 시 빈 배열 반환
-    }
+    const parsedResults = await Promise.all(parsingPromises);
+    
+    // 3. 모든 결과를 하나의 배열로 통합 (flatMap 사용)
+    const combinedResults = parsedResults.flatMap(result => result);
+
+    // 4. (선택적) 중복 제거: 제목과 저자가 완전히 동일한 경우 중복으로 간주하고 제거
+    const uniqueResults = Array.from(new Map(combinedResults.map(item =>
+        [`${item.title}-${item.author}`, item]
+    )).values());
+
+    return uniqueResults;
+    
   } catch (error) {
-    console.error('광주 종이책 키워드 검색 오류:', error.message);
-    return []; // 에러 발생 시 빈 배열 반환
+    console.error('광주 종이책 키워드 검색 전체 과정에서 오류 발생:', error.message);
+    return [];
   }
 }
 
 /* 광주 종이책 '키워드' 검색 결과 파싱 및 표준화 */
 
-// v1
-// function parseGwangjuPaperKeywordResults(html) {
-//   const results = [];
-//   try {
-//     const bookListMatch = html.match(/<ul[^>]*class[^>]*resultList[^>]*>([\s\S]*?)<\/ul>/i);
-//     if (!bookListMatch) return [];
-
-//     const liPattern = /<li[^>]*>([\s\S]*?)<\/li>/gi;
-//     const bookItems = [...bookListMatch[1].matchAll(liPattern)];
-//     if (bookItems.length === 0) return [];
-
-//     bookItems.forEach(itemMatch => {
-//       const bookHtml = itemMatch[1];
-      
-//       const titleMatch = bookHtml.match(/<dt[^>]*class[^>]*tit[^>]*>[\s\S]*?<a[^>]*>([^<]+)<\/a>/i);
-//       const title = titleMatch ? titleMatch[1].trim().replace(/^\d+\.\s*/, '') : null;
-//       if (!title) return; // 제목 없으면 건너뛰기
-
-//       const authorMatch = bookHtml.match(/<dd[^>]*class[^>]*author[^>]*>([\s\S]*?)<\/dd>/i);
-//       const author = authorMatch ? authorMatch[1].replace(/<[^>]*>/g, '').trim() : "저자 정보 없음";
-
-//       const pubDateMatch = bookHtml.match(/<dd[^>]*class[^>]*publication[^>]*>([\s\S]*?)<\/dd>/i);
-//       // YYYY 형식만 추출
-//       const pubDate = pubDateMatch ? (pubDateMatch[1].match(/\d{4}/) || [])[0] || "정보 없음" : "정보 없음";
-
-//       const libraryNameRaw = bookHtml.match(/<span[^>]*>도서관:\s*([^<]+)<\/span>/i)?.[1].trim() || "정보 없음";
-//       // '퇴촌'과 '기타' 구분
-//       const libraryName = libraryNameRaw === '퇴촌도서관' ? '퇴촌' : '기타';
-      
-//       let isAvailable = false;
-//       const statusSectionMatch = bookHtml.match(/<p[^>]*class[^>]*txt[^>]*>([\s\S]*?)<\/p>/i);
-//       if (statusSectionMatch) {
-//         const statusText = statusSectionMatch[1].match(/<b[^>]*>([^<]+)<\/b>/i)?.[1].trim() || "";
-//         if (statusText.includes('대출가능')) {
-//           isAvailable = true;
-//         }
-//       }
-
-//       // 표준 포맷으로 결과 추가
-//       results.push({
-//         type: '종이책',
-//         libraryName: libraryName,
-//         title: title,
-//         author: author,
-//         pubDate: pubDate,
-//         isAvailable: isAvailable
-//       });
-//     });
-
-//   } catch (error) {
-//     console.error('광주 종이책 키워드 결과 파싱 오류:', error.message);
-//   }
-//   return results;
-// }
-
-// v2
-// function parseGwangjuPaperKeywordResults(html) {
-//   const results = [];
-//   try {
-//     const bookListMatch = html.match(/<ul[^>]*class[^>]*resultList[^>]*>([\s\S]*?)<\/ul>/i);
-//     if (!bookListMatch) return [];
-
-//     const liPattern = /<li[^>]*>([\s\S]*?)<\/li>/gi;
-//     const bookItems = [...bookListMatch[1].matchAll(liPattern)];
-
-//     bookItems.forEach(itemMatch => {
-//       const bookHtml = itemMatch[1];
-      
-//       const title = (bookHtml.match(/<dt[^>]*class[^>]*tit[^>]*>[\s\S]*?<a[^>]*>([^<]+)<\/a>/i)?.[1] || "").trim().replace(/^\d+\.\s*/, '');
-//       if (!title) return;
-
-//       const author = (bookHtml.match(/<dd[^>]*class="author"[\s\S]*?>([\s\S]*?)<\/dd>/i)?.[1] || "정보 없음").replace(/<[^>]*>/g, '').trim();
-//       const publisher = (bookHtml.match(/<dd[^>]*class="publication"[\s\S]*?>([\s\S]*?)<\/dd>/i)?.[1] || "정보 없음").replace(/<[^>]*>/g, '').split('발행년도')[0].replace('발행자 :', '').trim();
-//       const pubDate = (bookHtml.match(/발행년도\s*:\s*(\d{4})/i)?.[1] || "정보 없음");
-
-//       const libraryNameRaw = (bookHtml.match(/<span[^>]*>도서관:\s*([^<]+)<\/span>/i)?.[1] || "정보 없음").trim();
-//       const libraryName = libraryNameRaw === '퇴촌도서관' ? '퇴촌' : '기타';
-      
-//       let isAvailable = false;
-//       const statusText = (bookHtml.match(/<p[^>]*class="txt"[\s\S]*?>[\s\S]*?<b[^>]*>([^<]+)<\/b>/i)?.[1] || "").trim();
-//       if (statusText.includes('대출가능')) {
-//         isAvailable = true;
-//       }
-
-//       results.push({
-//         type: '종이책',
-//         libraryName: libraryName,
-//         title: title,
-//         author: author,
-//         publisher: publisher,
-//         pubDate: pubDate,
-//         isAvailable: isAvailable
-//       });
-//     });
-//   } catch (error) {
-//     console.error('광주 종이책 키워드 결과 파싱 오류:', error.message);
-//   }
-//   return results;
-// }
-
-// v3
-// function parseGwangjuPaperKeywordResults(html) {
-//   const results = [];
-//   try {
-//     const bookListMatch = html.match(/<ul[^>]*class[^>]*resultList[^>]*>([\s\S]*?)<\/ul>/i);
-//     if (!bookListMatch) return [];
-
-//     const liPattern = /<li[^>]*>([\s\S]*?)<\/li>/gi;
-//     const bookItems = [...bookListMatch[1].matchAll(liPattern)];
-
-//     bookItems.forEach(itemMatch => {
-//       const bookHtml = itemMatch[1];
-      
-//       const title = (bookHtml.match(/<dt[^>]*class[^>]*tit[^>]*>[\s\S]*?<a[^>]*>([^<]+)<\/a>/i)?.[1] || "").trim().replace(/^\d+\.\s*/, '');
-//       if (!title || title === "위치출력") return; // 제목 없거나 '위치출력'이면 건너뛰기
-
-//       const author = (bookHtml.match(/<dd[^>]*class="author"[\s\S]*?>([\s\S]*?)<\/dd>/i)?.[1] || "정보 없음").replace(/<[^>]*>/g, '').replace(/저자\s*:/, '').trim();
-//       const publicationText = (bookHtml.match(/<dd[^>]*class="publication"[\s\S]*?>([\s\S]*?)<\/dd>/i)?.[1] || "").replace(/<[^>]*>/g, '');
-//       const publisher = (publicationText.match(/발행자\s*:\s*([^(\r\n)]+)/)?.[1] || "정보 없음").trim();
-//       const pubDate = (publicationText.match(/발행년도\s*:\s*(\d{4})/)?.[1] || "정보 없음");
-
-//       const libraryNameRaw = (bookHtml.match(/<span[^>]*>도서관:\s*([^<]+)<\/span>/i)?.[1] || "정보 없음").trim();
-//       const libraryName = libraryNameRaw === '퇴촌도서관' ? '퇴촌' : '기타';
-      
-//       let isAvailable = false;
-//       const statusText = (bookHtml.match(/<p[^>]*class="txt"[\s\S]*?>[\s\S]*?<b[^>]*>([^<]+)<\/b>/i)?.[1] || "").trim();
-//       if (statusText.includes('대출가능')) {
-//         isAvailable = true;
-//       }
-
-//       results.push({
-//         type: '종이책',
-//         libraryName,
-//         title,
-//         author,
-//         publisher,
-//         pubDate,
-//         isAvailable
-//       });
-//     });
-//   } catch (error) {
-//     console.error('광주 종이책 키워드 결과 파싱 오류:', error.message);
-//   }
-//   return results;
-// }
-
-// v4 - 개별소스와 규칙 제공 후 작성
+// 퇴촌/기타 도서관 동시 파싱 함수
 function parseGwangjuPaperKeywordResults(html) {
   const results = [];
   try {
-    // 1. 전체 검색 결과 목록 <ul> 태그를 찾습니다.
     const bookListMatch = html.match(/<ul class="resultList imageType">([\s\S]*?)<\/ul>/i);
     if (!bookListMatch) {
       console.log("종이책: resultList <ul> 태그를 찾지 못했습니다.");
       return [];
     }
 
-    // 2. 각 책에 해당하는 <li> 태그들을 모두 찾습니다.
+    // 각 li 태그가 하나의 책 정보를 담고 있음
     const liPattern = /<li>([\s\S]*?)<\/li>/gi;
     const bookItems = [...bookListMatch[1].matchAll(liPattern)];
 
     bookItems.forEach(itemMatch => {
       const bookHtml = itemMatch[1];
-      
-      // 3. 제목 추출: <a> 태그 안의 텍스트를 가져온 후, 내부 <span> 태그를 제거합니다.
+
+      // 1. 제목 추출 (기존과 동일하지만 더 안정적으로)
       const titleMatch = bookHtml.match(/<dt class="tit">[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i);
       let title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '').replace(/^\d+\.\s*/, '').trim() : null;
-      if (!title) return; // 제목이 없으면 해당 항목은 건너뜁니다.
+      if (!title) return;
 
-      // 4. 저자, 출판사, 출간일 추출 (<dd class="author"> 내부의 각 <span> 태그에서)
-      const authorBlockMatch = bookHtml.match(/<dd class="author">([\s\S]*?)<\/dd>/i);
-      let author = "정보 없음";
-      let publisher = "정보 없음";
-      let pubDate = "정보 없음";
+      // 2. 저자, 출판사, 발행년도 추출 (가장 큰 개선점)
+      const authorDdMatch = bookHtml.match(/<dd class="author">([\s\S]*?)<\/dd>/i);
+      let author = "정보없음";
+      let publisher = "정보없음";
+      let pubDate = "정보없음";
+      
+      if (authorDdMatch) {
+        const authorHtml = authorDdMatch[1];
+        
+        // 저자: '저자 :' 텍스트 바로 뒤에 오는 내용을 가져옴. HTML 태그는 제거.
+        const authorMatch = authorHtml.match(/저자\s*:\s*([\s\S]*?)(?:<\/span>|<br>)/i);
+        if(authorMatch) {
+            author = authorMatch[1].replace(/<[^>]*>/g, '').replace(/;/g, ',').split(',')[0].trim();
+        }
 
-      if (authorBlockMatch) {
-        const authorHtml = authorBlockMatch[1];
-        author = (authorHtml.match(/<span>저자\s*:\s*([\s\S]*?)<\/span>/i)?.[1] || "정보 없음").replace(/<[^>]*>/g, '').trim();
-        publisher = (authorHtml.match(/<span>발행자\s*:\s*(.*?)<\/span>/i)?.[1] || "정보 없음").trim();
-        pubDate = (authorHtml.match(/<span>발행년도\s*:\s*(.*?)<\/span>/i)?.[1] || "정보 없음").trim();
+        // 발행자: '발행자:' 텍스트 바로 뒤
+        const publisherMatch = authorHtml.match(/발행자:\s*([^<]+)/i);
+        if(publisherMatch) {
+            publisher = publisherMatch[1].trim();
+        }
+
+        // 발행년도: '발행년도:' 텍스트 바로 뒤 4자리 숫자
+        const pubDateMatch = authorHtml.match(/발행년도:\s*(\d{4})/i);
+        if(pubDateMatch) {
+            pubDate = pubDateMatch[1];
+        }
       }
 
-      // 5. 도서관 이름 추출 및 '퇴촌'/'기타' 분류
-      const libraryNameRaw = (bookHtml.match(/<dd class="site">[\s\S]*?<span>도서관:\s*([^<]+)<\/span>/i)?.[1] || "정보 없음").trim();
+      // 3. 도서관 이름 추출 (기존과 동일)
+      const libraryNameRaw = (bookHtml.match(/<span>도서관:\s*([^<]+)<\/span>/i)?.[1] || "정보없음").trim();
       const libraryName = libraryNameRaw === '퇴촌도서관' ? '퇴촌' : '기타';
       
-      // 6. 대출 가능 여부 추출
+      // 4. 대출 가능 여부 추출 (기존과 동일)
       let isAvailable = false;
       const statusText = (bookHtml.match(/<div class="bookStateBar[\s\S]*?<p class="txt">[\s\S]*?<b>([^<]+)<\/b>/i)?.[1] || "").trim();
       if (statusText.includes('대출가능')) {
         isAvailable = true;
       }
 
-      // 7. 표준 포맷으로 결과 객체 생성
+      // 5. 표준 포맷으로 결과 추가
       results.push({
         type: '종이책',
         libraryName,
@@ -1696,41 +1462,6 @@ function parseGwangjuPaperKeywordResults(html) {
  * 경기도교육청 전자책 키워드 검색
  */
 
-// v1
-// async function searchGyeonggiEduKeyword(keyword) {
-//   const results = [];
-//   try {
-//     // 성남, 통합 라이브러리를 병렬로 검색
-//     const eduPromises = [
-//       searchGyeonggiEduEbook(keyword, '10000004'),
-//       searchGyeonggiEduEbook(keyword, '10000009')
-//     ];
-//     const eduResults = await Promise.allSettled(eduPromises);
-
-//     eduResults.forEach(result => {
-//         if (result.status === 'fulfilled' && result.value?.availability) {
-//             result.value.availability.forEach(book => {
-//                 // 중복 방지 로직은 최종 핸들러에서 처리하는 것이 더 좋음
-//                 results.push({
-//                     type: '전자책',
-//                     libraryName: 'e교육',
-//                     title: book.도서명,
-//                     author: book.저자,
-//                     pubDate: book.발행일,
-//                     isAvailable: book.대출상태 === '대출가능'
-//                 });
-//             });
-//         }
-//     });
-//   } catch (error) {
-//     console.error('경기도교육청 전자책 키워드 검색 오류:', error.message);
-//   }
-//   return results; 
-// }
-
-// 변경사항 테스트용
-
-// v2
 async function searchGyeonggiEduKeyword(keyword) {
     const results = [];
     try {
@@ -1744,10 +1475,10 @@ async function searchGyeonggiEduKeyword(keyword) {
                     results.push({
                         type: '전자책',
                         libraryName: 'e교육',
-                        title: book['도서명'] || '정보 없음',
-                        author: book['저자'] || '정보 없음',
-                        publisher: book['출판사'] || '정보 없음',
-                        pubDate: book['발행일'] || '정보 없음',
+                        title: book['도서명'] || '정보없음',
+                        author: book['저자'] || '정보없음',
+                        publisher: book['출판사'] || '정보없음',
+                        pubDate: book['발행일'] || '정보없음',
                         isAvailable: book['대출상태'] === '대출가능'
                     });
                 });
@@ -1770,51 +1501,32 @@ async function searchGyeonggiEduKeyword(keyword) {
  * 경기도 전자도서관 키워드 검색
  */
 
-// v1
-// async function searchGyeonggiEbookKeyword(keyword) {
-//   const results = [];
-
-//   try {
-//     const gyeonggiResult = await searchGyeonggiEbookLibrary(keyword);
-
-//     // books 배열에서 결과 추출
-//     if (gyeonggiResult?.books && Array.isArray(gyeonggiResult.books)) {
-//       gyeonggiResult.books.forEach(book => {
-//         results.push({
-//           type: '전자책',
-//           libraryName: 'e경기',
-//           title: book.title || '',
-//           author: book.author || '',
-//           pubDate: book.publisher || '',
-//           isAvailable: book.isLoanable || false
-//         });
-//       });
-//     }
-
-//   } catch (error) {
-//     console.error('경기도 전자도서관 키워드 검색 오류:', error.message);
-//   }
-
-//   return results.slice(0, 20);
-// }
-
-// v2
-// [전면 교체]
 async function searchGyeonggiEbookKeyword(keyword) {
   try {
     const gyeonggiResult = await searchGyeonggiEbookLibrary(keyword);
+
     if (gyeonggiResult?.books && Array.isArray(gyeonggiResult.books)) {
+      
+      // console.log(`[DEBUG/최종 검증] 프론트엔드로 보내기 전, ${gyeonggiResult.books.length}개의 e경기 책을 검증합니다.`);
+      
+      // [핵심 로그] 최종 반환될 모든 책에 대해 pubDate를 확인
+      // gyeonggiResult.books.forEach((book, index) => {
+      //   console.log(`[DEBUG/최종 검증] ${index + 1}번째 책("${book.title}") -> pubDate: ${book.pubDate}`);
+      // });
+
       return gyeonggiResult.books.map(book => ({
         type: '전자책',
         libraryName: 'e경기',
         title: book.title || '정보 없음',
         author: book.author || '정보 없음',
         publisher: book.publisher || '정보 없음',
-        pubDate: (book.pubDate || book.publisher || "정보 없음").match(/\d{4}/)?.[0] || '정보 없음', // 출간일 우선, 없으면 출판사에서 연도 추출
-        isAvailable: book.available || false
+        pubDate: book.pubDate || '정보 없음',
+        isAvailable: book.available || false,
       }));
     }
+    
     return [];
+
   } catch (error) {
     console.error('경기도 전자도서관 키워드 검색 오류:', error.message);
     return [];
@@ -1825,50 +1537,6 @@ async function searchGyeonggiEbookKeyword(keyword) {
  * 시립도서관 전자책 키워드 검색 (소장형 + 구독형)
  */
 
-// v1
-// async function searchSiripEbookKeyword(keyword) {
-//   const results = [];
-
-//   try {
-//     const siripResult = await searchSiripEbookIntegrated(keyword);
-
-//     // 소장형 전자책
-//     if (siripResult?.details?.owned?.books) {
-//       siripResult.details.owned.books.forEach(book => {
-//         results.push({
-//           type: '전자책',
-//           libraryName: 'e시립소장',
-//           title: book.title || '',
-//           author: book.author || '',
-//           pubDate: book.publisher || '',
-//           isAvailable: book.isLoanable || false
-//         });
-//       });
-//     }
-
-//     // 구독형 전자책
-//     if (siripResult?.details?.subscription?.books) {
-//       siripResult.details.subscription.books.forEach(book => {
-//         results.push({
-//           type: '전자책',
-//           libraryName: 'e시립구독',
-//           title: book.title || '',
-//           author: book.author || '',
-//           pubDate: book.publisher || '',
-//           isAvailable: book.isLoanable || false
-//         });
-//       });
-//     }
-
-//   } catch (error) {
-//     console.error('시립도서관 전자책 키워드 검색 오류:', error.message);
-//   }
-
-//   return results.slice(0, 20);
-// }
-
-// v2
-// [전면 교체]
 async function searchSiripEbookKeyword(keyword) {
     const results = [];
     try {
@@ -1880,10 +1548,10 @@ async function searchSiripEbookKeyword(keyword) {
                 results.push({
                     type: '전자책',
                     libraryName: 'e시립소장',
-                    title: book.title || '정보 없음',
-                    author: book.author || '정보 없음',
-                    publisher: book.publisher || '정보 없음',
-                    pubDate: book.publishDate || '정보 없음',
+                    title: book.title || '정보없음',
+                    author: book.author || '정보없음',
+                    publisher: book.publisher || '정보없음',
+                    pubDate: book.publishDate || '정보없음',
                     isAvailable: book.isAvailable || false
                 });
             });
@@ -1894,10 +1562,10 @@ async function searchSiripEbookKeyword(keyword) {
                 results.push({
                     type: '전자책',
                     libraryName: 'e시립구독',
-                    title: book.title || '정보 없음',
-                    author: book.author || '정보 없음',
-                    publisher: book.publisher || '정보 없음',
-                    pubDate: book.publishDate || '정보 없음',
+                    title: book.title || '정보없음',
+                    author: book.author || '정보없음',
+                    publisher: book.publisher || '정보없음',
+                    pubDate: book.publishDate || '정보없음',
                     isAvailable: book.isAvailable || true // 구독형은 항상 가능
                 });
             });
