@@ -170,8 +170,8 @@ const KeywordSearchModal: React.FC = () => {
             // <div className="flex flex-col items-center justify-center h-full">
             <div className="flex flex-col items-center justify-center">
               <Spinner />
-              <p className="mt-4 text-secondary text-lg">6개 도서관에서 검색 중입니다...</p>
-              <p className="mt-2 text-tertiary text-sm">잠시만 기다려주세요.</p>
+              {/* <p className="mt-4 text-secondary text-lg">6개 도서관에서 검색 중입니다...</p>
+              <p className="mt-2 text-tertiary text-sm">잠시만 기다려주세요.</p> */}
             </div>
           )}
 
@@ -320,12 +320,12 @@ const KeywordSearchModal: React.FC = () => {
 
         {/* 하단 버튼 */}
         {/* <div className="flex justify-end p-6 border-t border-primary"> */}
-        <div className="flex justify-end p-6">
+        {/* <div className="flex justify-end p-6">
 
           <button onClick={handleClose} className="btn-base btn-secondary px-6 py-2 font-semibold">
             닫기
           </button>
-        </div>
+        </div> */}
       </div>
     </div>
   );
