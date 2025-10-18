@@ -112,6 +112,7 @@ interface LibraryTagProps {
   size?: 'sm' | 'md';
   isError?: boolean; // [추가]
 }
+
 // 2025.10.13 v2- API에러시 퇴촌(에러) -> (빨간점) 퇴촌(0/0)로 표시하도록 수정
 const LibraryTag: React.FC<LibraryTagProps> = ({ name, totalBooks, availableBooks, searchUrl, size = 'md', isError = false }) => {
   const getStatus = () => {
@@ -151,7 +152,7 @@ const LibraryTag: React.FC<LibraryTagProps> = ({ name, totalBooks, availableBook
 
   const titleText = isError 
     ? `${name} - 정보 조회 실패 (표시된 정보는 과거 데이터일 수 있음)` 
-    : `${name} - 총 ${totalBooks}권 (대출가능: ${availableBooks}권)`;
+    : `${name} - 총 ${totalBooks}권 (available_count: ${availableBooks}권)`;
 
   const displayText = `${name} (${totalBooks}/${availableBooks})`;
 
@@ -182,7 +183,7 @@ const LibraryTag: React.FC<LibraryTagProps> = ({ name, totalBooks, availableBook
 
 // //   const titleText = isError 
 // //     ? `${name} - 정보 조회 실패` 
-// //     : `${name} - 총 ${totalBooks}권 (대출가능: ${availableBooks}권)`;
+// //     : `${name} - 총 ${totalBooks}권 (available_count: ${availableBooks}권)`;
 
 // //   const displayText = isError 
 // //     ? `${name} (에러)` 
@@ -217,7 +218,7 @@ const LibraryTag: React.FC<LibraryTagProps> = ({ name, totalBooks, availableBook
 // //       target="_blank"
 // //       rel="noopener noreferrer"
 // //       className={`library-tag ${size === 'sm' ? 'library-tag-sm' : ''} status-${status} truncate`}
-// //       title={`${name} - 총 ${totalBooks}권 (대출가능: ${availableBooks}권)`}
+// //       title={`${name} - 총 ${totalBooks}권 (available_count: ${availableBooks}권)`}
 // //     >
 // //       <div className={`status-indicator ${status}`}></div>
 // //       <span>{name} ({totalBooks}/{availableBooks})</span>
@@ -1516,8 +1517,8 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                 {/* 퇴촌lib */}
                 <LibraryTag
                   name="퇴촌"
-                  totalBooks={book.toechonStock?.total || 0}
-                  availableBooks={book.toechonStock?.available || 0}
+                  totalBooks={book.toechonStock?.total_count || 0}
+                  availableBooks={book.toechonStock?.available_count || 0}
                   searchUrl={createLibraryOpenURL("퇴촌", book.title, book.customSearchTitle)}
                   isError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false} // 추가
                 />
@@ -1525,8 +1526,8 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                 {/* 기타lib */}
                 <LibraryTag
                   name="기타"
-                  totalBooks={book.otherStock?.total || 0}
-                  availableBooks={book.otherStock?.available || 0}
+                  totalBooks={book.otherStock?.total_count || 0}
+                  availableBooks={book.otherStock?.available_count || 0}
                   searchUrl={createLibraryOpenURL("기타", book.title, book.customSearchTitle)}
                   isError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false} // 추가
                 />
@@ -1534,8 +1535,8 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                 {/* e북.교육 */}
                 <LibraryTag
                   name="e교육"
-                  totalBooks={book.ebookInfo?.summary.총개수 || 0}
-                  availableBooks={book.ebookInfo?.summary.대출가능 || 0}
+                  totalBooks={book.ebookInfo?.summary.total_count || 0}
+                  availableBooks={book.ebookInfo?.summary.available_count || 0}
                   searchUrl={createLibraryOpenURL("e교육", book.title, book.customSearchTitle)}
                   isError={book.ebookInfo?.details.some(d => 'error' in d) || false}
                 />
@@ -1813,22 +1814,22 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                 {settings.showLibraryStock && <div className="grid grid-cols-2 gap-1 text-xs">
                   <LibraryTag
                     name="퇴촌"
-                    totalBooks={book.toechonStock?.total || 0}
-                    availableBooks={book.toechonStock?.available || 0}
+                    totalBooks={book.toechonStock?.total_count || 0}
+                    availableBooks={book.toechonStock?.available_count || 0}
                     searchUrl={createLibraryOpenURL("퇴촌", book.title, book.customSearchTitle)}
                     isError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false}
                   />
                   <LibraryTag
                     name="기타"
-                    totalBooks={book.otherStock?.total || 0}
-                    availableBooks={book.otherStock?.available || 0}
+                    totalBooks={book.otherStock?.total_count || 0}
+                    availableBooks={book.otherStock?.available_count || 0}
                     searchUrl={createLibraryOpenURL("기타", book.title, book.customSearchTitle)}
                     isError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false}
                   />
                   <LibraryTag
                     name="e교육"
-                    totalBooks={book.ebookInfo?.summary.총개수 || 0}
-                    availableBooks={book.ebookInfo?.summary.대출가능 || 0}
+                    totalBooks={book.ebookInfo?.summary.total_count || 0}
+                    availableBooks={book.ebookInfo?.summary.available_count || 0}
                     searchUrl={createLibraryOpenURL("e교육", book.title, book.customSearchTitle)}
                     isError={book.ebookInfo?.details.some(d => 'error' in d) || false}
                   />

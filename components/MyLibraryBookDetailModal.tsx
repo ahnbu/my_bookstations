@@ -11,7 +11,7 @@ import AuthorButtons from './AuthorButtons';
 import { 
   GwangjuPaperResult,
   GwangjuPaperError,
-  GyeonggiEbookLibraryResult,
+  GyeonggiEbookResult,
   createOptimalSearchTitle,
   createLibraryOpenURL
 } from '../services/unifiedLibrary.service';
@@ -150,11 +150,11 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book }) => {
                         const searchUrl = createLibraryOpenURL('e교육', book.title, book.customSearchTitle);
                         if (!info) return <span className="text-tertiary">정보 없음</span>;
                         const hasError = info.details.some(d => 'error' in d);
-                        const { 총개수, 대출가능 } = info.summary;
+                        const { total_count, available_count } = info.summary;
                         return (
                             <div className="flex items-center gap-2">
-                                <a href={searchUrl} target="_blank" rel="noopener noreferrer" className={`font-medium ${대출가능 > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`} title={`총 ${총개수}권, 대출가능 ${대출가능}권${hasError ? ' - 현재 정보 갱신 실패' : ''}`}>
-                                    {총개수} / {대출가능}
+                                <a href={searchUrl} target="_blank" rel="noopener noreferrer" className={`font-medium ${available_count > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`} title={`총 ${total_count}권, 대출가능 ${available_count}권${hasError ? ' - 현재 정보 갱신 실패' : ''}`}>
+                                    {total_count} / {available_count}
                                 </a>
                                 {hasError && <span className="font-medium text-red-400" title="정보 갱신 실패">(에러)</span>}
                             </div>
@@ -168,12 +168,12 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book }) => {
                         const searchUrl = createLibraryOpenURL('e시립구독', book.title, book.customSearchTitle);
                         if (!info) return <span className="text-tertiary">정보 없음</span>;
                         const hasError = 'error' in info || !!info.details?.subscription?.error;
-                        const total = info.details?.subscription?.total_count ?? 0;
-                        const available = info.details?.subscription?.available_count ?? 0;
+                        const total_count = info.details?.subscription?.total_count ?? 0;
+                        const available_count = info.details?.subscription?.available_count ?? 0;
                         return (
                             <div className="flex items-center gap-2">
-                                <a href={searchUrl} target="_blank" rel="noopener noreferrer" className={`font-medium ${available > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`} title={`총 ${total}권, 대출가능 ${available}권${hasError ? ' - 현재 정보 갱신 실패' : ''}`}>
-                                    {total} / {available}
+                                <a href={searchUrl} target="_blank" rel="noopener noreferrer" className={`font-medium ${available_count > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`} title={`총 ${total_count}권, 대출가능 ${available_count}권${hasError ? ' - 현재 정보 갱신 실패' : ''}`}>
+                                    {total_count} / {available_count}
                                 </a>
                                 {hasError && <span className="font-medium text-red-400" title="정보 갱신 실패">(에러)</span>}
                             </div>
@@ -187,12 +187,12 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book }) => {
                         const searchUrl = createLibraryOpenURL('e시립소장', book.title, book.customSearchTitle);
                         if (!info) return <span className="text-tertiary">정보 없음</span>;
                         const hasError = 'error' in info || !!info.details?.owned?.error;
-                        const total = info.details?.owned?.total_count ?? 0;
-                        const available = info.details?.owned?.available_count ?? 0;
+                        const total_count = info.details?.owned?.total_count ?? 0;
+                        const available_count = info.details?.owned?.available_count ?? 0;
                         return (
                             <div className="flex items-center gap-2">
-                                <a href={searchUrl} target="_blank" rel="noopener noreferrer" className={`font-medium ${available > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`} title={`총 ${total}권, 대출가능 ${available}권${hasError ? ' - 현재 정보 갱신 실패' : ''}`}>
-                                    {total} / {available}
+                                <a href={searchUrl} target="_blank" rel="noopener noreferrer" className={`font-medium ${available_count > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`} title={`총 ${total_count}권, 대출가능 ${available_count}권${hasError ? ' - 현재 정보 갱신 실패' : ''}`}>
+                                    {total_count} / {available_count}
                                 </a>
                                 {hasError && <span className="font-medium text-red-400" title="정보 갱신 실패">(에러)</span>}
                             </div>
@@ -269,10 +269,10 @@ const renderStockInfo = (libraryName: '퇴촌' | '기타', bookTitle: string, cu
     }
     
     // 3. 렌더링 (에러 여부와 관계없이 기존 데이터 기반)
-    const total = stockInfo?.total ?? 0;
-    const available = stockInfo?.available ?? 0;
-    const statusColor = available > 0 ? 'text-green-400' : 'text-red-400';
-    const statusText = available > 0 ? '대출가능' : '대출불가';
+    const total_count = stockInfo?.total_count ?? 0;
+    const available_count = stockInfo?.available_count ?? 0;
+    const statusColor = available_count > 0 ? 'text-green-400' : 'text-red-400';
+    const statusText = available_count > 0 ? '대출가능' : '대출불가';
 
     return (
         <div className="flex justify-between items-center">
@@ -284,9 +284,9 @@ const renderStockInfo = (libraryName: '퇴촌' | '기타', bookTitle: string, cu
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
                     className={`font-medium ${statusColor} hover:text-blue-400 hover:underline cursor-pointer transition-colors`}
-                    title={`${libraryName}에서 '${subject}' 검색 | ${statusText} (총 ${total}권, 대출가능 ${available}권)${hasError ? ' - 현재 정보 갱신 실패' : ''}`}
+                    title={`${libraryName}에서 '${subject}' 검색 | ${statusText} (총 ${total_count}권, 대출가능 ${available_count}권)${hasError ? ' - 현재 정보 갱신 실패' : ''}`}
                 >
-                    {total} / {available}
+                    {total_count} / {available_count}
                 </a>
                 {/* 에러가 있을 때만 (에러) 텍스트 추가 */}
                 {hasError && <span className="font-medium text-red-400" title="정보 갱신에 실패했습니다. 표시된 정보는 과거 데이터일 수 있습니다.">(에러)</span>}

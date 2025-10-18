@@ -1,14 +1,14 @@
 
 import { z } from 'zod';
 import { 
-  EBookAvailability, 
-  EBookError, 
-  EBookSummary,
+  GyeonggiEduEbookList, 
+  GyeonggiEduEbookError, 
+  GyeonggiEduEbookSummary,
   LibraryApiResponse,
   SiripEbookResult,
   SiripEbookError,
-  GyeonggiEbookLibraryResult,
-  GyeonggiEbookLibraryError,
+  GyeonggiEbookResult,
+  GyeonggiEbookError,
   GwangjuPaperResult,      // [추가]
   GwangjuPaperError        // [추가]
 } from './services/unifiedLibrary.service';
@@ -79,16 +79,16 @@ export type LibraryStockResponse = z.infer<typeof LibraryStockResponseSchema>;
 // Internal types that don't need runtime validation from an external source
 // Making StockInfo compatible with Json type by using record syntax
 export type StockInfo = {
-  total: number;
-  available: number;
+  total_count: number;
+  available_count: number;
 };
 
 export type ReadStatus = '읽지 않음' | '읽는 중' | '완독';
 
 // Extended EBook information for storage
 export type EBookInfo = {
-  summary: EBookSummary;
-  details: (EBookAvailability | EBookError)[];
+  summary: GyeonggiEduEbookSummary;
+  details: (GyeonggiEduEbookList | GyeonggiEduEbookError)[];
   lastUpdated: number;
 };
 
@@ -98,8 +98,8 @@ export type BookData = AladdinBookItem & {
   otherStock: StockInfo;
   gwangjuPaperInfo?: GwangjuPaperResult | GwangjuPaperError; // [추가]
   ebookInfo?: EBookInfo; // New ebook information
-  gyeonggiEbookInfo?: GyeonggiEbookLibraryResult | GyeonggiEbookLibraryError; // 경기도 전자도서관 정보 (원본)
-  filteredGyeonggiEbookInfo?: GyeonggiEbookLibraryResult | GyeonggiEbookLibraryError; // ISBN 매칭 필터링된 경기도 전자도서관 정보
+  gyeonggiEbookInfo?: GyeonggiEbookResult | GyeonggiEbookError; // 경기도 전자도서관 정보 (원본)
+  filteredGyeonggiEbookInfo?: GyeonggiEbookResult | GyeonggiEbookError; // ISBN 매칭 필터링된 경기도 전자도서관 정보
   siripEbookInfo?: SiripEbookResult | SiripEbookError; // 시립도서관 전자책 정보
   // 상세 재고 정보 (클릭 가능한 링크를 위한 파라미터 포함)
   detailedStockInfo?: {

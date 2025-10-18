@@ -4,7 +4,7 @@
 
 import { filterGyeonggiEbookByIsbn, isBookMatched } from '../isbnMatcher'
 import { BookData } from '../../types/aladin'
-import { GyeonggiEbookLibraryResult } from '../../services/unifiedLibrary.service'
+import { GyeonggiEbookResult } from '../../services/unifiedLibrary.service'
 
 describe('isbnMatcher', () => {
   // 테스트용 도서 데이터 - 사용자 제공 예시를 기반으로 함
@@ -23,14 +23,14 @@ describe('isbnMatcher', () => {
     }
   } as BookData
 
-  const mockGyeonggiResult: GyeonggiEbookLibraryResult = {
+  const mockGyeonggiResult: GyeonggiEbookResult = {
     library_name: '경기도 전자도서관',
     total_count: 4,
     available_count: 3,
     unavailable_count: 1,
     owned_count: 1,
     subscription_count: 3,
-    books: [
+    book_list: [
       {
         title: '내 손으로, 시베리아 횡단열차',
         author: '이다',
@@ -76,7 +76,7 @@ describe('isbnMatcher', () => {
   describe('isBookMatched', () => {
     it('종이책 ISBN이 일치할 때 매칭되어야 함', () => {
       const book = mockBook
-      const ebookResult = mockGyeonggiResult.books![0] // 첫 번째 책 (ISBN 일치)
+      const ebookResult = mockGyeonggiResult.book_list![0] // 첫 번째 책 (ISBN 일치)
       
       expect(isBookMatched(book, ebookResult)).toBe(true)
     })
@@ -84,7 +84,7 @@ describe('isbnMatcher', () => {
     it('전자책 ISBN이 일치할 때 매칭되어야 함', () => {
       const book = mockBook
       const ebookResultWithEbookIsbn = {
-        ...mockGyeonggiResult.books![1],
+        ...mockGyeonggiResult.book_list![1],
         isbn: '9791192768999' // 전자책 ISBN과 일치하도록 수정
       }
       
@@ -93,7 +93,7 @@ describe('isbnMatcher', () => {
 
     it('ISBN이 일치하지 않을 때 매칭되지 않아야 함', () => {
       const book = mockBook
-      const ebookResult = mockGyeonggiResult.books![1] // 다른 ISBN
+      const ebookResult = mockGyeonggiResult.book_list![1] // 다른 ISBN
       
       expect(isBookMatched(book, ebookResult)).toBe(false)
     })
@@ -103,7 +103,7 @@ describe('isbnMatcher', () => {
         ...mockBook,
         isbn13: '979-11-92768-23-6' // 하이픈 포함
       }
-      const ebookResult = mockGyeonggiResult.books![0] // '9791192768236'
+      const ebookResult = mockGyeonggiResult.book_list![0] // '9791192768236'
 
       expect(isBookMatched(bookWithHyphenIsbn, ebookResult)).toBe(true)
     })
@@ -225,8 +225,8 @@ describe('isbnMatcher', () => {
       expect(result.available_count).toBe(0) // 첫 번째 책은 대출불가
       expect(result.owned_count).toBe(1)
       expect(result.subscription_count).toBe(0)
-      expect(result.books).toHaveLength(1)
-      expect(result.books![0].isbn).toBe('9791192768236')
+      expect(result.book_list).toHaveLength(1)
+      expect(result.book_list![0].isbn).toBe('9791192768236')
     })
 
     it('매칭되는 책이 없을 때 모든 카운트가 0이어야 함', () => {
@@ -244,7 +244,7 @@ describe('isbnMatcher', () => {
       expect(result.available_count).toBe(0)
       expect(result.owned_count).toBe(0)
       expect(result.subscription_count).toBe(0)
-      expect(result.books).toHaveLength(0)
+      expect(result.book_list).toHaveLength(0)
     })
 
     it('에러 응답인 경우 그대로 반환해야 함', () => {
@@ -255,15 +255,15 @@ describe('isbnMatcher', () => {
     })
 
     it('전자책과 종이책 ISBN이 모두 있는 경우 둘 다 매칭해야 함', () => {
-      const mockResultWithBothIsbns: GyeonggiEbookLibraryResult = {
+      const mockResultWithBothIsbns: GyeonggiEbookResult = {
         ...mockGyeonggiResult,
-        books: [
+        book_list: [
           {
-            ...mockGyeonggiResult.books![0],
+            ...mockGyeonggiResult.book_list![0],
             isbn: '9791192768236' // 종이책 ISBN
           },
           {
-            ...mockGyeonggiResult.books![1],
+            ...mockGyeonggiResult.book_list![1],
             isbn: '9791192768999' // 전자책 ISBN
           }
         ]
@@ -272,7 +272,7 @@ describe('isbnMatcher', () => {
       const result = filterGyeonggiEbookByIsbn(mockBook, mockResultWithBothIsbns)
       
       expect(result.total_count).toBe(2) // 두 책 모두 매칭
-      expect(result.books).toHaveLength(2)
+      expect(result.book_list).toHaveLength(2)
     })
   })
 })

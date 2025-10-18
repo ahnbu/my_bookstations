@@ -4,7 +4,7 @@
  */
 
 import { BookData } from '../types'
-import { GyeonggiEbookLibraryResult } from '../services/unifiedLibrary.service'
+import { GyeonggiEbookResult } from '../services/unifiedLibrary.service'
 
 /**
  * ISBN을 정규화하는 함수 (하이픈 제거, 공백 제거)
@@ -85,8 +85,8 @@ export function isBookMatched(book: BookData, ebookResult: any): boolean {
  */
 export function filterGyeonggiEbookByIsbn(
   book: BookData, 
-  gyeonggiResult: GyeonggiEbookLibraryResult
-): GyeonggiEbookLibraryResult {
+  gyeonggiResult: GyeonggiEbookResult
+): GyeonggiEbookResult {
   // // 에러 응답인 경우 그대로 반환
   // if ('error' in gyeonggiResult) {
   //   return gyeonggiResult
@@ -130,7 +130,7 @@ export function filterGyeonggiEbookByIsbn(
 /**
  * 디버깅을 위한 ISBN 매칭 정보 출력
  */
-export function debugIsbnMatching(book: BookData, gyeonggiResult: GyeonggiEbookLibraryResult) {
+export function debugIsbnMatching(book: BookData, gyeonggiResult: GyeonggiEbookResult) {
   if ('error' in gyeonggiResult) return
   
   const paperIsbn = book.isbn13
@@ -139,9 +139,9 @@ export function debugIsbnMatching(book: BookData, gyeonggiResult: GyeonggiEbookL
   console.group(`📚 ISBN 매칭 디버그: ${book.title}`)
   console.log(`📖 종이책 ISBN: ${paperIsbn}`)
   console.log(`💻 전자책 ISBN: ${ebookIsbn}`)
-  console.log(`🔍 검색된 책 개수: ${gyeonggiResult.books?.length || 0}`)
+  console.log(`🔍 검색된 책 개수: ${gyeonggiResult.book_list?.length || 0}`)
   
-  gyeonggiResult.books?.forEach((ebookResult, index) => {
+  gyeonggiResult.book_list?.forEach((ebookResult, index) => {
     const isMatched = isBookMatched(book, ebookResult)
     console.log(`  ${index + 1}. ${ebookResult.title} (${ebookResult.isbn}) - ${isMatched ? '✅ 매칭' : '❌ 불일치'}`)
   })

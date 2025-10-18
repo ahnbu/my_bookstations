@@ -15,7 +15,12 @@ export interface PaperBookAvailability {
   publishFormCode?: string;
 }
 
-export interface EBookAvailability {
+export interface GwangjuPaperResult {
+  book_title: string;
+  book_list: PaperBookAvailability[];
+}
+
+export interface GyeonggiEduEbookList {
   소장도서관: string;
   도서명: string;
   저자: string;
@@ -24,13 +29,8 @@ export interface EBookAvailability {
   대출상태: '대출가능' | '대출불가';
 }
 
-export interface EBookError {
+export interface GyeonggiEduEbookError {
   error: string;
-}
-
-export interface GwangjuPaperResult {
-  book_title: string;
-  availability: PaperBookAvailability[];
 }
 
 export interface GwangjuPaperError {
@@ -38,7 +38,7 @@ export interface GwangjuPaperError {
 }
 
 // 경기도 전자도서관 관련 타입 정의
-export interface GyeonggiEbookLibraryBook {
+export interface GyeonggiEbookList {
   type: '소장형' | '구독형';
   title: string;
   // status: '대출가능' | '대출불가';
@@ -53,22 +53,22 @@ export interface GyeonggiEbookLibraryBook {
   reserve_count?: number;
 }
 
-export interface GyeonggiEbookLibraryResult {
+export interface GyeonggiEbookResult {
   library_name: string;
   total_count: number;
   available_count: number;
   unavailable_count: number;
   owned_count: number;
   subscription_count: number;
-  books: GyeonggiEbookLibraryBook[];
+  book_list: GyeonggiEbookList[];
 }
 
-export interface GyeonggiEbookLibraryError {
+export interface GyeonggiEbookError {
   error: string;
 }
 
 // 시립도서관 전자책 관련 타입 정의
-export interface SiripEbookBook {
+export interface SiripEbook {
   type: '전자책';
   title: string;
   author: string;
@@ -76,8 +76,8 @@ export interface SiripEbookBook {
   publish_date: string;
   loan_status: string;
   status: '대출가능' | '대출불가';
-  total_copies: number;
-  available_copies: number;
+  total_count: number;
+  available_count: number;
   available: boolean;
   library_name: string;
 }
@@ -87,7 +87,7 @@ export interface SiripEbookResult {
   total_count: number;
   available_count: number;
   unavailable_count: number;
-  books: SiripEbookBook[];
+  book_list: SiripEbook[];
   // 새로운 통합 구조 지원
   details?: {
     owned: {
@@ -95,7 +95,7 @@ export interface SiripEbookResult {
       total_count: number;
       available_count: number;
       unavailable_count: number;
-      books: SiripEbookBook[];
+      book_list: SiripEbook[];
       error?: string;
     };
     subscription: {
@@ -103,7 +103,7 @@ export interface SiripEbookResult {
       total_count: number;
       available_count: number;
       unavailable_count: number;
-      books: SiripEbookBook[];
+      book_list: SiripEbook[];
       error?: string;
     };
   };
@@ -125,18 +125,18 @@ export interface SiripEbookError {
 
 export interface LibraryApiResponse {
   gwangju_paper: GwangjuPaperResult | GwangjuPaperError;
-  gyeonggi_ebook_education: (EBookAvailability | EBookError)[];
-  gyeonggi_ebook_library?: GyeonggiEbookLibraryResult | GyeonggiEbookLibraryError;
+  gyeonggi_ebook_edu: (GyeonggiEduEbookList | GyeonggiEduEbookError)[];
+  gyeonggi_ebook_library?: GyeonggiEbookResult | GyeonggiEbookError;
   sirip_ebook?: SiripEbookResult | SiripEbookError;
 }
 
-export interface EBookSummary {
-  총개수: number;
-  대출가능: number;
-  대출불가: number;
-  성남도서관: number;
-  통합도서관: number;
-  오류개수: number;
+export interface GyeonggiEduEbookSummary {
+  total_count: number;
+  available_count: number;
+  unavailable_count: number;
+  seongnam_count: number;
+  tonghap_count: number;
+  error_count: number;
 }
 
 // 개발/프로덕션 환경에 따른 API 엔드포인트 설정
@@ -335,38 +335,38 @@ export async function fetchBookAvailability(
 }
 
 /**
- * 전자책 검색 결과 요약 정보 생성
- * @param ebooks - 전자책 검색 결과 배열
+ * 경기도 교육청 전자책 검색 결과 요약 정보 생성
+ * @param GyeonggiEduEbooks - 전자책 검색 결과 배열
  * @returns EBookSummary
  */
-export function summarizeEBooks(ebooks: (EBookAvailability | EBookError)[]): EBookSummary {
-  const summary: EBookSummary = {
-    총개수: 0,
-    대출가능: 0,
-    대출불가: 0,
-    성남도서관: 0,
-    통합도서관: 0,
-    오류개수: 0,
+export function GyeonggiEduEbookSummarize(GyeonggiEduEbooks: (GyeonggiEduEbookList | GyeonggiEduEbookError)[]): GyeonggiEduEbookSummary {
+  const summary: GyeonggiEduEbookSummary = {
+    total_count: 0,
+    available_count: 0,
+    unavailable_count: 0,
+    seongnam_count: 0,
+    tonghap_count: 0,
+    error_count: 0,
   };
 
-  ebooks.forEach(item => {
+  GyeonggiEduEbooks.forEach(item => {
     if ('error' in item) {
-      summary.오류개수++;
+      summary.error_count++;
       return;
     }
 
-    summary.총개수++;
+    summary.total_count++;
     
     if (item.대출상태 === '대출가능') {
-      summary.대출가능++;
+      summary.available_count++;
     } else if (item.대출상태 === '대출불가') {
-      summary.대출불가++;
+      summary.unavailable_count++;
     }
 
     if (item.소장도서관 === '성남도서관') {
-      summary.성남도서관++;
+      summary.seongnam_count++;
     } else if (item.소장도서관 === '통합도서관') {
-      summary.통합도서관++;
+      summary.tonghap_count++;
     }
   });
 
@@ -410,7 +410,7 @@ export function getStatusEmoji(status: string): string {
  * @param ebooks - 전자책 검색 결과 배열
  * @returns boolean
  */
-export function isEBooksEmpty(ebooks: (EBookAvailability | EBookError)[]): boolean {
+export function isEBooksEmpty(ebooks: (GyeonggiEduEbookList | GyeonggiEduEbookError)[]): boolean {
   return ebooks.length === 0 || ebooks.every(item => 'error' in item);
 }
 
@@ -419,7 +419,7 @@ export function isEBooksEmpty(ebooks: (EBookAvailability | EBookError)[]): boole
  * @param ebooks - 전자책 검색 결과 배열
  * @returns boolean
  */
-export function hasAvailableEBooks(ebooks: (EBookAvailability | EBookError)[]): boolean {
+export function hasAvailableEBooks(ebooks: (GyeonggiEduEbookList | GyeonggiEduEbookError)[]): boolean {
   return ebooks.some(item => !('error' in item) && item.대출상태 === '대출가능');
 }
 

@@ -4,7 +4,7 @@
 
 import { filterGyeonggiEbookByIsbn } from './isbnMatcher'
 import { BookData } from '../types'
-import { GyeonggiEbookLibraryResult } from '../services/unifiedLibrary.service'
+import { GyeonggiEbookResult } from '../services/unifiedLibrary.service'
 
 /**
  * 사용자가 제공한 실제 예시를 기반으로 한 테스트
@@ -26,14 +26,14 @@ export function testRealWorldExample() {
   } as BookData
 
   // 사용자가 제공한 실제 API 응답 예시
-  const mockApiResponse: GyeonggiEbookLibraryResult = {
+  const mockApiResponse: GyeonggiEbookResult = {
     library_name: '경기도 전자도서관',
     total_count: 4,
     available_count: 3,
     unavailable_count: 1,
     owned_count: 1,
     subscription_count: 3,
-    books: [
+    book_list: [
       {
         title: '내 손으로, 시베리아 횡단열차',
         author: '이다',
@@ -77,7 +77,7 @@ export function testRealWorldExample() {
   console.log('📖 테스트 대상 도서:', testBook.title)
   console.log('📋 종이책 ISBN:', testBook.isbn13)
   console.log('💻 전자책 ISBN:', testBook.subInfo?.ebookList?.[0]?.isbn13 || '없음')
-  console.log('🔍 검색된 책 개수:', mockApiResponse.books?.length)
+  console.log('🔍 검색된 책 개수:', mockApiResponse.book_list?.length)
 
   // 필터링 실행
   const filteredResult = filterGyeonggiEbookByIsbn(testBook, mockApiResponse)
@@ -89,7 +89,7 @@ export function testRealWorldExample() {
   console.log('원본 subscription_count:', mockApiResponse.subscription_count, '→ 필터링 후:', filteredResult.subscription_count)
 
   console.log('\n📚 매칭된 도서 목록:')
-  filteredResult.books?.forEach((book, index) => {
+  filteredResult.book_list?.forEach((book, index) => {
     console.log(`  ${index + 1}. ${book.title} (${book.isbn}) - ${book.type}`)
   })
 
