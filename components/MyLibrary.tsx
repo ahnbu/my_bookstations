@@ -1538,7 +1538,9 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                   totalBooks={book.ebookInfo?.summary.total_count || 0}
                   availableBooks={book.ebookInfo?.summary.available_count || 0}
                   searchUrl={createLibraryOpenURL("e교육", book.title, book.customSearchTitle)}
-                  isError={book.ebookInfo?.details.some(d => 'error' in d) || false}
+                  // summary에 error_count가 있으므로 더 간단하게 확인 가능
+                  isError={(book.ebookInfo?.summary.error_count ?? 0) > 0} 
+                  // isError={book.ebookInfo?.details.some(d => 'error' in d) || false}
                 />
                 
                 {/* e북.시립구독 */}
@@ -1831,7 +1833,9 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                     totalBooks={book.ebookInfo?.summary.total_count || 0}
                     availableBooks={book.ebookInfo?.summary.available_count || 0}
                     searchUrl={createLibraryOpenURL("e교육", book.title, book.customSearchTitle)}
-                    isError={book.ebookInfo?.details.some(d => 'error' in d) || false}
+                    // summary에 error_count가 있으므로 더 간단하게 확인 가능
+                    isError={(book.ebookInfo?.summary.error_count ?? 0) > 0} 
+                    // isError={book.ebookInfo?.details.some(d => 'error' in d) || false}
                   />
                   <LibraryTag
                     name="e시립구독"

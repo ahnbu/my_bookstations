@@ -15,11 +15,6 @@ export interface PaperBookAvailability {
   publishFormCode?: string;
 }
 
-export interface GwangjuPaperResult {
-  book_title: string;
-  book_list: PaperBookAvailability[];
-}
-
 export interface GyeonggiEduEbookList {
   소장도서관: string;
   도서명: string;
@@ -108,7 +103,7 @@ export interface SiripEbookResult {
     };
   };
   // 통합 결과 정보
-  시립도서관_통합_결과?: {
+  sirip_ebook_summary?: {
     library_name: string;
     total_count: number;
     available_count: number;
@@ -123,11 +118,37 @@ export interface SiripEbookError {
   error: string;
 }
 
+// 광주시립도서관 종이책 추가
+export interface GwangjuPaperResult {
+  library_name: string,
+  summary_total_count: number;
+  summary_available_count: number;
+  toechon_total_count: number;
+  toechon_available_count: number;
+  other_total_count: number;
+  other_available_count: number;
+  book_title: string;
+  book_list: PaperBookAvailability[];
+}
+
 export interface LibraryApiResponse {
   gwangju_paper: GwangjuPaperResult | GwangjuPaperError;
-  gyeonggi_ebook_edu: (GyeonggiEduEbookList | GyeonggiEduEbookError)[];
+  // gyeonggi_ebook_edu: (GyeonggiEduEbookList | GyeonggiEduEbookError)[]; // 배열타입
+  gyeonggi_ebook_edu: GyeonggiEduEbookResult | GyeonggiEduEbookError; // 객체 타입으로 변경
   gyeonggi_ebook_library?: GyeonggiEbookResult | GyeonggiEbookError;
   sirip_ebook?: SiripEbookResult | SiripEbookError;
+}
+
+// [추가] gyeonggi_ebook_edu의 새로운 객체 타입을 정의합니다.
+export interface GyeonggiEduEbookResult {
+  library_name: string;
+  total_count: number;
+  available_count: number;
+  unavailable_count: number;
+  seongnam_count: number;
+  tonghap_count: number;
+  error_count: number;
+  book_list: (GyeonggiEduEbookList | GyeonggiEduEbookError)[];
 }
 
 export interface GyeonggiEduEbookSummary {

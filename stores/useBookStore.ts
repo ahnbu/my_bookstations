@@ -7,7 +7,7 @@ import { filterGyeonggiEbookByIsbn } from '../utils/isbnMatcher';
 import { useUIStore } from './useUIStore';
 import { useAuthStore } from './useAuthStore';
 import { useSettingsStore } from './useSettingsStore';
-import { fetchBookAvailability, GyeonggiEduEbookSummarize, GwangjuPaperResult, GyeonggiEbookResult} from '../services/unifiedLibrary.service'; // GyeonggiEbookLibraryResult 임포트 추가
+import { fetchBookAvailability, GyeonggiEduEbookSummarize, GwangjuPaperResult, GyeonggiEduEbookError, GyeonggiEbookResult} from '../services/unifiedLibrary.service'; // GyeonggiEbookLibraryResult 임포트 추가
 
 /**
  * 특정 책의 데이터를 업데이트하고, 로컬 상태와 Supabase DB를 동기화하는 헬퍼 함수
@@ -562,48 +562,107 @@ export const useBookStore = create<BookState>(
         }
       },
 
-      refreshEBookInfo: async (id, isbn, title) => {
-        set({ refreshingEbookId: id });
-        try {
-          const result = await fetchBookAvailability(isbn, title);
-          const ebookSummary = GyeonggiEduEbookSummarize(result.gyeonggi_ebook_edu);
+      // refreshEBookInfo: async (id, isbn, title) => {
+      //   set({ refreshingEbookId: id });
+      //   try {
+      //     const result = await fetchBookAvailability(isbn, title);
+      //     const ebookSummary = GyeonggiEduEbookSummarize(result.gyeonggi_ebook_edu);
+      //     const bookToUpdate = get().myLibraryBooks.find(b => b.id === id);
+      //     if (!bookToUpdate) return;
+      //     const newEBookInfo: EBookInfo = {
+      //       summary: ebookSummary,
+      //       details: result.gyeonggi_ebook_edu,
+      //       lastUpdated: Date.now()
+      //     };
+
+      //     // DB 저장 시 detailedStockInfo 필드 제외하여 저장공간 절약
+      //     const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBook;
+
+      //     const { error } = await supabase
+      //       .from('user_library')
+      //       .update({
+      //         title: updatedBook.title,
+      //         author: updatedBook.author,
+      //         book_data: bookDataForDb as unknown as Json
+      //       })
+      //       .eq('id', id);
+
+      //     if (error) throw error;
           
-          const bookToUpdate = get().myLibraryBooks.find(b => b.id === id);
-          if (!bookToUpdate) return;
+      //     set(state => ({
+      //       myLibraryBooks: state.myLibraryBooks.map(book =>
+      //         book.id === id ? updatedBook : book
+      //       ),
+      //       selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBook : state.selectedBook
+      //     }));
 
-          const newEBookInfo: EBookInfo = {
-            summary: ebookSummary,
-            details: result.gyeonggi_ebook_edu,
-            lastUpdated: Date.now()
-          };
 
-          const updatedBook = { ...bookToUpdate, ebookInfo: newEBookInfo };
-          // DB 저장 시 detailedStockInfo 필드 제외하여 저장공간 절약
-          const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBook;
+      //   } catch (error) {
+      //     console.error(`Failed to refresh ebook info for ${title}`, error);
+      //     useUIStore.getState().setNotification({ message: '전자책 정보 갱신에 실패했습니다.', type: 'error' });
+      //   } finally {
+      //     set({ refreshingEbookId: null });
+      //   }
+      // },
 
-          const { error } = await supabase
-            .from('user_library')
-            .update({
-              title: updatedBook.title,
-              author: updatedBook.author,
-              book_data: bookDataForDb as unknown as Json
-            })
-            .eq('id', id);
+      // useBookStore.ts 파일 내의 refreshEBookInfo 함수를 아래 코드로 교체하세요.
 
-          if (error) throw error;
-          
-          set(state => ({
-            myLibraryBooks: state.myLibraryBooks.map(book =>
-              book.id === id ? updatedBook : book
-            ),
-            selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBook : state.selectedBook
-          }));
-        } catch (error) {
-          console.error(`Failed to refresh ebook info for ${title}`, error);
-          useUIStore.getState().setNotification({ message: '전자책 정보 갱신에 실패했습니다.', type: 'error' });
-        } finally {
-          set({ refreshingEbookId: null });
-        }
+      refreshEBookInfo: async (id, isbn, title) => {      // 개선 버전
+          set({ refreshingEbookId: id });
+          try {
+              // 1. 통합 API를 호출하여 최신 재고 정보를 가져옵니다.
+              // 이 함수는 내부적으로 customSearchTitle도 고려하여 호출합니다.
+              const result = await fetchBookAvailability(isbn, title);
+
+              // 2. getBookById를 사용하여 모든 데이터 소스에서 업데이트할 책을 찾습니다.
+              // 이렇게 하면 검색 결과나 태그 필터링 뷰에서도 새로고침이 정상적으로 작동합니다.
+              const bookToUpdate = await get().getBookById(id);
+              if (!bookToUpdate) {
+                  console.warn(`[refreshEBookInfo] Book with id ${id} not found in any available source.`);
+                  set({ refreshingEbookId: null });
+                  return;
+              }
+
+              let newEBookInfo: EBookInfo;
+
+              // 3. 변경된 API 응답 구조에 맞춰 newEBookInfo 객체를 생성합니다.
+              // if (result.gyeonggi_ebook_edu && !('error' in result.gyeonggi_ebook_edu)) {
+              if (result.gyeonggi_ebook_edu && 'book_list' in result.gyeonggi_ebook_edu) {
+                  // API 호출이 성공한 경우
+                  const eduResult = result.gyeonggi_ebook_edu;
+                  newEBookInfo = {
+                      summary: {
+                          total_count: eduResult.total_count,
+                          available_count: eduResult.available_count,
+                          unavailable_count: eduResult.unavailable_count,
+                          seongnam_count: eduResult.seongnam_count,
+                          tonghap_count: eduResult.tonghap_count,
+                          error_count: eduResult.error_count,
+                      },
+                      details: eduResult.book_list,
+                      lastUpdated: Date.now()
+                  };
+              } else {
+                  // API 호출이 실패하거나 에러 객체를 반환한 경우
+                  newEBookInfo = {
+                      summary: { total_count: 0, available_count: 0, unavailable_count: 0, seongnam_count: 0, tonghap_count: 0, error_count: 1 },
+                      details: [{ error: (result.gyeonggi_ebook_edu as any)?.error || '정보 조회 실패' }],
+                      lastUpdated: Date.now()
+                  };
+              }
+
+              // 4. 중앙화된 헬퍼 함수를 사용하여 상태 업데이트와 DB 저장을 한 번에 처리합니다.
+              // 이 함수는 낙관적 업데이트, DB 저장, 실패 시 롤백을 모두 담당합니다.
+              await updateBookInStoreAndDB(id, { ebookInfo: newEBookInfo }, '전자책 정보 갱신에 실패했습니다.');
+
+          } catch (error) {
+              // API 호출 자체(fetchBookAvailability)에서 발생한 네트워크 에러 등을 처리합니다.
+              console.error(`Failed to refresh ebook info for ${title}`, error);
+              useUIStore.getState().setNotification({ message: '전자책 정보 갱신 중 네트워크 오류가 발생했습니다.', type: 'error' });
+          } finally {
+              // 성공하든 실패하든 로딩 상태를 해제합니다.
+              set({ refreshingEbookId: null });
+          }
       },
 
       // 2025.10.13 - API에러시 퇴촌(0/0) -> 퇴촌(에러)로 표시하도록 수정
@@ -633,27 +692,73 @@ export const useBookStore = create<BookState>(
           
           // --- 종이책 UI 상태 업데이트 ---
           bookWithLatestApiResult.gwangjuPaperInfo = result.gwangju_paper;
-          if ('book_list' in result.gwangju_paper) {
+          // [개선] API 응답에 요약 정보가 있는지 확인
+          if ('summary_total_count' in result.gwangju_paper) {
             const paperResult = result.gwangju_paper as GwangjuPaperResult;
-            let toechonTotal = 0, toechonAvailable = 0, otherTotal = 0, otherAvailable = 0;
-            (paperResult.book_list ?? []).forEach(item => {
-              const libraryName = item['소장도서관'];
-              if (libraryName === '정보 없음' || !libraryName) return;
-              const isToechon = libraryName === '퇴촌도서관';
-              const isAvailable = item['대출상태'] === '대출가능';
-              if (isToechon) { toechonTotal++; if (isAvailable) toechonAvailable++; } 
-              else { otherTotal++; if (isAvailable) otherAvailable++; }
-            });
-            bookWithLatestApiResult.toechonStock = { total_count: toechonTotal, available_count: toechonAvailable };
-            bookWithLatestApiResult.otherStock = { total_count: otherTotal, available_count: otherAvailable };
+            
+            // [개선] API가 제공하는 요약 정보를 직접 사용하여 stock 상태를 업데이트
+            bookWithLatestApiResult.toechonStock = { 
+              total_count: paperResult.toechon_total_count, 
+              available_count: paperResult.toechon_available_count 
+            };
+            bookWithLatestApiResult.otherStock = { 
+              total_count: paperResult.other_total_count, 
+              available_count: paperResult.other_available_count 
+            };
           }
+
+          // --- 기존 : book_list에서 직접 계산 ---
+          // bookWithLatestApiResult.gwangjuPaperInfo = result.gwangju_paper;
+          // if ('book_list' in result.gwangju_paper) {
+          //   const paperResult = result.gwangju_paper as GwangjuPaperResult;
+          //   let toechonTotal = 0, toechonAvailable = 0, otherTotal = 0, otherAvailable = 0;
+          //   (paperResult.book_list ?? []).forEach(item => {
+          //     const libraryName = item['소장도서관'];
+          //     if (libraryName === '정보없음' || !libraryName) return;
+          //     const isToechon = libraryName === '퇴촌도서관';
+          //     const isAvailable = item['대출상태'] === '대출가능';
+          //     if (isToechon) { toechonTotal++; if (isAvailable) toechonAvailable++; } 
+          //     else { otherTotal++; if (isAvailable) otherAvailable++; }
+          //   });
+          //   bookWithLatestApiResult.toechonStock = { total_count: toechonTotal, available_count: toechonAvailable };
+          //   bookWithLatestApiResult.otherStock = { total_count: otherTotal, available_count: otherAvailable };
+          // }
           
           // --- 전자책 UI 상태 업데이트 ---
-          bookWithLatestApiResult.ebookInfo = {
-            summary: GyeonggiEduEbookSummarize(result.gyeonggi_ebook_edu),
-            details: result.gyeonggi_ebook_edu,
-            lastUpdated: Date.now(),
-          };
+
+          // API 응답이 이미 요약 정보를 포함한 객체이므로, GyeonggiEduEbookSummarize 함수는 더 이상 필요 없습니다.
+          // bookWithLatestApiResult.ebookInfo = {
+            // summary: GyeonggiEduEbookSummarize(result.gyeonggi_ebook_edu),
+            // details: result.gyeonggi_ebook_edu,
+            // lastUpdated: Date.now(),
+          // };
+          
+          if (result.gyeonggi_ebook_edu && !('error' in result.gyeonggi_ebook_edu)) {
+          // if (result.gyeonggi_ebook_edu && !('error' in result.gyeonggi_ebook_edu)) {
+            // GyeonggiEduEbookResult 타입에서 필요한 summary와 details를 추출합니다.
+            const eduResult = result.gyeonggi_ebook_edu;
+            bookWithLatestApiResult.ebookInfo = {
+              summary: { // summary 객체를 API 응답에서 직접 구성
+                total_count: eduResult.total_count,
+                available_count: eduResult.available_count,
+                unavailable_count: eduResult.unavailable_count,
+                seongnam_count: eduResult.seongnam_count,
+                tonghap_count: eduResult.tonghap_count,
+                error_count: eduResult.error_count,
+              },
+              details: eduResult.book_list, // details는 book_list를 사용
+              lastUpdated: Date.now(),
+            };
+          } else {
+              // API 응답에 에러가 있는 경우의 처리
+              bookWithLatestApiResult.ebookInfo = {
+                  summary: { total_count: 0, available_count: 0, unavailable_count: 0, seongnam_count: 0, tonghap_count: 0, error_count: 1 },
+                  details: [{ error: (result.gyeonggi_ebook_edu as GyeonggiEduEbookError)?.error || '정보 조회 실패' }],
+                  lastUpdated: Date.now(),
+              };
+          }
+
+
           if (result.gyeonggi_ebook_library) {
             bookWithLatestApiResult.gyeonggiEbookInfo = result.gyeonggi_ebook_library;
             

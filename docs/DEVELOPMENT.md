@@ -156,7 +156,7 @@ my_bookstation/
         ...
       ]
     },
-    "gyeonggi_ebook_education": [
+    "gyeonggi_ebook_edu": [
       {
         "소장도서관": "성남도서관",
         "도서명": "일 잘하는 사람은 알기 쉽게 말한다",
@@ -182,7 +182,7 @@ my_bookstation/
       ]
     },
     "sirip_ebook": {
-      "시립도서관_통합_결과": {
+      "sirip_ebook_summary": {
         "library_name": "광주시립중앙도서관-통합",
         "total_count": 1,
         "available_count": 1,

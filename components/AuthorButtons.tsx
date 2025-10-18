@@ -27,7 +27,7 @@ const AuthorButtons: React.FC<AuthorButtonsProps> = ({
 
   // 저자가 없는 경우 빈 문자열 반환
   if (authors.length === 0) {
-    return <span className="text-gray-400">저자 정보 없음</span>;
+    return <span className="text-gray-400">저자 정보없음</span>;
   }
 
   // 단일 저자인 경우

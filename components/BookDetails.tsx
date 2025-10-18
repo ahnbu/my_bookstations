@@ -221,17 +221,17 @@ const BookDetails: React.FC = () => {
                 className="text-blue-400 hover:text-blue-300 hover:underline cursor-pointer transition-colors"
               />
             ) : (
-              <span className="text-gray-400">정보 없음</span>
+              <span className="text-gray-400">정보없음</span>
             )}
           </p>
           <p className="text-sm text-tertiary mb-2">
-            <strong>출판사:</strong> {selectedBook.publisher || '정보 없음'}
+            <strong>출판사:</strong> {selectedBook.publisher || '정보없음'}
           </p>
           <p className="text-sm text-tertiary mb-2">
-            <strong>출간일:</strong> {selectedBook.pubDate || '정보 없음'}
+            <strong>출간일:</strong> {selectedBook.pubDate || '정보없음'}
           </p>
           <p className="text-sm text-tertiary mb-2">
-            <strong>ISBN:</strong> {selectedBook.isbn13 || '정보 없음'}
+            <strong>ISBN:</strong> {selectedBook.isbn13 || '정보없음'}
           </p>
           {selectedBook.subInfo?.ebookList?.[0]?.isbn13 && (
             <p className="text-sm text-tertiary mb-4">

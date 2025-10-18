@@ -2160,7 +2160,7 @@ Sun Aug 10 14:04:02 2025 +0900
 feat: ISBN 필터링 및 재고 정확성 개선, API 테스트 도구 대폭 강화
 주요 개선사항:
 - ISBN 기반 필터링으로 경기도 전자도서관 재고 정확도 75% 향상
-- 종이책 "정보 없음" 케이스 필터링으로 재고 카운트 정확성 개선
+- 종이책 "정보없음" 케이스 필터링으로 재고 카운트 정확성 개선
 - API 테스트 도구에 통합 검색, 복사 기능, 통합 결과 표시 추가
 - 구독형 크롤링 시스템 안정화 (동적 토큰, KST 처리)
 
@@ -2168,7 +2168,7 @@ feat: ISBN 필터링 및 재고 정확성 개선, API 테스트 도구 대폭 �
 - utils/isbnMatcher.ts: ISBN 정규화 및 필터링 시스템 구현
 - components/APITest.tsx: SearchForm 재활용, 클립보드 복사 기능
 - components/Icons.tsx: CopyIcon 추가
-- stores/useBookStore.ts: "정보 없음" 도서관 데이터 제외 로직
+- stores/useBookStore.ts: "정보없음" 도서관 데이터 제외 로직
 - library-checker/src/index.js: 구독형 크롤링 로직 간소화
 
 문서 업데이트:

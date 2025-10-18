@@ -148,8 +148,9 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book }) => {
                     {(() => {
                         const info = book.ebookInfo;
                         const searchUrl = createLibraryOpenURL('e교육', book.title, book.customSearchTitle);
-                        if (!info) return <span className="text-tertiary">정보 없음</span>;
-                        const hasError = info.details.some(d => 'error' in d);
+                        if (!info) return <span className="text-tertiary">정보없음</span>;
+                        // const hasError = info.details.some(d => 'error' in d);
+                        const hasError = (info.summary.error_count ?? 0) > 0;
                         const { total_count, available_count } = info.summary;
                         return (
                             <div className="flex items-center gap-2">
@@ -166,7 +167,7 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book }) => {
                     {(() => {
                         const info = book.siripEbookInfo;
                         const searchUrl = createLibraryOpenURL('e시립구독', book.title, book.customSearchTitle);
-                        if (!info) return <span className="text-tertiary">정보 없음</span>;
+                        if (!info) return <span className="text-tertiary">정보없음</span>;
                         const hasError = 'error' in info || !!info.details?.subscription?.error;
                         const total_count = info.details?.subscription?.total_count ?? 0;
                         const available_count = info.details?.subscription?.available_count ?? 0;
@@ -185,7 +186,7 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book }) => {
                     {(() => {
                         const info = book.siripEbookInfo;
                         const searchUrl = createLibraryOpenURL('e시립소장', book.title, book.customSearchTitle);
-                        if (!info) return <span className="text-tertiary">정보 없음</span>;
+                        if (!info) return <span className="text-tertiary">정보없음</span>;
                         const hasError = 'error' in info || !!info.details?.owned?.error;
                         const total_count = info.details?.owned?.total_count ?? 0;
                         const available_count = info.details?.owned?.available_count ?? 0;
