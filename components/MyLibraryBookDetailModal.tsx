@@ -24,6 +24,77 @@ interface MyLibraryBookDetailModalProps {
   onClose: () => void;
 }
 
+// [추가] ✅ 재사용 가능한 재고 표시 컴포넌트
+// =======================================================
+interface StockDisplayProps {
+  label: string;
+  searchUrl: string;
+  totalCount?: number;
+  availableCount?: number;
+  hasError?: boolean;
+  isLoading?: boolean;
+}
+
+const StockDisplay: React.FC<StockDisplayProps> = ({
+  label,
+  searchUrl,
+  totalCount = 0,
+  availableCount = 0,
+  hasError = false,
+  isLoading = false
+}) => {
+  // 로딩 상태 처리
+  if (isLoading) {
+    return (
+      <div className="flex justify-between items-center">
+        <span>{label}:</span>
+        <span className="text-tertiary">조회중...</span>
+      </div>
+    );
+  }
+
+  // 1. 상태 이름 결정 (로직 중앙화)
+  type StockStatus = 'available' | 'unavailable' | 'none';
+  
+  const getStatus = (): StockStatus => {
+    if (hasError) return 'unavailable';     // 에러 상태 (빨간색)
+    if (availableCount > 0) return 'available'; // 재고 있음 상태 (녹색)
+    return 'none';                          // 재고 없음 상태 (회색)
+  };
+  
+  const status: StockStatus = getStatus();
+
+  // 2. 상태 이름에 따른 Tailwind 텍스트 색상 클래스 매핑
+  const statusColorClassMap: Record<StockStatus, string> = {
+    available: 'text-green-400',
+    unavailable: 'text-red-400',
+    none: 'text-gray-400', // 또는 text-secondary 등 원하는 회색 계열
+  };
+  const textColorClass = statusColorClassMap[status];
+
+  const titleText = `총 ${totalCount}권, 대출가능 ${availableCount}권${hasError ? ' - 현재 정보 갱신 실패' : ''}`;
+
+  return (
+    <div className="flex justify-between items-center">
+      <span>{label}:</span>
+      <div className="flex items-center gap-2">
+        <a
+          href={searchUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          // 3. 매핑된 텍스트 색상 클래스를 적용
+          className={`font-medium ${textColorClass} hover:text-blue-400`}
+          title={titleText}
+        >
+          {totalCount} / {availableCount}
+        </a>
+        {hasError && <span className="font-medium text-red-400" title="정보 갱신 실패">(에러)</span>}
+      </div>
+    </div>
+  );
+};
+// =======================================================
+
 // =======================================================
 // 1. LibraryStockSection 컴포넌트 독립적으로 분리
 // =======================================================
@@ -139,92 +210,56 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book }) => {
             </div>
 
             {/* 실제 재고 표시 UI */}
+              {/* [수정] ✅ 실제 재고 표시 UI를 StockDisplay 컴포넌트로 교체 */}
             <div className="space-y-2 text-sm text-secondary bg-elevated p-4 rounded-md">
-                {renderStockInfo('퇴촌', book.title, book.customSearchTitle, book.toechonStock, book.gwangjuPaperInfo)}
-                {renderStockInfo('기타', book.title, book.customSearchTitle, book.otherStock, book.gwangjuPaperInfo)}
-                
-                <div className="flex justify-between items-center">
-                    <span>전자책(교육):</span>
-                    {(() => {
-                        const info = book.ebookInfo;
-                        const searchUrl = createLibraryOpenURL('e교육', book.title, book.customSearchTitle);
-                        if (!info) return <span className="text-tertiary">정보없음</span>;
-                        // const hasError = info.details.some(d => 'error' in d);
-                        const hasError = (info.summary.error_count ?? 0) > 0;
-                        const { total_count, available_count } = info.summary;
-                        return (
-                            <div className="flex items-center gap-2">
-                                <a href={searchUrl} target="_blank" rel="noopener noreferrer" className={`font-medium ${available_count > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`} title={`총 ${total_count}권, 대출가능 ${available_count}권${hasError ? ' - 현재 정보 갱신 실패' : ''}`}>
-                                    {total_count} / {available_count}
-                                </a>
-                                {hasError && <span className="font-medium text-red-400" title="정보 갱신 실패">(에러)</span>}
-                            </div>
-                        );
-                    })()}
-                </div>
-                <div className="flex justify-between items-center">
-                    <span>전자책(시립구독):</span>
-                    {(() => {
-                        const info = book.siripEbookInfo;
-                        const searchUrl = createLibraryOpenURL('e시립구독', book.title, book.customSearchTitle);
-                        if (!info) return <span className="text-tertiary">정보없음</span>;
-                        const hasError = 'error' in info || !!info.details?.subscription?.error;
-                        const total_count = info.details?.subscription?.total_count ?? 0;
-                        const available_count = info.details?.subscription?.available_count ?? 0;
-                        return (
-                            <div className="flex items-center gap-2">
-                                <a href={searchUrl} target="_blank" rel="noopener noreferrer" className={`font-medium ${available_count > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`} title={`총 ${total_count}권, 대출가능 ${available_count}권${hasError ? ' - 현재 정보 갱신 실패' : ''}`}>
-                                    {total_count} / {available_count}
-                                </a>
-                                {hasError && <span className="font-medium text-red-400" title="정보 갱신 실패">(에러)</span>}
-                            </div>
-                        );
-                    })()}
-                </div>
-                <div className="flex justify-between items-center">
-                    <span>전자책(시립소장):</span>
-                    {(() => {
-                        const info = book.siripEbookInfo;
-                        const searchUrl = createLibraryOpenURL('e시립소장', book.title, book.customSearchTitle);
-                        if (!info) return <span className="text-tertiary">정보없음</span>;
-                        const hasError = 'error' in info || !!info.details?.owned?.error;
-                        const total_count = info.details?.owned?.total_count ?? 0;
-                        const available_count = info.details?.owned?.available_count ?? 0;
-                        return (
-                            <div className="flex items-center gap-2">
-                                <a href={searchUrl} target="_blank" rel="noopener noreferrer" className={`font-medium ${available_count > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`} title={`총 ${total_count}권, 대출가능 ${available_count}권${hasError ? ' - 현재 정보 갱신 실패' : ''}`}>
-                                    {total_count} / {available_count}
-                                </a>
-                                {hasError && <span className="font-medium text-red-400" title="정보 갱신 실패">(에러)</span>}
-                            </div>
-                        );
-                    })()}
-                </div>
-                <div className="flex justify-between items-center">
-                    <span>전자책(경기):</span>
-                    {(() => {
-                        const info = book.gyeonggiEbookInfo;
-                        const searchUrl = createLibraryOpenURL('e경기', book.title, book.customSearchTitle);
-                        if (!info) {
-                            return (
-                                <button onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title)} className="font-medium text-blue-400 hover:text-blue-300" disabled={refreshingEbookId === book.id}>
-                                    {refreshingEbookId === book.id ? '로딩...' : '조회'}
-                                </button>
-                            );
-                        }
-                        const hasError = 'error' in info;
-                        const displayInfo = book.filteredGyeonggiEbookInfo || book.gyeonggiEbookInfo;
-                        const { total_count, available_count } = (displayInfo && !('error' in displayInfo) ? displayInfo : {total_count: 0, available_count: 0});
-                        return (
-                            <div className="flex items-center gap-2">
-                                <a href={searchUrl} target="_blank" rel="noopener noreferrer" className={`font-medium ${available_count > 0 ? 'text-green-400' : 'text-red-400'} hover:text-blue-400`} title={`총 ${total_count}권, 대출가능 ${available_count}권${hasError ? ' - 현재 정보 갱신 실패' : ''}`}>
-                                    {total_count} / {available_count}
-                                </a>
-                                {hasError && <span className="font-medium text-red-400" title="정보 갱신 실패">(에러)</span>}
-                            </div>
-                        );
-                    })()}
-                </div>
+                <StockDisplay
+                    label="퇴촌"
+                    searchUrl={createLibraryOpenURL('퇴촌', book.title, book.customSearchTitle)}
+                    totalCount={book.toechonStock?.total_count}
+                    availableCount={book.toechonStock?.available_count}
+                    hasError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false}
+                    isLoading={!book.toechonStock && !book.gwangjuPaperInfo}
+                />
+                <StockDisplay
+                    label="기타"
+                    searchUrl={createLibraryOpenURL('기타', book.title, book.customSearchTitle)}
+                    totalCount={book.otherStock?.total_count}
+                    availableCount={book.otherStock?.available_count}
+                    hasError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false}
+                    isLoading={!book.otherStock && !book.gwangjuPaperInfo}
+                />
+                <StockDisplay
+                    label="전자책(교육)"
+                    searchUrl={createLibraryOpenURL('e교육', book.title, book.customSearchTitle)}
+                    totalCount={book.ebookInfo?.summary.total_count}
+                    availableCount={book.ebookInfo?.summary.available_count}
+                    hasError={(book.ebookInfo?.summary.error_count ?? 0) > 0}
+                    isLoading={!book.ebookInfo}
+                />
+                <StockDisplay
+                    label="전자책(시립구독)"
+                    searchUrl={createLibraryOpenURL('e시립구독', book.title, book.customSearchTitle)}
+                    totalCount={book.siripEbookInfo?.details?.subscription?.total_count}
+                    availableCount={book.siripEbookInfo?.details?.subscription?.available_count}
+                    hasError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.subscription?.error) : false}
+                    isLoading={!book.siripEbookInfo}
+                />
+                <StockDisplay
+                    label="전자책(시립소장)"
+                    searchUrl={createLibraryOpenURL('e시립소장', book.title, book.customSearchTitle)}
+                    totalCount={book.siripEbookInfo?.details?.owned?.total_count}
+                    availableCount={book.siripEbookInfo?.details?.owned?.available_count}
+                    hasError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.owned?.error) : false}
+                    isLoading={!book.siripEbookInfo}
+                />
+                <StockDisplay
+                    label="전자책(경기)"
+                    searchUrl={createLibraryOpenURL('e경기', book.title, book.customSearchTitle)}
+                    totalCount={book.filteredGyeonggiEbookInfo && !('error' in book.filteredGyeonggiEbookInfo) ? book.filteredGyeonggiEbookInfo.total_count : (book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.total_count : 0)}
+                    availableCount={book.filteredGyeonggiEbookInfo && !('error' in book.filteredGyeonggiEbookInfo) ? book.filteredGyeonggiEbookInfo.available_count : (book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.available_count : 0)}
+                    hasError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
+                    isLoading={!book.gyeonggiEbookInfo && refreshingEbookId !== book.id} // 로딩 중 아닐 때만 isLoading 처리
+                />
             </div>
 
             {/* 시간 정보 UI */}
@@ -237,64 +272,51 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book }) => {
     );
 };
 
-    // // 기존 코드
-    // const book = useBookStore(state => state.myLibraryBooks.find(b => b.id === bookId));
-    // const { settings } = useSettingsStore();
-
-    // // 모달 열린 상태에서 책이 삭제되면, 모달을 닫는다
-    // useEffect(() => {
-    //     if (!book) {
-    //         onClose();
-    //     }
-    // }, [book, onClose]);
 
 // 도서관 재고 표시
-const renderStockInfo = (libraryName: '퇴촌' | '기타', bookTitle: string, customSearchTitle: string, stockInfo?: StockInfo, paperInfo?: GwangjuPaperResult | GwangjuPaperError) => {
-    const subject = customSearchTitle || createSearchSubject(bookTitle);
-    const searchUrl = createLibraryOpenURL(libraryName, bookTitle, customSearchTitle);    
-    // const searchUrl = libraryName === '퇴촌 도서관'
-    //     ? `https://lib.gjcity.go.kr/tc/lay1/program/S23T3001C3002/jnet/resourcessearch/resultList.do?type=&searchType=SIMPLE&searchKey=ALL&searchLibraryArr=MN&searchKeyword=${encodeURIComponent(subject)}`
-    //     : `https://lib.gjcity.go.kr/lay1/program/S1T446C461/jnet/resourcessearch/resultList.do?searchType=SIMPLE&searchKey=TITLE&searchLibrary=ALL&searchKeyword=${encodeURIComponent(subject)}`;
+// const renderStockInfo = (libraryName: '퇴촌' | '기타', bookTitle: string, customSearchTitle: string, stockInfo?: StockInfo, paperInfo?: GwangjuPaperResult | GwangjuPaperError) => {
+//     const subject = customSearchTitle || createSearchSubject(bookTitle);
+//     const searchUrl = createLibraryOpenURL(libraryName, bookTitle, customSearchTitle);    
     
-    // 1. 에러 상태 확인
-    const hasError = paperInfo && 'error' in paperInfo;
+//     // 1. 에러 상태 확인
+//     const hasError = paperInfo && 'error' in paperInfo;
 
-    // 2. 정보가 아직 로드되지 않은 초기 상태
-    if (!stockInfo && !paperInfo) {
-        return (
-            <div className="flex justify-between items-center">
-                <span>{libraryName}:</span>
-                <div className="flex items-center gap-2"><Spinner size="sm" /><span className="text-tertiary">확인중...</span></div>
-            </div>
-        );
-    }
+//     // 2. 정보가 아직 로드되지 않은 초기 상태
+//     if (!stockInfo && !paperInfo) {
+//         return (
+//             <div className="flex justify-between items-center">
+//                 <span>{libraryName}:</span>
+//                 <div className="flex items-center gap-2"><Spinner size="sm" /><span className="text-tertiary">확인중...</span></div>
+//             </div>
+//         );
+//     }
     
-    // 3. 렌더링 (에러 여부와 관계없이 기존 데이터 기반)
-    const total_count = stockInfo?.total_count ?? 0;
-    const available_count = stockInfo?.available_count ?? 0;
-    const statusColor = available_count > 0 ? 'text-green-400' : 'text-red-400';
-    const statusText = available_count > 0 ? '대출가능' : '대출불가';
+//     // 3. 렌더링 (에러 여부와 관계없이 기존 데이터 기반)
+//     const total_count = stockInfo?.total_count ?? 0;
+//     const available_count = stockInfo?.available_count ?? 0;
+//     const statusColor = available_count > 0 ? 'text-green-400' : 'text-red-400';
+//     const statusText = available_count > 0 ? '대출가능' : '대출불가';
 
-    return (
-        <div className="flex justify-between items-center">
-            <span>{libraryName}:</span>
-            <div className="flex items-center gap-2">
-                <a
-                    href={searchUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className={`font-medium ${statusColor} hover:text-blue-400 hover:underline cursor-pointer transition-colors`}
-                    title={`${libraryName}에서 '${subject}' 검색 | ${statusText} (총 ${total_count}권, 대출가능 ${available_count}권)${hasError ? ' - 현재 정보 갱신 실패' : ''}`}
-                >
-                    {total_count} / {available_count}
-                </a>
-                {/* 에러가 있을 때만 (에러) 텍스트 추가 */}
-                {hasError && <span className="font-medium text-red-400" title="정보 갱신에 실패했습니다. 표시된 정보는 과거 데이터일 수 있습니다.">(에러)</span>}
-            </div>
-        </div>
-    );
-};
+//     return (
+//         <div className="flex justify-between items-center">
+//             <span>{libraryName}:</span>
+//             <div className="flex items-center gap-2">
+//                 <a
+//                     href={searchUrl}
+//                     target="_blank"
+//                     rel="noopener noreferrer"
+//                     onClick={(e) => e.stopPropagation()}
+//                     className={`font-medium ${statusColor} hover:text-blue-400 hover:underline cursor-pointer transition-colors`}
+//                     title={`${libraryName}에서 '${subject}' 검색 | ${statusText} (총 ${total_count}권, 대출가능 ${available_count}권)${hasError ? ' - 현재 정보 갱신 실패' : ''}`}
+//                 >
+//                     {total_count} / {available_count}
+//                 </a>
+//                 {/* 에러가 있을 때만 (에러) 텍스트 추가 */}
+//                 {hasError && <span className="font-medium text-red-400" title="정보 갱신에 실패했습니다. 표시된 정보는 과거 데이터일 수 있습니다.">(에러)</span>}
+//             </div>
+//         </div>
+//     );
+// };
 
 // 도서관 재고 외 상세 모달
 const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ bookId, onClose }) => {

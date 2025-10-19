@@ -115,40 +115,16 @@ interface LibraryTagProps {
 
 // 2025.10.13 v2- API에러시 퇴촌(에러) -> (빨간점) 퇴촌(0/0)로 표시하도록 수정
 const LibraryTag: React.FC<LibraryTagProps> = ({ name, totalBooks, availableBooks, searchUrl, size = 'md', isError = false }) => {
-  const getStatus = () => {
-    // 1순위: API 에러 여부 확인
-    if (isError) {
-      // [핵심 수정] CSS에 이미 정의된 'unavailable' 클래스를 사용하여 빨간색 점 표시
-      return 'unavailable'; 
-    }
-    // 2순위: 재고 있고, 대출도 가능
-    if (totalBooks > 0 && availableBooks > 0) {
-      return 'available'; // 녹색 점
-    }
-    // 3순위: 재고는 있지만 대출은 불가 (또는 재고만 있음)
-    if (totalBooks > 0) {
-      // [핵심 수정] 기존에는 이 경우 'unavailable'이었으나, 이제 에러와 구분하기 위해
-      // 회색(none)으로 처리하거나, 별도 스타일(예: 'on-loan')을 정의할 수 있습니다.
-      // 여기서는 재고 있음(녹색)과 없음(회색)으로만 구분하기 위해 'available'로 처리합니다.
-      // 또는, 대출 불가 상태를 명확히 하려면 아래 주석처럼 처리할 수 있습니다.
-      // return 'unavailable_but_stocked'; // 예시 클래스명 (CSS 추가 필요)
-      return 'available'; // 요구사항: 재고 있으면 녹색
-    }
-    // 4순위: 재고 없음
-    return 'none'; // 회색 점
-  };
-  
-  // [새로운 요구사항 반영]
   // - API 실패시: 빨간색 (status-unavailable)
   // - API 성공 & 재고 있으면: 녹색 (status-available)
   // - API 성공 & 재고 없으면: 회색 (status-none)
-  const getStatusV2 = () => {
+  const getStatus = () => {
     if (isError) return 'unavailable'; // 빨간색 (기존 unavailable 스타일 재활용)
     if (totalBooks > 0) return 'available'; // 녹색
     return 'none'; // 회색
   };
 
-  const status = getStatusV2();
+  const status = getStatus();
 
   const titleText = isError 
     ? `${name} - 정보 조회 실패 (표시된 정보는 과거 데이터일 수 있음)` 
@@ -169,62 +145,6 @@ const LibraryTag: React.FC<LibraryTagProps> = ({ name, totalBooks, availableBook
     </a>
   );
 };
-
-// 2025.10.13 v1- API에러시 퇴촌(0/0) -> 퇴촌(에러)로 표시하도록 수정
-// const LibraryTag: React.FC<LibraryTagProps> = ({ name, totalBooks, availableBooks, searchUrl, size = 'md', isError = false }) => {
-// //   const getStatus = () => {
-// //     if (isError) return 'error';
-// //     if (availableBooks > 0) return 'available';
-// //     if (totalBooks > 0) return 'unavailable';
-// //     return 'none';
-// //   };
-
-// //   const status = getStatus();
-
-// //   const titleText = isError 
-// //     ? `${name} - 정보 조회 실패` 
-// //     : `${name} - 총 ${totalBooks}권 (available_count: ${availableBooks}권)`;
-
-// //   const displayText = isError 
-// //     ? `${name} (에러)` 
-// //     : `${name} (${totalBooks}/${availableBooks})`;
-
-// //   return (
-// //     <a
-// //       href={searchUrl}
-// //       target="_blank"
-// //       rel="noopener noreferrer"
-// //       className={`library-tag ${size === 'sm' ? 'library-tag-sm' : ''} status-${status} truncate`}
-// //       title={titleText}
-// //     >
-// //       <div className={`status-indicator ${status}`}></div>
-// //       <span>{displayText}</span>
-// //     </a>
-// //   );
-// // };
-
-// // const LibraryTag: React.FC<LibraryTagProps> = ({ name, totalBooks, availableBooks, searchUrl, size = 'md' }) => {
-// //   const getStatus = () => {
-// //     if (availableBooks > 0) return 'available';
-// //     if (totalBooks > 0) return 'unavailable';
-// //     return 'none';
-// //   };
-
-// //   const status = getStatus();
-
-// //   return (
-// //     <a
-// //       href={searchUrl}
-// //       target="_blank"
-// //       rel="noopener noreferrer"
-// //       className={`library-tag ${size === 'sm' ? 'library-tag-sm' : ''} status-${status} truncate`}
-// //       title={`${name} - 총 ${totalBooks}권 (available_count: ${availableBooks}권)`}
-// //     >
-// //       <div className={`status-indicator ${status}`}></div>
-// //       <span>{name} ({totalBooks}/{availableBooks})</span>
-// //     </a>
-// //   );
-// // };
 
 type ViewType = 'card' | 'grid';
 
