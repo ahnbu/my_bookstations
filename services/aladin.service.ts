@@ -7,12 +7,21 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 // 프로덕션에서는 Vercel의 서버리스 함수를 사용합니다.
 const ALADIN_API_URL = IS_PRODUCTION ? '/api/search' : '/ttb/api/ItemSearch.aspx';
 
-export const searchAladinBooks = async (query: string, searchType: string, startIndex: number = 1): Promise<AladdinBookItem[]> => {
+export const searchAladinBooks = async (
+  query: string, 
+  searchType: string, 
+  startIndex: number = 1,
+  maxResults: number = 40 // 새로운 매개변수 추가
+  ): Promise<AladdinBookItem[]> => {
+
+  const isEbookSearch = searchType === 'eBook';
+
   const params = new URLSearchParams({
     Query: query,
-    QueryType: searchType,
-    MaxResults: '20',
-    SearchTarget: 'Book',
+    QueryType: isEbookSearch ? 'Keyword' : searchType, 
+    // 전체(Keyword), 제목, 저자, 출판사, 전자책도 Keyword 방식으로
+    MaxResults: maxResults.toString(),
+    SearchTarget: isEbookSearch ? 'eBook' : 'Book',
     output: 'js',
     Version: '20131101',
     OptResult: 'ebookList',

@@ -35,6 +35,8 @@ export const AladdinBookItemSchema = z.object({
   priceSales: z.number(),
   publisher: z.string(),
   link: z.string(),
+
+  // [수정] ✅ subInfo 스키마에 paperBookList를 추가합니다.
   subInfo: z.object({
     ebookList: z.array(z.object({
       itemId: z.number(),
@@ -43,7 +45,25 @@ export const AladdinBookItemSchema = z.object({
       priceSales: z.number(),
       link: z.string(),
     })).optional(),
+    // 이 부분을 추가하세요.
+    paperBookList: z.array(z.object({
+      itemId: z.number(),
+      isbn: z.string(),
+      isbn13: z.string(),
+      priceSales: z.number(),
+      link: z.string(),
+    })).optional(),
   }).optional(),
+  mallType: z.enum(['BOOK', 'EBOOK', 'MUSIC', 'DVD', 'FOREIGN', 'USED']),
+  // subInfo: z.object({
+  //   ebookList: z.array(z.object({
+  //     itemId: z.number(),
+  //     isbn: z.string(),
+  //     isbn13: z.string(),
+  //     priceSales: z.number(),
+  //     link: z.string(),
+  //   })).optional(),
+  // }).optional(),
 });
 
 export const AladdinAPIResponseSchema = z.object({

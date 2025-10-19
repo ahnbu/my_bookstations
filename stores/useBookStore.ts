@@ -130,7 +130,7 @@ interface BookState {
   clearLibrary: () => void;
   updateReadStatus: (id: number, status: ReadStatus) => Promise<void>;
   updateRating: (id: number, rating: number) => Promise<void>;
-  updateMissingEbookIsbn13: () => Promise<void>;
+  // updateMissingEbookIsbn13: () => Promise<void>;
   setLibrarySearchQuery: (query: string) => void;
   addTagToBook: (id: number, tagId: string) => Promise<void>;
   removeTagFromBook: (id: number, tagId: string) => Promise<void>;
@@ -163,6 +163,8 @@ interface BookState {
   cancelBulkRefresh: () => void;
 }
 
+// 검색 결과 기본 로딩 개수
+const default_search_results = 40;
 
 export const useBookStore = create<BookState>(
     (set, get) => ({
@@ -362,56 +364,56 @@ export const useBookStore = create<BookState>(
         }
       },
 
-      updateMissingEbookIsbn13: async () => {
-        const { myLibraryBooks } = get();
-        const { setNotification } = useUIStore.getState();
+      // updateMissingEbookIsbn13: async () => {
+      //   const { myLibraryBooks } = get();
+      //   const { setNotification } = useUIStore.getState();
         
-        for (const book of myLibraryBooks) {
-          // ebookList가 없거나, 첫 번째 항목이 없거나, isbn13이 없는 경우
-          if (!book.subInfo?.ebookList?.[0]?.isbn13) {
-            try {
-              // 해당 책의 ISBN13으로 알라딘 API를 다시 검색하여 최신 정보 가져오기
-              const results = await searchAladinBooks(book.isbn13, 'ISBN');
-              const updatedAladinBook = results.find(item => item.isbn13 === book.isbn13);
+      //   for (const book of myLibraryBooks) {
+      //     // ebookList가 없거나, 첫 번째 항목이 없거나, isbn13이 없는 경우
+      //     if (!book.subInfo?.ebookList?.[0]?.isbn13) {
+      //       try {
+      //         // 해당 책의 ISBN13으로 알라딘 API를 다시 검색하여 최신 정보 가져오기
+      //         const results = await searchAladinBooks(book.isbn13, 'ISBN');
+      //         const updatedAladinBook = results.find(item => item.isbn13 === book.isbn13);
 
-              if (updatedAladinBook && updatedAladinBook.subInfo?.ebookList?.[0]?.isbn13) {
-                const newSubInfo = updatedAladinBook.subInfo;
+      //         if (updatedAladinBook && updatedAladinBook.subInfo?.ebookList?.[0]?.isbn13) {
+      //           const newSubInfo = updatedAladinBook.subInfo;
                 
-                const updatedBookData: SelectedBook  = {
-                  ...book,
-                  subInfo: newSubInfo, // 새로운 subInfo로 업데이트
-                };
+      //           const updatedBookData: SelectedBook  = {
+      //             ...book,
+      //             subInfo: newSubInfo, // 새로운 subInfo로 업데이트
+      //           };
 
-                // DB 저장 시 detailedStockInfo 필드 제외하여 저장공간 절약
-                const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBookData;
+      //           // DB 저장 시 detailedStockInfo 필드 제외하여 저장공간 절약
+      //           const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBookData;
 
-                const { error } = await supabase
-                  .from('user_library')
-                  .update({
-                    title: updatedBookData.title,
-                    author: updatedBookData.author,
-                    book_data: bookDataForDb as unknown as Json
-                  })
-                  .eq('id', book.id);
+      //           const { error } = await supabase
+      //             .from('user_library')
+      //             .update({
+      //               title: updatedBookData.title,
+      //               author: updatedBookData.author,
+      //               book_data: bookDataForDb as unknown as Json
+      //             })
+      //             .eq('id', book.id);
 
-                if (error) throw error;
+      //           if (error) throw error;
 
-                // 상태 업데이트
-                set(state => ({
-                  myLibraryBooks: state.myLibraryBooks.map(b =>
-                    b.id === book.id ? updatedBookData : b
-                  ),
-                  selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === book.id ? updatedBookData : state.selectedBook
-                }));
-                // console.log(`Updated ebook isbn13 for book ID: ${book.id}`); // 성능 개선을 위해 주석 처리
-              }
-            } catch (error) {
-              console.error(`Failed to update ebook isbn13 for book ID: ${book.id}`, error);
-              setNotification({ message: `일부 책의 전자책 ISBN 정보 갱신에 실패했습니다: ${book.title}`, type: 'warning' });
-            }
-          }
-        }
-      },
+      //           // 상태 업데이트
+      //           set(state => ({
+      //             myLibraryBooks: state.myLibraryBooks.map(b =>
+      //               b.id === book.id ? updatedBookData : b
+      //             ),
+      //             selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === book.id ? updatedBookData : state.selectedBook
+      //           }));
+      //           // console.log(`Updated ebook isbn13 for book ID: ${book.id}`); // 성능 개선을 위해 주석 처리
+      //         }
+      //       } catch (error) {
+      //         console.error(`Failed to update ebook isbn13 for book ID: ${book.id}`, error);
+      //         setNotification({ message: `일부 책의 전자책 ISBN 정보 갱신에 실패했습니다: ${book.title}`, type: 'warning' });
+      //       }
+      //     }
+      //   }
+      // },
 
       clearLibrary: () => {
         set({ myLibraryBooks: [], selectedBook: null });
@@ -429,7 +431,7 @@ export const useBookStore = create<BookState>(
           lastSearchType: searchType
         });
         try {
-          const results = await searchAladinBooks(query, searchType, 1);
+          const results = await searchAladinBooks(query, searchType, 1, default_search_results);
           // [세트] 로 시작하는 도서 제외
           const filteredResults = results.filter(book => !book.title.startsWith('[세트]'));
 
@@ -440,7 +442,7 @@ export const useBookStore = create<BookState>(
 
           set({
             searchResults: uniqueResults,
-            hasMoreResults: filteredResults.length === 20 // 원본 결과 기준으로 판단
+            hasMoreResults: filteredResults.length === default_search_results // 원본 결과 기준으로 판단
           });
         } catch (error) {
           console.error(error);
@@ -913,7 +915,7 @@ export const useBookStore = create<BookState>(
         try {
           const nextPage = currentPage + 1;
           const startIndex = nextPage; // 알라딘 API는 페이지 번호를 그대로 사용
-          const results = await searchAladinBooks(lastSearchQuery, lastSearchType, startIndex);
+          const results = await searchAladinBooks(lastSearchQuery, lastSearchType, startIndex, default_search_results);
 
           // [세트] 로 시작하는 도서 제외
           const filteredResults = results.filter(book => !book.title.startsWith('[세트]'));
@@ -925,7 +927,7 @@ export const useBookStore = create<BookState>(
           set({
             searchResults: [...searchResults, ...uniqueNewResults],
             currentPage: nextPage,
-            hasMoreResults: filteredResults.length === 20, // 원본 결과 기준으로 판단
+            hasMoreResults: filteredResults.length === default_search_results, // 원본 결과 기준으로 판단
             isLoadingMore: false
           });
         } catch (error) {

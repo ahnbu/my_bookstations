@@ -1328,14 +1328,35 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
               {/* Action Buttons */}
               <div className="flex gap-1 mt-2">
                 {(() => {
-                  const hasEbook = book.subInfo?.ebookList?.[0]?.isbn13;
-                  const buttonClass = hasEbook 
+                  const isEbookResult = book.mallType === 'EBOOK';
+
+                  const paperBookLink = isEbookResult
+                    ? book.subInfo?.paperBookList?.[0]?.link || null
+                    : book.link;
+                    
+                  const ebookLink = isEbookResult
+                    ? book.link
+                    : book.subInfo?.ebookList?.[0]?.link || null;
+                  
+                  const hasBothFormats = paperBookLink && ebookLink;
+                  // const hasEbook = book.subInfo?.ebookList?.[0]?.isbn13;
+                  const buttonClass = hasBothFormats 
                     ? "flex-1 px-1 py-1 bg-elevated border border-secondary text-secondary text-xs rounded hover:bg-secondary hover:text-primary transition-colors text-center whitespace-nowrap"
                     : "w-full px-2 py-1 bg-elevated border border-secondary text-secondary text-xs rounded hover:bg-secondary hover:text-primary transition-colors text-center";
                   
                   return (
                     <>
-                      <a 
+                      {paperBookLink && (
+                        <a href={paperBookLink} target="_blank" rel="noopener noreferrer" className={buttonClass}>
+                          종이책
+                        </a>
+                      )}
+                      {ebookLink && (
+                        <a href={ebookLink} target="_blank" rel="noopener noreferrer" className={buttonClass}>
+                          전자책
+                        </a>
+                      )}
+                      {/* <a 
                         href={book.link} 
                         target="_blank" 
                         rel="noopener noreferrer" 
@@ -1352,7 +1373,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                         >
                           전자책
                         </a>
-                      )}
+                      )} */}
                     </>
                   );
                 })()}

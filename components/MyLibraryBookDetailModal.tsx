@@ -457,10 +457,28 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
     }
 
     // 레이아웃 로직 변수 정의
-    const hasEbookLink = book.subInfo?.ebookList?.[0]?.link;
+    // const hasEbookLink = book.subInfo?.ebookList?.[0]?.link;
+    // const hasLeftContent = settings.showRating || settings.showReadStatus || settings.showTags || settings.showBookNotes;
+    // const hasRightContent = settings.showLibraryStock;
+    // const isLibraryStockOnly = !hasLeftContent && hasRightContent;
+
+    // [수정] ✅ mallType을 기준으로 종이책/전자책 링크를 정확히 할당
+    const isEbookResult = book.mallType === 'EBOOK';
+
+    const paperBookLink = isEbookResult
+    ? book.subInfo?.paperBookList?.[0]?.link || null
+    : book.link;
+    
+    const ebookLink = isEbookResult
+    ? book.link
+    : book.subInfo?.ebookList?.[0]?.link || null;
+
+    // 레이아웃 로직 변수 정의
+    // const hasEbookLink = book.subInfo?.ebookList?.[0]?.link; // ⛔️ 이 줄 삭제 또는 주석 처리
     const hasLeftContent = settings.showRating || settings.showReadStatus || settings.showTags || settings.showBookNotes;
     const hasRightContent = settings.showLibraryStock;
     const isLibraryStockOnly = !hasLeftContent && hasRightContent;
+
 
     // [추가] 재고 표시 로직을 별도의 컴포넌트로 추출
     // 리팩토링 : 재고정보 코드가 1단표시, 2단표시 중복 표시 해결
@@ -504,8 +522,38 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                         </div>
 
                         <p className="text-sm text-tertiary leading-relaxed mb-6 line-clamp-4">{book.description || "제공된 설명이 없습니다."}</p>
-                        
+
                         <div className="flex flex-wrap gap-4">
+                            {/* [수정] ✅ '알라딘 보기'(종이책) 버튼 로직 */}
+                            {paperBookLink && (
+                            <a
+                                href={paperBookLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors duration-300"
+                            >
+                                <BookOpenIcon className="w-5 h-5" />
+                                알라딘 보기
+                            </a>
+                            )}
+                            
+                            {/* [수정] ✅ '전자책 보기' 버튼 로직 */}
+                            <a
+                            href={ebookLink || '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => !ebookLink && e.preventDefault()}
+                            className={`inline-flex items-center justify-center gap-2 px-5 py-2 bg-sky-500 text-white font-semibold rounded-lg transition-colors duration-300 ${
+                                !ebookLink ? 'opacity-50 cursor-not-allowed' : 'hover:bg-sky-600'
+                            }`}
+                            title={!ebookLink ? "알라딘에서 제공하는 전자책 정보가 없습니다" : "알라딘에서 전자책 보기"}
+                            >
+                            <BookOpenIcon className="w-5 h-5" />
+                            전자책 보기
+                            </a>
+                        </div>
+
+                        {/* <div className="flex flex-wrap gap-4">
                             <a
                             href={book.link}
                             target="_blank"
@@ -528,7 +576,8 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                             <BookOpenIcon className="w-5 h-5" />
                             전자책 보기
                             </a>
-                        </div>
+                        </div> */}
+
                         </div>
                     </div>
                 

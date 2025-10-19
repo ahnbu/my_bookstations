@@ -49,8 +49,19 @@ const BookDetails: React.FC = () => {
 
   const isFromLibrary = selectedBook ? 'id' in selectedBook : false;
   const bookFromLibrary = isFromLibrary ? (selectedBook as SelectedBook) : null;
-  const hasEbookLink = selectedBook?.subInfo?.ebookList?.[0]?.link;
+  // const hasEbookLink = selectedBook?.subInfo?.ebookList?.[0]?.link;
 
+  // [수정] ✅ mallType을 기준으로 종이책/전자책 링크를 정확히 할당
+  const isEbookResult = selectedBook?.mallType === 'EBOOK';
+
+  const paperBookLink = isEbookResult
+    ? selectedBook?.subInfo?.paperBookList?.[0]?.link || null
+    : selectedBook?.link;
+    
+  const ebookLink = isEbookResult
+    ? selectedBook?.link
+    : selectedBook?.subInfo?.ebookList?.[0]?.link || null;
+  
   const handleAddClick = async () => {
     if (isAdding || isBookInLibrary || !selectedBook) return;
 
@@ -238,13 +249,29 @@ const BookDetails: React.FC = () => {
               <strong>전자책 ISBN:</strong> {selectedBook.subInfo.ebookList[0].isbn13}
             </p>
           )}
-          
-          {selectedBook.priceSales && selectedBook.priceStandard && (
+
+          {/* [수정] ✅ 가격 표시 조건을 '존재 여부'로 변경하고, 무료 책 처리 추가 */}
+          {(typeof selectedBook.priceSales === 'number' && typeof selectedBook.priceStandard === 'number') ? (
+            <div className="flex items-baseline mb-4">
+              {selectedBook.priceSales > 0 ? (
+                <>
+                  <p className="text-xl font-bold text-blue-400">{selectedBook.priceSales.toLocaleString()}원</p>
+                  {selectedBook.priceStandard > selectedBook.priceSales && (
+                    <p className="text-sm text-tertiary line-through ml-3">{selectedBook.priceStandard.toLocaleString()}원</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-xl font-bold text-blue-400">무료</p>
+              )}
+            </div>
+          ) : null}
+
+          {/* {selectedBook.priceSales && selectedBook.priceStandard && (
             <div className="flex items-baseline mb-4">
               <p className="text-xl font-bold text-blue-400">{selectedBook.priceSales.toLocaleString()}원</p>
               <p className="text-sm text-tertiary line-through ml-3">{selectedBook.priceStandard.toLocaleString()}원</p>
             </div>
-          )}
+          )} */}
 
           {/*
           <p className="text-sm text-tertiary leading-relaxed mb-6">
@@ -274,6 +301,35 @@ const BookDetails: React.FC = () => {
                 </>
               )}
             </button>
+
+            {/* [수정] ✅ '알라딘 보기'(종이책) 버튼 로직 */}
+            {paperBookLink && (
+              <a
+                href={paperBookLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-primary font-semibold rounded-lg hover:bg-green-700 transition-colors duration-300 text-sm"
+              >
+                <BookOpenIcon className="w-4 h-4" />
+                알라딘 보기
+              </a>
+            )}
+
+            {/* [수정] ✅ '전자책 보기' 버튼 로직 */}
+            <a
+              href={ebookLink || '#'}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => !ebookLink && e.preventDefault()}
+              className={`w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-sky-500 text-primary font-semibold rounded-lg transition-colors duration-300 text-sm ${
+                !ebookLink ? 'opacity-50 cursor-not-allowed' : 'hover:bg-sky-600'
+              }`}
+              title={!ebookLink ? "알라딘에서 제공하는 전자책 정보가 없습니다" : "알라딘에서 전자책 보기"}
+            >
+              <BookOpenIcon className="w-4 h-4" />
+              전자책 보기
+            </a>
+{/*             
             <a
               href={selectedBook.link}
               target="_blank"
@@ -295,7 +351,7 @@ const BookDetails: React.FC = () => {
             >
               <BookOpenIcon className="w-4 h-4" />
               전자책 보기
-            </a>
+            </a> */}
           </div>
         </div>
       </div>
