@@ -148,6 +148,7 @@ export interface GyeonggiEduEbookResult {
   seongnam_count: number;
   tonghap_count: number;
   error_count: number;
+  error_lib_detail?: string; // [수정] 선택적 필드로 error_lib_detail 추가
   book_list: (GyeonggiEduEbookList | GyeonggiEduEbookError)[];
 }
 
@@ -158,6 +159,7 @@ export interface GyeonggiEduEbookSummary {
   seongnam_count: number;
   tonghap_count: number;
   error_count: number;
+  error_lib_detail?: string; // [수정] 선택적 필드 추가
 }
 
 // 개발/프로덕션 환경에 따른 API 엔드포인트 설정

@@ -638,15 +638,26 @@ export const useBookStore = create<BookState>(
                           seongnam_count: eduResult.seongnam_count,
                           tonghap_count: eduResult.tonghap_count,
                           error_count: eduResult.error_count,
+                          error_lib_detail: eduResult.error_lib_detail, // [수정] error_lib_detail 필드 추가
                       },
                       details: eduResult.book_list,
                       lastUpdated: Date.now()
                   };
               } else {
                   // API 호출이 실패하거나 에러 객체를 반환한 경우
+                  const errorMessage = (result.gyeonggi_ebook_edu as GyeonggiEduEbookError)?.error || '정보 조회 실패';
                   newEBookInfo = {
-                      summary: { total_count: 0, available_count: 0, unavailable_count: 0, seongnam_count: 0, tonghap_count: 0, error_count: 1 },
-                      details: [{ error: (result.gyeonggi_ebook_edu as any)?.error || '정보 조회 실패' }],
+                      summary: { 
+                        total_count: 0, 
+                        available_count: 0, 
+                        unavailable_count: 0, 
+                        seongnam_count: 0, 
+                        tonghap_count: 0, 
+                        error_count: 1,
+                        error_lib_detail: errorMessage // [수정] 에러 메시지를 detail로 전달
+                      },
+                      // details: [{ error: (result.gyeonggi_ebook_edu as any)?.error || '정보 조회 실패' }],
+                      details: [{ error: errorMessage }],
                       lastUpdated: Date.now()
                   };
               }
@@ -665,7 +676,6 @@ export const useBookStore = create<BookState>(
           }
       },
 
-      // 2025.10.13 - API에러시 퇴촌(0/0) -> 퇴촌(에러)로 표시하도록 수정
       refreshAllBookInfo: async (id, isbn13, title) => {
         set({ refreshingIsbn: isbn13, refreshingEbookId: id });
         
@@ -688,15 +698,16 @@ export const useBookStore = create<BookState>(
           );
 
           // 2. UI 상태 즉시 업데이트 (API 결과를 그대로 반영)
+          // [핵심] API 호출시, API 응답 결과 초기값은 'originalBook'(기존 데이터)의 복사본으로 시작
+          // 이렇게 하면 API 호출 실패 시 기존 데이터가 자동으로 유지
           const bookWithLatestApiResult = { ...originalBook };
           
           // --- 종이책 UI 상태 업데이트 ---
           bookWithLatestApiResult.gwangjuPaperInfo = result.gwangju_paper;
           // [개선] API 응답에 요약 정보가 있는지 확인
           if ('summary_total_count' in result.gwangju_paper) {
-            const paperResult = result.gwangju_paper as GwangjuPaperResult;
-            
-            // [개선] API가 제공하는 요약 정보를 직접 사용하여 stock 상태를 업데이트
+            // [성공 시] 새로운 데이터로 재고 정보를 업데이트합니다.
+            const paperResult = result.gwangju_paper; // as GwangjuPaperResult;            
             bookWithLatestApiResult.toechonStock = { 
               total_count: paperResult.toechon_total_count, 
               available_count: paperResult.toechon_available_count 
@@ -705,36 +716,16 @@ export const useBookStore = create<BookState>(
               total_count: paperResult.other_total_count, 
               available_count: paperResult.other_available_count 
             };
+            // API 응답 원본도 최신 정보로 업데이트합니다.
+            bookWithLatestApiResult.gwangjuPaperInfo = paperResult;
+          } else {
+            // [실패 시] 재고 정보(toechonStock, otherStock)는 수정하지 않습니다. (originalBook 값 유지)
+            // 단, gwangjuPaperInfo에만 에러 객체를 기록하여 UI가 에러 상태임을 알 수 있게 합니다.
+            bookWithLatestApiResult.gwangjuPaperInfo = result.gwangju_paper;
           }
 
-          // --- 기존 : book_list에서 직접 계산 ---
-          // bookWithLatestApiResult.gwangjuPaperInfo = result.gwangju_paper;
-          // if ('book_list' in result.gwangju_paper) {
-          //   const paperResult = result.gwangju_paper as GwangjuPaperResult;
-          //   let toechonTotal = 0, toechonAvailable = 0, otherTotal = 0, otherAvailable = 0;
-          //   (paperResult.book_list ?? []).forEach(item => {
-          //     const libraryName = item['소장도서관'];
-          //     if (libraryName === '정보없음' || !libraryName) return;
-          //     const isToechon = libraryName === '퇴촌도서관';
-          //     const isAvailable = item['대출상태'] === '대출가능';
-          //     if (isToechon) { toechonTotal++; if (isAvailable) toechonAvailable++; } 
-          //     else { otherTotal++; if (isAvailable) otherAvailable++; }
-          //   });
-          //   bookWithLatestApiResult.toechonStock = { total_count: toechonTotal, available_count: toechonAvailable };
-          //   bookWithLatestApiResult.otherStock = { total_count: otherTotal, available_count: otherAvailable };
-          // }
-          
-          // --- 전자책 UI 상태 업데이트 ---
-
-          // API 응답이 이미 요약 정보를 포함한 객체이므로, GyeonggiEduEbookSummarize 함수는 더 이상 필요 없습니다.
-          // bookWithLatestApiResult.ebookInfo = {
-            // summary: GyeonggiEduEbookSummarize(result.gyeonggi_ebook_edu),
-            // details: result.gyeonggi_ebook_edu,
-            // lastUpdated: Date.now(),
-          // };
-          
-          if (result.gyeonggi_ebook_edu && !('error' in result.gyeonggi_ebook_edu)) {
           // if (result.gyeonggi_ebook_edu && !('error' in result.gyeonggi_ebook_edu)) {
+          if (result.gyeonggi_ebook_edu && 'book_list' in result.gyeonggi_ebook_edu) {
             // GyeonggiEduEbookResult 타입에서 필요한 summary와 details를 추출합니다.
             const eduResult = result.gyeonggi_ebook_edu;
             bookWithLatestApiResult.ebookInfo = {
@@ -745,15 +736,27 @@ export const useBookStore = create<BookState>(
                 seongnam_count: eduResult.seongnam_count,
                 tonghap_count: eduResult.tonghap_count,
                 error_count: eduResult.error_count,
+                error_lib_detail: eduResult.error_lib_detail, // [수정] error_lib_detail 필드 추가
               },
               details: eduResult.book_list, // details는 book_list를 사용
               lastUpdated: Date.now(),
             };
           } else {
               // API 응답에 에러가 있는 경우의 처리
+              const errorMessage = (result.gyeonggi_ebook_edu as GyeonggiEduEbookError)?.error || '정보 조회 실패';
+              
+              // 기존 summary가 없으면 기본값으로 시작, 있으면 기존 값 사용
+              const existingSummary = originalBook.ebookInfo?.summary || {
+                  total_count: 0, available_count: 0, unavailable_count: 0, seongnam_count: 0, tonghap_count: 0, error_count: 0
+              };
+
               bookWithLatestApiResult.ebookInfo = {
-                  summary: { total_count: 0, available_count: 0, unavailable_count: 0, seongnam_count: 0, tonghap_count: 0, error_count: 1 },
-                  details: [{ error: (result.gyeonggi_ebook_edu as GyeonggiEduEbookError)?.error || '정보 조회 실패' }],
+                  summary: { 
+                    ...existingSummary, // [핵심] 기존 재고 count들을 그대로 유지
+                    error_count: (result.gyeonggi_ebook_edu as any)?.error_count || 1, // API가 error_count를 주면 그걸 쓰고, 아니면 1로 설정
+                    error_lib_detail: (result.gyeonggi_ebook_edu as any)?.error_lib_detail || errorMessage,
+                  },
+                  details: [{ error: errorMessage }],
                   lastUpdated: Date.now(),
               };
           }

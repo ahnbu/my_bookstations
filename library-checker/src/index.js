@@ -177,13 +177,31 @@ export default {
               combinedEduBooks.push(...results[2].value.book_list);
             }
             
-            // [추가] 에러가 발생한 경우도 처리
+            // 에러 발생시에도 처리되도록 + 에러발생시 디버깅 로그 출력
+            // if (results[1].status === 'rejected') {
+            //     combinedEduBooks.push({ library: '성남도서관', error: `검색 실패: ${results[1].reason.message}` });
+            // }
+            // if (results[2].status === 'rejected') {
+            //     combinedEduBooks.push({ library: '통합도서관', error: `검색 실패: ${results[2].reason.message}` });
+            // }
+
+            const errorLibs = []; // 에러난 도서관 이름을 저장할 배열
+
             if (results[1].status === 'rejected') {
-                combinedEduBooks.push({ library: '성남도서관', error: `검색 실패: ${results[1].reason.message}` });
+                const errorMessage = `검색 실패: ${results[1].reason.message}`;
+                // [개선 1] console.error로 명확한 에러 로그 남기기
+                console.error(`[API ERROR] 성남교육도서관(${eduTitle}):`, errorMessage); 
+                combinedEduBooks.push({ library: '성남도서관', error: errorMessage });
+                errorLibs.push('성남');
             }
             if (results[2].status === 'rejected') {
-                combinedEduBooks.push({ library: '통합도서관', error: `검색 실패: ${results[2].reason.message}` });
+                const errorMessage = `검색 실패: ${results[2].reason.message}`;
+                // [개선 1] console.error로 명확한 에러 로그 남기기
+                console.error(`[API ERROR] 통합교육도서관(${eduTitle}):`, errorMessage);
+                combinedEduBooks.push({ library: '통합도서관', error: errorMessage });
+                errorLibs.push('통합');
             }
+
             
             // [추가] 합쳐진 배열을 기반으로 요약 정보 계산
             let total_count = 0;
@@ -221,6 +239,8 @@ export default {
                 seongnam_count,
                 tonghap_count,
                 error_count,
+                // 에러가 발생한 경우에만 상세 정보 문자열 생성
+                error_lib_detail: errorLibs.length > 0 ? `에러 발생: ${errorLibs.join(', ')}` : undefined,
                 book_list: validBooks
             };
         }
@@ -581,7 +601,7 @@ async function searchSiripEbookIntegrated(searchTitle) {
     const totalUnavailable = siripOwnedData.unavailable_count + siripSubsData.unavailable_count;
     
     // 시립도서관 통합 결과 정보
-    const sirip_ebook_totalry = {
+    const sirip_ebook_summary = {
       library_name: '광주시립중앙도서관-통합',
       total_count: totalBooks,
       available_count: totalAvailable,
@@ -913,17 +933,51 @@ function parseGyeonggiEduHTML(html, libraryCode) {
     const libraryNameMap = { '10000004': '성남도서관', '10000009': '통합도서관' };
     const branchName = libraryNameMap[libraryCode] || `코드(${libraryCode})`;
 
+    // if (libraryCode === '10000004') { // 성남도서관일 때만 로그를 출력합니다.
+    //   console.log(`\n\n--- [DEBUG] 파싱 시작: ${branchName} (코드: ${libraryCode}) ---`);
+      
+    //   // 1. 수신된 전체 HTML의 마지막 20,000자 출력
+    //   const tailLength = 20000;
+    //   const htmlTail = html.length > tailLength ? html.slice(-tailLength) : html;
+    //   console.log(`[DEBUG] 수신된 HTML의 마지막 ${tailLength}자 (총 ${html.length}자):\n---\n${htmlTail}\n---`);
+    // }
+    
     if (html.includes("찾으시는 자료가 없습니다")) {
+      // console.log(`[DEBUG] "${branchName}": "찾으시는 자료가 없습니다" 메시지 발견. 빈 배열 반환.`);
       return { library_name: `경기도교육청-${branchName}`, book_list: [] };
     }
 
     const searchResultsMatch = html.match(/<div id="search-results" class="search-results">([\s\S]*?)<div id="cms_paging"/i);
-    if (!searchResultsMatch) return { library_name: `경기도교육청-${branchName}`, book_list: [] };
+    if (!searchResultsMatch) {
+      console.log(`[DEBUG] "${branchName}": 검색 결과 영역(<div id="search-results">) 매칭 실패. 빈 배열 반환.`);
+      return { library_name: `경기도교육청-${branchName}`, book_list: [] };
+    }
+    // if (!searchResultsMatch) return { library_name: `경기도교육청-${branchName}`, book_list: [] };
 
     const searchResultsHtml = searchResultsMatch[1];
     const bookItemsPattern = /<div class="row">([\s\S]*?)<\/div>\s*(?=<div class="row">|$)/gi;
     const bookItems = [...searchResultsHtml.matchAll(bookItemsPattern)];
-    if (bookItems.length === 0) return { library_name: `경기도교육청-${branchName}`, book_list: [] };
+
+    // if (libraryCode === '10000004') { // 성남도서관일 때만 로그를 출력합니다.
+    //   // 2. 검색 결과 영역(searchResultsHtml)의 전체 내용 출력
+    //   console.log(`[DEBUG] "${branchName}": 추출된 검색 결과 HTML (searchResultsHtml):\n---\n${searchResultsHtml}\n---`);
+    //   // 3. 개별 책 아이템(bookItems)의 개수와 내용 출력
+    //   console.log(`[DEBUG] "${branchName}": ${bookItems.length}개의 책 아이템(bookItems)을 찾았습니다.`);
+    // }
+    // if (bookItems.length > 0) {
+    //   bookItems.forEach((item, index) => {
+    //       console.log(`[DEBUG] "${branchName}" - 책 아이템 ${index + 1}:\n---\n${item[0]}\n---`);
+    //   });
+    // }
+    
+    if (bookItems.length === 0) {
+      // console.log(`[DEBUG] "${branchName}": 책 아이템(<div class="row">) 매칭 실패. 빈 배열 반환.`);
+      return { library_name: `경기도교육청-${branchName}`, book_list: [] };
+    }
+
+    // console.log(`--- [DEBUG] 파싱 종료: ${branchName} ---`);
+    // if (bookItems.length === 0) return { library_name: `경기도교육청-${branchName}`, book_list: [] };
+    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ 디버그 로그 추가 종료 ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
     const availability = bookItems.map(match => {
       const bookHtml = match[0];
@@ -1280,7 +1334,6 @@ function parseSiripEbookSubsHTML(html) {
     // console.log(`[DEBUG/시립구독] ${bookItems.length}개의 li 블록을 찾았습니다.`);
 
     if (bookItems.length === 0) {
-      console.log('[DEBUG/시립구독] 오류: book_resultList에서 li 태그를 찾지 못했습니다.');
       return { library_name: '광주시립중앙도서관-구독형', total_count: 0, available_count: 0, unavailable_count: 0, book_list: [] };
     }
     

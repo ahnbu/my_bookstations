@@ -1539,7 +1539,8 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                   availableBooks={book.ebookInfo?.summary.available_count || 0}
                   searchUrl={createLibraryOpenURL("e교육", book.title, book.customSearchTitle)}
                   // summary에 error_count가 있으므로 더 간단하게 확인 가능
-                  isError={(book.ebookInfo?.summary.error_count ?? 0) > 0} 
+                  isError={(book.ebookInfo?.summary.error_count ?? 0) == 2} // 둘 다 에러일때만
+                  // isError={(book.ebookInfo?.summary.error_count ?? 0) > 0} // 1군데라도 에러일때
                   // isError={book.ebookInfo?.details.some(d => 'error' in d) || false}
                 />
                 
@@ -1834,7 +1835,8 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                     availableBooks={book.ebookInfo?.summary.available_count || 0}
                     searchUrl={createLibraryOpenURL("e교육", book.title, book.customSearchTitle)}
                     // summary에 error_count가 있으므로 더 간단하게 확인 가능
-                    isError={(book.ebookInfo?.summary.error_count ?? 0) > 0} 
+                    isError={(book.ebookInfo?.summary.error_count ?? 0) == 2} // 둘 다 에러일때만
+                  // isError={(book.ebookInfo?.summary.error_count ?? 0) > 0} // 1군데라도 에러일때 
                     // isError={book.ebookInfo?.details.some(d => 'error' in d) || false}
                   />
                   <LibraryTag
