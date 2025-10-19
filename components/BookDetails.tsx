@@ -25,7 +25,7 @@ const BookDetails: React.FC = () => {
     updateReadStatus,
     updateRating,
     refreshingIsbn,
-    refreshAllBookInfo,
+    refreshBookInfo: refreshAllBookInfo,
     searchBooks,
   } = useBookStore();
   const { closeBookSearchListModal, openBookSearchListModal } = useUIStore();

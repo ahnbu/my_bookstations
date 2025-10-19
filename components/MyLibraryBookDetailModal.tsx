@@ -33,7 +33,7 @@ interface LibraryStockSectionProps {
 
 const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book }) => {
     const { 
-        refreshAllBookInfo, 
+        refreshBookInfo: refreshAllBookInfo, 
         refreshingIsbn, 
         refreshingEbookId,
         updateCustomSearchTitle
@@ -298,7 +298,7 @@ const renderStockInfo = (libraryName: '퇴촌' | '기타', bookTitle: string, cu
 
 // 도서관 재고 외 상세 모달
 const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ bookId, onClose }) => {
-    const { getBookById, updateReadStatus, updateRating, refreshingIsbn, refreshEBookInfo, refreshingEbookId, refreshAllBookInfo, addTagToBook, removeTagFromBook, setAuthorFilter, updateBookNote,updateCustomSearchTitle} = useBookStore();
+    const { getBookById, updateReadStatus, updateRating, refreshingIsbn, refreshingEbookId, refreshBookInfo: refreshAllBookInfo, addTagToBook, removeTagFromBook, setAuthorFilter, updateBookNote,updateCustomSearchTitle} = useBookStore();
 
     // [핵심 1] useBookStore에서 업데이트된 책 정보를 실시간으로 구독합니다.
     const updatedBookFromStore = useBookStore(state => {
