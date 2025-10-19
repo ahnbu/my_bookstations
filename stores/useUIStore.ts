@@ -35,7 +35,15 @@ interface UIState {
   // Context state
   isAPITestMode: boolean;
 
+  // 책상세 > API 모달
+  isJsonViewerModalOpen: boolean; 
+  jsonViewerData: object | null; 
+  jsonViewerTitle: string; 
+
   // Actions
+  openJsonViewerModal: (data: object, title: string) => void; // [추가]
+  closeJsonViewerModal: () => void; // [추가]
+
   setIsLoading: (isLoading: boolean) => void;
   setNotification: (notification: { message: string; type: NotificationType } | null) => void;
   
@@ -98,6 +106,13 @@ export const useUIStore = create<UIState>((set) => ({
   isWelcomeModalOpen: false,
   isKeywordSearchModalOpen: false,
   isAPITestMode: false,
+  isJsonViewerModalOpen: false, // [추가]
+  jsonViewerData: null, // [추가]
+  jsonViewerTitle: '', // [추가]
+
+  // [추가] ✅ JSON 뷰어 모달 액션
+  openJsonViewerModal: (data, title) => set({ isJsonViewerModalOpen: true, jsonViewerData: data, jsonViewerTitle: title }),
+  closeJsonViewerModal: () => set({ isJsonViewerModalOpen: false, jsonViewerData: null, jsonViewerTitle: '' }),
 
   setIsLoading: (isLoading) => set({ isLoading }),
   setNotification: (notification) => set({ notification }),

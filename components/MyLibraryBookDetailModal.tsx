@@ -3,6 +3,7 @@ import React, { useEffect, useState} from 'react';
 import { ReadStatus, StockInfo, CustomTag, SelectedBook} from '../types';
 import { useBookStore } from '../stores/useBookStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
+import { useUIStore } from '../stores/useUIStore'; // [추가]
 import { CloseIcon, RefreshIcon, BookOpenIcon, MessageSquareIcon, EditIcon, SaveIcon, TrashIcon } from './Icons';
 import Spinner from './Spinner';
 import StarRating from './StarRating';
@@ -15,6 +16,7 @@ import {
   createOptimalSearchTitle,
   createLibraryOpenURL
 } from '../services/unifiedLibrary.service';
+// import JsonViewerModal from './JsonViewerModal'; // [추가] JsonViewerModal import
 
 // 제목 가공 함수 (3단어, 괄호 등 제거 후)
 const createSearchSubject = createOptimalSearchTitle;
@@ -93,16 +95,18 @@ const StockDisplay: React.FC<StockDisplayProps> = ({
     </div>
   );
 };
-// =======================================================
 
 // =======================================================
 // 1. LibraryStockSection 컴포넌트 독립적으로 분리
 // =======================================================
 interface LibraryStockSectionProps {
   book: SelectedBook;
+  onApiButtonClick: () => void; // [추가]
+  isFetchingJson: boolean; // [추가]
 }
 
-const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book }) => {
+// const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book }) => {
+const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiButtonClick, isFetchingJson }) => {
     const { 
         refreshBookInfo: refreshAllBookInfo, 
         refreshingIsbn, 
@@ -156,14 +160,24 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book }) => {
         <div>
             <div className="flex justify-between items-center mb-3">
                 <h4 className="text-lg font-semibold text-primary">도서관 재고</h4>
-                <button
-                    onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title)}
-                    disabled={refreshingIsbn === book.isbn13 || refreshingEbookId === book.id}
-                    className="p-2 text-secondary hover:text-primary rounded-full hover-surface transition-colors disabled:opacity-50 disabled:cursor-wait"
-                    title="모든 재고 정보 새로고침"
-                >
-                    {(refreshingIsbn === book.isbn13 || refreshingEbookId === book.id) ? <Spinner /> : <RefreshIcon className="w-5 h-5" />}
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={onApiButtonClick}
+                        disabled={isFetchingJson}
+                        className="px-3 py-1.5 text-xs font-semibold bg-tertiary text-secondary rounded-md hover:bg-secondary disabled:opacity-50"
+                        title="DB에 저장된 최신 API 응답 결과 보기"
+                    >
+                        {isFetchingJson ? <Spinner size="sm" /> : 'API'}
+                    </button>
+                    <button
+                        onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title)}
+                        disabled={refreshingIsbn === book.isbn13 || refreshingEbookId === book.id}
+                        className="p-2 text-secondary hover:text-primary rounded-full hover-surface transition-colors disabled:opacity-50 disabled:cursor-wait"
+                        title="모든 재고 정보 새로고침"
+                    >
+                        {(refreshingIsbn === book.isbn13 || refreshingEbookId === book.id) ? <Spinner /> : <RefreshIcon className="w-5 h-5" />}
+                    </button>
+                </div>
             </div>
 
             {/* 커스텀 검색어 UI */}
@@ -272,55 +286,11 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book }) => {
     );
 };
 
-
-// 도서관 재고 표시
-// const renderStockInfo = (libraryName: '퇴촌' | '기타', bookTitle: string, customSearchTitle: string, stockInfo?: StockInfo, paperInfo?: GwangjuPaperResult | GwangjuPaperError) => {
-//     const subject = customSearchTitle || createSearchSubject(bookTitle);
-//     const searchUrl = createLibraryOpenURL(libraryName, bookTitle, customSearchTitle);    
-    
-//     // 1. 에러 상태 확인
-//     const hasError = paperInfo && 'error' in paperInfo;
-
-//     // 2. 정보가 아직 로드되지 않은 초기 상태
-//     if (!stockInfo && !paperInfo) {
-//         return (
-//             <div className="flex justify-between items-center">
-//                 <span>{libraryName}:</span>
-//                 <div className="flex items-center gap-2"><Spinner size="sm" /><span className="text-tertiary">확인중...</span></div>
-//             </div>
-//         );
-//     }
-    
-//     // 3. 렌더링 (에러 여부와 관계없이 기존 데이터 기반)
-//     const total_count = stockInfo?.total_count ?? 0;
-//     const available_count = stockInfo?.available_count ?? 0;
-//     const statusColor = available_count > 0 ? 'text-green-400' : 'text-red-400';
-//     const statusText = available_count > 0 ? '대출가능' : '대출불가';
-
-//     return (
-//         <div className="flex justify-between items-center">
-//             <span>{libraryName}:</span>
-//             <div className="flex items-center gap-2">
-//                 <a
-//                     href={searchUrl}
-//                     target="_blank"
-//                     rel="noopener noreferrer"
-//                     onClick={(e) => e.stopPropagation()}
-//                     className={`font-medium ${statusColor} hover:text-blue-400 hover:underline cursor-pointer transition-colors`}
-//                     title={`${libraryName}에서 '${subject}' 검색 | ${statusText} (총 ${total_count}권, 대출가능 ${available_count}권)${hasError ? ' - 현재 정보 갱신 실패' : ''}`}
-//                 >
-//                     {total_count} / {available_count}
-//                 </a>
-//                 {/* 에러가 있을 때만 (에러) 텍스트 추가 */}
-//                 {hasError && <span className="font-medium text-red-400" title="정보 갱신에 실패했습니다. 표시된 정보는 과거 데이터일 수 있습니다.">(에러)</span>}
-//             </div>
-//         </div>
-//     );
-// };
-
 // 도서관 재고 외 상세 모달
 const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ bookId, onClose }) => {
-    const { getBookById, updateReadStatus, updateRating, refreshingIsbn, refreshingEbookId, refreshBookInfo: refreshAllBookInfo, addTagToBook, removeTagFromBook, setAuthorFilter, updateBookNote,updateCustomSearchTitle} = useBookStore();
+
+    const { openJsonViewerModal } = useUIStore();
+    const { getBookById, updateReadStatus, updateRating, refreshingIsbn, refreshingEbookId, refreshBookInfo: refreshAllBookInfo, addTagToBook, removeTagFromBook, setAuthorFilter, updateBookNote, updateCustomSearchTitle, fetchRawBookData} = useBookStore();
 
     // [핵심 1] useBookStore에서 업데이트된 책 정보를 실시간으로 구독합니다.
     const updatedBookFromStore = useBookStore(state => {
@@ -335,6 +305,21 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
     const [book, setBook] = useState<SelectedBook | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    // [추가] ✅ JSON 뷰어 모달 관련 상태를 부모로 이동
+    const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
+    const [rawBookData, setRawBookData] = useState<object | null>(null);
+    const [isFetchingJson, setIsFetchingJson] = useState(false);
+
+    // [수정] ✅ API 버튼 클릭 핸들러 (UI 스토어 액션 호출)
+    const handleApiButtonClick = async () => {
+      if (!book) return;
+      setIsFetchingJson(true);
+      const data = await fetchRawBookData(book.id);
+      if (data) {
+        openJsonViewerModal(data, `[${book.id}] ${book.title}`);
+      }
+      setIsFetchingJson(false);
+    };
 
     // [수정] bookId가 변경될 때마다 데이터를 가져오는 useEffect
     useEffect(() => {
@@ -506,6 +491,7 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                             <AuthorButtons
                             authorString={book.author}
                             onAuthorClick={handleAuthorClick}
+                            isFetchingJson={isFetchingJson}
                             className="text-blue-400 hover:text-blue-300 hover:underline cursor-pointer transition-colors"
                             />
                         </p>
@@ -758,7 +744,13 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                         {/* 오른쪽 컬럼: 도서관 재고 정보 */}
                         {hasRightContent && (
                             <div className="space-y-6">
-                                <LibraryStockSection book={book} />
+                                {/* <LibraryStockSection book={book} /> */}
+                                {/* [수정] ✅ 자식 컴포넌트에 상태와 핸들러를 props로 전달 */}
+                                <LibraryStockSection 
+                                    book={book} 
+                                    onApiButtonClick={handleApiButtonClick}
+                                    isFetchingJson={isFetchingJson}
+                                />
                             </div>
                         )}
                     </div>

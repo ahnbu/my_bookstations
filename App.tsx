@@ -18,8 +18,9 @@ import KeywordSearchModal from './components/KeywordSearchModal';
 import Notification from './components/Notification';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
-import { addHomeResetListener } from './utils/events';
+import JsonViewerModal from './components/JsonViewerModal'; // [추가]
 
+import { addHomeResetListener } from './utils/events';
 import { useUIStore } from './stores/useUIStore';
 import { useAuthStore } from './stores/useAuthStore';
 import { useBookStore } from './stores/useBookStore';
@@ -120,6 +121,7 @@ const App: React.FC = () => {
         <SettingsModal />
 
         <FeedbackModal />
+
       </main>
       <Footer />
 
@@ -128,6 +130,9 @@ const App: React.FC = () => {
 
       {/* 키워드 검색 모달 */}
       <KeywordSearchModal />
+      
+      {/* 책상세 > API 모달 */}
+      <JsonViewerModal /> 
 
       {/* 전역 상세 모달 */}
       {selectedBookIdForDetail && (

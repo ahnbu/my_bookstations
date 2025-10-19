@@ -106,6 +106,8 @@ interface BookState {
   lastSearchQuery: string;
   lastSearchType: string;
 
+  fetchRawBookData: (id: number) => Promise<BookData | null>; // 책상세>API book_data 조회
+
   // Bulk refresh state
   bulkRefreshState: {
     isRunning: boolean;
@@ -201,6 +203,29 @@ export const useBookStore = create<BookState>(
         current: 0,
         total: 0,
         failed: [],
+      },
+
+      // [추가] 책상세>API book_data 조회
+      fetchRawBookData: async (id: number) => {
+        const { session } = useAuthStore.getState();
+        if (!session) return null;
+
+        try {
+          const { data, error } = await supabase
+            .from('user_library')
+            .select('book_data')
+            .eq('id', id)
+            .single();
+
+          if (error) throw error;
+          
+          return data?.book_data || null;
+
+        } catch (error) {
+          console.error(`Error fetching raw book data for id ${id}:`, error);
+          useUIStore.getState().setNotification({ message: 'API 원본 데이터를 불러오는 데 실패했습니다.', type: 'error' });
+          return null;
+        }
       },
 
       // [추가] ID로 단일 책 조회 함수
