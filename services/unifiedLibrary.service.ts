@@ -15,7 +15,8 @@ import {
   GwangjuPaperResult,
   GwangjuPaperError,
   GyeonggiEbookError,
-  SiripEbookError
+  SiripEbookError,
+  LibraryName
 } from '../types';
 
 // 개발/프로덕션 환경에 따른 API 엔드포인트 설정
