@@ -1,14 +1,24 @@
-
-
-
-
 ### 요청 URL
 https://lib.goe.go.kr/elib/module/elib/search/index.do?menu_idx=94&search_text=%EA%B0%95%EC%9B%90%EA%B5%AD&library_code=10000004&libraryCode=10000004&sortField=book_pubdt&sortType=desc&rowCount=50
 
-### 저자위치 코드
+
+### 제목, 출간연도, 저자, 출판사, ISBN 위치 코드
+
+(풀 xpath 경로)
+/html/body/div[1]/div[2]/div[2]/div[2]/div/div[2]/div/form[2]/div/div[3]/div/div[2]/div[1]/div[3]/a
+
+(위치코드)
+<a href="#showSlide" class="btn btn2 selectBook" keyvalue="일 잘하는 사람은 1페이지로 생각합니다 : 시간은 줄여주고 효율은 높여주는 일잘러들의 1페이지 사고법///2023///하세가와 신 저/조사연 역///한즈미디어///9791160079500///108301///https://elib.goe.go.kr:8231/images/bookimg/423294111.jpg///EBK///0///0///0"><span>선택하기</span></a>
+
+(정보) - 제목과 ISBN 코드 추출 위치
+keyvalue = "{제목}///{출간연도}///{저자}///{출판사}///{ISBN}...."
+
+
+### 저자위치 코드 (참고)
 
 /html/body/div/div[2]/div[2]/div[2]/div/div[2]/div/form[2]/div/div[3]/div/div[2]/div[1]/div[2]/div/div/p/span[1]
 <span style="color:#ffa651">강원국</span>
+
 
 ### 전체 응답 HTML코드
 
