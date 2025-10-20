@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState} from 'react';
+import React, { useEffect, useState, useCallback} from 'react';
 import { ReadStatus, StockInfo, CustomTag, SelectedBook,  GwangjuPaperResult, GwangjuPaperError, GyeonggiEbookResult
 } from '../types';
 import { useBookStore } from '../stores/useBookStore';
@@ -10,11 +10,9 @@ import Spinner from './Spinner';
 import StarRating from './StarRating';
 import CustomTagComponent from './CustomTag';
 import AuthorButtons from './AuthorButtons';
-import { 
-  createOptimalSearchTitle,
-  createLibraryOpenURL
-} from '../services/unifiedLibrary.service';
-// import JsonViewerModal from './JsonViewerModal'; // [추가] JsonViewerModal import
+import { createOptimalSearchTitle, createLibraryOpenURL, fetchBookAvailability} from '../services/unifiedLibrary.service';
+import { searchAladinBooks } from '../services/aladin.service';
+import { combineRawApiResults } from '../utils/bookDataCombiner';
 
 // 제목 가공 함수 (3단어, 괄호 등 제거 후)
 const createSearchSubject = createOptimalSearchTitle;
@@ -309,16 +307,53 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
     const [isFetchingJson, setIsFetchingJson] = useState(false);
 
     // [수정] ✅ API 버튼 클릭 핸들러 (UI 스토어 액션 호출)
+    // const handleApiButtonClick = async () => {
+    //   if (!book) return;
+    //   setIsFetchingJson(true);
+    //   const data = await fetchRawBookData(book.id);
+    //   if (data) {
+    //     openJsonViewerModal(data, `[${book.id}] ${book.title}`);
+    //   }
+    //   setIsFetchingJson(false);
+    // };
+
+    // ✅ [수정] handleApiButtonClick 함수
     const handleApiButtonClick = async () => {
       if (!book) return;
       setIsFetchingJson(true);
-      const data = await fetchRawBookData(book.id);
-      if (data) {
-        openJsonViewerModal(data, `[${book.id}] ${book.title}`);
-      }
-      setIsFetchingJson(false);
-    };
 
+      try {
+        // 1. 실시간으로 API 호출
+        const libraryPromise = fetchBookAvailability(book.isbn13, book.title, book.customSearchTitle);
+        const aladinPromise = searchAladinBooks(book.isbn13, 'ISBN');
+        const [libraryResult, aladinResult] = await Promise.allSettled([libraryPromise, aladinPromise]);
+
+        if (libraryResult.status === 'rejected') {
+          throw libraryResult.reason;
+        }
+
+        const aladinBookData = aladinResult.status === 'fulfilled'
+          ? aladinResult.value.find(b => b.isbn13 === book.isbn13) || null
+          : null;
+
+        if (!aladinBookData) {
+          throw new Error("실시간 알라딘 정보를 가져올 수 없습니다.");
+        }
+
+        // 2. "순수 API 정보 객체" 생성
+        const pureApiData = combineRawApiResults(aladinBookData, libraryResult.value);
+
+        // 3. 생성된 객체를 JsonViewerModal로 전달
+        openJsonViewerModal(pureApiData, `[API] ${book.title}`);
+
+      } catch (error) {
+        console.error("API 조합 데이터 생성 실패:", error);
+        const errorData = { error: error instanceof Error ? error.message : String(error) };
+        openJsonViewerModal(errorData, `[API 호출 실패] ${book.title}`);
+      } finally {
+        setIsFetchingJson(false);
+      }
+    };
     // [수정] bookId가 변경될 때마다 데이터를 가져오는 useEffect
     useEffect(() => {
         const fetchBook = async () => {

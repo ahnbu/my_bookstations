@@ -5,6 +5,7 @@ import Spinner from './Spinner';
 import { fetchBookAvailability, processGyeonggiEbookEduTitle  } from '../services/unifiedLibrary.service';
 import { searchAladinBooks } from '../services/aladin.service';
 import APITestBookSearchModal from './APITestBookSearchModal';
+import { combineRawApiResults } from '../utils/bookDataCombiner'; // ✅ [추가]
 
 type TestType = 'combined';
 
@@ -18,6 +19,9 @@ const APITestContent: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   
+  // ✅ [추가] 조합된 결과를 저장할 상태
+  const [combinedResult, setCombinedResult] = useState<object | null>(null);
+
   // API 테스트 전용 검색 상태
   const [apiSearchResults, setApiSearchResults] = useState<AladdinBookItem[]>([]);
   const [apiSelectedBook, setApiSelectedBook] = useState<AladdinBookItem | null>(null);
@@ -87,19 +91,67 @@ const APITestContent: React.FC = () => {
     }
   }, [apiSelectedBook]);
 
+  // const runApiTest = async (testIsbn: string, testTitle: string) => {
+  //   if (!testIsbn.trim() || !testTitle.trim()) {
+  //     setError('ISBN과 도서 제목을 모두 입력해주세요.');
+  //     return;
+  //   }
+
+  //   setIsLoading(true);
+  //   setFullApiResult(null);
+  //   setError(null);
+
+  //   try {
+  //     const data = await fetchBookAvailability(testIsbn.trim(), testTitle.trim());
+  //     setFullApiResult(data);
+  //   } catch (err) {
+  //     if (err instanceof Error) {
+  //       setError(err.message);
+  //     } else {
+  //       setError('알 수 없는 오류가 발생했습니다.');
+  //     }
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
+  // ✅ [수정] runApiTest 함수
   const runApiTest = async (testIsbn: string, testTitle: string) => {
-    if (!testIsbn.trim() || !testTitle.trim()) {
+    if (!testIsbn?.trim() || !testTitle?.trim()) {
       setError('ISBN과 도서 제목을 모두 입력해주세요.');
       return;
     }
-
     setIsLoading(true);
     setFullApiResult(null);
+    setAladinResult(null);
+    setCombinedResult(null); // 조합 결과 초기화
     setError(null);
 
     try {
-      const data = await fetchBookAvailability(testIsbn.trim(), testTitle.trim());
-      setFullApiResult(data);
+      const libraryPromise = fetchBookAvailability(testIsbn.trim(), testTitle.trim());
+      const aladinPromise = searchAladinBooks(testIsbn.trim(), 'ISBN');
+      const [libraryResult, aladinResultSettled] = await Promise.allSettled([libraryPromise, aladinPromise]);
+
+      if (libraryResult.status === 'rejected') {
+        throw libraryResult.reason;
+      }
+      const libraryData = libraryResult.value;
+      const aladinBookData = aladinResultSettled.status === 'fulfilled'
+        ? aladinResultSettled.value.find(b => b.isbn13 === testIsbn.trim()) || null
+        : null;
+
+      // 원본 API 결과들을 상태에 저장 (참고용)
+      setFullApiResult(libraryData);
+      setAladinResult(aladinBookData);
+
+      // "순수 API 조합 결과" 생성 및 저장
+      if (aladinBookData) {
+        const pureApiData = combineRawApiResults(aladinBookData, libraryData);
+        setCombinedResult(pureApiData);
+      } else {
+        throw new Error("알라딘에서 도서 정보를 찾을 수 없습니다.");
+      }
+
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -266,7 +318,25 @@ const APITestContent: React.FC = () => {
           </div>
         )}
 
-        {/* Aladin API Results */}
+        {/* 1. 조합된 최종 결과 (가장 위에) */}
+        {combinedResult && (
+          <div className="bg-gray-900/50 rounded-lg p-4 border border-blue-500">
+            <div className="flex justify-between items-center mb-2">
+              <h4 className="font-bold text-blue-400 flex items-center">
+                <BookIcon className="w-5 h-5 mr-2" />
+                💾 알라딘 API + 도서재고 API
+              </h4>
+              <button onClick={() => copyToClipboard(JSON.stringify(combinedResult, null, 2), '조합 결과')} className="p-2 text-gray-400 hover:text-white rounded-full hover:bg-gray-700 transition-colors" title="결과 복사하기">
+                <CopyIcon className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="bg-gray-800 rounded p-3 font-mono text-sm text-gray-300 overflow-auto max-h-96">
+              <pre className="whitespace-pre-wrap break-all">{JSON.stringify(combinedResult, null, 2)}</pre>
+            </div>
+          </div>
+        )}
+
+        {/* 2. 알라딘 API 결과 (참고용) */}
         {aladinResult && (
           <div className="bg-gray-900/50 rounded-lg p-4">
             <div className="flex justify-between items-center mb-2">
@@ -288,7 +358,7 @@ const APITestContent: React.FC = () => {
           </div>
         )}
 
-        {/* Unified Library Results */}
+        {/* 3. 도서관 재고 결과 (참고용) */}
         {fullApiResult && (
           <div className="bg-gray-900/50 rounded-lg p-4">
             <div className="flex justify-between items-center mb-2">

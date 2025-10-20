@@ -268,6 +268,74 @@ const searchUrl = createLibraryOpenURL("e경기", book.title, book.customSearchT
 
 ---
 
+
+## 💾 데이터 흐름 및 처리 (Data Flow & Processing)
+
+`useBookStore`가 API 응답을 받아 DB에 저장하는 과정은 단순한 데이터 저장을 넘어, 화면 표시에 최적화된 형태로 데이터를 가공하는 중요한 파이프라인을 포함합니다. 이 핵심 로직은 `utils/bookDataCombiner.ts` 파일의 두 가지 유틸리티 함수를 통해 관리됩니다.
+
+### 데이터 조합 함수의 역할 분리
+
+우리 애플리케이션은 두 가지 목적을 위해 API 응답을 조합합니다.
+
+1.  **데이터 확인 (Debugging & Verification)**: 개발자나 사용자가 시스템이 API로부터 받은 원본 데이터를 그대로 확인해야 할 때.
+2.  **데이터 저장 및 표시 (Storage & Display)**: 화면 컴포넌트에서 사용하기 편리하도록 데이터를 가공하고 요약하여 DB에 저장하거나 UI에 렌더링해야 할 때.
+
+이 두 가지 상이한 목적을 달성하기 위해, 두 개의 분리된 함수를 사용합니다.
+
+#### 1. `combineRawApiResults` (데이터 확인용)
+
+-   **역할**: 알라딘 API와 도서관 API의 응답을 **가공 없이 그대로 병합**합니다.
+-   **목적**: API 테스트 모달이나 상세 정보의 'API 보기' 기능에서 시스템이 수신한 원본(Raw) 데이터를 투명하게 보여주기 위함입니다.
+-   **구조**:
+    ```json
+    {
+      "_source_aladin_api": { ... }, // 알라딘 API 원본
+      "_source_library_api": { ... }  // 도서관 API 원본
+    }
+    ```
+-   **주요 사용처**: `APITestContent.tsx`, `MyLibraryBookDetailModal.tsx`
+
+#### 2. `combineApiResults` (DB 저장 및 화면 표시용)
+
+-   **역할**: 두 API 응답을 조합하여 화면 표시에 최적화된 **"순수 API 데이터 객체"를 생성**합니다.
+-   **목적**: `useBookStore`의 `refreshBookInfo` 함수에서 DB에 저장할 `book_data`의 API 정보 부분을 구성하기 위함입니다.
+-   **주요 가공 로직 (CRUD)**:
+    -   **(Create)** `toechonStock`, `otherStock`, `ebookInfo`, `filteredGyeonggiEbookInfo` 등 요약/파생 데이터를 생성합니다.
+    -   **(Read/Copy)** `gwangjuPaperInfo` 등 원본 정보를 그대로 복사합니다.
+    -   **(Update/Rename)** `gyeonggi_ebook_library`를 `gyeonggiEbookInfo`로 키 이름을 변경하는 등 데이터 구조를 재구성합니다.
+    -   **(Delete)** 불필요하거나 중복되는 최상위 키(`title`, `isbn` 등)를 제거합니다.
+-   **주요 사용처**: `useBookStore.ts` 내 `refreshBookInfo` 함수
+
+### 데이터 처리 파이프라인 요약
+
+```mermaid
+graph TD
+    subgraph "API Calls"
+        A[Aladin API]
+        L[Library API]
+    end
+
+    subgraph "Data Combiner (utils)"
+        CR[combineRawApiResults]
+        CP[combineApiResults]
+    end
+
+    subgraph "Application"
+        UI[UI Components <br>(APITest, DetailModal)]
+        STORE[useBookStore <br>(refreshBookInfo)]
+        DB[(Supabase DB <br> book_data)]
+    end
+
+    A --> CR
+    L --> CR
+    CR -- "Raw Data" --> UI
+
+    A --> CP
+    L --> CP
+    CP -- "Processed Data" --> STORE
+    STORE -- "Merge with User Data" --> DB
+
+
 ## 🐛 트러블슈팅 가이드
 
 ### 경기도 광주시 퇴촌도서관 상세페이지 웹 방화벽 차단
