@@ -1,13 +1,13 @@
 
 import { create } from 'zustand';
 import { supabase } from '../lib/supabaseClient';
-import { AladdinBookItem, SelectedBook, SortKey, ReadStatus, BookData, Json, EBookInfo, StockInfo } from '../types';
+import { AladdinBookItem, SelectedBook, SortKey, ReadStatus, BookData, Json, EBookInfo, StockInfo, GwangjuPaperResult, GyeonggiEduEbookError, GyeonggiEbookResult } from '../types';
 import { searchAladinBooks } from '../services/aladin.service';
 import { filterGyeonggiEbookByIsbn } from '../utils/isbnMatcher';
 import { useUIStore } from './useUIStore';
 import { useAuthStore } from './useAuthStore';
 import { useSettingsStore } from './useSettingsStore';
-import { fetchBookAvailability, GyeonggiEduEbookSummarize, GwangjuPaperResult, GyeonggiEduEbookError, GyeonggiEbookResult} from '../services/unifiedLibrary.service'; // GyeonggiEbookLibraryResult 임포트 추가
+import { fetchBookAvailability, GyeonggiEduEbookSummarize} from '../services/unifiedLibrary.service'; // GyeonggiEbookLibraryResult 임포트 추가
 
 /**
  * 특정 책의 데이터를 업데이트하고, 로컬 상태와 Supabase DB를 동기화하는 헬퍼 함수

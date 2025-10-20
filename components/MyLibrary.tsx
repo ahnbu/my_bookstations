@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
-import { SelectedBook, SortKey, ReadStatus, CustomTag } from '../types';
+import { SelectedBook, SortKey, ReadStatus, CustomTag, LibraryName } from '../types';
 import { TrashIcon, RefreshIcon, CheckIcon, SearchIcon, CloseIcon, HeartIcon, MessageSquareIcon } from './Icons';
 import Spinner from './Spinner';
 import { useBookStore } from '../stores/useBookStore';
@@ -14,7 +14,6 @@ import { addHomeResetListener } from '../utils/events';
 import { 
     createLibraryOpenURL,
     processGyeonggiEbookEduTitle, // createOptimalSearchTitle 대신 이 함수를 import
-    type LibraryName // type 키워드를 사용하여 타입 전용 import임을 명시
 } from '../services/unifiedLibrary.service';
 
 // [핵심 수정] createSearchSubject 정의 변경

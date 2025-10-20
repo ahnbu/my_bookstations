@@ -3,7 +3,8 @@ import { useUIStore } from '../stores/useUIStore';
 import { CloseIcon, SearchIcon } from './Icons';
 import Spinner from './Spinner';
 // [추가] createLibraryOpenURL과 LibraryName 타입을 import
-import { createLibraryOpenURL, LibraryName } from '../services/unifiedLibrary.service';
+import { createLibraryOpenURL } from '../services/unifiedLibrary.service';
+import { LibraryName } from '../types';
 
 interface SearchResult {
   type: '종이책' | '전자책';

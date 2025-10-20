@@ -3,164 +3,20 @@
  * 경기광주 시립도서관(종이책) + 경기도교육청 성남/통합도서관(전자책)
  */
 
-export interface PaperBookAvailability {
-  소장도서관: string;
-  청구기호: string;
-  기본청구기호: string;
-  대출상태: '대출가능' | '대출불가';
-  반납예정일: string;
-  // 퇴촌도서관 상세 페이지 링크용 파라미터 (대출가능 상태일 때만)
-  recKey?: string;
-  bookKey?: string;
-  publishFormCode?: string;
-}
-
-export interface GyeonggiEduEbookList {
-  소장도서관: string;
-  도서명: string;
-  저자: string;
-  출판사: string;
-  발행일: string;
-  대출상태: '대출가능' | '대출불가';
-}
-
-export interface GyeonggiEduEbookError {
-  error: string;
-}
-
-export interface GwangjuPaperError {
-  error: string;
-}
-
-// 경기도 전자도서관 관련 타입 정의
-export interface GyeonggiEbookList {
-  type: '소장형' | '구독형';
-  title: string;
-  // status: '대출가능' | '대출불가';
-  available: boolean;
-  current_borrow?: number;
-  total_capacity?: number;
-  author?: string;
-  publisher?: string;
-  isbn?: string;
-  owner?: string;
-  reservable?: boolean;
-  reserve_count?: number;
-}
-
-export interface GyeonggiEbookResult {
-  library_name: string;
-  total_count: number;
-  available_count: number;
-  unavailable_count: number;
-  owned_count: number;
-  subscription_count: number;
-  book_list: GyeonggiEbookList[];
-}
-
-export interface GyeonggiEbookError {
-  error: string;
-}
-
-// 시립도서관 전자책 관련 타입 정의
-export interface SiripEbook {
-  type: '전자책';
-  title: string;
-  author: string;
-  publisher: string;
-  publish_date: string;
-  loan_status: string;
-  status: '대출가능' | '대출불가';
-  total_count: number;
-  available_count: number;
-  available: boolean;
-  library_name: string;
-}
-
-export interface SiripEbookResult {
-  library_name: string;
-  total_count: number;
-  available_count: number;
-  unavailable_count: number;
-  book_list: SiripEbook[];
-  // 새로운 통합 구조 지원
-  details?: {
-    owned: {
-      library_name: string;
-      total_count: number;
-      available_count: number;
-      unavailable_count: number;
-      book_list: SiripEbook[];
-      error?: string;
-    };
-    subscription: {
-      library_name: string;
-      total_count: number;
-      available_count: number;
-      unavailable_count: number;
-      book_list: SiripEbook[];
-      error?: string;
-    };
-  };
-  // 통합 결과 정보
-  sirip_ebook_summary?: {
-    library_name: string;
-    total_count: number;
-    available_count: number;
-    unavailable_count: number;
-    owned_count: number;
-    subscription_count: number;
-    search_query: string;
-  };
-}
-
-export interface SiripEbookError {
-  error: string;
-}
-
-// 광주시립도서관 종이책 추가
-export interface GwangjuPaperResult {
-  library_name: string,
-  summary_total_count: number;
-  summary_available_count: number;
-  toechon_total_count: number;
-  toechon_available_count: number;
-  other_total_count: number;
-  other_available_count: number;
-  book_title: string;
-  book_list: PaperBookAvailability[];
-}
-
-export interface LibraryApiResponse {
-  gwangju_paper: GwangjuPaperResult | GwangjuPaperError;
-  // gyeonggi_ebook_edu: (GyeonggiEduEbookList | GyeonggiEduEbookError)[]; // 배열타입
-  gyeonggi_ebook_edu: GyeonggiEduEbookResult | GyeonggiEduEbookError; // 객체 타입으로 변경
-  gyeonggi_ebook_library?: GyeonggiEbookResult | GyeonggiEbookError;
-  sirip_ebook?: SiripEbookResult | SiripEbookError;
-}
-
-// [추가] gyeonggi_ebook_edu의 새로운 객체 타입을 정의합니다.
-export interface GyeonggiEduEbookResult {
-  library_name: string;
-  total_count: number;
-  available_count: number;
-  unavailable_count: number;
-  seongnam_count: number;
-  tonghap_count: number;
-  error_count: number;
-  error_lib_detail?: string; // [수정] 선택적 필드로 error_lib_detail 추가
-  book_list: (GyeonggiEduEbookList | GyeonggiEduEbookError)[];
-}
-
-export interface GyeonggiEduEbookSummary {
-  total_count: number;
-  available_count: number;
-  unavailable_count: number;
-  seongnam_count: number;
-  tonghap_count: number;
-  error_count: number;
-  error_lib_detail?: string; // [수정] 선택적 필드 추가
-}
+// ✅ [추가] types.ts로부터 이 파일에서 사용하는 모든 타입을 import 합니다.
+import {
+  LibraryApiResponse,
+  PaperBookAvailability,
+  GyeonggiEduEbookList,
+  GyeonggiEduEbookError,
+  GyeonggiEduEbookSummary,
+  GyeonggiEbookResult,
+  SiripEbookResult,
+  GwangjuPaperResult,
+  GwangjuPaperError,
+  GyeonggiEbookError,
+  SiripEbookError
+} from '../types';
 
 // 개발/프로덕션 환경에 따른 API 엔드포인트 설정
 const isDevelopment = import.meta.env.MODE === 'development';
@@ -175,7 +31,6 @@ function debugLog(message: string, data?: any) {
     // console.log(`[UnifiedLibrary] ${message}`, data || ''); // 성능 개선을 위해 주석 처리
   }
 }
-
 
 /** 2차 개선 (2025.10.10)
  * [최종 개선안] 도서관 검색용 제목을 생성하는 통합 함수 (2단계 정제 전략)
@@ -224,14 +79,6 @@ export function processGyeonggiEbookTitle(title: string): string {
 export function processSiripEbookTitle(title: string): string {
   return createOptimalSearchTitle(title);
 }
-
-
-// services/unifiedLibrary.service.ts 파일
-
-// ... (기존 코드들)
-
-// [추가] 도서관별 바로가기 URL을 생성하는 통합 함수
-export type LibraryName = '퇴촌' | '기타' | 'e교육' | 'e시립구독' | 'e시립소장' | 'e경기';
 
 export function createLibraryOpenURL(
   libraryName: LibraryName, 

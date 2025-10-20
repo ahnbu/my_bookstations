@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { LibraryStockResponse, AladdinBookItem } from '../types';
+import { LibraryStockResponse, AladdinBookItem, LibraryApiResponse } from '../types';
 import { SearchIcon, AlertCircleIcon, BookIcon, CopyIcon } from './Icons';
 import Spinner from './Spinner';
-import { fetchBookAvailability, processGyeonggiEbookEduTitle, LibraryApiResponse } from '../services/unifiedLibrary.service';
+import { fetchBookAvailability, processGyeonggiEbookEduTitle  } from '../services/unifiedLibrary.service';
 import { searchAladinBooks } from '../services/aladin.service';
 import APITestBookSearchModal from './APITestBookSearchModal';
 

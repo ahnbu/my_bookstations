@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState} from 'react';
-import { ReadStatus, StockInfo, CustomTag, SelectedBook} from '../types';
+import { ReadStatus, StockInfo, CustomTag, SelectedBook,  GwangjuPaperResult, GwangjuPaperError, GyeonggiEbookResult
+} from '../types';
 import { useBookStore } from '../stores/useBookStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useUIStore } from '../stores/useUIStore'; // [추가]
@@ -10,9 +11,6 @@ import StarRating from './StarRating';
 import CustomTagComponent from './CustomTag';
 import AuthorButtons from './AuthorButtons';
 import { 
-  GwangjuPaperResult,
-  GwangjuPaperError,
-  GyeonggiEbookResult,
   createOptimalSearchTitle,
   createLibraryOpenURL
 } from '../services/unifiedLibrary.service';

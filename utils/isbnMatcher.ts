@@ -3,8 +3,7 @@
  * 경기도 전자도서관 크롤링 결과와 도서 ISBN을 비교하여 정확한 매칭을 수행
  */
 
-import { BookData } from '../types'
-import { GyeonggiEbookResult } from '../services/unifiedLibrary.service'
+import { BookData, GyeonggiEbookResult } from '../types'
 
 /**
  * ISBN을 정규화하는 함수 (하이픈 제거, 공백 제거)
