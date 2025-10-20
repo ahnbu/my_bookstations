@@ -1,0 +1,2861 @@
+### 개별 책(1번째) 코드 (xpath) /html/body/div[2]/div/div/div/form/section/div/ul/li[1]
+
+### 개별 책(1번째) 코드 
+
+
+<li>
+                          <div class="img">
+                          
+                          
+                          
+                            <a href="/content/contentView.ink" title="직장인의 글쓰기 | 광주시립중앙도서관(구독)" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '4801157064411', '031101', '1112490101', 'N','5'); event.preventDefault();">
+                            <img src="//dcontent.dkyobobook.co.kr/library/001/DRMContent/fed5/ebook/411/4801157064411/L4801157064411.jpg" alt="직장인의 글쓰기" onerror="this.src=CONTEXT_PATH+'/resources/common/images/L_NOBOOK.jpg'">
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onclick="javascript:searchList.fnContentPreview('N','001', '031101', '4801157064411','5'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          
+                          
+                          </div>
+
+                          <div>
+                            <p>
+                              
+                                
+                                
+                                
+                                
+                                
+                                
+                              
+                              
+                                <span class="small ebook">전자책</span>
+                              
+                              
+                                
+                                  <span class="store">교보문고</span>
+                                
+                              
+                              
+                            </p>
+                            
+                              
+                              
+                                <ul>
+                                  <li class="tit"><a href="/content/contentView.ink" title="직장인의 글쓰기 | 광주시립중앙도서관(구독)" onclick="javascript:searchList.fnContentClick(this, '001', '4801157064411', '031101', '1112490101', 'N', '5'); event.preventDefault();">직장인의 글쓰기</a></li>
+                                  <li class="writer">강원국<span>메디치미디어</span>2025-06-30</li>
+                                  <li class="txt">《회장님의 글쓰기》의 전면 개정판. 초판 출간 당시 직장인 글쓰기를 넘어 직장생활 전반에 대한 진심 어린 조언으로 사회초년생을 비롯해 팀장, 부장, 임원까지 열광했던 이 책이 드디어 내용에 어울리는 제목인 《직장인의 글쓰기》로 재탄생했다. 본문 디자인뿐 아니라 내용 또한 시대에 발맞추어 추가 및 수정·보완을 거친 완전판이다. 기업에서 17년, 청와대에서 8년, 도합 25년 동안 직장에서 글 쓰는 일을 해온 강원국 작가가 직장인을 위한 페이퍼 작성에 관한 완벽한 가이드를 제공한다. 
+회사에서는 글쓰기가 곧 일하기와 동의어다. 하지만 단순히 글만 잘 쓰면 아무짝에도 쓸모가 없다. 상사의 생각을 꿰뚫는 말과 글이 필수다. 상사의 생각을 꿰뚫기 위해서는 좋은 관계와 소통이 먼저다. 이 책에는 일잘러를 위한 회사 내 관계와 소통의 기술이 담겼다. 상사의 심리에서 시작해 소통으로 완성하는 직장 글쓰기 비법의 모든 것을 만날 수 있다. 
+저자는 직장 내 평화와 번영에 기여한다는 사명감으로 아</li>
+                                </ul>
+                                
+                                  
+                                  
+                                
+                              
+                            
+                          </div>
+                          <div class="btn_area">
+                            
+                              
+                              
+                            
+                            
+                              
+                              
+                              
+                                
+                                  
+                                  
+
+                                  
+                                  
+                                    
+                                      
+
+                                        
+
+                                        
+                                            <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onclick="javascript:searchList.fnContentBorrow('N', '', '24995', '', '4801157064411', '001', '직장인의 글쓰기','5', 'KB','1', '', event);"></span>
+                                        
+
+                                        
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                            <!-- 찜하기 -->
+                            
+                              
+                              
+                                
+                                  
+                                  
+                                  
+                                    
+                                      
+                                      
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onclick="javascript:searchList.fnDibs(this, '4801157064411','N');"></span>
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                          </div>
+                        </li>
+
+
+### 책리스트 (5권) 코드
+
+<ul class="book_resultList">
+                      
+                        <li>
+                          <div class="img">
+                          
+                          
+                          
+                            <a href="/content/contentView.ink" title="직장인의 글쓰기 | 광주시립중앙도서관(구독)" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '4801157064411', '031101', '1112490101', 'N','5'); event.preventDefault();">
+                            <img src="//dcontent.dkyobobook.co.kr/library/001/DRMContent/fed5/ebook/411/4801157064411/L4801157064411.jpg" alt="직장인의 글쓰기" onerror="this.src=CONTEXT_PATH+'/resources/common/images/L_NOBOOK.jpg'">
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onclick="javascript:searchList.fnContentPreview('N','001', '031101', '4801157064411','5'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          
+                          
+                          </div>
+
+                          <div>
+                            <p>
+                              
+                                
+                                
+                                
+                                
+                                
+                                
+                              
+                              
+                                <span class="small ebook">전자책</span>
+                              
+                              
+                                
+                                  <span class="store">교보문고</span>
+                                
+                              
+                              
+                            </p>
+                            
+                              
+                              
+                                <ul>
+                                  <li class="tit"><a href="/content/contentView.ink" title="직장인의 글쓰기 | 광주시립중앙도서관(구독)" onclick="javascript:searchList.fnContentClick(this, '001', '4801157064411', '031101', '1112490101', 'N', '5'); event.preventDefault();">직장인의 글쓰기</a></li>
+                                  <li class="writer">강원국<span>메디치미디어</span>2025-06-30</li>
+                                  <li class="txt">《회장님의 글쓰기》의 전면 개정판. 초판 출간 당시 직장인 글쓰기를 넘어 직장생활 전반에 대한 진심 어린 조언으로 사회초년생을 비롯해 팀장, 부장, 임원까지 열광했던 이 책이 드디어 내용에 어울리는 제목인 《직장인의 글쓰기》로 재탄생했다. 본문 디자인뿐 아니라 내용 또한 시대에 발맞추어 추가 및 수정·보완을 거친 완전판이다. 기업에서 17년, 청와대에서 8년, 도합 25년 동안 직장에서 글 쓰는 일을 해온 강원국 작가가 직장인을 위한 페이퍼 작성에 관한 완벽한 가이드를 제공한다. 
+회사에서는 글쓰기가 곧 일하기와 동의어다. 하지만 단순히 글만 잘 쓰면 아무짝에도 쓸모가 없다. 상사의 생각을 꿰뚫는 말과 글이 필수다. 상사의 생각을 꿰뚫기 위해서는 좋은 관계와 소통이 먼저다. 이 책에는 일잘러를 위한 회사 내 관계와 소통의 기술이 담겼다. 상사의 심리에서 시작해 소통으로 완성하는 직장 글쓰기 비법의 모든 것을 만날 수 있다. 
+저자는 직장 내 평화와 번영에 기여한다는 사명감으로 아</li>
+                                </ul>
+                                
+                                  
+                                  
+                                
+                              
+                            
+                          </div>
+                          <div class="btn_area">
+                            
+                              
+                              
+                            
+                            
+                              
+                              
+                              
+                                
+                                  
+                                  
+
+                                  
+                                  
+                                    
+                                      
+
+                                        
+
+                                        
+                                            <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onclick="javascript:searchList.fnContentBorrow('N', '', '24995', '', '4801157064411', '001', '직장인의 글쓰기','5', 'KB','1', '', event);"></span>
+                                        
+
+                                        
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                            <!-- 찜하기 -->
+                            
+                              
+                              
+                                
+                                  
+                                  
+                                  
+                                    
+                                      
+                                      
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onclick="javascript:searchList.fnDibs(this, '4801157064411','N');"></span>
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                          </div>
+                        </li>
+                      
+                        <li>
+                          <div class="img">
+                          
+                          
+                          
+                            <a href="/content/contentView.ink" title="대통령의 글쓰기(10주년 기념 스페셜 에디션) | 광주시립중앙도서관(구독)" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '4801157063483', '0719', '1112490101', 'N','5'); event.preventDefault();">
+                            <img src="//dcontent.dkyobobook.co.kr/library/001/DRMContent/fed5/ebook/483/4801157063483/L4801157063483.jpg" alt="대통령의 글쓰기(10주년 기념 스페셜 에디션)" onerror="this.src=CONTEXT_PATH+'/resources/common/images/L_NOBOOK.jpg'">
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onclick="javascript:searchList.fnContentPreview('N','001', '0719', '4801157063483','5'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          
+                          
+                          </div>
+
+                          <div>
+                            <p>
+                              
+                                
+                                
+                                
+                                
+                                
+                                
+                              
+                              
+                                <span class="small ebook">전자책</span>
+                              
+                              
+                                
+                                  <span class="store">교보문고</span>
+                                
+                              
+                              
+                            </p>
+                            
+                              
+                              
+                                <ul>
+                                  <li class="tit"><a href="/content/contentView.ink" title="대통령의 글쓰기(10주년 기념 스페셜 에디션) | 광주시립중앙도서관(구독)" onclick="javascript:searchList.fnContentClick(this, '001', '4801157063483', '0719', '1112490101', 'N', '5'); event.preventDefault();">대통령의 글쓰기(10주년 기념 스페셜 에디션)</a></li>
+                                  <li class="writer">강원국<span>메디치미디어</span>2024-04-17</li>
+                                  <li class="txt">강원국 작가의 인생 첫 책 《대통령의 글쓰기》가 50만 부 돌파와 더불어 출간 10주년을 맞아 스페셜 에디션으로 독자들을 새롭게 찾아왔다.  
+
+청와대 연설비서관으로 8년간 근무하면서 대한민국 최고의 연설가였던 김대중, 노무현 두 대통령에게 민주주의 시대 소통의 방법론을 배운 강원국 작가. 《대통령의 글쓰기》에는 그가 두 대통령에게 배운 사람의 마음을 움직이는 글쓰기 비법뿐 아니라 국민과 소통하고자 노력해온 김대중, 노무현 두 대통령의 말과 글을 대하는 태도와 진심이 담겨 있다.  
+
+이번 10주년 기념 스페셜 에디션에서는 김대중, 노무현 대통령을 직접 경험하지 못한 젊은 독자를 위해 일부 내용을 다듬었다. 강원국 작가의 애정 어린 시선으로 포착해낸 두 대통령의 관찰 기록이 이제는 역사 속 인물이 되어버린 두 분을 우리 곁으로 다시금 소환한다.</li>
+                                </ul>
+                                
+                                  
+                                  
+                                
+                              
+                            
+                          </div>
+                          <div class="btn_area">
+                            
+                              
+                              
+                            
+                            
+                              
+                              
+                              
+                                
+                                  
+                                  
+
+                                  
+                                  
+                                    
+                                      
+
+                                        
+
+                                        
+                                            <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onclick="javascript:searchList.fnContentBorrow('N', '', '24995', '', '4801157063483', '001', '대통령의 글쓰기(10주년 기념 스페셜 에디션)','5', 'KB','1', '', event);"></span>
+                                        
+
+                                        
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                            <!-- 찜하기 -->
+                            
+                              
+                              
+                                
+                                  
+                                  
+                                  
+                                    
+                                      
+                                      
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onclick="javascript:searchList.fnDibs(this, '4801157063483','N');"></span>
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                          </div>
+                        </li>
+                      
+                        <li>
+                          <div class="img">
+                          
+                          
+                          
+                            <a href="/content/contentView.ink" title="강원국 x 김민식 말하기의 태도 | 광주시립중앙도서관(구독)" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '4801193540030', '0303', '1112490101', 'N','5'); event.preventDefault();">
+                            <img src="//dcontent.dkyobobook.co.kr/library/001/DRMContent/fed5/ebook/030/4801193540030/L4801193540030.jpg" alt="강원국 x 김민식 말하기의 태도" onerror="this.src=CONTEXT_PATH+'/resources/common/images/L_NOBOOK.jpg'">
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onclick="javascript:searchList.fnContentPreview('N','001', '0303', '4801193540030','5'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          
+                          
+                          </div>
+
+                          <div>
+                            <p>
+                              
+                                
+                                
+                                
+                                
+                                
+                                
+                              
+                              
+                                <span class="small ebook">전자책</span>
+                              
+                              
+                                
+                                  <span class="store">교보문고</span>
+                                
+                              
+                              
+                            </p>
+                            
+                              
+                              
+                                <ul>
+                                  <li class="tit"><a href="/content/contentView.ink" title="강원국 x 김민식 말하기의 태도 | 광주시립중앙도서관(구독)" onclick="javascript:searchList.fnContentClick(this, '001', '4801193540030', '0303', '1112490101', 'N', '5'); event.preventDefault();">강원국 x 김민식 말하기의 태도</a></li>
+                                  <li class="writer">강원국<span>테라코타</span>2024-01-31</li>
+                                  <li class="txt">대화의 고수 강원국, 김민식이 알려 주는
+말 잘하는 사람들의 비밀 
+
+리더들의 말과 글을 쓰고 다듬으며 소통의 본질을 배운 강원국, 드라마 PD로 작가, 배우, 스태프의 말에 귀 기울이며 경청을 배운 김민식, 이 두 사람은 각 분야 명사들을 인터뷰하거나 드라마 PD와 강연자로 만나 온 사람들 중 대화와 소통에 능한 사람들의 공통점은 무엇인지, 그들은 어떻게 말하는가에 관해 이야기를 나누었다. 두 사람은 입을 모아 그들은 말하기의 태도가 달랐다고 강조한다. 그렇다면 말하기의 태도는 어떠해야 할까. 태도는 말을 대하는 마음가짐에서 출발한다. 자신과 타인을 존중하고 배려하는 마음을 가진 사람은 상대의 마음 문을 열고, 긍정의 말을 아끼지 않는다. 마음가짐은 말을 중요하게 여기고 타인을 대하는 자세에 반영된다.
+
+이 책은 ‘어떻게 하면 말을 더 잘할 수 있을까’에 대해 함께 고민과 대화를 나눈 결과물이다. 누구에게나 신뢰와 호감을 주는 말하기의 태도, 마음과 귀를 여는 듣기와 말하</li>
+                                </ul>
+                                
+                                  
+                                  
+                                
+                              
+                            
+                          </div>
+                          <div class="btn_area">
+                            
+                              
+                              
+                            
+                            
+                              
+                              
+                              
+                                
+                                  
+                                  
+
+                                  
+                                  
+                                    
+                                      
+
+                                        
+
+                                        
+                                            <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onclick="javascript:searchList.fnContentBorrow('N', '', '24995', '', '4801193540030', '001', '강원국 x 김민식 말하기의 태도','5', 'KB','1', '', event);"></span>
+                                        
+
+                                        
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                            <!-- 찜하기 -->
+                            
+                              
+                              
+                                
+                                  
+                                  
+                                  
+                                    
+                                      
+                                      
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onclick="javascript:searchList.fnDibs(this, '4801193540030','N');"></span>
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                          </div>
+                        </li>
+                      
+                        <li>
+                          <div class="img">
+                          
+                          
+                          
+                            <a href="/content/contentView.ink" title="강원국의 글쓰기 | 광주시립중앙도서관(구독)" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '4801157061267', '0719', '1112490101', 'N','5'); event.preventDefault();">
+                            <img src="//dcontent.dkyobobook.co.kr/library/001/DRMContent/fed5/ebook/267/4801157061267/L4801157061267.jpg" alt="강원국의 글쓰기" onerror="this.src=CONTEXT_PATH+'/resources/common/images/L_NOBOOK.jpg'">
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onclick="javascript:searchList.fnContentPreview('N','001', '0719', '4801157061267','5'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          
+                          
+                          </div>
+
+                          <div>
+                            <p>
+                              
+                                
+                                
+                                
+                                
+                                
+                                
+                              
+                              
+                                <span class="small ebook">전자책</span>
+                              
+                              
+                                
+                                  <span class="store">교보문고</span>
+                                
+                              
+                              
+                            </p>
+                            
+                              
+                              
+                                <ul>
+                                  <li class="tit"><a href="/content/contentView.ink" title="강원국의 글쓰기 | 광주시립중앙도서관(구독)" onclick="javascript:searchList.fnContentClick(this, '001', '4801157061267', '0719', '1112490101', 'N', '5'); event.preventDefault();">강원국의 글쓰기</a></li>
+                                  <li class="writer">강원국<span>메디치미디어</span>2018-07-09</li>
+                                  <li class="txt">두 대통령과 기업 리더들에게서 직접 보고 듣고 배운 말과 글 그리고 소통에 관하여 이야기한 《대통령의 글쓰기》와 《회장님의 글쓰기》를 잇는 강원국의 「글쓰기 3부작」의 결정판 『강원국의 글쓰기』. 28년간 암중모색과 고군분투 과정을 거쳐 얻은 글쓰기 노하우를 담은 책으로, 글쓰기를 두려워하는 모든 이들에게 마음만 먹으면 누구도 쓸 수 있다는 자신감을 북돋아준다.
+
+글을 잘 쓰기 위해 마음 상태를 어떻게 다스려야 하는지, 글을 쓰기 위해서는 어떤 준비가 필요하며 글쓰기 기본기는 어떻게 갖춰야 하는지, 실제로 글을 어떻게 써야하고 글을 잘 쓰기 위한 주변 여건과 환경은 어떠해야 하는지 모두 5장으로 나누어 자세하게 알려준다. 이를 통해 결국 남과 다른 나만의 글을 쓰기 위해서는 그 어떤 훌륭한 글쓰기 방법보다 내가 나로서 나답게 사는 게 중요하다는 것을 일깨워주고자 한다.</li>
+                                </ul>
+                                
+                                  
+                                  
+                                
+                              
+                            
+                          </div>
+                          <div class="btn_area">
+                            
+                              
+                              
+                            
+                            
+                              
+                              
+                              
+                                
+                                  
+                                  
+
+                                  
+                                  
+                                    
+                                      
+
+                                        
+
+                                        
+                                            <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onclick="javascript:searchList.fnContentBorrow('N', '', '24995', '', '4801157061267', '001', '강원국의 글쓰기','5', 'KB','1', '', event);"></span>
+                                        
+
+                                        
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                            <!-- 찜하기 -->
+                            
+                              
+                              
+                                
+                                  
+                                  
+                                  
+                                    
+                                      
+                                      
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onclick="javascript:searchList.fnDibs(this, '4801157061267','N');"></span>
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                          </div>
+                        </li>
+                      
+                        <li>
+                          <div class="img">
+                          
+                          
+                          
+                            <a href="/content/contentView.ink" title="회장님의 글쓰기 | 광주시립중앙도서관(구독)" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '4801157060222', '0307', '1112490101', 'N','5'); event.preventDefault();">
+                            <img src="//dcontent.dkyobobook.co.kr/library/001/DRMContent/fed5/ebook/222/4801157060222/L4801157060222.jpg" alt="회장님의 글쓰기" onerror="this.src=CONTEXT_PATH+'/resources/common/images/L_NOBOOK.jpg'">
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onclick="javascript:searchList.fnContentPreview('N','001', '0307', '4801157060222','5'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          
+                          
+                          </div>
+
+                          <div>
+                            <p>
+                              
+                                
+                                
+                                
+                                
+                                
+                                
+                              
+                              
+                                <span class="small ebook">전자책</span>
+                              
+                              
+                                
+                                  <span class="store">교보문고</span>
+                                
+                              
+                              
+                            </p>
+                            
+                              
+                              
+                                <ul>
+                                  <li class="tit"><a href="/content/contentView.ink" title="회장님의 글쓰기 | 광주시립중앙도서관(구독)" onclick="javascript:searchList.fnContentClick(this, '001', '4801157060222', '0307', '1112490101', 'N', '5'); event.preventDefault();">회장님의 글쓰기</a></li>
+                                  <li class="writer">강원국<span>메디치미디어</span>2014-12-09</li>
+                                  <li class="txt">청와대 연설문 비서관으로 8년, 라이팅 컨설턴트로 17년간 말과 글을 다뤄온 경험을 바탕으로 전작 《대통령의 글쓰기》에서 대통령에게 배우는 사람을 움직이는 글쓰기 비법을 소개했던 저자가 이번에는 직장에서 통하는 ‘소통’의 글쓰기를 들려준다. 『회장님의 글쓰기』는 사무실 현장 경험이 풍부한 저자가 직장인들의 관계, 즉 심리를 파악하는 방법부터 기획안 설득, 품격 있는 아부까지 상사의 마음을 사로잡는 90가지 계책을 소개한다. 회사는 태생적으로 이익을 추구하는 집단이기에 냉철한 지혜가 필요한 순간이 많다. 때문에 많은 에피소드들이 숨어있음에도 뾰족한 시각으로 까칠하고 냉정하게 조언을 아끼지 않았다. 
+
+책은 먼저, 모든 상사를 대변하는 상징적 아이콘인 ‘회장님’의 심리를 파악해 상사의 심리를 이해하고, 통하는 보고서가 어떤 것인지 안내한다. 그런 뒤, 말하기를 포함한 소통에 관한 이야기를 들려준다. 또한, 상대의 생각을 바꾸고 마음을 움직이는 말하기와 글쓰기, 처세에 관해 시시콜콜하게 </li>
+                                </ul>
+                                
+                                  
+                                  
+                                
+                              
+                            
+                          </div>
+                          <div class="btn_area">
+                            
+                              
+                              
+                            
+                            
+                              
+                              
+                              
+                                
+                                  
+                                  
+
+                                  
+                                  
+                                    
+                                      
+
+                                        
+
+                                        
+                                            <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onclick="javascript:searchList.fnContentBorrow('N', '', '24995', '', '4801157060222', '001', '회장님의 글쓰기','5', 'KB','1', '', event);"></span>
+                                        
+
+                                        
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                            <!-- 찜하기 -->
+                            
+                              
+                              
+                                
+                                  
+                                  
+                                  
+                                    
+                                      
+                                      
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onclick="javascript:searchList.fnDibs(this, '4801157060222','N');"></span>
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                          </div>
+                        </li>
+                      
+                    </ul>
+
+
+
+### 응답헤더
+
+요청 URL
+https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?schTxt=%EA%B0%95%EC%9B%90%EA%B5%AD
+요청 메서드
+GET
+상태 코드
+200 OK
+원격 주소
+103.182.126.192:443
+리퍼러 정책
+strict-origin-when-cross-origin
+access-control-allow-origin
+*
+connection
+keep-alive
+content-encoding
+gzip
+content-language
+ko-KR
+content-type
+text/html;charset=UTF-8
+date
+Thu, 16 Oct 2025 08:25:18 GMT
+server
+nginx
+transfer-encoding
+chunked
+vary
+Accept-Encoding
+accept
+text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7
+connection
+keep-alive
+cookie
+_ga=GA1.1.217709515.1754620269; _ga_HNNQ7TSLY9=deleted; SESSION=Y2YyN2U1MjQtZDM2Mi00YWVkLWFkOWEtNDZkOGRkYzUyM2Q2; _ga_HNNQ7TSLY9=GS2.1.s1760603112$o6$g0$t1760603112$j60$l0$h0; JSESSIONID=12D5796026BA4E3F48667077DC284883
+host
+gjcitylib.dkyobobook.co.kr
+sec-ch-ua
+"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+document
+sec-fetch-mode
+navigate
+sec-fetch-site
+none
+sec-fetch-user
+?1
+upgrade-insecure-requests
+1
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36
+
+
+ 
+
+
+### 전체 응답 HTML
+
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="title" content="광주시립중앙도서관(구독)">
+<meta name="keywords" content="광주시립중앙도서관(구독)">
+<meta name="description" content="광주시립중앙도서관(구독)" />
+<title>광주시립중앙도서관(구독)</title>
+<!--header START -->
+
+
+
+<meta name="viewport" content="width=1200">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="-1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+
+
+
+<!-- <meta http-equiv="Content-Security-Policy" content="script-src https://www.googletagmanager.com 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' 'unsafe-inline' http://*:* https://*:* http://dcontent.dkyobobook.co.kr/ www.googletagmanager.com;"> -->
+
+<link rel="stylesheet" type="text/css" href="/resources/common/css/lib/jquery/themes01/jquery-ui.css" />
+<link rel="stylesheet" type="text/css" href="/resources/common/css/front/web/reset.css?v=1760603119248" />
+<link rel="stylesheet" type="text/css" href="/resources/common/css/front/web/contents.css?v=1760603119248" />
+<!-- link rel="stylesheet" type="text/css" href="/resources/common/css/front/web/flexslider.css" / -->
+
+<script type="text/javascript" src="/resources/common/js/lib/jquery/jquery-3.4.1.min.js"></script>
+<script type="text/javascript" src="/resources/common/js/lib/jquery/jquery-migrate-3.0.0.min.js"></script>
+<script type="text/javascript" src="/resources/common/js/lib/jquery/jquery-ui.js"></script>
+<script type="text/javascript" src="/resources/common/js/lib/jquery/jquery.serializeObject.js"></script>
+<!-- <script type="text/javascript" src="/resources/common/js/lib/jquery/jquery.base64.js"></script> -->
+<script type="text/javascript" src="/resources/common/js/Base64.js"></script>
+<script type="text/javascript" src="/resources/common/js/lib/inputmask/inputmask.js"></script>
+<script type="text/javascript" src="/resources/common/js/lib/inputmask/inputmask.date.extensions.js"></script>
+<script type="text/javascript" src="/resources/common/js/lib/inputmask/jquery.inputmask.js"></script>
+<script type="text/javascript" src="/resources/common/js/lib/jquery/jquery.form.js"></script>
+<script type="text/javascript" src="/resources/common/js/common.js"></script>
+<script type="text/javascript" src="/resources/common/js/ui.js?v=1760603119248"></script>
+<script type="text/javascript" src="/resources/common/js/util.js?v=1760603119248"></script>
+<script type="text/javascript" src="/resources/common/js/gtmUtil.js?v=1760603119248"></script>
+<script type="text/javascript" src="/resources/common/js/paging.js?v=1760603119248"></script>
+<script type="text/javascript" src="/resources/common/js/lib/flexslider/jquery.flexslider.js"></script>
+<script type="text/javascript" src="/resources/common/js/lib/shCore/shCore.js"></script>
+<script type="text/javascript" src="/resources/common/js/lib/sticky/jquery.sticky.js"></script>
+<!-- script type="text/javascript" src="/resources/common/js/front/web/roll.js"></script -->
+<script type="text/javascript" src="/resources/common/js/front/web/contents.js?v=1760603119248"></script>
+<script type="text/javascript" src="/resources/common/js/process.js?v=1760603119248"></script>
+<script type="text/javascript" src="/resources/common/js/protocolCheck.js?v=1760603119248"></script>
+<script type="text/javascript" src="/resources/common/js/aes.js"></script>
+<script type="text/javascript" src="/resources/common/js/session.js?v=1760603119248"></script>
+
+
+
+
+<script type="text/javascript">
+<!--
+let gtmApplyYn = 'Y';
+//-->
+</script>
+
+
+ 
+<script>
+//GTM
+    window.dataLayer = window.dataLayer || [];
+
+    
+    
+    dataLayer.push({
+        platform: 'web',
+        is_member: 'n',
+        library_id: '24995',
+        library: '광주시립중앙도서관(구독)',
+        library_model: '대여',
+    });
+    
+</script>
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-N5SJCGX5');</script>
+<!-- End Google Tag Manager -->
+ 
+
+<script type="text/javascript">
+var DVSN_TYPE = "P";
+
+var GLOBAL_FULL_PATH = 'https' + '://' +
+            'gjcitylib.dkyobobook.co.kr' +
+            ':' + '443' +
+            '';
+
+var GLOBAL_IMAGE_PATH = GLOBAL_FULL_PATH + "/resources/common/images";
+var GLOBAL_IMAGE_TYPEPATH = GLOBAL_IMAGE_PATH + "/front/web";
+
+var CONTEXT_PATH = "";
+
+/*JS에서 사용가능하게 하는 메세지 선언*/
+var message = {
+  "SELECT_ALL" : "전체",
+  "SELECT_CHOICE" : "선택"
+};
+
+var KYOBO_PAGENAVI_TITLE_COOKIE_ID = "KYOBO_PAGENAVI_TITLE";
+var KYOBO_PC_SAVE_ID_COOKIE_ID = "KYOBO_SAVE_ID";
+var KYOBO_POPUP_DONE_COOKIE_ID = "KYOBO_FRONT_POPUP_DONE_"; //이아이디와 팝업아이디를 붙어서 사용
+var KYOBO_MAPP_PC_SAVE_ID_COOKIE_ID = "KYOBO_MAPP_SAVE_ID";
+loadingStop();
+</script>
+<!--header END -->
+<script type="text/javascript">
+<!-- 각 업무 JSP의 SCRIPT단 로직을 넣는다. -->
+$(window).load(function(){
+  var params = {
+      totalCount : "5",
+      recordCount : 20,
+      naviDivId : "searchList_pageNavi",
+      pageIndex : "custom_pageIndex",
+      eventName : "searchList.fnContentPageList"
+    };
+
+  gfn_renderPaging(params);
+
+
+
+});
+
+$(document).ready(function(){
+  //상단페이지 이동하기 숫자만 입력가능
+  $(".daOnlyNum").keyup(function(){
+    $("#nowPage").val( $("#nowPage").val().replace(/[^0-9]/g,"") );
+  });
+
+  //상단 이동하기 버튼 클릭시 이동하기
+   $("#goPage").click(function(){
+    if($("#nowPage").val().length == 0) {
+      alert("이동할 페이지를 입력해 주세요.");
+      $("#nowPage").focus();
+      return false;
+      } else if(parseInt($("#nowPage").val()) > parseInt($("#totalPage").val())) {
+       alert("1 ~" + $("#totalPage").val() + "범위의 값을 입력하세요.");
+       $("#nowPage").focus();
+      return false;
+      } else if(parseInt($("#nowPage").val()) == 0) {
+       alert("페이지는 1부터 입력이 가능합니다.");
+       $("#nowPage").focus();
+      return false;
+    } else {
+      searchList.fnContentPageList($("#nowPage").val());
+      return true;
+    }
+  });
+
+  //상단 엔터키 처리시 이동하기
+  $("#nowPage").keydown(function(key){
+    if(key.keyCode == 13) {
+      if($("#nowPage").val().length == 0) {
+        alert("이동할 페이지를 입력해 주세요.");
+        $("#nowPage").focus();
+        return false;
+        } else if(parseInt($("#nowPage").val()) > parseInt($("#totalPage").val())) {
+         alert("1 ~" + $("#totalPage").val() + "범위의 값을 입력하세요.");
+         $("#nowPage").focus();
+        return false;
+        } else if(parseInt($("#nowPage").val()) == 0) {
+         alert("페이지는 1부터 입력이 가능합니다.");
+         $("#nowPage").focus();
+        return false;
+      } else {
+        searchList.fnContentPageList($("#nowPage").val());
+        return true;
+      }
+    }
+  });
+
+  //전체도서보기
+  $("#allCtts").click(function(){
+    $('input[id=contentAll]').attr('value','Y');
+    $("#custom_pageIndex").val("1");
+    form.setFormValue("searchListForm","pageIndex","1");
+
+    gFnGoReferer('/search/searchList.ink?'+$("#searchListForm").getFormData());
+  });
+
+  //이용가능도서보기
+  $("#brwCtts").click(function(){
+    $('input[id=contentAll]').attr('value','N');
+    $("#custom_pageIndex").val("1");
+    form.setFormValue("searchListForm","pageIndex","1");
+
+    gFnGoReferer('/search/searchList.ink?'+$("#searchListForm").getFormData());
+  });
+
+  // 상품군 전체 체크
+  $("#allDvsnCheck").click(function(){
+    if( $("#allDvsnCheck").is(':checked') ){
+          $("input[name=dvsnCheck]").prop("checked", true);
+          $("#schDvsnList").val("000");
+        }else{
+          $("input[name=dvsnCheck]").prop("checked", false);
+          $("#schDvsnList").val("");
+        }
+  });
+
+  // 세부항목 전체 체크
+  $("#allClstCheck").click(function(){
+    if( $("#allClstCheck").is(':checked') ){
+          $("input[name=clstCheck]").prop("checked", true);
+          $("#schClst").val("all");
+        }else{
+          $("input[name=clstCheck]").prop("checked", false);
+          $("#schClst").val("");
+        }
+  });
+
+  // 검색 input
+  $("#schTxtList, #reSchTxt").keydown(function(key){
+    if(key.keyCode == 13) {
+      fnSearchList();
+    }
+  });
+
+  // 결과내 재검색
+  $("#reSchChk").click(function(){
+    if( $("#reSchChk").is(':checked') ){
+      $("#reSchArea").show();
+      $("#reSch").val("1");
+      } else {
+        $("#reSchArea").hide();
+        $("#reSch").val("0");
+        $("#reSchTxt").val("");
+      }
+  });
+
+});
+
+// 상품군 체크
+function fnDvsnCheck(){
+  var dvsnCode = "";
+
+  if( $("#allDvsnCheck").is(':checked') ){
+         $("input[name=allDvsnCheck]").prop("checked", false);
+    }
+
+  $("input[name=dvsnCheck]:checked").each(function() {
+    dvsnCode = dvsnCode + "," + $(this).val();
+  })
+
+  $("#schDvsnList").val(dvsnCode.substring(1, dvsnCode.length));
+}
+
+// 세부항목 체크
+function fnClstCheck(){
+  var clstCode = "";
+
+  if( $("#allClstCheck").is(':checked') ){
+         $("input[name=allClstCheck]").prop("checked", false);
+    }
+
+  $("input[name=clstCheck]:checked").each(function() {
+    clstCode = clstCode + "," + $(this).val();
+  })
+
+  $("#schClst").val(clstCode.substring(1, clstCode.length));
+}
+
+var searchList = new function(){
+  //페이징
+  this.fnContentPageList = function(pageNo){
+    $("#searchList_pageNavi #custom_pageIndex").val(pageNo);
+    gFnGoReferer('/search/searchList.ink?'+$("#searchListForm").getFormData());
+  }
+
+  //상단  이전페이지 버튼
+  this.fnPrevPage = function(){
+    var prev = parseInt($("#custom_pageIndex").val())-1;
+    if(parseInt($("#custom_pageIndex").val()) == 1) {
+      alert("이전 페이지가 없습니다.");
+      return false;
+    } else {
+      searchList.fnContentPageList(prev);
+      return true;
+    }
+  }
+
+  //상단 다음페이지  버튼
+  this.fnNextPage = function(){
+    var next = parseInt($("#custom_pageIndex").val())+1;
+    if( next > parseInt($("#totalPage").val())) {
+      alert("다음 페이지가 없습니다.");
+      return false;
+    } else {
+      searchList.fnContentPageList(next);
+      return true;
+    }
+
+  }
+
+  //카테고리별 목록조회
+  this.fnCategoryClick = function(target, cttsDvsnCode, ctgrId){
+    form.setFormValue("searchListForm","cttsDvsnCode",cttsDvsnCode);
+    form.setFormValue("searchListForm","ctgrId",ctgrId);
+    $("#custom_pageIndex").val("1");
+    form.setFormValue("searchListForm","pageIndex","1");
+
+    gFnGoReferer($(target).attr("href")+'?'+$("#searchListForm").getFormData());
+   }
+
+
+  //정렬 목록 조회
+  this.fnOrderByClick = function(target, orderByKey){
+    form.setFormValue("searchListForm","orderByKey",orderByKey);
+    $("#custom_pageIndex").val("1");
+    form.setFormValue("searchListForm","pageIndex","1");
+
+    gFnGoReferer($(target).attr("href")+'?'+$("#searchListForm").getFormData());
+   }
+
+
+  //상세조회
+  this.fnContentClick = function(target, cttsDvsnCode, brcd, ctgrId, sntnAuthCode, adltYN, spenDvsnCode){
+    if(adltYN == 'Y' && "" != 'Y') {
+      if(!gFnIsLogin()){
+        fnAdultCertiPopupOpen(cttsDvsnCode, brcd, ctgrId, sntnAuthCode, spenDvsnCode, "N");
+      } else {
+        alert("선택하신 서비스는 19세이상 이용하실 수 있습니다.");
+      }
+    } else {
+      form.setFormValue("searchListForm","cttsDvsnCode",cttsDvsnCode);
+      form.setFormValue("searchListForm","brcd",brcd);
+      form.setFormValue("searchListForm","sntnAuthCode",sntnAuthCode);
+      form.setFormValue("searchListForm","ctgrId",ctgrId);
+      gFnGoReferer($(target).attr("href")+'?'+$("#searchListForm").getFormData());
+    }
+
+   }
+
+  //미리보기
+  this.fnContentPreview = function(adltYN, cttsDvsnCode, ctgrId, brcd, spenDvsnCode, sntnAuthCode) {
+    if(adltYN == 'Y' && "" != 'Y') {
+      if(!gFnIsLogin()){
+        fnAdultCertiPopupOpen(cttsDvsnCode, brcd, ctgrId, sntnAuthCode, spenDvsnCode, "Y");
+      } else {
+        alert("선택하신 서비스는 19세이상 이용하실 수 있습니다.");
+      }
+    } else {
+      gFnGoReferer('/popup/popPreview.ink?type=web&brcd='+brcd+'&spenDvsnCode='+spenDvsnCode, '_blank', 'resizable=no,scrollbars=yes,status=no,left=0,top=0,width=1037, height=654');
+    }
+  }
+
+  // 다운보기
+  this.fnContentView = function(adltYN, lbryCode, loanSrmb, brcd, cttsDvsnCode, cttsHnglName, spenDvsnCode, entsDvsnCode, brwCnt, liseCont) {
+    
+    
+      if('Y' == 'Y') {
+          if(confirm("로그인 후 보기가 가능합니다.\n로그인 페이지로 이동하시겠습니까?")) {
+            fnLogin('/search/searchList.ink?'+$("#searchListForm").getFormData());
+          }
+        } else {
+            alert("로그인 후 보기가 가능합니다.");
+        }
+    
+    
+    
+  }
+
+  // 바로보기
+  this.fnWebViewerContentView = function(adltYN, lbryCode, loanSrmb, brcd, cttsDvsnCode, spenDvsnCode, entsDvsnCode, brwCnt, liseCont) {
+    
+    
+      if('Y' == 'Y') {
+          if(confirm("로그인 후 보기가 가능합니다.\n로그인 페이지로 이동하시겠습니까?")) {
+            fnLogin('/search/searchList.ink?'+$("#searchListForm").getFormData());
+          }
+        } else {
+            alert("로그인 후 보기가 가능합니다.");
+        }
+    
+    
+    
+  }
+
+  //대출
+  this.fnContentBorrow = function(adltYN, useDvsnCode, lbryCode, brwPrenSrmb, brcd, cttsDvsnCode, cttsHnglName, spenDvsnCode, entsDvsnCode, lipeDvsnCode, mmbrNum, event) {
+    
+    
+      if('Y' == 'Y') {
+          if(confirm("로그인 후 대출이 가능합니다.\n로그인 페이지로 이동하시겠습니까?")) {
+            fnLogin('/search/searchList.ink?'+$("#searchListForm").getFormData());
+          }
+        } else {
+            alert("로그인 후 대출이 가능합니다.");
+        }
+    
+    
+    
+  }
+
+
+  //예약하기
+  this.fnContentReserve = function(adltYN, lbryCode, brcd, cttsHnglName) {
+    
+    
+      if('Y' == 'Y') {
+          if(confirm("로그인 후 예약하기가 가능합니다.\n로그인 페이지로 이동하시겠습니까?")) {
+            fnLogin('/search/searchList.ink?'+$("#searchListForm").getFormData());
+          }
+        } else {
+            alert("로그인 후 예약하기가 가능합니다.");
+        }
+    
+    
+    
+  }
+
+  //찜하기
+    this.fnDibs = function(btn, brcd, adltYN){
+      
+    
+      if('Y' == 'Y') {
+          if(confirm("로그인 후 찜하기가 가능합니다.\n로그인 페이지로 이동하시겠습니까?")) {
+            fnLogin('/search/searchList.ink?'+$("#searchListForm").getFormData());
+          }
+      } else {
+        alert("로그인 후 찜하기가 가능합니다.");
+      }
+    
+    
+     
+  };
+
+  //예약현황
+  this.fnMyLibraryReserveInfo = function(count, order, cttsHnglName) {
+    var cttsHnglNameHtml = "<pre>" + gFnUnescape(cttsHnglName) + "</pre>";
+    if (!confirm("[" + $(cttsHnglNameHtml).html() + "] 예약현황을 보시겠습니까?")) {
+          return false;
+      }
+
+      alert("현재 " + count + "명 예약 중입니다.\n회원님의 순번은 " + order + "번째입니다.");
+
+      return false;
+  }
+ }
+
+//네비게이션
+function fnCategoryClick(target, cttsDvsnCode, ctgrId){
+  gFnGoReferer($(target).attr("href")+"?cttsDvsnCode="+cttsDvsnCode+"&ctgrId="+ctgrId);
+}
+
+//19금 성인인증 팝업
+function fnAdultCertiPopupOpen(cttsDvsnCode, brcd, ctgrId, sntnAuthCode, spenDvsnCode, preview){
+  var	vUrl ="/popup/popAdultCertiContent.ink?cttsDvsnCode="+cttsDvsnCode+"&brcd="+brcd+"&ctgrId="+ctgrId+"&snthAuthCode="+sntnAuthCode+"&spenDvsnCode="+spenDvsnCode+"&preview="+preview+"&rtnType=list";
+  popup.dialog("popAdultCertiContent", vUrl, null, "성인인증", 600, 330, true, false);
+}
+
+// 검색
+function fnSearchList() {
+  if (jUtil.trim($("#schTxtList").val()) == "") {
+    alert("검색어를 입력해 주세요.");
+    $("#schTxtList").focus();
+    return false;
+  } else if ($("#reSchChk").is(':checked') && $("#reSchTxt").val() == "") {
+    alert("검색어를 입력해 주세요.");
+    $("#reSchTxt").focus();
+    return false;
+  }
+
+
+  $("#custom_pageIndex").val("1");
+  form.setFormValue("searchListForm","pageIndex","1");
+  gFnGoReferer('/search/searchList.ink?'+$("#searchListForm").getFormData());
+}
+
+function fnSearchHope() {
+  if(!gFnIsLogin()){
+    if('Y' == 'Y') {
+      if(confirm("로그인 후 희망도서 신청이 가능합니다.\n로그인 페이지로 이동하시겠습니까?")){
+        fnLogin('/search/searchList.ink?'+$("#searchListForm").getFormData());
+      }
+    } else {
+      alert("로그인 후 희망도서 신청이 가능합니다.");
+    }
+  } else {
+    fnSearchHopePopupOpen();
+  }
+}
+
+function fnSearchHopePopupOpen() {
+  var options = new Object();
+  options.url = "/member/cntCheckHopeList.json";
+  options.data = $("#hopeKb").serializeObject();
+  options.callback = function(result,options){
+    if (result){
+      fnSearchAffterCheckHopeList(result);
+    }
+   }
+
+  form.ajax(options);
+}
+
+function fnSearchAffterCheckHopeList(result){
+  //전달 파라미터 정보
+  var vMmbrId = mysqlAES.hex(mysqlAES.Encrypt(result.mmbrId)).toLowerCase();
+  var vMmbrGrpId = mysqlAES.hex(mysqlAES.Encrypt(result.mmbrGrpId)).toLowerCase();
+  var vGrpCodeName = result.grpCodeName;
+  var vServerName = result.serverName;
+  var vLbryCode = $("#lbryCode").val();
+
+  $("#hopeMmbrId").val(vMmbrId);
+  $("#hopeMmbrGrpId").val(vMmbrGrpId);
+  $("#hopeGrpCodeName").val(vGrpCodeName);
+  $("#serverName").val(vServerName);
+
+  $("#hopeFlag").val("D");
+
+  var frm = $("#hopeKb");
+  var url= "/popup/popHopeModify.ink";
+  var title = "popHopeModify";
+
+  window.open(url, title, "width=1000,height=700,top=100,left=50,scrollbars=yes");
+
+  frm.attr("target",title);
+  frm.attr("action",url);
+  frm.attr("method","post");
+  frm.submit();
+}
+</script>
+</head>
+<body>
+<!--skipMenu START -->
+
+
+
+
+ 
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-N5SJCGX5"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+
+<div id="skip_menu"> 
+    <ul> 
+        <li><a href="#gnb">주메뉴 바로가기</a></li> 
+        <li><a href="#container">본문 바로가기</a></li> 
+    </ul> 
+</div>
+<!--skipMenu END -->
+
+<!--wrapper Start-->
+<div id="wrap">
+    <!--header START -->
+    
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+<header class="top_wrap">
+  <div id="top">
+    <h1 id="headLogo"></h1>
+  </div>
+
+  
+
+  <div class="top_util">
+  
+    
+    
+    <ul>
+      
+      <li><a href="/member/memberLogin.ink" title="로그인 | 회원 | 광주시립중앙도서관(구독)" onclick="fnLogin(); event.preventDefault();">로그인</a></li>
+      
+      
+      <li class="notifi"><a href="#" onclick="javascript:fnLoginCheck('inform'); event.preventDefault();">알림<span id="noti"></span></a></li>
+    </ul>
+    
+  
+  </div>
+
+  <div class="top_area">
+
+    <fieldset>
+    <legend>통합검색영역</legend>
+    <div class="sch_area">
+    
+    
+    
+      <div style="border-color:#0a325c;"><!-- 관리자 제어 border color -->
+    
+    
+        <form id="searchFormTop" name="searchFormTop" method="get" onsubmit="return fnSearch('top');">
+          <select name="schClst" title="통합검색 분류 선택">
+            <option value="all">통합검색</option>
+            <option value="ctts">제목</option>
+            <option value="autr">저자</option>
+            <option value="pbcm">출판사</option>
+            <!-- <option value="intc_cntt">책소개</option> -->
+          </select>
+          <label for="schTxtTop">검색어 입력하기</label>
+          <input type="hidden" name="schDvsn" value="000" id="schDvsn" />
+          <input type="hidden" name="orderByKey" value="" id="orderByKey" />
+          <input type="text" name="schTxt" value="" id="schTxtTop" autocomplete="off" maxlength="100"/>
+          <input type="submit" value="검색">
+        </form>
+      </div>
+    </div>
+    </fieldset>
+    <ul class="hope_book">
+      
+      <li><a href="#" onclick="fnLoginCheck('myLib'); event.preventDefault();">내서재</a></li>
+    </ul>
+  </div>
+
+
+<!-- GNB -->
+
+  
+  
+  <nav class="gnb_area" style="border-color:#0a325c;"><!-- 관리자 제어 border color -->
+  
+
+  <h2 class="hidden_obj">주메뉴</h2>
+  <div id="gnb" class="gnb" tabindex="0"></div>
+  <div class="all_menu">
+    <p><input type="button" value="전체메뉴" /></p>
+  </div>
+  <div class="all_menu_area">
+    <ul id="allMenuArea">
+    </ul>
+    <ul id="allBooks">
+      <li>
+      
+      <a
+      
+      
+        href="/content/contentBestList.ink?listType=B&cttsDvsnCode=all&bestCttsDvsnCode=2"
+      
+      
+      
+         onclick="gFnGoReferer($(this).attr('href')); event.preventDefault();">도서자료</a>
+
+        <ul id="partName">
+        </ul>
+      </li>
+    </ul>
+  </div>
+</nav>
+
+
+<!-- sticky -->
+
+  
+  
+  <div class="top_sticky" style="border-color:#0a325c;" tabindex="-1"><!-- 관리자 제어 -->
+  
+
+<div>
+  <div class="gnb"></div>
+  <div class="top_sch">
+    <fieldset>
+      <legend>통합검색영역</legend>
+      <div class="sch_area">
+          
+          
+          
+          <div style="border-color:#0a325c;"><!-- 관리자 제어 -->
+          
+          
+          <form id="searchFormSlide" name="searchFormSlide" method="get"  onsubmit="return fnSearch('slide');">
+            <select name="schClst" title="통합검색 분류 선택" tabindex="-1">
+              <option value="all">통합검색</option>
+              <option value="ctts">제목</option>
+              <option value="autr">저자</option>
+              <option value="pbcm">출판사</option>
+              <!-- <option value="intc_cntt">책소개</option> -->
+            </select>
+            <label for="schTxtSlide">검색어 입력하기</label>
+            <input type="hidden" name="schDvsn" value="000" />
+            <input type="hidden" name="orderByKey" value="" />
+            <input type="text" name="schTxt" value="" id="schTxtSlide"  tabindex="-1" autocomplete="off" />
+            <input type="submit" value="검색"  tabindex="-1" />
+            </form>
+          </div>
+
+      </div>
+    </fieldset>
+    <p class="hope_book"><a href="#" onclick="fnLoginCheck('myLib'); event.preventDefault();" tabindex="-1">내서재</a></p>
+  </div>
+</div>
+</div>
+<!--// sticky -->
+
+</header>
+
+
+<script type="text/javascript">
+$(document).ready(function(){
+
+  //로고
+  var optionsLogo = new Object();
+  optionsLogo.url = "/main/headerLogo.json";
+  optionsLogo.type = "get";
+  optionsLogo.loading = false;
+  optionsLogo.callback = function(resultLogo,optionsLogo){
+    if (resultLogo){
+      setLogoCallback(resultLogo);
+    }
+  }
+  form.ajax(optionsLogo);
+
+  //메뉴
+  var options = new Object();
+  options.url = "/menu/headerMenu.json";
+  options.type = "get";
+  options.loading = false;
+  options.callback = function(result,options){
+    if (result){
+      setHeaderMenuCallback(result);
+    }
+  }
+  form.ajax(options);
+
+  //알림
+  var optionsNoti = new Object();
+  optionsNoti.url = "/noti/notiInform.json";
+  optionsNoti.type = "post";
+  optionsNoti.loading = false;
+  optionsNoti.callback = function(resultNoti,optionsNoti){
+    if (resultNoti){
+      setNotiInformCallback(resultNoti);
+    }
+  }
+  form.ajax(optionsNoti);
+
+  //사용자이용현황
+  var optionsUser = new Object();
+  optionsUser.url = "/main/userBorrowStatus.json";
+  optionsUser.type = "post";
+  optionsUser.loading = false;
+  optionsUser.callback = function(resultUser,optionsUser){
+    if (resultUser){
+      setUserStatusCallback(resultUser);
+    }
+  }
+  form.ajax(optionsUser);
+
+  //검색 input
+  $("#schTxtTop").keydown(function(key){
+    if(key.keyCode == 13) {
+      if ($("#schTxtTop").val() == "") {
+        alert("검색어를 입력해 주세요.");
+        $("#schTxtTop").focus();
+        return false;
+      }
+
+      fnSearch('top');
+    }
+  });
+
+  //검색 input
+  $("#schTxtSlide").keydown(function(key){
+    if(key.keyCode == 13) {
+      if ($("#schTxtSlide").val() == "") {
+        alert("검색어를 입력해 주세요.");
+        $("#schTxtSlide").focus();
+        return false;
+      }
+
+      fnSearch('slide');
+    }
+  });
+
+});
+
+$(window).load(function(){
+  headerNavi();
+});
+
+function headerNavi(){
+   var title = "";
+
+    
+    var tags = $("nav.path li");
+
+    for(var i=tags.size()-1; i>=1; i--){
+        if(!jUtil.isNull(tags.eq(i).text())){
+            title += " < ";
+            title += tags.eq(i).text();
+        }
+    }
+
+  var lbryNameHtml = "<pre>" + gFnUnescape("광주시립중앙도서관(구독)") + "</pre>";
+    title += " < " +$(lbryNameHtml).html();
+    title = title.substring(3, title.length);
+
+    if( typeof addTitleText == 'function' ) {
+        var varTitle = title;
+        title = addTitleText() + " < " + varTitle;
+        gFnChangeTitle(title);
+    }else{
+        gFnChangeTitle(title);
+    }
+}
+
+function setHeaderMenuCallback(datas){
+  setGnb(datas.headerMenu);
+  setGnbAll(datas.headerMenu);
+}
+
+function setGnb(menuList){
+  var target = $(".gnb");
+  target.empty();
+  var html = "";
+  html+='<ul>';
+  $.each(menuList, function(key, value){
+    var addClass = "";
+
+    var cttsDvsnCode = getParam('cttsDvsnCode');
+    if (cttsDvsnCode) {
+      if (cttsDvsnCode == value.cttsDvsnCode) {
+        addClass = "on";
+      }
+    }
+
+    html+='<li class='+addClass+'>';
+    if (value.cttsDvsnCode.indexOf('99') > -1) {
+      html+='<a href="' + value.menuUrl + '" target="' + value.wiowDvsnName+ '"';
+    } else {
+      html+='<a href="/content/contentList.ink?cttsDvsnCode='+value.cttsDvsnCode+'"';
+    }
+    html+=' title="'+value.menuHnglName+' | 광주시립중앙도서관(구독)"';
+    html+=' " onclick="fnFrontPageLoad(this); event.preventDefault();">';
+    html+= value.menuHnglName
+    html+='</a>';
+    html+='</li>';
+  });
+  html+='</ul>';
+
+  target.append(html);
+
+  if("#0a325c" == "#ffffff" || "#0a325c" == "#FFFFFF") {
+    gFnSetFrontGNBMenuEvt("#4c5d9d");//GNB 이벤트 재주입
+  } else {
+    gFnSetFrontGNBMenuEvt("#0a325c");//GNB 이벤트 재주입
+  }
+}
+
+function setGnbAll(menuList){
+  var target = $("#allMenuArea");
+  target.empty();
+  var html = "";
+  $.each(menuList, function(key, value){
+
+    html+='<li>';
+    if (value.cttsDvsnCode.indexOf('99') > -1) {
+      html+='<a href="' + value.menuUrl + '" target="' + value.wiowDvsnName+ '"';
+    } else {
+      html+='<a href="/content/contentList.ink?cttsDvsnCode='+value.cttsDvsnCode+'"';
+    }
+    html+=' title="'+value.menuHnglName+' | 광주시립중앙도서관(구독)"';
+    html+=' onClick="javascript:fnFrontPageLoad(this); event.preventDefault();">';
+    html+= value.menuHnglName
+    html+='</a>';
+    html+='<ul id="cttsDvsnCode'+value.cttsDvsnCode+'">';
+    html+='</ul>';
+    html+='</li>';
+  });
+  target.append(html);
+  fnAllMenuList();
+}
+
+function setNotiInformCallback(resultNoti) {
+
+  if(resultNoti.notiCnt != 0) {
+    $("#noti").text("("+resultNoti.notiCnt+")");
+  }
+}
+
+function setLogoCallback(resultLogo) {
+  var target = $("#headLogo");
+  target.empty();
+  var html = "";
+  if(resultLogo){
+    if(!jUtil.isNull(resultLogo.logo)) {
+      if(!jUtil.isNull(resultLogo.logo.upendLogo1Path)){
+        html +='<a href="'+resultLogo.logo.upendLogo1Url+'" target="'+resultLogo.logo.logo1WiowDvsnName+'" onclick="fnFrontPageLoad(this);  event.preventDefault();">';
+        html +='<img src="/util/imageDisplay.ink?libraryCode='+resultLogo.logo.lbryCode+'&target=toplogo&imagePath='+resultLogo.logo.upendLogo1Path+resultLogo.logo.upendLogo1Name+'" alt="'+resultLogo.logo.upendLogo1IntcCntt+'" />';
+        html +='</a>';
+      }
+      if(!jUtil.isNull(resultLogo.logo.upendLogo2Path)){
+        html +='<a href="'+resultLogo.logo.upendLogo2Url+'" target="'+resultLogo.logo.logo2WiowDvsnName+'" onclick="fnFrontPageLoad(this);  event.preventDefault();">';
+        html +='<img src="/util/imageDisplay.ink?libraryCode='+resultLogo.logo.lbryCode+'&target=toplogo&imagePath='+resultLogo.logo.upendLogo2Path+resultLogo.logo.upendLogo2Name+'" alt="'+resultLogo.logo.upendLogo2IntcCntt+'" />';
+        html +='</a>';
+      }
+    }
+  }
+  target.append(html);
+}
+
+function setUserStatusCallback(resultUser){
+  var target = $(".men_use");
+  target.empty();
+  var html = "";
+
+  html += '<h2>현재이용 현황</h2>';
+  html+='<ul>';
+  $.each(resultUser.userBrwStatus, function(key, value){
+    html +='<li><p>·'+value.menuHnglName+'</p><p><strong>'+value.brwCnt+'</strong> / '+value.loanPsblNmvl+'</p></li>';
+    html +='</li>';
+  });
+  html +='</ul>';
+
+  target.append(html);
+}
+
+
+$(function(){
+
+    $("#logOutBtn").on("click",function(){
+      gFnGoReferer('/member/logout.ink');
+   });
+});
+
+
+var fnFrontPageLoad = function(target, cttsDvsnCode){
+
+    event.preventDefault();
+
+  var vParams = "";
+  var vTarget = "";
+  var vUrl = gFnUnescape($(target).attr("href"));
+  if(!jUtil.isNull($(target).attr("target"))){
+    vTarget = $(target).attr("target");
+  }
+
+  if(!jUtil.isNull(cttsDvsnCode)){
+    vParams = "&cttsDvsnCode="+cttsDvsnCode;
+  }
+
+  if(!jUtil.isNull(vParams)){
+    vParams = "?"+vParams.substring(1);
+  }
+
+  if(vUrl.indexOf("http") != -1 || vUrl.indexOf("https") != -1){
+    vParams = "";
+  }
+
+  gFnGoReferer(vUrl+vParams, vTarget);
+}
+
+
+
+
+
+
+
+function fnLogin(redirectUrl) {
+  if (redirectUrl) {
+    gFnGoReferer('/member/memberLogin.ink?redirectUrl='+escape(redirectUrl));
+  } else {
+    var url = top.window.location + '';
+    if (url.indexOf('/memberLogin.ink') < 0) {
+      gFnGoReferer('/member/memberLogin.ink?redirectUrl='+escape(top.window.location + ''));
+    } else {
+      gFnGoReferer('/member/memberLogin.ink');
+    }
+  }
+}
+
+
+
+
+//로그인 유무 체크
+function fnLoginCheck(kinds) {
+  if(kinds == "inform") {
+    if(!gFnIsLogin()){
+      if('Y' == 'Y') {
+        if(confirm("로그인 후 알림 확인이 가능합니다.\n로그인 페이지로 이동하시겠습니까?")){
+          
+          
+          
+            gFnGoReferer('/member/memberLogin.ink?redirectUrl='+encodeURIComponent('/myLib/myNotiList.ink'));
+          
+          
+        }
+      } else {
+        alert("로그인 후 알림 확인이 가능합니다.");
+      }
+    } else {
+      gFnGoReferer('/myLib/myNotiList.ink');
+    }
+  } else if(kinds == "hope") {
+    if(!gFnIsLogin()){
+      if('Y' == 'Y') {
+        if(confirm("로그인 후 희망도서 신청이 가능합니다.\n로그인 페이지로 이동하시겠습니까?")){
+          
+          
+          
+            gFnGoReferer('/member/memberLogin.ink');
+          
+          
+        }
+      } else {
+        alert("로그인 후 희망도서 신청이 가능합니다.");
+      }
+    } else {
+      fnHopePopupOpen();
+    }
+  } else if(kinds == "myLib"){
+    if(!gFnIsLogin()){
+      if('Y' == 'Y') {
+        if(confirm("로그인 후 내서재 이용이 가능합니다.\n로그인 페이지로 이동하시겠습니까?")){
+          
+          
+          
+            gFnGoReferer('/member/memberLogin.ink?redirectUrl='+encodeURIComponent('/myLib/myBorrowList.ink'));
+          
+          
+        }
+      } else {
+        alert("로그인 후 내서재 이용이 가능합니다.");
+      }
+    } else {
+      gFnGoReferer('/myLib/myBorrowList.ink');
+    }
+  } else if(kinds == 'loanStatus') {
+    if(!gFnIsLogin()){
+      if('Y' == 'Y') {
+        if(confirm("로그인 후 대출현황 이용이 가능합니다.\n로그인 페이지로 이동하시겠습니까?")){
+          
+          
+          
+            gFnGoReferer('/member/memberLogin.ink?redirectUrl='+encodeURIComponent('/myLib/myBorrowList.ink'));
+          
+          
+        }
+      } else {
+        alert("로그인 후 대출현황 이용이 가능합니다.");
+      }
+    } else {
+      gFnGoReferer('/myLib/myBorrowList.ink');
+    }
+  } else if(kinds == 'prenStatus') {
+    if(!gFnIsLogin()){
+      if('Y' == 'Y') {
+        if(confirm("로그인 후 예약현황 이용이 가능합니다.\n로그인 페이지로 이동하시겠습니까?")){
+          
+          
+          
+            gFnGoReferer('/member/memberLogin.ink?redirectUrl='+encodeURIComponent('/myLib/myReserveList.ink'));
+          
+          
+        }
+      } else {
+        alert("로그인 후 예약현황 이용이 가능합니다.");
+      }
+    } else {
+      gFnGoReferer('/myLib/myReserveList.ink');
+    }
+  } else if(kinds == 'wishStatus') {
+    if(!gFnIsLogin()){
+      if('Y' == 'Y') {
+        if(confirm("로그인 후 찜목록 확인이 가능합니다.\n로그인 페이지로 이동하시겠습니까?")){
+          
+          
+          
+            gFnGoReferer('/member/memberLogin.ink?redirectUrl='+encodeURIComponent('/myLib/myDibsList.ink'));
+          
+          
+        }
+      } else {
+        alert("로그인 후 찜목록 확인이 가능합니다.");
+      }
+    } else {
+      gFnGoReferer('/myLib/myDibsList.ink');
+    }
+  }
+
+}
+
+function fnHopePopupOpen() {
+
+  var options = new Object();
+   options.url = "/member/cntCheckHopeList.json";
+   options.data = $("#hopeKb").serializeObject();
+   options.callback = function(result,options){
+
+     if (result){
+      fnAffterCheckHopeList(result);
+    }
+   }
+   form.ajax(options);
+
+}
+
+function fnAffterCheckHopeList(result){
+
+  var code = result.rtnCode;
+  var msg = result.rtnMsg;
+
+  //전달 파라미터 정보 1
+  var vMmbrId = mysqlAES.hex(mysqlAES.Encrypt(result.mmbrId)).toLowerCase();
+  var vMmbrGrpId = mysqlAES.hex(mysqlAES.Encrypt(result.mmbrGrpId)).toLowerCase();
+  var vGrpCodeName = result.grpCodeName;
+  var vServerName = result.serverName;
+  //var vLbryCode = $("#lbryCode").val();
+
+  $("#hopeMmbrId").val(vMmbrId);
+  $("#hopeMmbrGrpId").val(vMmbrGrpId);
+  $("#hopeGrpCodeName").val(vGrpCodeName);
+   $("#serverName").val(vServerName);
+
+  //도서정보 없을시(post방식, _blank)
+  if(code == "S") {
+
+    $("#hopeFlag").val("D");
+
+    //alert(vMmbrId + vMmbrGrpId + vGrpCodeName + vServerName + vLbryCode);
+    var frm = $("#hopeKb");
+    var url= "/popup/popHopeModify.ink";
+    var title = "popHopeModify";
+
+      window.open(url, title, "width=1000,height=700,top=100,left=50,scrollbars=yes");
+
+      frm.attr("target",title);
+    frm.attr("action",url);
+    frm.attr("method","post");
+    frm.submit();
+
+  //도서정보 있을시
+  }else {
+
+    $("#hopeFlag").val("V");
+
+    var url= "/popup/popHopeList.ink";
+    var data = $("#hopeKb").serializeObject();
+    popup.dialog("popHopeList", url,data, "희망도서 신청하기", 550, 250);
+  }
+}
+
+function fnSearch(type) {
+  var frm;
+
+  if (type == "slide") {
+    if ($("#schTxtSlide").val() == "") {
+      alert("검색어를 입력해 주세요.");
+      $("#schTxtSlide").focus();
+      return false;
+    }
+
+    frm = document.searchFormSlide;
+  } else {
+    if ($("#schTxtTop").val() == "") {
+      alert("검색어를 입력해 주세요.");
+      $("#schTxtTop").focus();
+      return false;
+    }
+
+    frm = document.searchFormTop;
+  }
+
+
+
+
+  var url= "/search/searchList.ink";
+  frm.action = url;
+  frm.submit();
+}
+
+function fnAllBooksList() {
+
+  var options = new Object();
+   options.url = "/menu/listAllBooks.json";
+   options.type = "get";
+   options.loading = false;
+   options.callback = function(result,options){
+
+     if (result){
+      fnAffterAllBooksList(result);
+    }
+   }
+   form.ajax(options);
+}
+
+function fnAffterAllBooksList(data) {
+
+  var body = $("#partName");
+  body.empty();
+  var params = {
+    eventName : "fnAllBooksList"
+  };
+  var vTag = "";
+
+  $.each(data.list, function(key, value){
+
+    var vBookName = "";
+    if(value.listType == "B"){
+      vBookName = "베스트자료";
+      vTag += "<li><a href=\"/content/contentBestList.ink?listType="+value.listType+"&bestCttsDvsnCode="+value.dvsnCode+"\">"+vBookName+"</a></li>\n";
+    }
+    if(value.listType == "RS"){
+
+      if(value.dvsnCode != "") {
+
+        vBookName = "추천자료";
+        vTag += "<li><a href=\"/content/contentBestList.ink?listType="+value.listType+"&rcmnCttsDvsnCode="+value.dvsnCode+"&listSrmb="+value.listSrmb+"\">"+vBookName+"</a></li>\n";
+      }
+    }
+    
+    if(value.listType == "N"){
+      vBookName = "신착자료";
+      vTag += "<li><a href=\"/content/contentBestList.ink?listType="+value.listType+"\">"+vBookName+"</a></li>\n";
+    }
+    
+    if(value.listType == "A"){
+
+      if(value.dvsnCode != "") {
+
+        vBookName = "부록목록";
+        vTag += "<li><a href=\"/content/contentBestList.ink?listType="+value.listType+"&cttsDvsnCode="+value.dvsnCode+"\">"+vBookName+"</a></li>\n";
+      }
+    }
+  });
+  vTag += '<p class="btn_all_clo"><a href="#"><img src="/resources/common/images/front/web/contents/btn_all_clo.png" alt="닫기" /></a></p>';
+  body.append(vTag);
+
+  fnRecommendBooksList(data);
+};
+
+function fnRecommendBooksList(data) {
+
+  /* 위치가 여가 아닌디..? 도서자료 서브로 붙어야 하지 않나..?
+  var body = $("#allMenuArea");
+  var vTag = "";
+
+  $.each(data.list, function(key, value){
+    if(value.listType == "R"){
+      if(value.dvsnCode != "") {
+        vTag += "<li><a href=\"/content/contentBestList.ink?listType="+value.listType+"&rcmnCttsDvsnCode="+value.dvsnCode+"&listSrmb="+value.listSrmb+"\">"+value.listName+"</a><ul></ul></li>\n";
+      }
+    }
+  });
+
+  body.append(vTag);
+  */
+
+  gFnAllMenu();
+};
+
+function fnAllMenuList() {
+
+  var options = new Object();
+  options.url = "/menu/listAllMenu.json";
+  options.type = "get";
+   options.loading = false;
+  options.callback = function(result,options){
+    if (result){
+      fnAffterAllMenuList(result);
+    }
+  }
+  form.ajax(options);
+}
+
+function fnAffterAllMenuList(data) {
+
+  var body1 = $("#cttsDvsnCode001");
+  var body2 = $("#cttsDvsnCode002");
+  var body3 = $("#cttsDvsnCode003");
+  var body4 = $("#cttsDvsnCode004");
+  var body9 = $("#cttsDvsnCode009");
+  var body6 = $("#cttsDvsnCode006");
+
+  body1.empty();
+  body2.empty();
+  body3.empty();
+  body4.empty();
+  body9.empty();
+  body6.empty();
+
+  var params = {
+    eventName : "fnAllMenuList"
+  };
+  var vTag1 = "";
+  var vTag2 = "";
+  var vTag3 = "";
+  var vTag4 = "";
+  var vTag9 = "";
+  var vTag6 = "";
+
+  $.each(data.list, function(key, value){
+    if(value.cttsDvsnCode == "001") {
+      vTag1 += "<li><a href=\"/content/contentList.ink?cttsDvsnCode="+value.cttsDvsnCode+"&ctgrId="+value.ctgrId+"\">"+value.ctgrNm+"</a></li>\n";
+    }
+    if(value.cttsDvsnCode == "002") {
+      vTag2 += "<li><a href=\"/content/contentList.ink?cttsDvsnCode="+value.cttsDvsnCode+"&ctgrId="+value.ctgrId+"\">"+value.ctgrNm+"</a></li>\n";
+    }
+    if(value.cttsDvsnCode == "003") {
+      vTag3 += "<li><a href=\"/content/contentList.ink?cttsDvsnCode="+value.cttsDvsnCode+"&ctgrId="+value.ctgrId+"\">"+value.ctgrNm+"</a></li>\n";
+    }
+    if(value.cttsDvsnCode == "004") {
+      vTag4 += "<li><a href=\"/content/contentList.ink?cttsDvsnCode="+value.cttsDvsnCode+"&ctgrId="+value.ctgrId+"\">"+value.ctgrNm+"</a></li>\n";
+    }
+    if(value.cttsDvsnCode == "009") {
+      vTag9 += "<li><a href=\"/content/contentList.ink?cttsDvsnCode="+value.cttsDvsnCode+"&ctgrId="+value.ctgrId+"\">"+value.ctgrNm+"</a></li>\n";
+    }
+    if(value.cttsDvsnCode == "006") {
+      vTag6 += "<li><a href=\"/content/contentList.ink?cttsDvsnCode="+value.cttsDvsnCode+"&ctgrId="+value.ctgrId+"\">"+value.ctgrNm+"</a></li>\n";
+    }
+  });
+  body1.append(vTag1);
+  body2.append(vTag2);
+  body3.append(vTag3);
+  body4.append(vTag4);
+  body9.append(vTag9);gFnGoReferer
+  body6.append(vTag6);
+
+  fnAllBooksList();
+};
+
+function fnAdminGo() {
+  var secondAuthFlag = "";
+  if(secondAuthFlag === 'true') {
+    gFnGoReferer('/admin/main/adminMain.ink');
+  } else {
+    window.open('/admin/member/info/memberAdminSecondAuthenPop.ink', "현재창에 열림", 'width=600,height=400,top=100,left=50,scrollbars=no');
+    }
+  }
+  
+function fnAdminGoWithIp() {
+  var secondAuthFlag = "";
+  var userIpFlag = "";
+  var pwdChangeRequired = "";
+  if(userIpFlag == 'true') {
+    if(secondAuthFlag === 'true') {
+      gFnGoReferer('/admin/main/adminMain.ink', '_self');
+    } else {
+      if (pwdChangeRequired === 'true') {
+        gFnGoReferer('/common/error/pageError.ink', '_self');
+      } else {
+        window.open('/admin/member/info/memberAdminSecondAuthenPop.ink', "현재창에 열림", 'width=600,height=400,top=100,left=50,scrollbars=no');
+      }
+    }
+  } else {
+    gFnGoReferer('/admin/main/adminMain.ink', '_self');
+    }
+  }
+
+</script>
+
+    <!--header END -->
+
+    <!--content START-->
+    <div id="contentMainDiv">
+      <div class="con_wrap">
+        <ul class="path">
+          <li><a href="/main.ink">HOME</a></li>
+          <li><a href="#">검색</a></li>
+        </ul>
+        <div class="con_area">
+          <form id="searchListForm" class="daContentForm" method="post">
+            <input type="hidden" name="brcd" id="brcd" value=""/>
+            <input type="hidden" name="sntnAuthCode" id="sntnAuthCode" value=""/>
+            <input type="hidden" name="contentAll" id="contentAll" value=""/>
+            <input type="hidden" id="custom_pageIndex" value="1"/>
+            <input type="hidden" name="cttsDvsnCode" id="cttsDvsnCode" value=""/>
+            <input type="hidden" name="orderByKey" value=""/>
+            <input type="hidden" name="schClst" id="schClst" value=""/>
+            <input type="hidden" name="schDvsn" id="schDvsnList" value=""/>
+            <input type="hidden" name="reSch" id="reSch" value=""/>
+            <input type="hidden" name="ctgrId" id="ctgrId" value=""/>
+
+
+            <aside class="aside"><!-- 검색일 경우 lnb 따로 생성 -->
+              <h2>검색필터 </h2>
+              <div class="sch_lnb">
+                <p>세부항목</p>
+                <ul>
+                  <li><input type="checkbox" name="allClstCheck" id="allClstCheck"  /><label for="all">전체</label></li>
+                  <li><input type="checkbox" name="clstCheck" id="cttsClstCheck" onclick="fnClstCheck();" value="ctts"  /><label for="cttsClstCheck">제목</label></li>
+                  <li><input type="checkbox" name="clstCheck" id="autrClstCheck" onclick="fnClstCheck();" value="autr"  /><label for="autrClstCheck">저자</label></li>
+                  <li><input type="checkbox" name="clstCheck" id="pbcmClstCheck" onclick="fnClstCheck();" value="pbcm"  /><label for="pbcmClstCheck">출판사</label></li>
+                  
+                </ul>
+                <p>상품군</p>
+                <ul>
+                  <li><input type="checkbox" name="allDvsnCheck" id="allDvsnCheck" value="000"  /><label for="allDvsnCheck">전체목록</label></li>
+                  
+                      <li><input type="checkbox" name="dvsnCheck" id="001DvsnCheck" onclick="fnDvsnCheck();" value="001"  /><label for="001DvsnCheck">전자책</label></li>
+                  
+                </ul>
+              </div>
+            </aside>
+
+            <section class="sub_con" id="container">
+              <div class="contents">
+                <!-- 내용시작  -->
+                <div class="h3_area">
+                  <h3>검색결과</h3>
+                </div>
+
+                <div class="sch_con">
+                  <fieldset>
+                  <legend>검색조건 선택하기</legend>
+                  <table>
+                    <caption>검색조건</caption>
+                    <colgroup>
+                      <col style="width:100px;">
+                      <col style="width:auto;">
+                    </colgroup>
+                    <tbody>
+                      <tr>
+                        <td colspan="2">
+                          <input type="text" name="schTxt" id="schTxtList" value="강원국" style="width:500px;" title="검색어 쓰기" autocomplete="off" maxlength="100">
+                          <span class="tbl_infotxt"><input type="checkbox" name="reSchChk" id="reSchChk"  /> <label for="reSchChk">결과내 재검색</label></span>
+                        </td>
+                      </tr>
+                      <tr id="reSchArea" style="display:none;">
+                        <th scope="row"><label for="reSchTxt">결과내 재검색</label></th>
+                        <td><input type="text" name="reSchTxt" id="reSchTxt" value="" style="width:400px;" autocomplete="off"></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  </fieldset>
+                  <p class="btn_posi">
+                    <input type="button" value="검색" onclick="fnSearchList();" class="btn btn_s btn_gray">
+                  </p>
+                </div>
+
+                
+                  
+                    <div class="book_sort">
+                      
+                      <ul>
+                        <li class="on"><a href="/search/searchList.ink" title="최신순 | 광주시립중앙도서관(구독)" onClick="javascript:searchList.fnOrderByClick(this, 'publDate'); event.preventDefault();">최신순</a></li> <!-- 선택시 class="on" -->
+                        <li><a href="/search/searchList.ink" title="인기순 | 광주시립중앙도서관(구독)" onClick="javascript:searchList.fnOrderByClick(this, 'loanNmvl'); event.preventDefault();">인기순</a></li>
+                        <li><a href="/search/searchList.ink" title="제목순 | 광주시립중앙도서관(구독)" onClick="javascript:searchList.fnOrderByClick(this, 'cttsHnglName'); event.preventDefault();">제목순</a></li>
+                        <li><a href="/search/searchList.ink" title="저자순 | 광주시립중앙도서관(구독)" onClick="javascript:searchList.fnOrderByClick(this, 'sntnAuthName'); event.preventDefault();">저자순</a></li>
+                      </ul>
+                    </div>
+
+                    <div class="book_resultTxt">
+                      <p><strong>"강원국"</strong> 검색결과 <strong>총 5개</strong>의 자료가 있습니다.</p>
+                      <div>
+                        <span>
+                          <input type="text" id="nowPage" title="현재페이지" class="daOnlyNum" /> / <span id="totalPage" ></span>
+                          <input type="button"id="goPage" value="이동하기" class="btn btn_s btn_line"/>
+                          <a href="#"><img src="/resources/common/images/front/web/contents/btn_prev.png" alt="이전페이지" onClick="javascript:searchList.fnPrevPage(); event.preventDefault();"/></a><a href="#"><img src="/resources/common/images/front/web/contents/btn_next.png" alt="다음페이지" onClick="javascript:searchList.fnNextPage(); event.preventDefault();"/></a>
+                        </span>
+                        <select id="selViewCnt" title="갯수 선택하기" name="selViewCnt" onChange="javascript:searchList.fnContentPageList(1);">
+                          <option value="20" selected>20개씩</option>
+                          <option value="40" >40개씩</option>
+                          <option value="60" >60개씩</option>
+                          <option value="80" >80개씩</option>
+                        </select><input type="button" name="viewBtn"  value="보기" class="btn btn_s btn_line"/>
+                      </div>
+                    </div>
+
+                    <!-- 책 리스트 -->
+                    <ul class="book_resultList">
+                      
+                        <li>
+                          <div class="img">
+                          
+                          
+                          
+                            <a href="/content/contentView.ink" title="직장인의 글쓰기 | 광주시립중앙도서관(구독)" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '4801157064411', '031101', '1112490101', 'N','5'); event.preventDefault();">
+                            <img src="//dcontent.dkyobobook.co.kr/library/001/DRMContent/fed5/ebook/411/4801157064411/L4801157064411.jpg" alt="직장인의 글쓰기" onerror="this.src=CONTEXT_PATH+'/resources/common/images/L_NOBOOK.jpg'"/>
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onClick="javascript:searchList.fnContentPreview('N','001', '031101', '4801157064411','5'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          
+                          
+                          </div>
+
+                          <div>
+                            <p>
+                              
+                                
+                                
+                                
+                                
+                                
+                                
+                              
+                              
+                                <span class="small ebook">전자책</span>
+                              
+                              
+                                
+                                  <span class="store">교보문고</span>
+                                
+                              
+                              
+                            </p>
+                            
+                              
+                              
+                                <ul>
+                                  <li class="tit"><a href="/content/contentView.ink" title="직장인의 글쓰기 | 광주시립중앙도서관(구독)" onClick="javascript:searchList.fnContentClick(this, '001', '4801157064411', '031101', '1112490101', 'N', '5'); event.preventDefault();">직장인의 글쓰기</a></li>
+                                  <li class="writer">강원국<span>메디치미디어</span>2025-06-30</li>
+                                  <li class="txt">《회장님의 글쓰기》의 전면 개정판. 초판 출간 당시 직장인 글쓰기를 넘어 직장생활 전반에 대한 진심 어린 조언으로 사회초년생을 비롯해 팀장, 부장, 임원까지 열광했던 이 책이 드디어 내용에 어울리는 제목인 《직장인의 글쓰기》로 재탄생했다. 본문 디자인뿐 아니라 내용 또한 시대에 발맞추어 추가 및 수정·보완을 거친 완전판이다. 기업에서 17년, 청와대에서 8년, 도합 25년 동안 직장에서 글 쓰는 일을 해온 강원국 작가가 직장인을 위한 페이퍼 작성에 관한 완벽한 가이드를 제공한다. 
+회사에서는 글쓰기가 곧 일하기와 동의어다. 하지만 단순히 글만 잘 쓰면 아무짝에도 쓸모가 없다. 상사의 생각을 꿰뚫는 말과 글이 필수다. 상사의 생각을 꿰뚫기 위해서는 좋은 관계와 소통이 먼저다. 이 책에는 일잘러를 위한 회사 내 관계와 소통의 기술이 담겼다. 상사의 심리에서 시작해 소통으로 완성하는 직장 글쓰기 비법의 모든 것을 만날 수 있다. 
+저자는 직장 내 평화와 번영에 기여한다는 사명감으로 아</li>
+                                </ul>
+                                
+                                  
+                                  
+                                
+                              
+                            
+                          </div>
+                          <div class="btn_area">
+                            
+                              
+                              
+                            
+                            
+                              
+                              
+                              
+                                
+                                  
+                                  
+
+                                  
+                                  
+                                    
+                                      
+
+                                        
+
+                                        
+                                            <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '24995', '', '4801157064411', '001', '직장인의 글쓰기','5', 'KB','1', '', event);"/></span>
+                                        
+
+                                        
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                            <!-- 찜하기 -->
+                            
+                              
+                              
+                                
+                                  
+                                  
+                                  
+                                    
+                                      
+                                      
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, '4801157064411','N');"/></span>
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                          </div>
+                        </li>
+                      
+                        <li>
+                          <div class="img">
+                          
+                          
+                          
+                            <a href="/content/contentView.ink" title="대통령의 글쓰기(10주년 기념 스페셜 에디션) | 광주시립중앙도서관(구독)" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '4801157063483', '0719', '1112490101', 'N','5'); event.preventDefault();">
+                            <img src="//dcontent.dkyobobook.co.kr/library/001/DRMContent/fed5/ebook/483/4801157063483/L4801157063483.jpg" alt="대통령의 글쓰기(10주년 기념 스페셜 에디션)" onerror="this.src=CONTEXT_PATH+'/resources/common/images/L_NOBOOK.jpg'"/>
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onClick="javascript:searchList.fnContentPreview('N','001', '0719', '4801157063483','5'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          
+                          
+                          </div>
+
+                          <div>
+                            <p>
+                              
+                                
+                                
+                                
+                                
+                                
+                                
+                              
+                              
+                                <span class="small ebook">전자책</span>
+                              
+                              
+                                
+                                  <span class="store">교보문고</span>
+                                
+                              
+                              
+                            </p>
+                            
+                              
+                              
+                                <ul>
+                                  <li class="tit"><a href="/content/contentView.ink" title="대통령의 글쓰기(10주년 기념 스페셜 에디션) | 광주시립중앙도서관(구독)" onClick="javascript:searchList.fnContentClick(this, '001', '4801157063483', '0719', '1112490101', 'N', '5'); event.preventDefault();">대통령의 글쓰기(10주년 기념 스페셜 에디션)</a></li>
+                                  <li class="writer">강원국<span>메디치미디어</span>2024-04-17</li>
+                                  <li class="txt">강원국 작가의 인생 첫 책 《대통령의 글쓰기》가 50만 부 돌파와 더불어 출간 10주년을 맞아 스페셜 에디션으로 독자들을 새롭게 찾아왔다.  
+
+청와대 연설비서관으로 8년간 근무하면서 대한민국 최고의 연설가였던 김대중, 노무현 두 대통령에게 민주주의 시대 소통의 방법론을 배운 강원국 작가. 《대통령의 글쓰기》에는 그가 두 대통령에게 배운 사람의 마음을 움직이는 글쓰기 비법뿐 아니라 국민과 소통하고자 노력해온 김대중, 노무현 두 대통령의 말과 글을 대하는 태도와 진심이 담겨 있다.  
+
+이번 10주년 기념 스페셜 에디션에서는 김대중, 노무현 대통령을 직접 경험하지 못한 젊은 독자를 위해 일부 내용을 다듬었다. 강원국 작가의 애정 어린 시선으로 포착해낸 두 대통령의 관찰 기록이 이제는 역사 속 인물이 되어버린 두 분을 우리 곁으로 다시금 소환한다.</li>
+                                </ul>
+                                
+                                  
+                                  
+                                
+                              
+                            
+                          </div>
+                          <div class="btn_area">
+                            
+                              
+                              
+                            
+                            
+                              
+                              
+                              
+                                
+                                  
+                                  
+
+                                  
+                                  
+                                    
+                                      
+
+                                        
+
+                                        
+                                            <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '24995', '', '4801157063483', '001', '대통령의 글쓰기(10주년 기념 스페셜 에디션)','5', 'KB','1', '', event);"/></span>
+                                        
+
+                                        
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                            <!-- 찜하기 -->
+                            
+                              
+                              
+                                
+                                  
+                                  
+                                  
+                                    
+                                      
+                                      
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, '4801157063483','N');"/></span>
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                          </div>
+                        </li>
+                      
+                        <li>
+                          <div class="img">
+                          
+                          
+                          
+                            <a href="/content/contentView.ink" title="강원국 x 김민식 말하기의 태도 | 광주시립중앙도서관(구독)" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '4801193540030', '0303', '1112490101', 'N','5'); event.preventDefault();">
+                            <img src="//dcontent.dkyobobook.co.kr/library/001/DRMContent/fed5/ebook/030/4801193540030/L4801193540030.jpg" alt="강원국 x 김민식 말하기의 태도" onerror="this.src=CONTEXT_PATH+'/resources/common/images/L_NOBOOK.jpg'"/>
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onClick="javascript:searchList.fnContentPreview('N','001', '0303', '4801193540030','5'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          
+                          
+                          </div>
+
+                          <div>
+                            <p>
+                              
+                                
+                                
+                                
+                                
+                                
+                                
+                              
+                              
+                                <span class="small ebook">전자책</span>
+                              
+                              
+                                
+                                  <span class="store">교보문고</span>
+                                
+                              
+                              
+                            </p>
+                            
+                              
+                              
+                                <ul>
+                                  <li class="tit"><a href="/content/contentView.ink" title="강원국 x 김민식 말하기의 태도 | 광주시립중앙도서관(구독)" onClick="javascript:searchList.fnContentClick(this, '001', '4801193540030', '0303', '1112490101', 'N', '5'); event.preventDefault();">강원국 x 김민식 말하기의 태도</a></li>
+                                  <li class="writer">강원국<span>테라코타</span>2024-01-31</li>
+                                  <li class="txt">대화의 고수 강원국, 김민식이 알려 주는
+말 잘하는 사람들의 비밀 
+
+리더들의 말과 글을 쓰고 다듬으며 소통의 본질을 배운 강원국, 드라마 PD로 작가, 배우, 스태프의 말에 귀 기울이며 경청을 배운 김민식, 이 두 사람은 각 분야 명사들을 인터뷰하거나 드라마 PD와 강연자로 만나 온 사람들 중 대화와 소통에 능한 사람들의 공통점은 무엇인지, 그들은 어떻게 말하는가에 관해 이야기를 나누었다. 두 사람은 입을 모아 그들은 말하기의 태도가 달랐다고 강조한다. 그렇다면 말하기의 태도는 어떠해야 할까. 태도는 말을 대하는 마음가짐에서 출발한다. 자신과 타인을 존중하고 배려하는 마음을 가진 사람은 상대의 마음 문을 열고, 긍정의 말을 아끼지 않는다. 마음가짐은 말을 중요하게 여기고 타인을 대하는 자세에 반영된다.
+
+이 책은 ‘어떻게 하면 말을 더 잘할 수 있을까’에 대해 함께 고민과 대화를 나눈 결과물이다. 누구에게나 신뢰와 호감을 주는 말하기의 태도, 마음과 귀를 여는 듣기와 말하</li>
+                                </ul>
+                                
+                                  
+                                  
+                                
+                              
+                            
+                          </div>
+                          <div class="btn_area">
+                            
+                              
+                              
+                            
+                            
+                              
+                              
+                              
+                                
+                                  
+                                  
+
+                                  
+                                  
+                                    
+                                      
+
+                                        
+
+                                        
+                                            <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '24995', '', '4801193540030', '001', '강원국 x 김민식 말하기의 태도','5', 'KB','1', '', event);"/></span>
+                                        
+
+                                        
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                            <!-- 찜하기 -->
+                            
+                              
+                              
+                                
+                                  
+                                  
+                                  
+                                    
+                                      
+                                      
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, '4801193540030','N');"/></span>
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                          </div>
+                        </li>
+                      
+                        <li>
+                          <div class="img">
+                          
+                          
+                          
+                            <a href="/content/contentView.ink" title="강원국의 글쓰기 | 광주시립중앙도서관(구독)" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '4801157061267', '0719', '1112490101', 'N','5'); event.preventDefault();">
+                            <img src="//dcontent.dkyobobook.co.kr/library/001/DRMContent/fed5/ebook/267/4801157061267/L4801157061267.jpg" alt="강원국의 글쓰기" onerror="this.src=CONTEXT_PATH+'/resources/common/images/L_NOBOOK.jpg'"/>
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onClick="javascript:searchList.fnContentPreview('N','001', '0719', '4801157061267','5'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          
+                          
+                          </div>
+
+                          <div>
+                            <p>
+                              
+                                
+                                
+                                
+                                
+                                
+                                
+                              
+                              
+                                <span class="small ebook">전자책</span>
+                              
+                              
+                                
+                                  <span class="store">교보문고</span>
+                                
+                              
+                              
+                            </p>
+                            
+                              
+                              
+                                <ul>
+                                  <li class="tit"><a href="/content/contentView.ink" title="강원국의 글쓰기 | 광주시립중앙도서관(구독)" onClick="javascript:searchList.fnContentClick(this, '001', '4801157061267', '0719', '1112490101', 'N', '5'); event.preventDefault();">강원국의 글쓰기</a></li>
+                                  <li class="writer">강원국<span>메디치미디어</span>2018-07-09</li>
+                                  <li class="txt">두 대통령과 기업 리더들에게서 직접 보고 듣고 배운 말과 글 그리고 소통에 관하여 이야기한 《대통령의 글쓰기》와 《회장님의 글쓰기》를 잇는 강원국의 「글쓰기 3부작」의 결정판 『강원국의 글쓰기』. 28년간 암중모색과 고군분투 과정을 거쳐 얻은 글쓰기 노하우를 담은 책으로, 글쓰기를 두려워하는 모든 이들에게 마음만 먹으면 누구도 쓸 수 있다는 자신감을 북돋아준다.
+
+글을 잘 쓰기 위해 마음 상태를 어떻게 다스려야 하는지, 글을 쓰기 위해서는 어떤 준비가 필요하며 글쓰기 기본기는 어떻게 갖춰야 하는지, 실제로 글을 어떻게 써야하고 글을 잘 쓰기 위한 주변 여건과 환경은 어떠해야 하는지 모두 5장으로 나누어 자세하게 알려준다. 이를 통해 결국 남과 다른 나만의 글을 쓰기 위해서는 그 어떤 훌륭한 글쓰기 방법보다 내가 나로서 나답게 사는 게 중요하다는 것을 일깨워주고자 한다.</li>
+                                </ul>
+                                
+                                  
+                                  
+                                
+                              
+                            
+                          </div>
+                          <div class="btn_area">
+                            
+                              
+                              
+                            
+                            
+                              
+                              
+                              
+                                
+                                  
+                                  
+
+                                  
+                                  
+                                    
+                                      
+
+                                        
+
+                                        
+                                            <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '24995', '', '4801157061267', '001', '강원국의 글쓰기','5', 'KB','1', '', event);"/></span>
+                                        
+
+                                        
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                            <!-- 찜하기 -->
+                            
+                              
+                              
+                                
+                                  
+                                  
+                                  
+                                    
+                                      
+                                      
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, '4801157061267','N');"/></span>
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                          </div>
+                        </li>
+                      
+                        <li>
+                          <div class="img">
+                          
+                          
+                          
+                            <a href="/content/contentView.ink" title="회장님의 글쓰기 | 광주시립중앙도서관(구독)" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '4801157060222', '0307', '1112490101', 'N','5'); event.preventDefault();">
+                            <img src="//dcontent.dkyobobook.co.kr/library/001/DRMContent/fed5/ebook/222/4801157060222/L4801157060222.jpg" alt="회장님의 글쓰기" onerror="this.src=CONTEXT_PATH+'/resources/common/images/L_NOBOOK.jpg'"/>
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onClick="javascript:searchList.fnContentPreview('N','001', '0307', '4801157060222','5'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          
+                          
+                          </div>
+
+                          <div>
+                            <p>
+                              
+                                
+                                
+                                
+                                
+                                
+                                
+                              
+                              
+                                <span class="small ebook">전자책</span>
+                              
+                              
+                                
+                                  <span class="store">교보문고</span>
+                                
+                              
+                              
+                            </p>
+                            
+                              
+                              
+                                <ul>
+                                  <li class="tit"><a href="/content/contentView.ink" title="회장님의 글쓰기 | 광주시립중앙도서관(구독)" onClick="javascript:searchList.fnContentClick(this, '001', '4801157060222', '0307', '1112490101', 'N', '5'); event.preventDefault();">회장님의 글쓰기</a></li>
+                                  <li class="writer">강원국<span>메디치미디어</span>2014-12-09</li>
+                                  <li class="txt">청와대 연설문 비서관으로 8년, 라이팅 컨설턴트로 17년간 말과 글을 다뤄온 경험을 바탕으로 전작 《대통령의 글쓰기》에서 대통령에게 배우는 사람을 움직이는 글쓰기 비법을 소개했던 저자가 이번에는 직장에서 통하는 ‘소통’의 글쓰기를 들려준다. 『회장님의 글쓰기』는 사무실 현장 경험이 풍부한 저자가 직장인들의 관계, 즉 심리를 파악하는 방법부터 기획안 설득, 품격 있는 아부까지 상사의 마음을 사로잡는 90가지 계책을 소개한다. 회사는 태생적으로 이익을 추구하는 집단이기에 냉철한 지혜가 필요한 순간이 많다. 때문에 많은 에피소드들이 숨어있음에도 뾰족한 시각으로 까칠하고 냉정하게 조언을 아끼지 않았다. 
+
+책은 먼저, 모든 상사를 대변하는 상징적 아이콘인 ‘회장님’의 심리를 파악해 상사의 심리를 이해하고, 통하는 보고서가 어떤 것인지 안내한다. 그런 뒤, 말하기를 포함한 소통에 관한 이야기를 들려준다. 또한, 상대의 생각을 바꾸고 마음을 움직이는 말하기와 글쓰기, 처세에 관해 시시콜콜하게 </li>
+                                </ul>
+                                
+                                  
+                                  
+                                
+                              
+                            
+                          </div>
+                          <div class="btn_area">
+                            
+                              
+                              
+                            
+                            
+                              
+                              
+                              
+                                
+                                  
+                                  
+
+                                  
+                                  
+                                    
+                                      
+
+                                        
+
+                                        
+                                            <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '24995', '', '4801157060222', '001', '회장님의 글쓰기','5', 'KB','1', '', event);"/></span>
+                                        
+
+                                        
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                            <!-- 찜하기 -->
+                            
+                              
+                              
+                                
+                                  
+                                  
+                                  
+                                    
+                                      
+                                      
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, '4801157060222','N');"/></span>
+                                      
+                                    
+                                  
+                                
+                              
+                            
+                          </div>
+                        </li>
+                      
+                    </ul>
+
+                    <!-- paging -->
+                    <div id="searchList_pageNavi" class="pageNavi"></div>
+                  
+                  
+                
+                <!-- // 내용 끝  -->
+              </div>
+            </section>
+          <!-- //sub_con -->
+          </form>
+        </div>
+      </div>
+      <!-- //con_wrap -->
+    </div>
+    <!--content END -->
+
+    <!--quick START -->
+    
+
+
+
+
+
+
+
+ 
+
+
+
+
+ 
+
+<!-- quick 2020-07-08 -->
+<aside class="quick">
+	<ul>
+		<li class="item01"><a href="#" title="대출현황 | 광주시립중앙도서관(구독)" onClick="fnLoginCheck('loanStatus'); event.preventDefault();">대출현황</a></li>
+		
+		<li class="item05"><a href="#" title="찜목록 | 광주시립중앙도서관(구독)" onClick="fnLoginCheck('wishStatus'); event.preventDefault();">찜목록</a></li>
+		
+		
+		<li class="use_info item03"><a href="#" title="이용안내 | 광주시립중앙도서관(구독)">이용안내</a>
+			
+			<ul>
+				
+				<li class="in_item01"><a href="/helpDesk/libraryGuide.ink">전자도서관 안내</a></li>
+				
+				
+				<li class="in_item02"><a href="/helpDesk/pcGuide.ink">PC 이용안내</a></li>
+				
+				
+				<li class="in_item03"><a href="/helpDesk/mobileGuide.ink">모바일 이용안내</a></li>
+				
+			</ul>
+			
+		</li>
+		
+		
+	</ul>
+	<div class="arr_btn">
+		<p><a href="#top" class="tab_scroll">맨 위로 올라가기</a></p>
+		<p><a href="#footer" class="tab_scroll">맨 아래로가기</a></p>
+	</div>
+</aside>
+
+    <!--quick END -->
+
+    <!--footer START -->
+    
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+<!-- foot -->
+<footer>
+<div class="foot_etc" id="footer">
+  <h2 class="hidden_obj">하단메뉴</h2>
+  <div>
+    <ul class="etc">
+      <li id="mobileViewBtn" style="display:none;"><a href="/mobileView.ink">모바일버전</a></li>
+      <li><a href="/member/memberPrivacy.ink">이용약관</a></li>
+      <li><a href="/member/memberPromis.ink" style="font-weight:bold;text-decoration:underline;">개인정보처리방침</a></li>
+      <li><a href="/member/memberYouthPolicy.ink">청소년보호정책</a></li>
+      <li><a href="/siteMap/siteMap.ink">사이트맵</a></li>
+    </ul>
+    
+    
+    <div class="family">
+      <h3><a href="#">FAMILY SITE</a></h3>
+      <ul><li id="familySite"></li></ul>
+    </div>
+    
+  </div>
+</div>
+
+<!-- footer_address -->
+<div class="foot_add">
+  <h2 class="hidden_obj">주소</h2>
+  <div>
+    <address class="address">
+      <p>도서관명 : 광주시립중앙도서관(구독) | 주소 : 12768</p>
+      
+      <p>Copyright ⓒ KYOBO BOOK CENTRE. All rights reserved.</p>
+    </address>
+    <div class="ban_area">
+      
+    </div>
+  </div>
+</div>
+</footer>
+
+<script type="text/javascript">
+//전자도서관 설치 확인
+$(window).load(function(){
+  protocol.elibraryStart();
+});
+
+$(document).ready(function(){
+  
+  
+  
+  
+  var optionsFamily = new Object();
+  optionsFamily.url = "/family/familySite.json";
+  optionsFamily.loading = false;
+  optionsFamily.callback = function(resultFamily,optionsFamily){
+    if (resultFamily){
+      setFamilyCallback(resultFamily);
+    }
+  }
+  form.ajax(optionsFamily);
+
+  function setFamilyCallback(resultFamily){
+    var target = $("#familySite");
+    target.empty();
+    var html = "";
+    $.each(resultFamily.familySiteList, function(key, value){
+      html +='<li>';
+      html +='<a href=\''+value.siteUrl+'\' target="_blank" title="새창으로 열림">';
+      html += value.siteName
+      html +='</a>';
+      html +='</li>';
+    });
+    target.append(html);
+  }
+  
+  
+  
+  
+  //모바일device에서 PC버전 화면을 띄웠으면 다시 모바일로 가기위한버튼 활성화
+  if(gFnIsMobileDevice() || gFnIsTabletDevice()){
+    $("#mobileViewBtn").show();
+  }
+});
+</script>
+
+    <!--footer END -->
+</div>
+
+<!-- //wrap -->
+</body>
+
+</html>

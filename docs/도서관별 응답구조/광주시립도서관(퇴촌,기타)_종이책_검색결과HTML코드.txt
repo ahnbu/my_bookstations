@@ -1,0 +1,996 @@
+<ul class="resultList imageType">
+					<li>
+						<span class="chk"><input type="checkbox" name="check" title="나는 말하듯이 쓴다 : 누구나 쓰게 되는 강원국의 글쓰기 비법 선택" value="333189021^333189024^BO"></span>
+						
+							<div class="thumb">
+								<a href="#link" onclick="javascript:fnSearchResultDetail(333189021,333189024,'BO'); return false;" class="cover">
+									<em class="tag"><img src="/kolaseek/include/image/kdc/tag8.png" alt="문학"></em>
+									<span class="img"><img class="bookCoverImg" src="https://shopping-phinf.pstatic.net/main_5434402/54344020065.20250423093934.jpg" alt="나는 말하듯이 쓴다 : 누구나 쓰게 되는 강원국의 글쓰기 비법 표지"></span>
+								</a>
+							</div>
+						
+						<dl class="bookDataWrap">
+							<dt class="tit">
+								<span class="cate">도서</span>
+								<a href="#link" onclick="javascript:fnSearchResultDetail(333189021,333189024,'BO'); return false;">1. 나는 말하듯이 쓴다 : 누구나 쓰게 되는 <span class="searchKwd themeFC">강원국</span>의 글쓰기 비법</a>
+							</dt>
+							<dd class="author">
+								<span>저자 : <span class="searchKwd themeFC">강원국</span> 지음</span>
+								<span>발행자: 위즈덤하우스</span>
+								
+									<span>발행년도: 2025</span>
+								
+								
+							</dd>
+							<dd class="data">
+								
+									<span>ISBN: 9791171714070</span>
+									
+									<span>
+										청구기호: 802-강66나2판
+										
+											<a href="#btn" onclick="javascript:fnCallNoPrintPop(333189024, 'BO', 'WEB'); return false;" title="새창열림" class="button print mobileHide">위치출력</a>
+										
+									</span>
+								
+								
+							</dd>
+							<dd class="site">
+								<span>도서관: 광남도서관</span>
+								<span>자료실: [광남]신간도서_문헌</span>
+								
+									<span>부록: 없음</span>
+								
+								
+							</dd>
+						</dl>
+						<div class="bookStateBar clearfix">
+							<p class="txt">
+								<b>대출불가[상호대차중]</b>
+								<span>(예약: 0명)</span>
+								
+							</p>
+							<div class="stateArea">
+								
+									
+										
+											
+												<a href="#btn" onclick="javascript:fnLoanReservationApplyProc('EEM','EEM000020663','MQ','BO'); return false;" class="state typeA"><span class="ico"></span> 도서예약신청</a>
+											
+											
+										
+									
+									
+								
+								
+								
+									
+										
+										
+											<span class="state typeB"><span class="ico"></span> 상호대차불가</span>
+										
+									
+								
+								
+								
+								
+									
+										
+										
+											<span class="state typeA"><span class="ico"></span> 야간대출불가</span>
+										
+									
+								
+								
+								
+								
+									<a href="#wishbook" onclick="javascript:fnAddBasketProc(333189021,333189024,'BO'); return false;" class="state typeC"><span class="ico"></span> 관심도서담기</a>
+								
+							</div>
+						</div>
+					</li>
+				
+					
+						
+							
+							
+							
+							
+						
+						
+					
+					<li>
+						<span class="chk"><input type="checkbox" name="check" title="나는 말하듯이 쓴다: 강원국의 말 잘하고 글 잘 쓰는 법 선택" value="300578311^300578314^BO"></span>
+						
+							<div class="thumb">
+								<a href="#link" onclick="javascript:fnSearchResultDetail(300578311,300578314,'BO'); return false;" class="cover">
+									<em class="tag"><img src="/kolaseek/include/image/kdc/tag8.png" alt="문학"></em>
+									<span class="img"><img class="bookCoverImg" src="https://shopping-phinf.pstatic.net/main_3245591/32455917828.20250709073015.jpg" alt="나는 말하듯이 쓴다: 강원국의 말 잘하고 글 잘 쓰는 법 표지"></span>
+								</a>
+							</div>
+						
+						<dl class="bookDataWrap">
+							<dt class="tit">
+								<span class="cate">도서</span>
+								<a href="#link" onclick="javascript:fnSearchResultDetail(300578311,300578314,'BO'); return false;">2. 나는 말하듯이 쓴다: <span class="searchKwd themeFC">강원국</span>의 말 잘하고 글 잘 쓰는 법</a>
+							</dt>
+							<dd class="author">
+								<span>저자 : <span class="searchKwd themeFC">강원국</span> 지음</span>
+								<span>발행자: 위즈덤하우스</span>
+								
+									<span>발행년도: 2020</span>
+								
+								
+							</dd>
+							<dd class="data">
+								
+									<span>ISBN: 9791190786867</span>
+									
+									<span>
+										청구기호: 802-강66나
+										
+											<a href="#btn" onclick="javascript:fnCallNoPrintPop(300578314, 'BO', 'WEB'); return false;" title="새창열림" class="button print mobileHide">위치출력</a>
+										
+									</span>
+								
+								
+							</dd>
+							<dd class="site">
+								<span>도서관: 광남도서관</span>
+								<span>자료실: [광남]문헌자료실</span>
+								
+									<span>부록: 없음</span>
+								
+								
+							</dd>
+						</dl>
+						<div class="bookStateBar clearfix">
+							<p class="txt">
+								<b>대출가능[비치중]</b>
+								
+								
+							</p>
+							<div class="stateArea">
+								
+									
+										
+											
+											
+												<span class="state typeA"><span class="ico"></span> 도서예약불가</span>
+											
+										
+									
+									
+								
+								
+								
+									
+										
+											<a href="#btn" onclick="javascript:fnAlpasBandLillApplyPop('MQ','EEM000010324'); return false;" class="state typeB" title="새창열림"><span class="ico"></span> 상호대차신청</a>
+										
+										
+									
+								
+								
+								
+								
+									
+										
+										
+											<span class="state typeA"><span class="ico"></span> 야간대출불가</span>
+										
+									
+								
+								
+								
+								
+									<a href="#wishbook" onclick="javascript:fnAddBasketProc(300578311,300578314,'BO'); return false;" class="state typeC"><span class="ico"></span> 관심도서담기</a>
+								
+							</div>
+						</div>
+					</li>
+				
+					
+						
+							
+							
+							
+							
+						
+						
+					
+					<li>
+						<span class="chk"><input type="checkbox" name="check" title="(강원국의) 책쓰기 수업: 모든 인생은 한 권의 책이다 선택" value="336195649^336195652^BO"></span>
+						
+							<div class="thumb">
+								<a href="#link" onclick="javascript:fnSearchResultDetail(336195649,336195652,'BO'); return false;" class="cover">
+									<em class="tag"><img src="/kolaseek/include/image/kdc/tag8.png" alt="문학"></em>
+									<span class="img"><img class="bookCoverImg" src="https://shopping-phinf.pstatic.net/main_5563899/55638995364.20250706073807.jpg" alt="(강원국의) 책쓰기 수업: 모든 인생은 한 권의 책이다 표지"></span>
+								</a>
+							</div>
+						
+						<dl class="bookDataWrap">
+							<dt class="tit">
+								<span class="cate">도서</span>
+								<a href="#link" onclick="javascript:fnSearchResultDetail(336195649,336195652,'BO'); return false;">3. (<span class="searchKwd themeFC">강원국</span>의) 책쓰기 수업: 모든 인생은 한 권의 책이다</a>
+							</dt>
+							<dd class="author">
+								<span>저자 : <span class="searchKwd themeFC">강원국</span> 지음</span>
+								<span>발행자: 한국능률협회컨설팅(KMAC)</span>
+								
+									<span>발행년도: 2025</span>
+								
+								
+							</dd>
+							<dd class="data">
+								
+									<span>ISBN: 9788990701626</span>
+									
+									<span>
+										청구기호: 802-강66책
+										
+											<a href="#btn" onclick="javascript:fnCallNoPrintPop(336195652, 'BO', 'WEB'); return false;" title="새창열림" class="button print mobileHide">위치출력</a>
+										
+									</span>
+								
+								
+							</dd>
+							<dd class="site">
+								<span>도서관: 초월도서관</span>
+								<span>자료실: [초월]문헌자료실</span>
+								
+									<span>부록: 없음</span>
+								
+								
+							</dd>
+						</dl>
+						<div class="bookStateBar clearfix">
+							<p class="txt">
+								<b>대출불가[대출중]</b>
+								<span>(예약: 0명)</span>
+								(반납예정일: 2025.10.25)
+							</p>
+							<div class="stateArea">
+								
+									
+										
+											
+												<a href="#btn" onclick="javascript:fnLoanReservationApplyProc('WEM','WEM000087752','MH','BO'); return false;" class="state typeA"><span class="ico"></span> 도서예약신청</a>
+											
+											
+										
+									
+									
+								
+								
+								
+									
+										
+										
+											<span class="state typeB"><span class="ico"></span> 상호대차불가</span>
+										
+									
+								
+								
+								
+								
+								
+								
+									
+										
+										
+											<span class="state typeD"><span class="ico"></span> 무인예약불가</span>
+										
+									
+								
+								
+									<a href="#wishbook" onclick="javascript:fnAddBasketProc(336195649,336195652,'BO'); return false;" class="state typeC"><span class="ico"></span> 관심도서담기</a>
+								
+							</div>
+						</div>
+					</li>
+				
+					
+						
+							
+							
+							
+							
+						
+						
+					
+					<li>
+						<span class="chk"><input type="checkbox" name="check" title="강원국의 글쓰기 남과 다른 글은 어떻게 쓰는가 선택" value="300566639^300566642^BO"></span>
+						
+							<div class="thumb">
+								<a href="#link" onclick="javascript:fnSearchResultDetail(300566639,300566642,'BO'); return false;" class="cover">
+									<em class="tag"><img src="/kolaseek/include/image/kdc/tag8.png" alt="문학"></em>
+									<span class="img"><img class="bookCoverImg" src="https://shopping-phinf.pstatic.net/main_4031145/40311455636.20250909080234.jpg" alt="강원국의 글쓰기 남과 다른 글은 어떻게 쓰는가 표지"></span>
+								</a>
+							</div>
+						
+						<dl class="bookDataWrap">
+							<dt class="tit">
+								<span class="cate">도서</span>
+								<a href="#link" onclick="javascript:fnSearchResultDetail(300566639,300566642,'BO'); return false;">4. <span class="searchKwd themeFC">강원국</span>의 글쓰기 남과 다른 글은 어떻게 쓰는가</a>
+							</dt>
+							<dd class="author">
+								<span>저자 : <span class="searchKwd themeFC">강원국</span> 지음</span>
+								<span>발행자: 메디치미디어</span>
+								
+									<span>발행년도: 2023</span>
+								
+								
+							</dd>
+							<dd class="data">
+								
+									<span>ISBN: 9791157062928</span>
+									
+									<span>
+										청구기호: 큰 802-강66강
+										
+											<a href="#btn" onclick="javascript:fnCallNoPrintPop(300566642, 'BO', 'WEB'); return false;" title="새창열림" class="button print mobileHide">위치출력</a>
+										
+									</span>
+								
+								
+							</dd>
+							<dd class="site">
+								<span>도서관: 광남도서관</span>
+								<span>자료실: [광남]북라운지</span>
+								
+									<span>부록: 없음</span>
+								
+								
+							</dd>
+						</dl>
+						<div class="bookStateBar clearfix">
+							<p class="txt">
+								<b>대출가능[비치중]</b>
+								
+								
+							</p>
+							<div class="stateArea">
+								
+									
+										
+											
+											
+												<span class="state typeA"><span class="ico"></span> 도서예약불가</span>
+											
+										
+									
+									
+								
+								
+								
+									
+										
+											<a href="#btn" onclick="javascript:fnAlpasBandLillApplyPop('MQ','EEM000015077'); return false;" class="state typeB" title="새창열림"><span class="ico"></span> 상호대차신청</a>
+										
+										
+									
+								
+								
+								
+								
+									
+										
+										
+											<span class="state typeA"><span class="ico"></span> 야간대출불가</span>
+										
+									
+								
+								
+								
+								
+									<a href="#wishbook" onclick="javascript:fnAddBasketProc(300566639,300566642,'BO'); return false;" class="state typeC"><span class="ico"></span> 관심도서담기</a>
+								
+							</div>
+						</div>
+					</li>
+				
+					
+						
+							
+							
+							
+							
+						
+						
+					
+					<li>
+						<span class="chk"><input type="checkbox" name="check" title="(강원국의) 책쓰기 수업: 모든 인생은 한 권의 책이다 선택" value="337927469^337927472^BO"></span>
+						
+							<div class="thumb">
+								<a href="#link" onclick="javascript:fnSearchResultDetail(337927469,337927472,'BO'); return false;" class="cover">
+									<em class="tag"><img src="/kolaseek/include/image/kdc/tag8.png" alt="문학"></em>
+									<span class="img"><img class="bookCoverImg" src="https://shopping-phinf.pstatic.net/main_5563899/55638995364.20250706073807.jpg" alt="(강원국의) 책쓰기 수업: 모든 인생은 한 권의 책이다 표지"></span>
+								</a>
+							</div>
+						
+						<dl class="bookDataWrap">
+							<dt class="tit">
+								<span class="cate">도서</span>
+								<a href="#link" onclick="javascript:fnSearchResultDetail(337927469,337927472,'BO'); return false;">5. (<span class="searchKwd themeFC">강원국</span>의) 책쓰기 수업: 모든 인생은 한 권의 책이다</a>
+							</dt>
+							<dd class="author">
+								<span>저자 : <span class="searchKwd themeFC">강원국</span> 지음</span>
+								<span>발행자: 한국능률협회컨설팅(KMAC)</span>
+								
+									<span>발행년도: 2025</span>
+								
+								
+							</dd>
+							<dd class="data">
+								
+									<span>ISBN: 9788990701626</span>
+									
+									<span>
+										청구기호: 802-강66책
+										
+											<a href="#btn" onclick="javascript:fnCallNoPrintPop(337927472, 'BO', 'WEB'); return false;" title="새창열림" class="button print mobileHide">위치출력</a>
+										
+									</span>
+								
+								
+							</dd>
+							<dd class="site">
+								<span>도서관: 광남도서관</span>
+								<span>자료실: [광남]신간도서_문헌</span>
+								
+									<span>부록: 없음</span>
+								
+								
+							</dd>
+						</dl>
+						<div class="bookStateBar clearfix">
+							<p class="txt">
+								<b>대출가능[비치중]</b>
+								
+								
+							</p>
+							<div class="stateArea">
+								
+									
+										
+											
+											
+												<span class="state typeA"><span class="ico"></span> 도서예약불가</span>
+											
+										
+									
+									
+								
+								
+								
+									
+										
+											<a href="#btn" onclick="javascript:fnAlpasBandLillApplyPop('MQ','EEM000021190'); return false;" class="state typeB" title="새창열림"><span class="ico"></span> 상호대차신청</a>
+										
+										
+									
+								
+								
+								
+								
+									
+										
+										
+											<span class="state typeA"><span class="ico"></span> 야간대출불가</span>
+										
+									
+								
+								
+								
+								
+									<a href="#wishbook" onclick="javascript:fnAddBasketProc(337927469,337927472,'BO'); return false;" class="state typeC"><span class="ico"></span> 관심도서담기</a>
+								
+							</div>
+						</div>
+					</li>
+				
+					
+						
+							
+							
+							
+							
+						
+						
+					
+					<li>
+						<span class="chk"><input type="checkbox" name="check" title="강원국의 인생 공부 : 무엇을 위해 살 것인가 선택" value="321273654^321273657^BO"></span>
+						
+							<div class="thumb">
+								<a href="#link" onclick="javascript:fnSearchResultDetail(321273654,321273657,'BO'); return false;" class="cover">
+									<em class="tag"><img src="/kolaseek/include/image/kdc/tag1.png" alt="철학"></em>
+									<span class="img"><img class="bookCoverImg" src="https://shopping-phinf.pstatic.net/main_4500975/45009751624.20240103153812.jpg" alt="강원국의 인생 공부 : 무엇을 위해 살 것인가 표지"></span>
+								</a>
+							</div>
+						
+						<dl class="bookDataWrap">
+							<dt class="tit">
+								<span class="cate">도서</span>
+								<a href="#link" onclick="javascript:fnSearchResultDetail(321273654,321273657,'BO'); return false;">6. <span class="searchKwd themeFC">강원국</span>의 인생 공부 : 무엇을 위해 살 것인가</a>
+							</dt>
+							<dd class="author">
+								<span>저자 : <span class="searchKwd themeFC">강원국</span> 지음</span>
+								<span>발행자: 디플롯</span>
+								
+									<span>발행년도: 2024</span>
+								
+								
+							</dd>
+							<dd class="data">
+								
+									<span>ISBN: 9791193591017</span>
+									
+									<span>
+										청구기호: 199.1-강66강
+										
+											<a href="#btn" onclick="javascript:fnCallNoPrintPop(321273657, 'BO', 'WEB'); return false;" title="새창열림" class="button print mobileHide">위치출력</a>
+										
+									</span>
+								
+								
+							</dd>
+							<dd class="site">
+								<span>도서관: 초월도서관</span>
+								<span>자료실: [초월]문헌자료실</span>
+								
+									<span>부록: 없음</span>
+								
+								
+							</dd>
+						</dl>
+						<div class="bookStateBar clearfix">
+							<p class="txt">
+								<b>대출가능[비치중]</b>
+								
+								
+							</p>
+							<div class="stateArea">
+								
+									
+										
+											
+											
+												<span class="state typeA"><span class="ico"></span> 도서예약불가</span>
+											
+										
+									
+									
+								
+								
+								
+									
+										
+											<a href="#btn" onclick="javascript:fnAlpasBandLillApplyPop('MH','WEM000086240'); return false;" class="state typeB" title="새창열림"><span class="ico"></span> 상호대차신청</a>
+										
+										
+									
+								
+								
+								
+								
+								
+								
+									
+										
+											<a href="#btn" onclick="javascript:fnUnmannedApplyPop('WEM000086240','MH'); return false;" class="state typeD" title="새창열림"><span class="ico"></span> 무인예약신청</a>
+										
+										
+									
+								
+								
+									<a href="#wishbook" onclick="javascript:fnAddBasketProc(321273654,321273657,'BO'); return false;" class="state typeC"><span class="ico"></span> 관심도서담기</a>
+								
+							</div>
+						</div>
+					</li>
+				
+					
+						
+							
+							
+							
+							
+						
+						
+					
+					<li>
+						<span class="chk"><input type="checkbox" name="check" title="강원국의 글쓰기: 남과 다른 글은 어떻게 쓰는가 선택" value="300578293^300578296^BO"></span>
+						
+							<div class="thumb">
+								<a href="#link" onclick="javascript:fnSearchResultDetail(300578293,300578296,'BO'); return false;" class="cover">
+									<em class="tag"><img src="/kolaseek/include/image/kdc/tag8.png" alt="문학"></em>
+									<span class="img"><img class="bookCoverImg" src="https://shopping-phinf.pstatic.net/main_3248326/32483267814.20240703071034.jpg" alt="강원국의 글쓰기: 남과 다른 글은 어떻게 쓰는가 표지"></span>
+								</a>
+							</div>
+						
+						<dl class="bookDataWrap">
+							<dt class="tit">
+								<span class="cate">도서</span>
+								<a href="#link" onclick="javascript:fnSearchResultDetail(300578293,300578296,'BO'); return false;">7. <span class="searchKwd themeFC">강원국</span>의 글쓰기: 남과 다른 글은 어떻게 쓰는가</a>
+							</dt>
+							<dd class="author">
+								<span>저자 : <span class="searchKwd themeFC">강원국</span> 지음</span>
+								<span>발행자: 메디치미디어</span>
+								
+									<span>발행년도: 2018</span>
+								
+								
+							</dd>
+							<dd class="data">
+								
+									<span>ISBN: 9791157061266</span>
+									
+									<span>
+										청구기호: 802-강66강
+										
+											<a href="#btn" onclick="javascript:fnCallNoPrintPop(300578296, 'BO', 'WEB'); return false;" title="새창열림" class="button print mobileHide">위치출력</a>
+										
+									</span>
+								
+								
+							</dd>
+							<dd class="site">
+								<span>도서관: 광남도서관</span>
+								<span>자료실: [광남]문헌자료실</span>
+								
+									<span>부록: 없음</span>
+								
+								
+							</dd>
+						</dl>
+						<div class="bookStateBar clearfix">
+							<p class="txt">
+								<b>대출불가[대출중]</b>
+								<span>(예약: 0명)</span>
+								(반납예정일: 2025.10.13)
+							</p>
+							<div class="stateArea">
+								
+									
+										
+											
+												<a href="#btn" onclick="javascript:fnLoanReservationApplyProc('EEM','EEM000010321','MQ','BO'); return false;" class="state typeA"><span class="ico"></span> 도서예약신청</a>
+											
+											
+										
+									
+									
+								
+								
+								
+									
+										
+										
+											<span class="state typeB"><span class="ico"></span> 상호대차불가</span>
+										
+									
+								
+								
+								
+								
+									
+										
+										
+											<span class="state typeA"><span class="ico"></span> 야간대출불가</span>
+										
+									
+								
+								
+								
+								
+									<a href="#wishbook" onclick="javascript:fnAddBasketProc(300578293,300578296,'BO'); return false;" class="state typeC"><span class="ico"></span> 관심도서담기</a>
+								
+							</div>
+						</div>
+					</li>
+				
+					
+						
+							
+							
+							
+							
+						
+						
+					
+					<li>
+						<span class="chk"><input type="checkbox" name="check" title="(강원국의) 어른답게 말합니다: 품격 있는 삶을 위한 최소한의 말공부 선택" value="300640494^300640497^BO"></span>
+						
+							<div class="thumb">
+								<a href="#link" onclick="javascript:fnSearchResultDetail(300640494,300640497,'BO'); return false;" class="cover">
+									<em class="tag"><img src="/kolaseek/include/image/kdc/tag8.png" alt="문학"></em>
+									<span class="img"><img class="bookCoverImg" src="https://shopping-phinf.pstatic.net/main_3245925/32459254669.20250806071145.jpg" alt="(강원국의) 어른답게 말합니다: 품격 있는 삶을 위한 최소한의 말공부 표지"></span>
+								</a>
+							</div>
+						
+						<dl class="bookDataWrap">
+							<dt class="tit">
+								<span class="cate">도서</span>
+								<a href="#link" onclick="javascript:fnSearchResultDetail(300640494,300640497,'BO'); return false;">8. (<span class="searchKwd themeFC">강원국</span>의) 어른답게 말합니다: 품격 있는 삶을 위한 최소한의 말공부</a>
+							</dt>
+							<dd class="author">
+								<span>저자 : <span class="searchKwd themeFC">강원국</span> 지음</span>
+								<span>발행자: 웅진지식하우스</span>
+								
+									<span>발행년도: 2021</span>
+								
+								
+							</dd>
+							<dd class="data">
+								
+									<span>ISBN: 9788901250014</span>
+									
+									<span>
+										청구기호: 802.5-강66어
+										
+											<a href="#btn" onclick="javascript:fnCallNoPrintPop(300640497, 'BO', 'WEB'); return false;" title="새창열림" class="button print mobileHide">위치출력</a>
+										
+									</span>
+								
+								
+							</dd>
+							<dd class="site">
+								<span>도서관: 광남도서관</span>
+								<span>자료실: [광남]문헌자료실</span>
+								
+									<span>부록: 없음</span>
+								
+								
+							</dd>
+						</dl>
+						<div class="bookStateBar clearfix">
+							<p class="txt">
+								<b>대출가능[비치중]</b>
+								
+								
+							</p>
+							<div class="stateArea">
+								
+									
+										
+											
+											
+												<span class="state typeA"><span class="ico"></span> 도서예약불가</span>
+											
+										
+									
+									
+								
+								
+								
+									
+										
+											<a href="#btn" onclick="javascript:fnAlpasBandLillApplyPop('MQ','EEM000009269'); return false;" class="state typeB" title="새창열림"><span class="ico"></span> 상호대차신청</a>
+										
+										
+									
+								
+								
+								
+								
+									
+										
+										
+											<span class="state typeA"><span class="ico"></span> 야간대출불가</span>
+										
+									
+								
+								
+								
+								
+									<a href="#wishbook" onclick="javascript:fnAddBasketProc(300640494,300640497,'BO'); return false;" class="state typeC"><span class="ico"></span> 관심도서담기</a>
+								
+							</div>
+						</div>
+					</li>
+				
+					
+						
+							
+							
+							
+							
+						
+						
+					
+					<li>
+						<span class="chk"><input type="checkbox" name="check" title="강원국의 인생 공부 무엇을 위해 살 것인가 선택" value="313016878^313016881^BO"></span>
+						
+							<div class="thumb">
+								<a href="#link" onclick="javascript:fnSearchResultDetail(313016878,313016881,'BO'); return false;" class="cover">
+									<em class="tag"><img src="/kolaseek/include/image/kdc/tag8.png" alt="문학"></em>
+									<span class="img"><img class="bookCoverImg" src="/kolaseek/include/image/kdc/noimg8.png" alt="강원국의 인생 공부 무엇을 위해 살 것인가 표지"></span>
+								</a>
+							</div>
+						
+						<dl class="bookDataWrap">
+							<dt class="tit">
+								<span class="cate">전자자료</span>
+								<a href="#link" onclick="javascript:fnSearchResultDetail(313016878,313016881,'BO'); return false;">9. <span class="searchKwd themeFC">강원국</span>의 인생 공부 무엇을 위해 살 것인가</a>
+							</dt>
+							<dd class="author">
+								<span>저자 : <span class="searchKwd themeFC">강원국</span> 지음</span>
+								<span>발행자: 디플롯</span>
+								
+									<span>발행년도: 2024</span>
+								
+								
+							</dd>
+							<dd class="data">
+								
+									<span>ISBN: </span>
+									
+									<span>
+										청구기호: EB 818-강66강
+										
+											<a href="#btn" onclick="javascript:fnCallNoPrintPop(313016881, 'BO', 'WEB'); return false;" title="새창열림" class="button print mobileHide">위치출력</a>
+										
+									</span>
+								
+								
+							</dd>
+							<dd class="site">
+								<span>도서관: 광주시립중앙도서관</span>
+								<span>자료실: [중앙]멀티미디어실</span>
+								
+									<span>부록: 없음</span>
+								
+								
+							</dd>
+						</dl>
+						<div class="bookStateBar clearfix">
+							<p class="txt">
+								<b>대출불가[비치중]</b>
+								
+								
+							</p>
+							<div class="stateArea">
+								
+									
+										
+											
+											
+												<span class="state typeA"><span class="ico"></span> 도서예약불가</span>
+											
+										
+									
+									
+								
+								
+								
+									
+										
+										
+											<span class="state typeB"><span class="ico"></span> 상호대차불가</span>
+										
+									
+								
+								
+								
+								
+								
+									
+										
+										
+											<span class="state typeD"><span class="ico"></span> 무인예약불가</span>
+										
+									
+								
+								
+								
+									<a href="#wishbook" onclick="javascript:fnAddBasketProc(313016878,313016881,'BO'); return false;" class="state typeC"><span class="ico"></span> 관심도서담기</a>
+								
+							</div>
+						</div>
+					</li>
+				
+					
+						
+							
+							
+							
+							
+						
+						
+					
+					<li>
+						<span class="chk"><input type="checkbox" name="check" title="강원국의 진짜 공부 선택" value="339674830^339674844^BO"></span>
+						
+							<div class="thumb">
+								<a href="#link" onclick="javascript:fnSearchResultDetail(339674830,339674844,'BO'); return false;" class="cover">
+									<em class="tag"><img src="/kolaseek/include/image/kdc/tag3.png" alt="사회과학"></em>
+									<span class="img"><img class="bookCoverImg" src="https://shopping-phinf.pstatic.net/main_4134420/41344200620.20230815081659.jpg" alt="강원국의 진짜 공부 표지"></span>
+								</a>
+							</div>
+						
+						<dl class="bookDataWrap">
+							<dt class="tit">
+								<span class="cate">도서</span>
+								<a href="#link" onclick="javascript:fnSearchResultDetail(339674830,339674844,'BO'); return false;">10. <span class="searchKwd themeFC">강원국</span>의 진짜 공부</a>
+							</dt>
+							<dd class="author">
+								<span>저자 : <span class="searchKwd themeFC">강원국</span> 지음</span>
+								<span>발행자: 창비교육(창비)</span>
+								
+									<span>발행년도: 2023</span>
+								
+								
+							</dd>
+							<dd class="data">
+								
+									<span>ISBN: 9791165702205</span>
+									
+									<span>
+										청구기호: 373.4-강66강
+										
+											<a href="#btn" onclick="javascript:fnCallNoPrintPop(339674844, 'BO', 'WEB'); return false;" title="새창열림" class="button print mobileHide">위치출력</a>
+										
+									</span>
+								
+								
+							</dd>
+							<dd class="site">
+								<span>도서관: 신현도서관</span>
+								<span>자료실: [신현]일반자료실</span>
+								
+									<span>부록: 없음</span>
+								
+								
+							</dd>
+						</dl>
+						<div class="bookStateBar clearfix">
+							<p class="txt">
+								<b>대출불가[비치중]</b>
+								
+								
+							</p>
+							<div class="stateArea">
+								
+									
+										
+											
+											
+												<span class="state typeA"><span class="ico"></span> 도서예약불가</span>
+											
+										
+									
+									
+								
+								
+								
+									
+										
+										
+											<span class="state typeB"><span class="ico"></span> 상호대차불가</span>
+										
+									
+								
+								
+								
+								
+									
+										
+										
+											<span class="state typeA"><span class="ico"></span> 야간대출불가</span>
+										
+									
+								
+								
+								
+								
+									<a href="#wishbook" onclick="javascript:fnAddBasketProc(339674830,339674844,'BO'); return false;" class="state typeC"><span class="ico"></span> 관심도서담기</a>
+								
+							</div>
+						</div>
+					</li>
+				
+			
+			
+		
+	</ul>
