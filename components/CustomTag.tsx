@@ -26,6 +26,10 @@ const colorStyles: Record<TagColor, { base: string; active: string }> = {
   secondary: {
     base: 'tag-secondary',
     active: 'tag-secondary opacity-90'
+  },
+  tertiary: { // ✅ [추가] 'tertiary' 색상 스타일 등록
+    base: 'tag-tertiary',
+    active: 'tag-tertiary opacity-90'
   }
 };
 
@@ -50,7 +54,7 @@ const CustomTagComponent: React.FC<CustomTagProps> = ({
     return null; 
   }
 
-  const isValidColor = tag.color === 'primary' || tag.color === 'secondary';
+  const isValidColor = tag.color === 'primary' || tag.color === 'secondary' || tag.color === 'tertiary' ;
   const tagColor = isValidColor ? tag.color : 'secondary'; // 유효하지 않은 색상 값일 경우 'secondary'를 기본값으로 사용
   // --- End: 방어 코드 추가 ---
 

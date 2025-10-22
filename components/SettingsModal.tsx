@@ -311,7 +311,8 @@ const SettingsModal: React.FC = () => {
 
   const colorOptions: { value: TagColor; label: string; class: string }[] = [
     { value: 'primary', label: '기본', class: 'tag-primary' },
-    { value: 'secondary', label: '보조', class: 'tag-secondary' },
+    { value: 'secondary', label: '보조1', class: 'tag-secondary' },
+    { value: 'tertiary', label: '보조2', class: 'tag-tertiary' },
   ];
 
   // 태그 정렬: 1차-색상별(기본>보조), 2차-사용량별(많은순)
@@ -320,8 +321,9 @@ const SettingsModal: React.FC = () => {
 
     return [...settings.tagSettings.tags].sort((a, b) => {
       // 1차 정렬: 색상별 (기본색상 > 보조색상)
-      const colorOrder = { 'primary': 0, 'secondary': 1 };
-      const colorDiff = colorOrder[a.color] - colorOrder[b.color];
+      const colorOrder = { 'primary': 0, 'secondary': 1, 'tertiary': 2 };
+      // const colorDiff = colorOrder[a.color] - colorOrder[b.color];
+      const colorDiff = (colorOrder[a.color] ?? 99) - (colorOrder[b.color] ?? 99);
       if (colorDiff !== 0) return colorDiff;
 
       // 2차 정렬: 사용량별 (많이 사용 > 적게 사용)

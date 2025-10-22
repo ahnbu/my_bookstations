@@ -335,7 +335,8 @@ export type BulkSearchResult = {
 
 // Custom Tag Types
 // export type TagColor = 'blue' | 'green' | 'yellow' | 'red' | 'purple' | 'pink' | 'gray';
-export type TagColor = 'primary' | 'secondary';
+// export type TagColor = 'primary' | 'secondary';
+export type TagColor = 'primary' | 'secondary' | 'tertiary'; // ✅ 태그 컬러 'tertiary' 추가
 
 export type CustomTag = {
   id: string;

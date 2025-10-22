@@ -19,18 +19,46 @@ const TagFilter: React.FC<TagFilterProps> = ({
   // useBookStore에서 전체 서재 기준 태그 카운트 가져오기
   const { tagCounts } = useBookStore();
 
-  // 태그 사용량 정렬 및 상위 10개만 표시
+  // // 태그 사용량 정렬 및 상위 10개만 표시
+  // const tagUsageStats = React.useMemo(() => {
+  //   // 사용량 많은 순으로 정렬하고 상위 10개만 표시
+  //   return tags
+  //     .map(tag => ({
+  //       tag,
+  //       count: tagCounts[tag.id] || 0
+  //     }))
+  //     .filter(item => item.count > 0) // 사용된 태그만 필터링
+  //     .sort((a, b) => b.count - a.count)  // 2. 인기도 순으로 정렬
+  //     // .slice(0, 10); // 💥 3. 상위 10개만 잘라냄!
+  // }, [tags, tagCounts]);
+
+
+  // ✅ [수정] 1순위: 색상, 2순위: 인기도 순으로 정렬
   const tagUsageStats = React.useMemo(() => {
-    // 사용량 많은 순으로 정렬하고 상위 10개만 표시
+    // 사용량 많은 순으로 정렬
     return tags
       .map(tag => ({
         tag,
         count: tagCounts[tag.id] || 0
       }))
       .filter(item => item.count > 0) // 사용된 태그만 필터링
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
+      .sort((a, b) => {
+        // 1. 색상 순서 (보라 'primary' > 연보라 > secondary(회색))
+        const colorOrder = { 'primary': 0, 'secondary': 1, 'tertiary': 2 };
+        
+        // 2. 색상 값을 기준으로 비교합니다.
+        const colorDifference = colorOrder[a.tag.color] - colorOrder[b.tag.color];
+        
+        // 3. 만약 색상이 다르다면, 그 결과를 바로 반환합니다.
+        if (colorDifference !== 0) {
+          return colorDifference;
+        }
+        
+        // 4. 색상이 같다면, 인기도(count)가 높은 순서로 정렬합니다.
+        return b.count - a.count;
+      });
   }, [tags, tagCounts]);
+
 
   if (tagUsageStats.length === 0) {
     return null; // 태그가 없으면 필터 영역을 표시하지 않음
