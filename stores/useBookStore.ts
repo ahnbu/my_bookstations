@@ -1,14 +1,18 @@
 
 import { create } from 'zustand';
 import { supabase } from '../lib/supabaseClient';
-import { AladdinBookItem, SelectedBook, SortKey, ReadStatus, BookData, Json, EBookInfo, StockInfo, GwangjuPaperResult, GyeonggiEduEbookError, GyeonggiEbookResult } from '../types';
+import { AladdinBookItem, SortKey, ReadStatus, Json, EBookInfo, StockInfo, GwangjuPaperResult, GyeonggiEduEbookError, GyeonggiEbookResult, 
+  ApiCombinedBookData, // ✅ 새로 추가
+  BookData,            // ✅ 새로 추가 (기존 타입 대체)
+  SelectedBook,        // ✅ 새로 추가 (기존 타입 대체)
+} from '../types';
 import { searchAladinBooks } from '../services/aladin.service';
-import { filterGyeonggiEbookByIsbn } from '../utils/isbnMatcher';
+// import { filterGyeonggiEbookByIsbn } from '../utils/isbnMatcher';
 import { useUIStore } from './useUIStore';
 import { useAuthStore } from './useAuthStore';
 import { useSettingsStore } from './useSettingsStore';
-import { fetchBookAvailability, GyeonggiEduEbookSummarize} from '../services/unifiedLibrary.service'; // GyeonggiEbookLibraryResult 임포트 추가
-import { combineApiResults } from '../utils/bookDataCombiner';
+import { fetchBookAvailability} from '../services/unifiedLibrary.service'; // GyeonggiEbookLibraryResult 임포트 추가
+import { createBookDataFromApis } from '../utils/bookDataCombiner';
 
 /**
  * 특정 책의 데이터를 업데이트하고, 로컬 상태와 Supabase DB를 동기화하는 헬퍼 함수
@@ -17,20 +21,84 @@ import { combineApiResults } from '../utils/bookDataCombiner';
  * @param errorMessage DB 업데이트 실패 시 보여줄 알림 메시지
  */
 
+// async function updateBookInStoreAndDB(
+//   id: number,
+//   updates: Partial<Omit<SelectedBook, 'id'>>, // ✅ SelectedBook 기준으로 변경
+//   // updates: Partial<Omit<BookData, 'id'>>,
+//   // updates: Partial<Omit<BookData, 'id' | 'note'>>, // ✅ note는 별도 컬럼이므로 Omit에 추가
+//   errorMessage: string = '책 정보 업데이트에 실패했습니다.'
+// ): Promise<void> {
+//   // [핵심 수정] getBookById를 호출하여 모든 데이터 소스에서 책을 찾음
+//   const originalBook = await useBookStore.getState().getBookById(id);
+
+//   if (!originalBook) {
+//     console.warn(`[updateBook] Book with id ${id} not found in any available source.`);
+//     return;
+//   }
+
+//   // 1. 낙관적 업데이트 (기존 로직과 동일)
+//   const updatedBook: SelectedBook = { ...originalBook, ...updates };
+//   useBookStore.setState(state => ({
+//     myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? updatedBook : b)),
+//     librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? updatedBook : b)),
+//     libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? updatedBook : b)),
+//     selectedBook:
+//       state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
+//         ? updatedBook
+//         : state.selectedBook,
+//   }));
+
+//   // 2. DB 업데이트 (기존 로직과 동일)
+//   // const { id: bookId, detailedStockInfo, note, ...bookDataForDb } = updatedBook;
+//   const { id: bookId, note, ...bookDataForDb } = updatedBook; // ✅ detailedStockInfo 제거
+
+//   try {
+//     const updateData: { book_data: Json; note?: string | null; title?: string; author?: string } = {
+//       title: updatedBook.title,
+//       author: updatedBook.author,
+//       book_data: bookDataForDb as unknown as Json
+//     };
+//     if ('note' in updates) {
+//       updateData.note = note || null;
+//     }
+//     const { error } = await supabase
+//       .from('user_library')
+//       .update(updateData)
+//       .eq('id', id);
+//     if (error) throw error;
+//   } catch (error) {
+//     // 3. 롤백 (기존 로직과 동일)
+//     console.error(`[updateBook] Failed to update book (id: ${id}) in DB:`, error);
+//     useUIStore.getState().setNotification({
+//       message: `${errorMessage} 변경사항이 저장되지 않았을 수 있습니다.`,
+//       type: 'error',
+//     });
+//     useBookStore.setState(state => ({
+//       myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? originalBook : b)),
+//       librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? originalBook : b)),
+//       libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? originalBook : b)),
+//       selectedBook:
+//         state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
+//           ? originalBook
+//           : state.selectedBook,
+//     }));
+//   }
+// }
+
+// ▼▼▼▼▼▼▼▼▼▼ 이 함수를 아래 코드로 완전히 교체하세요 ▼▼▼▼▼▼▼▼▼▼
 async function updateBookInStoreAndDB(
   id: number,
-  updates: Partial<Omit<BookData, 'id'>>,
+  updates: Partial<Omit<SelectedBook, 'id'>>, // ✅ SelectedBook 기준으로 변경 (가장 정확한 타입)
   errorMessage: string = '책 정보 업데이트에 실패했습니다.'
 ): Promise<void> {
-  // [핵심 수정] getBookById를 호출하여 모든 데이터 소스에서 책을 찾음
   const originalBook = await useBookStore.getState().getBookById(id);
 
   if (!originalBook) {
-    console.warn(`[updateBook] Book with id ${id} not found in any available source.`);
+    console.warn(`[updateBook] Book with id ${id} not found.`);
     return;
   }
 
-  // 1. 낙관적 업데이트 (기존 로직과 동일)
+  // 1. 낙관적 업데이트
   const updatedBook: SelectedBook = { ...originalBook, ...updates };
   useBookStore.setState(state => ({
     myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? updatedBook : b)),
@@ -42,40 +110,50 @@ async function updateBookInStoreAndDB(
         : state.selectedBook,
   }));
 
-  // 2. DB 업데이트 (기존 로직과 동일)
-  const { id: bookId, detailedStockInfo, note, ...bookDataForDb } = updatedBook;
+  // 2. DB 업데이트
+  // `book_data`에 저장될 객체에서 최상위 컬럼인 id, note를 제외
+  const { id: bookId, note, ...bookDataForDb } = updatedBook; 
+  
   try {
-    const updateData: { book_data: Json; note?: string | null; title?: string; author?: string } = {
+    const updateData: {
+      book_data: Json;
+      title?: string;
+      author?: string;
+      note?: string | null;
+    } = {
       title: updatedBook.title,
       author: updatedBook.author,
-      book_data: bookDataForDb as unknown as Json
+      book_data: bookDataForDb as unknown as Json,
     };
-    if ('note' in updates) {
-      updateData.note = note || null;
+
+    if (Object.prototype.hasOwnProperty.call(updates, 'note')) {
+      updateData.note = updates.note ?? null;
     }
+
     const { error } = await supabase
       .from('user_library')
       .update(updateData)
       .eq('id', id);
+      
     if (error) throw error;
+
   } catch (error) {
-    // 3. 롤백 (기존 로직과 동일)
+    // 3. 롤백
     console.error(`[updateBook] Failed to update book (id: ${id}) in DB:`, error);
-    useUIStore.getState().setNotification({
-      message: `${errorMessage} 변경사항이 저장되지 않았을 수 있습니다.`,
-      type: 'error',
-    });
+    // ... (롤백 로직은 기존과 동일)
     useBookStore.setState(state => ({
-      myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? originalBook : b)),
-      librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? originalBook : b)),
-      libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? originalBook : b)),
-      selectedBook:
-        state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
-          ? originalBook
-          : state.selectedBook,
+        myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? originalBook : b)),
+        librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? originalBook : b)),
+        libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? originalBook : b)),
+        selectedBook:
+          state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
+            ? originalBook
+            : state.selectedBook,
     }));
   }
 }
+// ▲▲▲▲▲▲▲▲▲▲ 여기까지 교체 ▲▲▲▲▲▲▲▲▲▲
+
 
 interface BookState {
   getBookById: (id: number) => Promise<SelectedBook | null>; // [추가]
@@ -499,31 +577,101 @@ export const useBookStore = create<BookState>(
         set({ selectedBook: null });
       },
 
+      // addToLibrary: async () => {
+      //     const { selectedBook, myLibraryBooks } = get();
+      //     const { session } = useAuthStore.getState();
+      //     if (!selectedBook || !session) return;
+
+      //     // ISBN 기준으로 중복 체크 (이중 안전장치)
+      //     const isDuplicate = myLibraryBooks.some(book => book.isbn13 === selectedBook.isbn13);
+      //     if (isDuplicate) {
+      //       useUIStore.getState().setNotification({ 
+      //         message: '이미 서재에 추가된 책입니다.', 
+      //         type: 'warning'
+      //       });
+      //       return;
+      //     }
+
+      //     const newBookData: BookData = {
+      //       ...selectedBook,
+      //       addedDate: Date.now(),
+      //       toechonStock: { total_count: 0, available_count: 0 },
+      //       otherStock: { total_count: 0, available_count: 0 },
+      //       readStatus: '읽지 않음' as ReadStatus,
+      //       rating: 0,
+      //       isFavorite: false,
+      //       // subInfo가 selectedBook에 있다면 명시적으로 포함
+      //       ...(selectedBook.subInfo && { subInfo: selectedBook.subInfo }),
+      //     };
+          
+      //     try {
+      //         const { data, error } = await supabase
+      //             .from('user_library')
+      //             .insert([{
+      //               user_id: session.user.id,
+      //               title: newBookData.title,
+      //               author: newBookData.author,
+      //               book_data: newBookData as unknown as Json
+      //             }])
+      //             .select('id, book_data, note')
+      //             .single();
+              
+      //         if (error) throw error;
+      //         if (!data || !data.book_data) throw new Error("Failed to add book: No data returned.");
+
+      //         const newBookWithId: SelectedBook = { ...(data.book_data as BookData), id: data.id };
+
+      //         set(state => ({ myLibraryBooks: [newBookWithId, ...state.myLibraryBooks] }));
+      //         // 책 추가 성공 후 모달 닫기 및 선택된 책 초기화
+      //         // useUIStore.getState().closeBookSearchListModal();
+      //         set({ selectedBook: null });
+
+      //         // 내 서재 필터 리셋 (추가된 책이 보이도록)
+      //         const { resetLibraryFilters } = get();
+      //         if (resetLibraryFilters) {
+      //           resetLibraryFilters();
+      //         }
+
+      //         // 비동기 백그라운드 재고 조회 실행 (환경별 지연 시간 적용)
+      //         const delay = window.location.hostname === 'localhost' ? 100 : 800;
+      //         setTimeout(() => { get().refreshBookInfo(newBookWithId.id, newBookWithId.isbn13, newBookWithId.title); }, delay);
+
+      //     } catch(error) {
+      //         console.error("Error adding book to library:", error);
+      //         useUIStore.getState().setNotification({ message: '서재에 책을 추가하는 데 실패했습니다.', type: 'error'});
+      //     }
+      // },
+
       addToLibrary: async () => {
           const { selectedBook, myLibraryBooks } = get();
           const { session } = useAuthStore.getState();
-          if (!selectedBook || !session) return;
+          if (!selectedBook || !session || !('isbn13' in selectedBook)) return;
 
-          // ISBN 기준으로 중복 체크 (이중 안전장치)
+          // ISBN 기준으로 중복 체크
           const isDuplicate = myLibraryBooks.some(book => book.isbn13 === selectedBook.isbn13);
           if (isDuplicate) {
-            useUIStore.getState().setNotification({ 
-              message: '이미 서재에 추가된 책입니다.', 
-              type: 'warning'
-            });
+            useUIStore.getState().setNotification({ message: '이미 서재에 추가된 책입니다.', type: 'warning' });
             return;
           }
 
+          // ✅ BookData 타입에 맞게 초기 데이터 구성
           const newBookData: BookData = {
-            ...selectedBook,
-            addedDate: Date.now(),
+            ...(selectedBook as AladdinBookItem), // selectedBook은 AladdinBookItem 타입
+            
+            // 도서관/재고 정보 초기화
             toechonStock: { total_count: 0, available_count: 0 },
             otherStock: { total_count: 0, available_count: 0 },
-            readStatus: '읽지 않음' as ReadStatus,
+            gwangjuPaperInfo: { error: '아직 조회되지 않았습니다.' },
+            ebookInfo: null,
+            gyeonggiEbookInfo: null,
+            siripEbookInfo: null,
+
+            // 사용자 활동 정보 초기화
+            addedDate: Date.now(),
+            readStatus: '읽지 않음',
             rating: 0,
             isFavorite: false,
-            // subInfo가 selectedBook에 있다면 명시적으로 포함
-            ...(selectedBook.subInfo && { subInfo: selectedBook.subInfo }),
+            customTags: [],
           };
           
           try {
@@ -541,20 +689,22 @@ export const useBookStore = create<BookState>(
               if (error) throw error;
               if (!data || !data.book_data) throw new Error("Failed to add book: No data returned.");
 
-              const newBookWithId: SelectedBook = { ...(data.book_data as BookData), id: data.id };
+              const newBookWithId: SelectedBook = { 
+                  ...(data.book_data as BookData), 
+                  id: data.id,
+                  note: data.note, 
+              };
 
               set(state => ({ myLibraryBooks: [newBookWithId, ...state.myLibraryBooks] }));
-              // 책 추가 성공 후 모달 닫기 및 선택된 책 초기화
-              // useUIStore.getState().closeBookSearchListModal();
               set({ selectedBook: null });
 
-              // 내 서재 필터 리셋 (추가된 책이 보이도록)
+              // 내 서재 필터 리셋
               const { resetLibraryFilters } = get();
               if (resetLibraryFilters) {
                 resetLibraryFilters();
               }
 
-              // 비동기 백그라운드 재고 조회 실행 (환경별 지연 시간 적용)
+              // 백그라운드 재고 조회 실행
               const delay = window.location.hostname === 'localhost' ? 100 : 800;
               setTimeout(() => { get().refreshBookInfo(newBookWithId.id, newBookWithId.isbn13, newBookWithId.title); }, delay);
 
@@ -764,110 +914,214 @@ export const useBookStore = create<BookState>(
       //   }
       // },
 
+      // refreshBookInfo: async (id, isbn13, title) => {
+      //   set({ refreshingIsbn: isbn13, refreshingEbookId: id });
+
+      //   const originalBook = await get().getBookById(id);
+
+      //   if (!originalBook) {
+      //     console.warn(`[refreshBookInfo] Book with id ${id} not found.`);
+      //     set({ refreshingIsbn: null, refreshingEbookId: null });
+      //     return;
+      //   }
+
+      //   try {
+      //     // 1. API 병렬 호출
+      //     const libraryPromise = fetchBookAvailability(
+      //       isbn13,
+      //       title,
+      //       originalBook.customSearchTitle
+      //     );
+      //     const aladinPromise = searchAladinBooks(isbn13, 'ISBN');
+      //     const [libraryResult, aladinResult] = await Promise.allSettled([
+      //       libraryPromise,
+      //       aladinPromise,
+      //     ]);
+
+      //     // API 호출 결과 확인
+      //     if (libraryResult.status === 'rejected') {
+      //       throw new Error(`도서관 재고 조회 실패: ${libraryResult.reason.message}`);
+      //     }
+      //     const aladinBookData = (aladinResult.status === 'fulfilled' && aladinResult.value.length > 0)
+      //       ? aladinResult.value.find(b => b.isbn13 === isbn13)
+      //       : null;
+
+      //     if (!aladinBookData) {
+      //       console.warn(`[refreshBookInfo] Aladin data not found for ISBN ${isbn13}. Cannot proceed with update.`);
+      //       // 알라딘 정보가 없으면 책의 기본 정보(제목, 커버 등)를 갱신할 수 없으므로 업데이트 중단
+      //       throw new Error("알라딘에서 최신 도서 정보를 가져올 수 없어 업데이트를 중단합니다.");
+      //     }
+
+      //     // 2. "순수 API 정보 객체" 생성
+      //     const pureApiData = createBookDataFromApis(aladinBookData, libraryResult.value);
+
+      //     // 3. "사용자 정보"와 "순수 API 정보"를 합쳐 최종 DB 데이터 생성
+      //     const finalBookData = {
+      //       // 사용자 정보는 originalBook에서 가져옴
+      //       addedDate: originalBook.addedDate,
+      //       readStatus: originalBook.readStatus,
+      //       rating: originalBook.rating,
+      //       isFavorite: originalBook.isFavorite,
+      //       customTags: originalBook.customTags,
+      //       note: originalBook.note,
+      //       customSearchTitle: originalBook.customSearchTitle,
+      //       // 상세 재고 정보는 API 호출 시마다 새로 생성되므로 유지할 필요 없음
+
+      //       // 순수 API 정보를 덮어씀
+      //       ...pureApiData,
+      //     };
+
+      //     // subInfo 업데이트 로직 (새 전자책 정보가 있는데 기존엔 없었을 경우)
+      //     const hasNewEbookInfo = aladinBookData.subInfo?.ebookList?.[0]?.isbn13;
+      //     const hasOldEbookInfo = originalBook.subInfo?.ebookList?.[0]?.isbn13;
+      //     if (hasNewEbookInfo && !hasOldEbookInfo) {
+      //       (finalBookData as any).subInfo = aladinBookData.subInfo;
+      //       console.log(`[Ebook Update] '${title}'의 새로운 전자책 정보를 발견하여 업데이트합니다.`);
+      //     }
+
+      //     // 4. UI 상태를 즉시 업데이트 (ID 포함)
+      //     const updatedBookForUI = { ...finalBookData, id } as SelectedBook;
+
+      //     set(state => ({
+      //       myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? updatedBookForUI : b)),
+      //       librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? updatedBookForUI : b)),
+      //       libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? updatedBookForUI : b)),
+      //       selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBookForUI : state.selectedBook,
+      //     }));
+
+      //     // 5. 최종 DB 업데이트
+      //     const { id: bookId, ...dataForDb } = updatedBookForUI;
+      //     const { error } = await supabase
+      //       .from('user_library')
+      //       .update({
+      //         title: dataForDb.title,
+      //         author: dataForDb.author,
+      //         book_data: dataForDb as unknown as Json,
+      //       })
+      //       .eq('id', id);
+
+      //     if (error) throw error;
+
+      //   } catch (error) {
+      //     console.error(`Failed to refresh book info for ${title}`, error);
+      //     useUIStore.getState().setNotification({ message: '도서 정보 갱신에 실패했습니다.', type: 'error' });
+
+      //     // 롤백 로직: 에러 발생 시 원래 책 정보로 되돌립니다.
+      //     set(state => ({
+      //       myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? originalBook : b)),
+      //       librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? originalBook : b)),
+      //       libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? originalBook : b)),
+      //       selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? originalBook : state.selectedBook,
+      //     }));
+
+      //   } finally {
+      //     set({ refreshingIsbn: null, refreshingEbookId: null });
+      //   }
+      // },
+
       refreshBookInfo: async (id, isbn13, title) => {
-        set({ refreshingIsbn: isbn13, refreshingEbookId: id });
+          set({ refreshingIsbn: isbn13, refreshingEbookId: id });
 
-        const originalBook = await get().getBookById(id);
+          // getBookById를 사용하여 모든 데이터 소스에서 원본 책 정보를 가져옵니다.
+          const originalBook = await get().getBookById(id);
 
-        if (!originalBook) {
-          console.warn(`[refreshBookInfo] Book with id ${id} not found.`);
-          set({ refreshingIsbn: null, refreshingEbookId: null });
-          return;
-        }
-
-        try {
-          // 1. API 병렬 호출
-          const libraryPromise = fetchBookAvailability(
-            isbn13,
-            title,
-            originalBook.customSearchTitle
-          );
-          const aladinPromise = searchAladinBooks(isbn13, 'ISBN');
-          const [libraryResult, aladinResult] = await Promise.allSettled([
-            libraryPromise,
-            aladinPromise,
-          ]);
-
-          // API 호출 결과 확인
-          if (libraryResult.status === 'rejected') {
-            throw new Error(`도서관 재고 조회 실패: ${libraryResult.reason.message}`);
-          }
-          const aladinBookData = (aladinResult.status === 'fulfilled' && aladinResult.value.length > 0)
-            ? aladinResult.value.find(b => b.isbn13 === isbn13)
-            : null;
-
-          if (!aladinBookData) {
-            console.warn(`[refreshBookInfo] Aladin data not found for ISBN ${isbn13}. Cannot proceed with update.`);
-            // 알라딘 정보가 없으면 책의 기본 정보(제목, 커버 등)를 갱신할 수 없으므로 업데이트 중단
-            throw new Error("알라딘에서 최신 도서 정보를 가져올 수 없어 업데이트를 중단합니다.");
+          if (!originalBook) {
+            console.warn(`[refreshBookInfo] Book with id ${id} not found.`);
+            set({ refreshingIsbn: null, refreshingEbookId: null });
+            return;
           }
 
-          // 2. "순수 API 정보 객체" 생성
-          const pureApiData = combineApiResults(aladinBookData, libraryResult.value);
+          try {
+            // 1. API 병렬 호출
+            const libraryPromise = fetchBookAvailability(
+              isbn13,
+              title,
+              originalBook.customSearchTitle
+            );
+            const aladinPromise = searchAladinBooks(isbn13, 'ISBN');
+            const [libraryResult, aladinResult] = await Promise.allSettled([
+              libraryPromise,
+              aladinPromise,
+            ]);
 
-          // 3. "사용자 정보"와 "순수 API 정보"를 합쳐 최종 DB 데이터 생성
-          const finalBookData = {
-            // 사용자 정보는 originalBook에서 가져옴
-            addedDate: originalBook.addedDate,
-            readStatus: originalBook.readStatus,
-            rating: originalBook.rating,
-            isFavorite: originalBook.isFavorite,
-            customTags: originalBook.customTags,
-            note: originalBook.note,
-            customSearchTitle: originalBook.customSearchTitle,
-            // 상세 재고 정보는 API 호출 시마다 새로 생성되므로 유지할 필요 없음
+            // API 호출 결과 확인
+            if (libraryResult.status === 'rejected') {
+              throw new Error(`도서관 재고 조회 실패: ${libraryResult.reason.message}`);
+            }
+            const aladinBookData = (aladinResult.status === 'fulfilled' && aladinResult.value.length > 0)
+              ? aladinResult.value.find(b => b.isbn13 === isbn13)
+              : null;
 
-            // 순수 API 정보를 덮어씀
-            ...pureApiData,
-          };
+            if (!aladinBookData) {
+              throw new Error("알라딘에서 최신 도서 정보를 가져올 수 없어 업데이트를 중단합니다.");
+            }
 
-          // subInfo 업데이트 로직 (새 전자책 정보가 있는데 기존엔 없었을 경우)
-          const hasNewEbookInfo = aladinBookData.subInfo?.ebookList?.[0]?.isbn13;
-          const hasOldEbookInfo = originalBook.subInfo?.ebookList?.[0]?.isbn13;
-          if (hasNewEbookInfo && !hasOldEbookInfo) {
-            (finalBookData as any).subInfo = aladinBookData.subInfo;
-            console.log(`[Ebook Update] '${title}'의 새로운 전자책 정보를 발견하여 업데이트합니다.`);
+            // 2. "순수 API 정보 객체" 생성 (새 함수와 타입을 사용)
+            const pureApiData: ApiCombinedBookData = createBookDataFromApis(aladinBookData, libraryResult.value);
+
+            // 3. "사용자 정보"와 "순수 API 정보"를 합쳐 최종 `BookData` 생성
+            const finalBookData: BookData = {
+              ...pureApiData, // API에서 온 모든 정보
+
+              // 사용자 정보는 originalBook에서 가져와 유지
+              addedDate: originalBook.addedDate,
+              readStatus: originalBook.readStatus,
+              rating: originalBook.rating,
+              isFavorite: originalBook.isFavorite,
+              customTags: originalBook.customTags,
+              customSearchTitle: originalBook.customSearchTitle,
+            };
+
+            // subInfo 업데이트 로직 (새 전자책 정보가 있는데 기존엔 없었을 경우)
+            const hasNewEbookInfo = aladinBookData.subInfo?.ebookList?.[0]?.isbn13;
+            const hasOldEbookInfo = originalBook.subInfo?.ebookList?.[0]?.isbn13;
+            if (hasNewEbookInfo && !hasOldEbookInfo) {
+              finalBookData.subInfo = aladinBookData.subInfo;
+              console.log(`[Ebook Update] '${title}'의 새로운 전자책 정보를 발견하여 업데이트합니다.`);
+            }
+
+            // 4. UI 상태를 즉시 업데이트 (ID와 note 포함)
+            const updatedBookForUI: SelectedBook = {
+              ...finalBookData,
+              id: originalBook.id,
+              note: originalBook.note, // note는 별도 컬럼이므로 originalBook에서 가져옴
+            };
+
+            set(state => ({
+              myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? updatedBookForUI : b)),
+              librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? updatedBookForUI : b)),
+              libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? updatedBookForUI : b)),
+              selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBookForUI : state.selectedBook,
+            }));
+
+            // 5. 최종 DB 업데이트
+            const { error } = await supabase
+              .from('user_library')
+              .update({
+                title: finalBookData.title,     // 최상위 컬럼 업데이트
+                author: finalBookData.author,   // 최상위 컬럼 업데이트
+                book_data: finalBookData as unknown as Json, // book_data 컬럼 업데이트
+              })
+              .eq('id', id);
+
+            if (error) throw error;
+
+          } catch (error) {
+            console.error(`Failed to refresh book info for ${title}:`, error);
+            useUIStore.getState().setNotification({ message: '도서 정보 갱신에 실패했습니다.', type: 'error' });
+
+            // 롤백 로직: 에러 발생 시 원래 책 정보로 되돌립니다.
+            set(state => ({
+              myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? originalBook : b)),
+              librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? originalBook : b)),
+              libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? originalBook : b)),
+              selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? originalBook : state.selectedBook,
+            }));
+
+          } finally {
+            set({ refreshingIsbn: null, refreshingEbookId: null });
           }
-
-          // 4. UI 상태를 즉시 업데이트 (ID 포함)
-          const updatedBookForUI = { ...finalBookData, id } as SelectedBook;
-
-          set(state => ({
-            myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? updatedBookForUI : b)),
-            librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? updatedBookForUI : b)),
-            libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? updatedBookForUI : b)),
-            selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBookForUI : state.selectedBook,
-          }));
-
-          // 5. 최종 DB 업데이트
-          const { id: bookId, ...dataForDb } = updatedBookForUI;
-          const { error } = await supabase
-            .from('user_library')
-            .update({
-              title: dataForDb.title,
-              author: dataForDb.author,
-              book_data: dataForDb as unknown as Json,
-            })
-            .eq('id', id);
-
-          if (error) throw error;
-
-        } catch (error) {
-          console.error(`Failed to refresh book info for ${title}`, error);
-          useUIStore.getState().setNotification({ message: '도서 정보 갱신에 실패했습니다.', type: 'error' });
-
-          // 롤백 로직: 에러 발생 시 원래 책 정보로 되돌립니다.
-          set(state => ({
-            myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? originalBook : b)),
-            librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? originalBook : b)),
-            libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? originalBook : b)),
-            selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? originalBook : state.selectedBook,
-          }));
-
-        } finally {
-          set({ refreshingIsbn: null, refreshingEbookId: null });
-        }
-      },
+        },
 
       updateReadStatus: async (id, status) => {
         await updateBookInStoreAndDB(id, { readStatus: status }, '읽음 상태 변경에 실패했습니다.');
@@ -948,7 +1202,7 @@ export const useBookStore = create<BookState>(
             try {
               // ... (기존 DB 업데이트 로직은 동일)
               const updatedBookData = { ...book, customTags: tagIds };
-              const { id: bookId, detailedStockInfo, ...bookDataForDb } = updatedBookData;
+              const { id: bookId, ...bookDataForDb } = updatedBookData;
               
               const { error } = await supabase
                 .from('user_library')

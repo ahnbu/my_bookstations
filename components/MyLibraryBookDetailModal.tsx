@@ -241,9 +241,9 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                 <StockDisplay
                     label="전자책(교육)"
                     searchUrl={createLibraryOpenURL('e교육', book.title, book.customSearchTitle)}
-                    totalCount={book.ebookInfo?.summary.total_count}
-                    availableCount={book.ebookInfo?.summary.available_count}
-                    hasError={(book.ebookInfo?.summary.error_count ?? 0) > 0}
+                    totalCount={book.ebookInfo?.summary?.total_count}
+                    availableCount={book.ebookInfo?.summary?.available_count}
+                    hasError={(book.ebookInfo?.summary?.error_count ?? 0) > 0}
                     isLoading={!book.ebookInfo}
                 />
                 <StockDisplay
@@ -265,8 +265,8 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                 <StockDisplay
                     label="전자책(경기)"
                     searchUrl={createLibraryOpenURL('e경기', book.title, book.customSearchTitle)}
-                    totalCount={book.filteredGyeonggiEbookInfo && !('error' in book.filteredGyeonggiEbookInfo) ? book.filteredGyeonggiEbookInfo.total_count : (book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.total_count : 0)}
-                    availableCount={book.filteredGyeonggiEbookInfo && !('error' in book.filteredGyeonggiEbookInfo) ? book.filteredGyeonggiEbookInfo.available_count : (book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.available_count : 0)}
+                    totalCount={book.filteredGyeonggiEbookInfo && !('error' in book.filteredGyeonggiEbookInfo) ? book.filteredGyeonggiEbookInfo?.total_count : (book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo?.total_count : 0)}
+                    availableCount={book.filteredGyeonggiEbookInfo && !('error' in book.filteredGyeonggiEbookInfo) ? book.filteredGyeonggiEbookInfo?.available_count : (book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo?.available_count : 0)}
                     hasError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
                     isLoading={!book.gyeonggiEbookInfo && refreshingEbookId !== book.id} // 로딩 중 아닐 때만 isLoading 처리
                 />

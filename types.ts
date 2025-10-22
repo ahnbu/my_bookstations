@@ -76,12 +76,105 @@ export const LibraryStockResponseSchema = z.object({
 });
 
 
-// Infer TypeScript types from Zod schemas for external API types
-// These need to match the Zod validation exactly
+// ===== 변경 이전 ====
+
+// // This is the shape of the data that will be stored in the 'book_data' jsonb column.
+// export type BookData = AladdinBookItem & {
+//   toechonStock: StockInfo;
+//   otherStock: StockInfo;
+//   gwangjuPaperInfo?: GwangjuPaperResult | GwangjuPaperError; // [추가]
+//   ebookInfo?: EBookInfo; // New ebook information
+//   gyeonggiEbookInfo?: GyeonggiEbookResult | GyeonggiEbookError; // 경기도 전자도서관 정보 (원본)
+//   filteredGyeonggiEbookInfo?: GyeonggiEbookResult | GyeonggiEbookError; // ISBN 매칭 필터링된 경기도 전자도서관 정보
+//   siripEbookInfo?: SiripEbookResult | SiripEbookError; // 시립도서관 전자책 정보
+//   // 상세 재고 정보 (클릭 가능한 링크를 위한 파라미터 포함)
+//   detailedStockInfo?: {
+//     gwangju_paper?: {
+//       book_title: string;
+//       availability: {
+//         소장도서관: string;
+//         청구기호: string;
+//         기본청구기호: string;
+//         대출상태: '대출가능' | '대출불가';
+//         반납예정일: string;
+//         recKey?: string;
+//         bookKey?: string;
+//         publishFormCode?: string;
+//       }[];
+//     };
+//   };
+//   addedDate: number;
+//   readStatus: ReadStatus;
+//   rating: number;
+//   customTags?: string[]; // 태그 ID 배열
+//   isFavorite: boolean;
+//   note?: string; // 사용자 메모 (최대 50자)
+//   customSearchTitle?: string; // [추가] 커스텀 검색어
+// };
+
+
+// // This represents a book object within the application's state, including its database ID.
+// export type SelectedBook = BookData & {
+//   id: number;
+// };
+
+// ===== 변경 이후 ====
+
+// ✅ 런타임 검증이 가능한 Zod 스키마 정의 (신규 추가)
+// ▼▼▼▼▼▼▼▼▼▼ 여기에 아래 내용을 새로 추가합니다 ▼▼▼▼▼▼▼▼▼▼
+
+// --- Zod 스키마 및 타입 추론 (신규 및 대체) ---
+
+// 1. 순수 API 정보 스키마 (기존 BookData의 API 관련 부분)
+export const ApiCombinedBookDataSchema = AladdinBookItemSchema.extend({
+  // 도서관 API 원본 정보. 타입이 복잡하므로 z.any()로 처리하고, 런타임 검증이 꼭 필요하다면 별도 스키마 정의.
+  gwangjuPaperInfo: z.any().optional(),
+  ebookInfo: z.any().nullable().optional(), // 기존 EBookInfo 타입과 유사
+  gyeonggiEbookInfo: z.any().nullable().optional(),
+  siripEbookInfo: z.any().nullable().optional(),
+
+  // 화면 표시를 위한 파생/요약 정보
+  toechonStock: z.object({ total_count: z.number(), available_count: z.number() }).optional(),
+  otherStock: z.object({ total_count: z.number(), available_count: z.number() }).optional(),
+  filteredGyeonggiEbookInfo: z.any().optional(),
+});
+
+// 2. 사용자 활동 정보 스키마 (기존 BookData의 사용자 관련 부분)
+export const UserActivityDataSchema = z.object({
+  addedDate: z.number(),
+  readStatus: z.enum(['읽지 않음', '읽는 중', '완독']),
+  rating: z.number().min(0).max(5),
+  customTags: z.array(z.string()).optional(),
+  isFavorite: z.boolean(),
+  customSearchTitle: z.string().optional(),
+});
+
+// 3. 위 두 스키마를 합쳐서 새로운 BookDataSchema 정의
+export const BookDataSchema = ApiCombinedBookDataSchema.merge(UserActivityDataSchema);
+
+// 4. DB의 id와 note를 포함한 최종 형태의 스키마 정의
+export const SelectedBookSchema = BookDataSchema.extend({
+  id: z.number(),
+  note: z.string().nullable().optional(), // note는 별도 컬럼이므로 optional
+});
+
+// ▼▼▼▼▼▼▼▼▼▼ 모든 타입 추론을 여기에 모읍니다 ▼▼▼▼▼▼▼▼▼▼
+// --- TypeScript 타입 추론 (from Zod Schemas) ---
+
+// 외부 API 관련 타입
 export type AladdinBookItem = z.infer<typeof AladdinBookItemSchema>;
 export type AladdinAPIResponse = z.infer<typeof AladdinAPIResponseSchema>;
 export type LibraryAvailability = z.infer<typeof LibraryAvailabilitySchema>;
 export type LibraryStockResponse = z.infer<typeof LibraryStockResponseSchema>;
+
+// 내부 핵심 데이터 타입 (새로 추가 및 대체)
+export type ApiCombinedBookData = z.infer<typeof ApiCombinedBookDataSchema>;
+export type UserActivityData = z.infer<typeof UserActivityDataSchema>;
+export type BookData = z.infer<typeof BookDataSchema>;
+export type SelectedBook = z.infer<typeof SelectedBookSchema>;
+
+// ▲▲▲▲▲▲▲▲▲▲ 여기까지 새로 추가 ▲▲▲▲▲▲▲▲▲▲
+
 
 // ======== 이동 =======
 
@@ -265,44 +358,7 @@ export type EBookInfo = {
   lastUpdated: number;
 };
 
-// This is the shape of the data that will be stored in the 'book_data' jsonb column.
-export type BookData = AladdinBookItem & {
-  toechonStock: StockInfo;
-  otherStock: StockInfo;
-  gwangjuPaperInfo?: GwangjuPaperResult | GwangjuPaperError; // [추가]
-  ebookInfo?: EBookInfo; // New ebook information
-  gyeonggiEbookInfo?: GyeonggiEbookResult | GyeonggiEbookError; // 경기도 전자도서관 정보 (원본)
-  filteredGyeonggiEbookInfo?: GyeonggiEbookResult | GyeonggiEbookError; // ISBN 매칭 필터링된 경기도 전자도서관 정보
-  siripEbookInfo?: SiripEbookResult | SiripEbookError; // 시립도서관 전자책 정보
-  // 상세 재고 정보 (클릭 가능한 링크를 위한 파라미터 포함)
-  detailedStockInfo?: {
-    gwangju_paper?: {
-      book_title: string;
-      availability: {
-        소장도서관: string;
-        청구기호: string;
-        기본청구기호: string;
-        대출상태: '대출가능' | '대출불가';
-        반납예정일: string;
-        recKey?: string;
-        bookKey?: string;
-        publishFormCode?: string;
-      }[];
-    };
-  };
-  addedDate: number;
-  readStatus: ReadStatus;
-  rating: number;
-  customTags?: string[]; // 태그 ID 배열
-  isFavorite: boolean;
-  note?: string; // 사용자 메모 (최대 50자)
-  customSearchTitle?: string; // [추가] 커스텀 검색어
-};
 
-// This represents a book object within the application's state, including its database ID.
-export type SelectedBook = BookData & {
-  id: number;
-};
 
 export type SortKey = 'title' | 'author' | 'addedDate' | 'rating' | 'readStatus' | 'pubDate';
 
