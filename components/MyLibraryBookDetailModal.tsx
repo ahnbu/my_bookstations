@@ -17,6 +17,7 @@ import { combineRawApiResults } from '../utils/bookDataCombiner';
 // 제목 가공 함수 (3단어, 괄호 등 제거 후)
 const createSearchSubject = createOptimalSearchTitle;
 
+
 interface MyLibraryBookDetailModalProps {
   bookId: number;
   onClose: () => void;
@@ -389,6 +390,62 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
     // 메모 편집 상태 관리
     const [editingNote, setEditingNote] = useState(false);
     const [noteValue, setNoteValue] = useState('');
+    
+    // 태그 추가삭제 낙관적 UI를 위한 상태 및 콜백 함수
+    // const [processingTags, setProcessingTags] = useState<Set<string>>(new Set());
+
+        // ================================================================
+    // ✅ [추가 시작] 태그 추가/삭제(CRUD)를 위한 상태 및 핸들러
+    // ================================================================
+    const [processingTags, setProcessingTags] = useState<Set<string>>(new Set());
+
+    // --- 태그 추가(Create) 핸들러 ---
+    const handleAddTag = useCallback(async (tagId: string) => {
+      // book 데이터가 없거나 이미 처리 중이면 중복 실행 방지
+      if (!book || processingTags.has(tagId)) return;
+
+      // 1. 즉시 UI를 '처리 중' 상태로 변경 (Optimistic UI)
+      setProcessingTags(prev => new Set(prev).add(tagId));
+      try {
+        // 2. 실제 데이터베이스 작업 요청
+        await addTagToBook(book.id, tagId);
+      } catch (error) {
+        console.error("태그 추가 실패:", error);
+        // 필요하다면 여기서 사용자에게 에러 알림
+      } finally {
+        // 3. 작업 완료 후 '처리 중' 상태 해제
+        setProcessingTags(prev => {
+          const next = new Set(prev);
+          next.delete(tagId);
+          return next;
+        });
+      }
+    }, [book, addTagToBook, processingTags]);
+
+    // --- 태그 삭제(Delete) 핸들러 ---
+    const handleRemoveTag = useCallback(async (tagId: string) => {
+      // book 데이터가 없거나 이미 처리 중이면 중복 실행 방지
+      if (!book || processingTags.has(tagId)) return;
+      
+      // 1. 즉시 UI를 '처리 중' 상태로 변경 (Optimistic UI)
+      setProcessingTags(prev => new Set(prev).add(tagId));
+      try {
+        // 2. 실제 데이터베이스 작업 요청
+        await removeTagFromBook(book.id, tagId);
+      } catch (error) {
+        console.error("태그 제거 실패:", error);
+      } finally {
+        // 3. 작업 완료 후 '처리 중' 상태 해제
+        setProcessingTags(prev => {
+          const next = new Set(prev);
+          next.delete(tagId);
+          return next;
+        });
+      }
+    }, [book, removeTagFromBook, processingTags]);
+    // ================================================================
+    // ✅ [추가 끝]
+    // ================================================================
 
     // 메모 값 초기화
     useEffect(() => {
@@ -496,7 +553,6 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
     const hasLeftContent = settings.showRating || settings.showReadStatus || settings.showTags || settings.showBookNotes;
     const hasRightContent = settings.showLibraryStock;
     const isLibraryStockOnly = !hasLeftContent && hasRightContent;
-
 
     // [추가] 재고 표시 로직을 별도의 컴포넌트로 추출
     // 리팩토링 : 재고정보 코드가 1단표시, 2단표시 중복 표시 해결
@@ -612,18 +668,27 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                     <div>
                                         <label className="block text-sm font-medium text-secondary mb-3">선택된 태그</label>
                                         <div className="space-y-4">
-                                            {/* 현재 등록된 태그들 (primary 색상, X 버튼) */}
+                                          
+                                            {/* ================================================================ */}
+                                            {/* ✅ [수정 시작] 현재 등록된 태그 (Delete 기능) */}
+                                            {/* ================================================================ */}
                                             <div className="flex flex-wrap gap-2">
                                                 {book.customTags && book.customTags.length > 0 ? (
                                                     book.customTags.map(tagId => {
                                                         const tag = settings.tagSettings.tags.find(t => t.id === tagId);
+                                                        // 처리 중인지 확인하여 UI에 즉시 반영
+                                                        const isProcessing = processingTags.has(tagId);
                                                         return tag ? (
+                                                            // ✅ [핵심 수정] 외부 <button> 래퍼와 div 제거
                                                             <CustomTagComponent
                                                                 key={tag.id}
                                                                 tag={{...tag, color: 'primary'}}
                                                                 showClose={true}
-                                                                onClose={() => removeTagFromBook(book.id, tag.id)}
                                                                 size="sm"
+                                                                onClose={() => handleRemoveTag(tagId)}
+                                                                // Optimistic UI를 위한 className 추가
+                                                                className={isProcessing ? 'opacity-50 cursor-wait' : ''}
+                                                                // disabled는 CustomTagComponent에 없으므로 className으로 처리
                                                             />
                                                         ) : null;
                                                     })
@@ -631,27 +696,42 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                                     <span className="text-tertiary text-sm">선택된 태그가 없습니다</span>
                                                 )}
                                             </div>
+                                            {/* ================================================================ */}
+                                            {/* ✅ [수정 끝] */}
+                                            {/* ================================================================ */}
 
-                                            {/* 추가 가능한 태그들 (secondary 색상, + 버튼) */}
+
+                                            {/* ================================================================ */}
+                                            {/* ✅ [수정 시작] 추가 가능한 태그 (Create 기능) */}
+                                            {/* ================================================================ */}
                                             {settings.tagSettings.tags.filter(tag => !book.customTags?.includes(tag.id)).length > 0 && (
                                                 <>
                                                     <div className="text-sm text-secondary">사용 가능한 태그</div>
                                                     <div className="flex flex-wrap gap-2">
                                                         {settings.tagSettings.tags
                                                             .filter(tag => !book.customTags?.includes(tag.id))
-                                                            .map(tag => (
-                                                                <CustomTagComponent
-                                                                    key={tag.id}
-                                                                    tag={{...tag, color: 'secondary'}}
-                                                                    showAdd={true}
-                                                                    onAdd={() => addTagToBook(book.id, tag.id)}
-                                                                    size="sm"
-                                                                />
-                                                            ))
+                                                            .map(tag => {
+                                                                // 처리 중인지 확인하여 UI에 즉시 반영
+                                                                const isProcessing = processingTags.has(tag.id);
+                                                                return (
+                                                                                                                                                                      // ✅ [핵심 수정] 외부 <button> 래퍼와 div 제거
+                                                                    <CustomTagComponent
+                                                                        key={tag.id}
+                                                                        tag={{...tag, color: 'secondary'}}
+                                                                        showAdd={true}
+                                                                        size="sm"
+                                                                        onAdd={() => handleAddTag(tag.id)}
+                                                                        className={isProcessing ? 'opacity-50 cursor-wait' : ''}
+                                                                    />
+                                                                )
+                                                            })
                                                         }
                                                     </div>
                                                 </>
                                             )}
+                                            {/* ================================================================ */}
+                                            {/* ✅ [수정 끝] */}
+                                            {/* ================================================================ */}
                                         </div>
                                     </div>
                                 )}

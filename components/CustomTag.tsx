@@ -73,44 +73,91 @@ const CustomTagComponent: React.FC<CustomTagProps> = ({
     ${className}
   `.trim().replace(/\s+/g, ' ');
 
-  return (
-    <span
+  // ✅ [핵심 수정 1] 클릭 핸들러 로직 통합
+  // onAdd나 onClose가 있으면 우선적으로 실행, 없으면 기존 onClick(필터링) 실행
+  const handleClick = (e: React.MouseEvent) => {
+    // 이벤트 전파를 막아, 부모 요소의 다른 클릭 이벤트와 충돌 방지
+    e.stopPropagation(); 
+    
+    if (onAdd) {
+      onAdd();
+    } else if (onClose) {
+      onClose();
+    } else if (onClick) {
+      onClick();
+    }
+  };
+
+  // ✅ [핵심 수정 2] title 텍스트를 상황에 맞게 동적으로 설정
+  const titleText = onAdd
+    ? `태그 추가: '${tag.name}'`
+    : onClose
+      ? `태그 제거: '${tag.name}'`
+      : onClick
+        ? `클릭하여 '${tag.name}' 태그로 필터링`
+        : undefined;
+
+  // ✅ [핵심 수정 3] 최상위 태그를 'span'에서 'button'으로 변경하고, 내부 버튼 제거
+   return (
+    <button
+      type="button"
       className={baseClasses}
-      onClick={onClick}
-      title={onClick ? `클릭하여 '${tag.name}' 태그로 필터링` : undefined}
+      onClick={handleClick}
+      title={titleText}
     >
-      {tag.name}
+      <span>{tag.name}</span>
       {showCount !== undefined && (
-        <span className="ml-1 opacity-75">
+        <span className="ml-1.5 opacity-75">
           ({showCount})
         </span>
       )}
+      {/* ❌ 내부 <button>을 제거하고 아이콘만 표시 */}
       {showClose && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose?.();
-          }}
-          className="ml-1 p-0.5 text-current hover:text-red-400 transition-colors rounded"
-          title="태그 제거"
-        >
-          <CloseIcon className="w-3 h-3" />
-        </button>
+        <CloseIcon className="ml-1 w-3 h-3" />
       )}
       {showAdd && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onAdd?.();
-          }}
-          className="ml-1 p-0.5 text-current hover:text-green-400 transition-colors rounded"
-          title="태그 추가"
-        >
-          <PlusIcon className="w-3 h-3" />
-        </button>
+        <PlusIcon className="ml-1 w-3 h-3" />
       )}
-    </span>
+    </button>
   );
+  // return (
+  //   <span
+  //     className={baseClasses}
+  //     onClick={onClick}
+  //     title={onClick ? `클릭하여 '${tag.name}' 태그로 필터링` : undefined}
+  //   >
+  //     {tag.name}
+  //     {showCount !== undefined && (
+  //       <span className="ml-1 opacity-75">
+  //         ({showCount})
+  //       </span>
+  //     )}
+  //     {showClose && (
+  //       <button
+  //         onClick={(e) => {
+  //           e.stopPropagation();
+  //           onClose?.();
+  //         }}
+  //         className="ml-1 p-0.5 text-current hover:text-red-400 transition-colors rounded"
+  //         title="태그 제거"
+  //       >
+  //         <CloseIcon className="w-3 h-3" />
+  //       </button>
+  //     )}
+  //     {showAdd && (
+  //       <button
+  //         onClick={(e) => {
+  //           e.stopPropagation();
+  //           onAdd?.();
+  //         }}
+  //         className="ml-1 p-0.5 text-current hover:text-green-400 transition-colors rounded"
+  //         title="태그 추가"
+  //       >
+  //         <PlusIcon className="w-3 h-3" />
+  //       </button>
+  //     )}
+  //   </span>
+  // );
 };
 
 export default CustomTagComponent;
