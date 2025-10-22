@@ -776,7 +776,6 @@ export const useBookStore = create<BookState>(
       //     }
       // },
 
-
       // ▼▼▼▼▼▼▼▼▼▼ 이 함수를 아래 코드로 수정하세요 ▼▼▼▼▼▼▼▼▼▼
       fetchUserLibrary: async () => {
           const { session } = useAuthStore.getState();
@@ -786,17 +785,33 @@ export const useBookStore = create<BookState>(
           setIsLoading(true);
 
           try {
-              // ▼▼▼▼▼▼▼▼▼▼ 1. 이 코드를 추가하세요 ▼▼▼▼▼▼▼▼▼▼
               // --- 중복 체크를 위해 전체 ISBN 목록을 먼저 가져옵니다 ---
               const { data: isbnList, error: isbnError } = await supabase
                 .rpc('get_all_user_library_isbns')
                 .returns<string[]>();
 
+              // ▼▼▼▼▼▼▼▼▼▼ [디버깅 로그 #1] ▼▼▼▼▼▼▼▼▼▼
+              // console.log('[STORE-DEBUG-1] Fetched ISBN list from RPC:', { 
+              //     data: isbnList, 
+              //     error: isbnError 
+              // });
+              // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
               if (isbnError) {
                 // 이 호출이 실패해도 서재 로딩은 계속되도록 콘솔 에러만 남깁니다.
                 console.error('중복 체크를 위한 ISBN 목록 로딩 실패:', isbnError);
               }
-              // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+              // ▼▼▼▼▼▼▼▼▼▼ [디버깅 로그 #2] ▼▼▼▼▼▼▼▼▼▼
+              // const isbnSet = new Set(Array.isArray(isbnList) ? isbnList : []);
+                
+              const normalizedIsbnList = (Array.isArray(isbnList) ? isbnList : [])
+                  .map(isbn => (isbn || '').toString().trim()) // 널 체크, 문자열 변환, 공백 제거
+                  .filter(isbn => isbn); // 빈 문자열 최종 제외
+            
+              const isbnSet = new Set(normalizedIsbnList);
+              // console.log(`[STORE-DEBUG-2] Created ISBN Set. Total items: ${isbnSet.size}`);
+              // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
               // --- 기존 페이지네이션된 책 목록 가져오기 (이하 동일) ---
               const { settings } = useSettingsStore.getState();
@@ -831,9 +846,7 @@ export const useBookStore = create<BookState>(
 
               set({
                 myLibraryBooks: libraryBooks,
-                // ▼▼▼▼▼▼▼▼▼▼ 2. 이 한 줄을 추가/수정하세요 ▼▼▼▼▼▼▼▼▼▼
                 myLibraryIsbnSet: new Set(Array.isArray(isbnList) ? isbnList : []),
-                // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
                 totalBooksCount: totalBooksCount,
                 isAllBooksLoaded: isAllBooksLoaded,
               });
@@ -849,6 +862,7 @@ export const useBookStore = create<BookState>(
       },
       // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
+      // 더보기 할 때만 작동
       fetchRemainingLibrary: async () => {
         const { myLibraryBooks, isAllBooksLoaded } = get();
         const { session } = useAuthStore.getState();

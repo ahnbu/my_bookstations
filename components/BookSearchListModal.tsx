@@ -7,10 +7,13 @@ import { AladdinBookItem } from '../types'; // [추가] 명확한 타입을 위�
 
 const BookSearchListModal: React.FC = () => {
   const { isBookSearchListModalOpen, closeBookSearchListModal, setNotification, openMyLibraryBookDetailModal } = useUIStore();
-  const { searchResults, selectBook, myLibraryBooks, hasMoreResults, isLoadingMore, loadMoreSearchResults } = useBookStore();
-
-  // const handleBookClick = (book: any) => {
+  const { searchResults, selectBook, myLibraryBooks, hasMoreResults, isLoadingMore, loadMoreSearchResults, myLibraryIsbnSet, isBookInLibrary } = useBookStore();
   const handleBookClick = (book: AladdinBookItem) => { // [수정] any 대신 AladdinBookItem 타입 사용
+
+  // // ▼▼▼▼▼▼▼▼▼▼ [디버깅 로그 #3] - 렌더링 시점의 Set 상태 확인 ▼▼▼▼▼▼▼▼▼▼
+  // console.log(`[MODAL-DEBUG-3] Modal is rendering. Current ISBN Set size: ${myLibraryIsbnSet.size}`);
+  // // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
     // 중복 책 체크
     const duplicateBook = myLibraryBooks.find(libraryBook => libraryBook.isbn13 === book.isbn13);
 
@@ -46,7 +49,15 @@ const BookSearchListModal: React.FC = () => {
             <div>
               <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {searchResults.map((book) => {
-                  const isDuplicate = myLibraryBooks.some(libraryBook => libraryBook.isbn13 === book.isbn13);
+
+                  // const isDuplicate = myLibraryBooks.some(libraryBook => libraryBook.isbn13 === book.isbn13);
+                  const normalizedIsbn = (book.isbn13 || '').toString().trim();
+                  const isDuplicate = isBookInLibrary(normalizedIsbn);
+
+                  // // ▼▼▼▼▼▼▼▼▼▼ [디버깅 로그 #4] - 각 책에 대한 중복 검사 추적 ▼▼▼▼▼▼▼▼▼▼
+                  // console.log(`[MODAL-DEBUG-4] Checking duplication for ISBN: ${book.isbn13}, Title: ${book.title}`);
+                  // console.log(`  -> Result: ${isDuplicate}`);
+                  // // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
                   
                   // // [추가] ✅ 종이책/전자책 정보 분석
