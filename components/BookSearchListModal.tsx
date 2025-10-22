@@ -15,6 +15,11 @@ const BookSearchListModal: React.FC = () => {
     const duplicateBook = myLibraryBooks.find(libraryBook => libraryBook.isbn13 === book.isbn13);
 
     if (duplicateBook) {
+      // // [개선 제안] 확인창을 띄워 사용자에게 선택권 제공
+      // if (window.confirm('이미 서재에 추가된 책입니다.\n상세 정보를 보시겠습니까?')) {
+      //   closeBookSearchListModal();
+      //   openMyLibraryBookDetailModal(duplicateBook.id);
+      // }
       // 이미 추가된 책인 경우 해당 책의 상세 모달 열기
       closeBookSearchListModal(); // 검색 결과 모달 닫기
       openMyLibraryBookDetailModal(duplicateBook.id); // 상세 모달 열기
