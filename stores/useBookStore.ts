@@ -160,12 +160,14 @@ interface BookState {
   searchResults: AladdinBookItem[];
   selectedBook: AladdinBookItem | SelectedBook | null;
   myLibraryBooks: SelectedBook[];
+  myLibraryIsbnSet: Set<string>; // ✅ [신규] ISBN을 저장할 Set 추가
   sortConfig: { key: SortKey; order: 'asc' | 'desc' };
   refreshingIsbn: string | null;
   refreshingEbookId: number | null;
   librarySearchQuery: string;
   authorFilter: string;
   resetLibraryFilters?: () => void;
+  // isAllLoaded: boolean; // ✅ 이 라인을 추가하세요.
   isAllBooksLoaded: boolean;
   totalBooksCount: number;
   tagCounts: Record<string, number>;
@@ -242,6 +244,7 @@ interface BookState {
   pauseBulkRefresh: () => void;
   resumeBulkRefresh: () => void;
   cancelBulkRefresh: () => void;
+  isBookInLibrary: (isbn13: string) => boolean; // ✅ [신규] 중복 검사 함수 시그니처 추가
 }
 
 // 검색 결과 기본 로딩 개수
@@ -253,6 +256,7 @@ export const useBookStore = create<BookState>(
       searchResults: [],
       selectedBook: null,
       myLibraryBooks: [],
+      myLibraryIsbnSet: new Set(), // ✅ Set 초기화
       sortConfig: { key: 'addedDate', order: 'desc' },
       refreshingIsbn: null,
       refreshingEbookId: null,
@@ -282,6 +286,11 @@ export const useBookStore = create<BookState>(
         current: 0,
         total: 0,
         failed: [],
+      },
+
+      isBookInLibrary: (isbn13: string) => {
+        // ✅ 함수 구현: Set에서 확인
+        return get().myLibraryIsbnSet.has(isbn13);
       },
 
       // [추가] 책상세>API book_data 조회
@@ -362,60 +371,483 @@ export const useBookStore = create<BookState>(
 
 
       // Actions
+      // fetchUserLibrary: async () => {
+      //   const { session } = useAuthStore.getState();
+      //   if (!session) return;
+
+      //   const { setIsLoading, setNotification } = useUIStore.getState();
+      //   setIsLoading(true);
+
+      //   try {
+      //       // ✅ [핵심] fetchUserLibrary가 성공할 때마다 Set을 새로 만듦
+      //       // 이 로직은 페이지네이션과 무관하게, 전체 책의 ISBN을 가져와야 함.
+      //       // 이를 위해 별도의 RPC 함수를 호출하거나, 전체 ID를 가져오는 쿼리를 실행해야 함.
+            
+      //       // --- 가장 간단한 해결책: 전체 ISBN 목록을 가져오는 RPC 함수 사용 ---
+      //       // const { data: isbnData, error: isbnError } = await supabase
+      //       //   .rpc('get_all_user_library_isbns')
+      //       //   .returns< { isbn: string }[] >(); // ✅ rpc 호출 뒤에 .returns<T[]>()를 추가
+
+      //       // if (isbnError) throw isbnError;
+
+      //       // "DB야, 'get_all_user_library_isbns' 함수 실행하고,
+      //       // 내용물은 string 배열(string[])로 꺼내서 줘."
+      //       const { data: isbnList, error: isbnError } = await supabase
+      //         .rpc('get_all_user_library_isbns')
+      //         // .returns<string[]>(); // ✅ 약속된 포장(string[])을 뜯는 과정
+      //         .returns<string[]>(); // ✅ 반환 타입이 이제 string의 배열(string[])임
+      //       if (isbnError) throw isbnError;
+
+      //       // 받은 물건(isbnList)이 없으면(null) 빈 상자로 간주하고, 재고 목록(Set)을 만든다.
+      //       const isbnSet = new Set(isbnList || []);
+
+      //       // const isbnSet = new Set(isbnData.map((item: { isbn: string }) => item.isbn));
+      //       // 2. 데이터가 null일 경우를 대비하여 빈 배열로 기본값 처리
+      //       // 이제 isbnData는 ({ isbn: string } | null)[] 타입이므로, map을 안전하게 사용할 수 있음
+      //       const isbnList = (isbnData || []).map(item => item.isbn);
+      //       const isbnSet = new Set(isbnList); // ✅ 이제 isbnSet은 정확히 Set<string> 타입이 됨
+
+      //       // 사용자 설정에서 초기 로딩 건수 가져오기
+      //       const { settings } = useSettingsStore.getState();
+      //       const pageSize = settings.defaultPageSize;
+
+      //       const { data, error, count } = await supabase
+      //           .from('user_library')
+      //           .select('id, book_data, note', { count: 'exact' })
+      //           .order('created_at', { ascending: false })
+      //           .limit(pageSize);
+
+      //       if (error) throw error;
+
+      //       const libraryBooks = data
+      //         .map(item => {
+      //             if (!item.book_data) return null; // Safety check for null jsonb
+      //             // Provide default values for older data that might not have these fields
+      //             const bookDataWithDefaults = {
+      //                 ...{ readStatus: '읽지 않음', rating: 0 },
+      //                 ...item.book_data,
+      //             };
+      //             return {
+      //                 ...bookDataWithDefaults,
+      //                 id: item.id,
+      //                 note: item.note,
+      //             };
+      //         })
+      //         .filter((book): book is SelectedBook => book !== null);
+
+      //       // pageSize보다 적게 로드되면 전체 로드 완료
+      //       // const isAllLoaded = libraryBooks.length < pageSize;
+      //       // pageSize보다 적게 로드되거나, 로드된 개수가 전체 개수와 같거나 많으면 '모두 로드됨'으로 간주
+      //       const isAllLoaded = libraryBooks.length < pageSize || libraryBooks.length >= (count || 0);
+
+      //       set({
+      //         myLibraryBooks: libraryBooks,
+      //         myLibraryIsbnSet: isbnSet, // ✅ Set 상태 업데이트
+      //         totalBooksCount: count || 0,
+      //         isAllBooksLoaded: isAllLoaded, // ✅ 수정된 값 적용
+      //       });
+
+      //       // 태그 카운트 갱신
+      //       get().fetchTagCounts();
+      //       // 자동 전자책 정보 업데이트 제거 - 사용자가 명시적으로 요청할 때만 실행
+      //       // get().updateMissingEbookIsbn13();
+      //   } catch (error) {
+      //       console.error('Error fetching user library:', error);
+      //       setNotification({ message: '서재 정보를 불러오는 데 실패했습니다.', type: 'error' });
+      //   } finally {
+      //       setIsLoading(false);
+      //   }
+      // },
+
+      // // ▼▼▼▼▼▼▼▼▼▼ 이 함수 전체를 아래 코드로 교체하세요 ▼▼▼▼▼▼▼▼▼▼
+      // fetchUserLibrary: async () => {
+      //     const { session } = useAuthStore.getState();
+      //     if (!session) return;
+
+      //     const { setIsLoading, setNotification } = useUIStore.getState();
+      //     setIsLoading(true);
+
+      //     try {
+      //         // --- 1. 전체 ISBN 목록 가져오기 ---
+      //         // Supabase 함수가 이제 string[] 형태의 JSON을 반환하므로, .returns<string[]>()를 사용합니다.
+      //         const { data: isbnList, error: isbnError } = await supabase
+      //           .rpc('get_all_user_library_isbns')
+      //           .returns<string[]>();
+
+      //         if (isbnError) {
+      //           // rpc 호출 실패 시, isbn 목록을 빈 배열로 간주하고 계속 진행하되, 콘솔에 에러를 남깁니다.
+      //           console.error('Error fetching all ISBNs:', isbnError);
+      //         }
+              
+      //         // isbnList는 string[] | null 타입입니다. null일 경우 빈 배열로 처리하여 isbnSet을 생성합니다.
+      //         const isbnSet = new Set(isbnList || []);
+
+
+      //         // --- 2. 페이지네이션된 책 목록 가져오기 ---
+      //         const { settings } = useSettingsStore.getState();
+      //         const pageSize = settings.defaultPageSize;
+
+      //         const { data, error, count } = await supabase
+      //             .from('user_library')
+      //             .select('id, book_data, note', { count: 'exact' })
+      //             .order('created_at', { ascending: false })
+      //             .limit(pageSize);
+
+      //         if (error) throw error; // 이 부분에서 에러가 나면 서재 로딩 전체를 실패 처리
+
+      //         const libraryBooks = data
+      //           .map(item => {
+      //               if (!item.book_data) return null;
+      //               const bookDataWithDefaults = {
+      //                   ...{ readStatus: '읽지 않음', rating: 0 },
+      //                   ...item.book_data,
+      //               };
+      //               return {
+      //                   ...bookDataWithDefaults,
+      //                   id: item.id,
+      //                   note: item.note,
+      //               };
+      //           })
+      //           .filter((book): book is SelectedBook => book !== null);
+
+      //         // --- 3. 최종 상태 업데이트 ---
+      //         const totalBooksCount = count || 0;
+      //         const isAllLoaded = libraryBooks.length >= totalBooksCount;
+
+      //         set({
+      //           myLibraryBooks: libraryBooks,
+      //           myLibraryIsbnSet: isbnSet, // ✅ 타입이 일치하는 Set<string> 할당
+      //           totalBooksCount: totalBooksCount,
+      //           isAllBooksLoaded: isAllLoaded,
+      //         });
+
+      //         get().fetchTagCounts();
+
+      //     } catch (error) {
+      //         console.error('Error fetching user library:', error);
+      //         setNotification({ message: '서재 정보를 불러오는 데 실패했습니다.', type: 'error' });
+      //     } finally {
+      //         setIsLoading(false);
+      //     }
+      // },
+      // // ▲▲▲▲▲▲▲▲▲▲ 여기까지 교체 ▲▲▲▲▲▲▲▲▲▲
+
+
+      // useBook-store.ts
+
+      // // ▼▼▼▼▼▼▼▼▼▼ 동작 but 초기 로딩 외 중복체크x ▼▼▼▼▼▼▼▼▼▼
+      // fetchUserLibrary: async () => {
+      //     const { session } = useAuthStore.getState();
+      //     if (!session) return;
+
+      //     const { setIsLoading, setNotification } = useUIStore.getState();
+      //     setIsLoading(true);
+
+      //     try {
+      //         // --- 1. 전체 ISBN 목록 가져오기 ---
+      //         const { data: isbnData, error: isbnError } = await supabase
+      //           .rpc('get_all_user_library_isbns')
+      //           .returns<string[]>();
+
+      //         if (isbnError) {
+      //           console.error('Error fetching all ISBNs:', isbnError);
+      //         }
+              
+      //         // ▼▼▼▼▼▼▼▼▼▼ 이 부분이 핵심 수정 사항입니다 ▼▼▼▼▼▼▼▼▼▼
+      //         let isbnSet: Set<string>; // isbnSet 변수를 미리 선언
+
+      //         // [타입 가드] isbnData가 null이 아니고, '배열' 형태인지 명시적으로 확인
+      //         if (Array.isArray(isbnData)) {
+      //           // 이 블록 안에서 TypeScript는 isbnData를 string[]로 100% 신뢰함
+      //           isbnSet = new Set(isbnData);
+      //         } else {
+      //           // isbnData가 null이거나, 예기치 않은 Error 객체인 경우 빈 Set으로 초기화
+      //           isbnSet = new Set();
+      //           if (isbnData) { // Error 객체인 경우 콘솔에 로그를 남겨 디버깅 지원
+      //             console.warn("Unexpected data format for ISBN list:", isbnData);
+      //           }
+      //         }
+      //         // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+      //         // --- 2. 페이지네이션된 책 목록 가져오기 (이하 동일) ---
+      //         const { settings } = useSettingsStore.getState();
+      //         const pageSize = settings.defaultPageSize;
+
+      //         const { data, error, count } = await supabase
+      //             .from('user_library')
+      //             .select('id, book_data, note', { count: 'exact' })
+      //             .order('created_at', { ascending: false })
+      //             .limit(pageSize);
+
+      //         if (error) throw error; 
+
+      //         // const libraryBooks = data.map(/* ... */).filter(/* ... */);
+
+      //         const libraryBooks = data
+      //           .map(item => {
+      //               if (!item.book_data) return null;
+      //               const bookDataWithDefaults = {
+      //                   ...{ readStatus: '읽지 않음', rating: 0 },
+      //                   ...item.book_data,
+      //               };
+      //               return {
+      //                   ...bookDataWithDefaults,
+      //                   id: item.id,
+      //                   note: item.note,
+      //               };
+      //           })
+      //           .filter((book): book is SelectedBook => book !== null);
+                
+      //         // --- 3. 최종 상태 업데이트 (이하 동일) ---
+      //         const totalBooksCount = count || 0;
+      //         const isAllLoaded = libraryBooks.length >= totalBooksCount;
+
+      //         set({
+      //           myLibraryBooks: libraryBooks,
+      //           myLibraryIsbnSet: isbnSet,
+      //           totalBooksCount: totalBooksCount,
+      //           isAllBooksLoaded: isAllLoaded,
+      //         });
+
+      //         get().fetchTagCounts();
+
+      //     } catch (error) {
+      //         console.error('Error fetching user library:', error);
+      //         setNotification({ message: '서재 정보를 불러오는 데 실패했습니다.', type: 'error' });
+      //     } finally {
+      //         setIsLoading(false);
+      //     }
+      // },
+      // // ▲▲▲▲▲▲▲▲▲▲ 여기까지 교체 ▲▲▲▲▲▲▲▲▲▲
+
+      // 디버깅 코드
+
+      // fetchUserLibrary: async () => {
+      //     const { session } = useAuthStore.getState();
+      //     if (!session) return;
+
+      //     const { setIsLoading, setNotification } = useUIStore.getState();
+      //     setIsLoading(true);
+
+      //     try {
+      //         // --- 1. 전체 ISBN 목록 가져오기 ---
+      //         const { data: isbnData, error: isbnError } = await supabase
+      //           .rpc('get_all_user_library_isbns')
+      //           .returns<string[]>();
+
+      //         if (isbnError) {
+      //           console.error('Error fetching all ISBNs:', isbnError);
+      //         }
+              
+      //         // ▼▼▼▼▼▼▼▼▼▼ [디버깅 로그 #1 추가] ▼▼▼▼▼▼▼▼▼▼
+      //         console.log('[DEBUG 1] Raw data from RPC (isbnData):', isbnData);
+      //         // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+      //         let isbnSet: Set<string>;
+
+      //         if (Array.isArray(isbnData)) {
+      //           isbnSet = new Set(isbnData);
+      //           // ▼▼▼▼▼▼▼▼▼▼ [디버깅 로그 #2 추가] ▼▼▼▼▼▼▼▼▼▼
+      //           console.log(`[DEBUG 2] ISBN Set created successfully. Size: ${isbnSet.size}`);
+      //           // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+      //         } else {
+      //           isbnSet = new Set();
+      //           // ▼▼▼▼▼▼▼▼▼▼ [디버깅 로그 #3 추가] ▼▼▼▼▼▼▼▼▼▼
+      //           console.log('[DEBUG 3] isbnData was not an array. Created an empty Set.');
+      //           // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+      //           if (isbnData) {
+      //             console.warn("Unexpected data format for ISBN list:", isbnData);
+      //           }
+      //         }
+
+      //         // --- 2. 페이지네이션된 책 목록 가져오기 (이하 동일) ---
+      //         const { settings } = useSettingsStore.getState();
+      //         const pageSize = settings.defaultPageSize;
+
+      //         const { data, error, count } = await supabase
+      //             .from('user_library')
+      //             .select('id, book_data, note', { count: 'exact' })
+      //             .order('created_at', { ascending: false })
+      //             .limit(pageSize);
+
+      //         if (error) throw error; 
+
+      //         const libraryBooks = data
+      //           .map(/* ... */)
+      //           .filter(/* ... */);
+                    
+      //         // --- 3. 최종 상태 업데이트 (이하 동일) ---
+      //         const totalBooksCount = count || 0;
+      //         const isAllLoaded = libraryBooks.length >= totalBooksCount;
+
+      //         set({
+      //           myLibraryBooks: libraryBooks,
+      //           myLibraryIsbnSet: isbnSet,
+      //           totalBooksCount: totalBooksCount,
+      //           isAllLoaded: isAllLoaded,
+      //         });
+
+      //         get().fetchTagCounts();
+
+      //     } catch (error) {
+      //         console.error('Error fetching user library:', error);
+      //         setNotification({ message: '서재 정보를 불러오는 데 실패했습니다.', type: 'error' });
+      //     } finally {
+      //         setIsLoading(false);
+      //     }
+      // },
+
+
+      // fetchUserLibrary: async () => {
+      //     const { session } = useAuthStore.getState();
+      //     if (!session) return;
+
+      //     const { setIsLoading, setNotification } = useUIStore.getState();
+      //     setIsLoading(true);
+
+      //     try {
+      //         // --- 1. 전체 ISBN 목록 가져오기 (이 부분은 이제 완벽합니다) ---
+      //         const { data: isbnList, error: isbnError } = await supabase
+      //           .rpc('get_all_user_library_isbns')
+      //           .returns<string[]>();
+
+      //         if (isbnError) {
+      //           console.error('Error fetching all ISBNs:', isbnError);
+      //         }
+              
+      //         let isbnSet: Set<string>;
+      //         if (Array.isArray(isbnList)) {
+      //           isbnSet = new Set(isbnList);
+      //         } else {
+      //           isbnSet = new Set();
+      //         }
+
+      //         // --- 2. 페이지네이션된 책 목록 가져오기 ---
+      //         const { settings } = useSettingsStore.getState();
+      //         const pageSize = settings.defaultPageSize;
+
+      //         const { data, error, count } = await supabase
+      //             .from('user_library')
+      //             .select('id, book_data, note', { count: 'exact' })
+      //             .order('created_at', { ascending: false })
+      //             .limit(pageSize);
+
+      //         if (error) throw error;
+
+      //         // ▼▼▼▼▼▼▼▼▼▼ 이 부분이 핵심 수정 사항입니다 ▼▼▼▼▼▼▼▼▼▼
+      //         // [타입 가드] supabase에서 반환된 data가 배열인지 확인
+      //         const libraryBooks = (Array.isArray(data) ? data : [])
+      //           .map(item => {
+      //               // item이나 item.book_data가 null일 경우를 대비
+      //               if (!item || !item.book_data) return null;
+                    
+      //               const bookDataWithDefaults = {
+      //                   ...{ readStatus: '읽지 않음', rating: 0 },
+      //                   ...item.book_data,
+      //               };
+      //               return {
+      //                   ...bookDataWithDefaults,
+      //                   id: item.id,
+      //                   note: item.note,
+      //               };
+      //           })
+      //           .filter((book): book is SelectedBook => book !== null);
+      //         // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+      //         // --- 3. 최종 상태 업데이트 (이하 동일) ---
+      //         const totalBooksCount = count || 0;
+      //         const isAllLoaded = libraryBooks.length >= totalBooksCount;
+
+      //         set({
+      //           myLibraryBooks: libraryBooks,
+      //           // myLibraryIs_bnSet: isbnSet,
+      //           myLibraryIsbnSet: isbnSet, // ✅ 'IsbnSet'으로 오타 수정
+      //           totalBooksCount: totalBooksCount,
+      //           isAllBooksLoaded: isAllLoaded,
+      //         });
+
+      //         get().fetchTagCounts();
+
+      //     } catch (error) {
+      //         console.error('Error fetching user library:', error);
+      //         setNotification({ message: '서재 정보를 불러오는 데 실패했습니다.', type: 'error' });
+      //     } finally {
+      //         setIsLoading(false);
+      //     }
+      // },
+
+
+      // ▼▼▼▼▼▼▼▼▼▼ 이 함수를 아래 코드로 수정하세요 ▼▼▼▼▼▼▼▼▼▼
       fetchUserLibrary: async () => {
-        const { session } = useAuthStore.getState();
-        if (!session) return;
+          const { session } = useAuthStore.getState();
+          if (!session) return;
 
-        const { setIsLoading, setNotification } = useUIStore.getState();
-        setIsLoading(true);
+          const { setIsLoading, setNotification } = useUIStore.getState();
+          setIsLoading(true);
 
-        try {
-            // 사용자 설정에서 초기 로딩 건수 가져오기
-            const { settings } = useSettingsStore.getState();
-            const pageSize = settings.defaultPageSize;
+          try {
+              // ▼▼▼▼▼▼▼▼▼▼ 1. 이 코드를 추가하세요 ▼▼▼▼▼▼▼▼▼▼
+              // --- 중복 체크를 위해 전체 ISBN 목록을 먼저 가져옵니다 ---
+              const { data: isbnList, error: isbnError } = await supabase
+                .rpc('get_all_user_library_isbns')
+                .returns<string[]>();
 
-            const { data, error, count } = await supabase
-                .from('user_library')
-                .select('id, book_data, note', { count: 'exact' })
-                .order('created_at', { ascending: false })
-                .limit(pageSize);
+              if (isbnError) {
+                // 이 호출이 실패해도 서재 로딩은 계속되도록 콘솔 에러만 남깁니다.
+                console.error('중복 체크를 위한 ISBN 목록 로딩 실패:', isbnError);
+              }
+              // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
-            if (error) throw error;
+              // --- 기존 페이지네이션된 책 목록 가져오기 (이하 동일) ---
+              const { settings } = useSettingsStore.getState();
+              const pageSize = settings.defaultPageSize;
 
-            const libraryBooks = data
-              .map(item => {
-                  if (!item.book_data) return null; // Safety check for null jsonb
-                  // Provide default values for older data that might not have these fields
-                  const bookDataWithDefaults = {
-                      ...{ readStatus: '읽지 않음', rating: 0 },
-                      ...item.book_data,
-                  };
-                  return {
-                      ...bookDataWithDefaults,
-                      id: item.id,
-                      note: item.note,
-                  };
-              })
-              .filter((book): book is SelectedBook => book !== null);
+              const { data, error, count } = await supabase
+                  .from('user_library')
+                  .select('id, book_data, note', { count: 'exact' })
+                  .order('created_at', { ascending: false })
+                  .limit(pageSize);
 
-            // pageSize보다 적게 로드되면 전체 로드 완료
-            const isAllLoaded = libraryBooks.length < pageSize;
-            set({
-              myLibraryBooks: libraryBooks,
-              totalBooksCount: count || 0,
-              isAllBooksLoaded: isAllLoaded
-            });
-            // 태그 카운트 갱신
-            get().fetchTagCounts();
-            // 자동 전자책 정보 업데이트 제거 - 사용자가 명시적으로 요청할 때만 실행
-            // get().updateMissingEbookIsbn13();
-        } catch (error) {
-            console.error('Error fetching user library:', error);
-            setNotification({ message: '서재 정보를 불러오는 데 실패했습니다.', type: 'error' });
-        } finally {
-            setIsLoading(false);
-        }
+              if (error) throw error;
+
+              const libraryBooks = (Array.isArray(data) ? data : []) // <- 이 부분은 이전에 수정한 방어 코드입니다. 그대로 두세요.
+                .map(item => {
+                    if (!item.book_data) return null;
+                    const bookDataWithDefaults = {
+                        ...{ readStatus: '읽지 않음', rating: 0 },
+                        ...item.book_data,
+                    };
+                    return {
+                        ...bookDataWithDefaults,
+                        id: item.id,
+                        note: item.note,
+                    };
+                })
+                .filter((book): book is SelectedBook => book !== null);
+                          
+              // --- 최종 상태 업데이트 ---
+              const totalBooksCount = count || 0;
+              const isAllBooksLoaded = libraryBooks.length >= totalBooksCount;
+
+              set({
+                myLibraryBooks: libraryBooks,
+                // ▼▼▼▼▼▼▼▼▼▼ 2. 이 한 줄을 추가/수정하세요 ▼▼▼▼▼▼▼▼▼▼
+                myLibraryIsbnSet: new Set(Array.isArray(isbnList) ? isbnList : []),
+                // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+                totalBooksCount: totalBooksCount,
+                isAllBooksLoaded: isAllBooksLoaded,
+              });
+
+              get().fetchTagCounts();
+
+          } catch (error) {
+              console.error('Error fetching user library:', error);
+              setNotification({ message: '서재 정보를 불러오는 데 실패했습니다.', type: 'error' });
+          } finally {
+              setIsLoading(false);
+          }
       },
+      // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
       fetchRemainingLibrary: async () => {
         const { myLibraryBooks, isAllBooksLoaded } = get();
@@ -577,79 +1009,21 @@ export const useBookStore = create<BookState>(
         set({ selectedBook: null });
       },
 
-      // addToLibrary: async () => {
-      //     const { selectedBook, myLibraryBooks } = get();
-      //     const { session } = useAuthStore.getState();
-      //     if (!selectedBook || !session) return;
-
-      //     // ISBN 기준으로 중복 체크 (이중 안전장치)
-      //     const isDuplicate = myLibraryBooks.some(book => book.isbn13 === selectedBook.isbn13);
-      //     if (isDuplicate) {
-      //       useUIStore.getState().setNotification({ 
-      //         message: '이미 서재에 추가된 책입니다.', 
-      //         type: 'warning'
-      //       });
-      //       return;
-      //     }
-
-      //     const newBookData: BookData = {
-      //       ...selectedBook,
-      //       addedDate: Date.now(),
-      //       toechonStock: { total_count: 0, available_count: 0 },
-      //       otherStock: { total_count: 0, available_count: 0 },
-      //       readStatus: '읽지 않음' as ReadStatus,
-      //       rating: 0,
-      //       isFavorite: false,
-      //       // subInfo가 selectedBook에 있다면 명시적으로 포함
-      //       ...(selectedBook.subInfo && { subInfo: selectedBook.subInfo }),
-      //     };
-          
-      //     try {
-      //         const { data, error } = await supabase
-      //             .from('user_library')
-      //             .insert([{
-      //               user_id: session.user.id,
-      //               title: newBookData.title,
-      //               author: newBookData.author,
-      //               book_data: newBookData as unknown as Json
-      //             }])
-      //             .select('id, book_data, note')
-      //             .single();
-              
-      //         if (error) throw error;
-      //         if (!data || !data.book_data) throw new Error("Failed to add book: No data returned.");
-
-      //         const newBookWithId: SelectedBook = { ...(data.book_data as BookData), id: data.id };
-
-      //         set(state => ({ myLibraryBooks: [newBookWithId, ...state.myLibraryBooks] }));
-      //         // 책 추가 성공 후 모달 닫기 및 선택된 책 초기화
-      //         // useUIStore.getState().closeBookSearchListModal();
-      //         set({ selectedBook: null });
-
-      //         // 내 서재 필터 리셋 (추가된 책이 보이도록)
-      //         const { resetLibraryFilters } = get();
-      //         if (resetLibraryFilters) {
-      //           resetLibraryFilters();
-      //         }
-
-      //         // 비동기 백그라운드 재고 조회 실행 (환경별 지연 시간 적용)
-      //         const delay = window.location.hostname === 'localhost' ? 100 : 800;
-      //         setTimeout(() => { get().refreshBookInfo(newBookWithId.id, newBookWithId.isbn13, newBookWithId.title); }, delay);
-
-      //     } catch(error) {
-      //         console.error("Error adding book to library:", error);
-      //         useUIStore.getState().setNotification({ message: '서재에 책을 추가하는 데 실패했습니다.', type: 'error'});
-      //     }
-      // },
-
       addToLibrary: async () => {
-          const { selectedBook, myLibraryBooks } = get();
+          const { selectedBook, isBookInLibrary } = get(); // ✅ isBookInLibrary 사용
+          // const { selectedBook, myLibraryBooks } = get();
           const { session } = useAuthStore.getState();
           if (!selectedBook || !session || !('isbn13' in selectedBook)) return;
 
-          // ISBN 기준으로 중복 체크
-          const isDuplicate = myLibraryBooks.some(book => book.isbn13 === selectedBook.isbn13);
-          if (isDuplicate) {
+          // // ISBN 기준으로 중복 체크
+          // const isDuplicate = myLibraryBooks.some(book => book.isbn13 === selectedBook.isbn13);
+          // if (isDuplicate) {
+          //   useUIStore.getState().setNotification({ message: '이미 서재에 추가된 책입니다.', type: 'warning' });
+          //   return;
+          // }
+          
+          // ✅ isBookInLibrary 함수를 사용하여 중복 체크 (더 정확함)
+          if (isBookInLibrary(selectedBook.isbn13)) {
             useUIStore.getState().setNotification({ message: '이미 서재에 추가된 책입니다.', type: 'warning' });
             return;
           }
@@ -661,7 +1035,8 @@ export const useBookStore = create<BookState>(
             // 도서관/재고 정보 초기화
             toechonStock: { total_count: 0, available_count: 0 },
             otherStock: { total_count: 0, available_count: 0 },
-            gwangjuPaperInfo: { error: '아직 조회되지 않았습니다.' },
+            // gwangjuPaperInfo: { error: '아직 조회되지 않았습니다.' },
+            gwangjuPaperInfo: null,
             ebookInfo: null,
             gyeonggiEbookInfo: null,
             siripEbookInfo: null,
@@ -695,7 +1070,12 @@ export const useBookStore = create<BookState>(
                   note: data.note, 
               };
 
-              set(state => ({ myLibraryBooks: [newBookWithId, ...state.myLibraryBooks] }));
+              set(state => ({ 
+                myLibraryBooks: [newBookWithId, ...state.myLibraryBooks],
+                // ✅ 책 추가 시, Set에도 새로운 ISBN 추가
+                myLibraryIsbnSet: new Set(state.myLibraryIsbnSet).add(newBookWithId.isbn13),
+                totalBooksCount: state.totalBooksCount + 1, // ✅ 전체 책 개수 1 증가
+              }));
               set({ selectedBook: null });
 
               // 내 서재 필터 리셋
@@ -714,29 +1094,121 @@ export const useBookStore = create<BookState>(
           }
       },
 
-      removeFromLibrary: async (id: number) => {
-        try {
-            const { error } = await supabase.from('user_library').delete().eq('id', id);
-            if (error) throw error;
+      // 개별 책 삭제
 
-            set(state => {
-                const newLibraryBooks = state.myLibraryBooks.filter(b => b.id !== id);
-                let newSelectedBook = state.selectedBook;
+      // removeFromLibrary: async (id: number) => {
+      //   try {
+      //       const { error } = await supabase.from('user_library').delete().eq('id', id);
+      //       if (error) throw error;
 
-                // If the deleted book was the selected book, unselect it to prevent errors.
-                if (newSelectedBook && 'id' in newSelectedBook && newSelectedBook.id === id) {
-                    newSelectedBook = null;
-                }
+      //       set(state => {
+      //           const newLibraryBooks = state.myLibraryBooks.filter(b => b.id !== id);
+      //           let newSelectedBook = state.selectedBook;
+
+      //           // If the deleted book was the selected book, unselect it to prevent errors.
+      //           if (newSelectedBook && 'id' in newSelectedBook && newSelectedBook.id === id) {
+      //               newSelectedBook = null;
+      //           }
                 
-                return {
-                    myLibraryBooks: newLibraryBooks,
-                    selectedBook: newSelectedBook,
-                };
-            });
-        } catch(error) {
-            console.error("Error removing book from library:", error);
-            useUIStore.getState().setNotification({ message: '서재에서 책을 삭제하는 데 실패했습니다.', type: 'error'});
-        }
+      //           return {
+      //               myLibraryBooks: newLibraryBooks,
+      //               selectedBook: newSelectedBook,
+      //           };
+      //       });
+      //   } catch(error) {
+      //       console.error("Error removing book from library:", error);
+      //       useUIStore.getState().setNotification({ message: '서재에서 책을 삭제하는 데 실패했습니다.', type: 'error'});
+      //   }
+      // },
+
+
+      // useBook-store.ts
+
+      // removeFromLibrary: async (id: number) => {
+      //     // 1. (선택적이지만 권장) 낙관적 UI 업데이트: DB 응답을 기다리지 않고 UI부터 즉시 변경
+      //     const { myLibraryBooks, librarySearchResults, libraryTagFilterResults } = get();
+
+      //     // 롤백을 위해 원본 상태 저장
+      //     const originalState = { myLibraryBooks, librarySearchResults, libraryTagFilterResults };
+
+      //     set(state => ({
+      //       // ✅ 모든 관련 배열에서 삭제된 아이템을 필터링하여 새로운 상태를 만듦
+      //       myLibraryBooks: state.myLibraryBooks.filter(b => b.id !== id),
+      //       librarySearchResults: state.librarySearchResults.filter(b => b.id !== id),
+      //       libraryTagFilterResults: state.libraryTagFilterResults.filter(b => b.id !== id),
+      //       totalBooksCount: state.totalBooksCount -1, // ✅ 전체 책 개수도 1 감소
+      //     }));
+
+      //     // 2. DB에서 데이터 삭제
+      //     try {
+      //         const { error } = await supabase.from('user_library').delete().eq('id', id);
+      //         if (error) throw error; // 에러 발생 시 catch 블록으로 이동
+
+      //         // (성공 시 추가 작업)
+      //         // 만약 삭제된 책이 selectedBook이었다면, 선택 해제
+      //         const { selectedBook, unselectBook } = get();
+      //         if (selectedBook && 'id' in selectedBook && selectedBook.id === id) {
+      //           unselectBook();
+      //         }
+
+      //     } catch(error) {
+      //         console.error("Error removing book from library:", error);
+      //         useUIStore.getState().setNotification({ message: '서재에서 책을 삭제하는 데 실패했습니다.', type: 'error'});
+
+      //         // 3. (실패 시) 롤백: UI 상태를 원래대로 되돌림
+      //         set(originalState);
+      //         set(state => ({ totalBooksCount: state.totalBooksCount + 1 })); // 감소시켰던 책 개수 복원
+      //     }
+      // },
+
+
+      removeFromLibrary: async (id: number) => {
+          // 1. 롤백을 위해 원본 상태 저장 및 삭제할 책 정보 찾기
+          const { myLibraryBooks, librarySearchResults, libraryTagFilterResults, myLibraryIsbnSet } = get();
+          const originalState = { myLibraryBooks, librarySearchResults, libraryTagFilterResults, myLibraryIsbnSet };
+          
+          // 삭제할 책을 모든 배열에서 찾아봄 (어떤 뷰에 있을지 모르므로)
+          const bookToRemove = originalState.myLibraryBooks.find(b => b.id === id) ||
+                              originalState.librarySearchResults.find(b => b.id === id) ||
+                              originalState.libraryTagFilterResults.find(b => b.id === id);
+
+          // 2. 낙관적 UI 업데이트: DB 응답을 기다리지 않고 UI부터 즉시 변경
+          set(state => {
+            // Set에서 ISBN 제거
+            const newIsbnSet = new Set(state.myLibraryIsbnSet);
+            if (bookToRemove) {
+              newIsbnSet.delete(bookToRemove.isbn13);
+            }
+            
+            return {
+              // 모든 관련 배열에서 삭제된 아이템 필터링
+              myLibraryBooks: state.myLibraryBooks.filter(b => b.id !== id),
+              librarySearchResults: state.librarySearchResults.filter(b => b.id !== id),
+              libraryTagFilterResults: state.libraryTagFilterResults.filter(b => b.id !== id),
+              myLibraryIsbnSet: newIsbnSet, // ✅ 업데이트된 Set 적용
+              totalBooksCount: Math.max(0, state.totalBooksCount - 1), // 전체 책 개수 1 감소
+            };
+          });
+
+          // 3. DB에서 데이터 삭제
+          try {
+              const { error } = await supabase.from('user_library').delete().eq('id', id);
+              if (error) throw error; // 에러 발생 시 catch 블록으로 이동
+
+              // (성공 시 추가 작업)
+              const { selectedBook, unselectBook } = get();
+              if (selectedBook && 'id' in selectedBook && selectedBook.id === id) {
+                unselectBook();
+              }
+
+          } catch(error) {
+              console.error("Error removing book from library:", error);
+              useUIStore.getState().setNotification({ message: '서재에서 책을 삭제하는 데 실패했습니다.', type: 'error'});
+
+              // 4. (실패 시) 롤백: UI 상태를 원래대로 되돌림
+              set(originalState);
+              set(state => ({ totalBooksCount: state.totalBooksCount + 1 }));
+          }
       },
 
       // 개별 책에 대한 재고 정보 업데이트
