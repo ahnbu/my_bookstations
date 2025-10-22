@@ -59,21 +59,6 @@ const BookSearchListModal: React.FC = () => {
                   // console.log(`  -> Result: ${isDuplicate}`);
                   // // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
-                  
-                  // // [추가] ✅ 종이책/전자책 정보 분석
-                  // let paperBookLink: string | null = null;
-                  // let ebookLink: string | null = null;
-
-                  // if (book.mallType === 'EBOOK') {
-                  //   // 현재 검색 결과가 전자책인 경우
-                  //   ebookLink = book.link;
-                  //   // 종이책 정보가 subInfo에 있는지 확인
-                  //   paperBookLink = book.subInfo?.paperBookList?.[0]?.link || null;
-                  // } else { // mallType이 'BOOK' (종이책)인 경우
-                  //   paperBookLink = book.link;
-                  //   // 전자책 정보가 subInfo에 있는지 확인
-                  //   ebookLink = book.subInfo?.ebookList?.[0]?.link || null;
-                  // }
 
                   return (
                   <li
@@ -130,94 +115,6 @@ const BookSearchListModal: React.FC = () => {
                         );
                       })()}
                     </div>
-
-                    {/*        
-                    <div className="flex gap-1 w-32 mb-3">
-                      {(() => {
-                        let paperBookLink: string | null = null;
-                        let ebookLink: string | null = null;
-                        
-                        // 데이터 분석
-                        if (book.mallType === 'EBOOK') {
-                          ebookLink = book.link;
-                          paperBookLink = book.subInfo?.paperBookList?.[0]?.link || null;
-                        } else { // 'BOOK'
-                          paperBookLink = book.link;
-                          ebookLink = book.subInfo?.ebookList?.[0]?.link || null;
-                        }
-
-                        // MyLibrary의 buttonClass 로직과 유사하게, 두 포맷이 모두 있는지 여부 확인
-                        const hasBothFormats = paperBookLink && ebookLink;
-
-                        // 두 포맷이 모두 있을 경우: flex-1 (절반 너비)
-                        // 하나만 있을 경우: w-full (전체 너비)
-                        const buttonClass = hasBothFormats
-                          ? "flex-1 px-1 py-1 bg-elevated border border-secondary text-secondary text-xs rounded hover:bg-tertiary hover:text-primary transition-colors text-center whitespace-nowrap"
-                          : "w-full px-2 py-1 bg-elevated border border-secondary text-secondary text-xs rounded hover:bg-tertiary hover:text-primary transition-colors text-center";
-
-                        return (
-                          <>
-                            {paperBookLink && (
-                              <a
-                                href={paperBookLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className={buttonClass}
-                              >
-                                종이책
-                              </a>
-                            )}
-                            {ebookLink && (
-                              <a
-                                href={ebookLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className={buttonClass}
-                              >
-                                전자책
-                              </a>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </div>
-
-
-                    <div className="flex gap-1 w-32 mb-3">
-                      {paperBookLink ? (
-                        <a
-                          href={paperBookLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="flex-1 px-1 py-1 bg-elevated border border-secondary text-secondary text-xs rounded hover:bg-tertiary hover:text-primary transition-colors text-center whitespace-nowrap"
-                        >
-                          종이책
-                        </a>
-                      ) : (
-                        <span className="flex-1 px-1 py-1 bg-elevated border border-tertiary text-tertiary text-xs rounded text-center whitespace-nowrap opacity-50">
-                          종이책
-                        </span>
-                      )}
-
-                      {ebookLink ? (
-                        <a
-                          href={ebookLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="flex-1 px-1 py-1 bg-elevated border border-secondary text-secondary text-xs rounded hover:bg-tertiary hover:text-primary transition-colors text-center whitespace-nowrap"
-                        >
-                          전자책
-                        </a>
-                      ) : (
-                        <span className="flex-1 px-1 py-1 bg-elevated border border-tertiary text-tertiary text-xs rounded text-center whitespace-nowrap opacity-50">
-                          전자책
-                        </span>
-                      )}
-                    </div> */}
 
                     <h3 className="text-sm font-semibold text-primary mb-1 line-clamp-2">{book.title}</h3>
                     <p className="text-xs text-tertiary line-clamp-2">{book.author.replace(/\s*\([^)]*\)/g, '')}</p>

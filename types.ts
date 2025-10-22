@@ -76,50 +76,6 @@ export const LibraryStockResponseSchema = z.object({
 });
 
 
-// ===== 변경 이전 ====
-
-// // This is the shape of the data that will be stored in the 'book_data' jsonb column.
-// export type BookData = AladdinBookItem & {
-//   toechonStock: StockInfo;
-//   otherStock: StockInfo;
-//   gwangjuPaperInfo?: GwangjuPaperResult | GwangjuPaperError; // [추가]
-//   ebookInfo?: EBookInfo; // New ebook information
-//   gyeonggiEbookInfo?: GyeonggiEbookResult | GyeonggiEbookError; // 경기도 전자도서관 정보 (원본)
-//   filteredGyeonggiEbookInfo?: GyeonggiEbookResult | GyeonggiEbookError; // ISBN 매칭 필터링된 경기도 전자도서관 정보
-//   siripEbookInfo?: SiripEbookResult | SiripEbookError; // 시립도서관 전자책 정보
-//   // 상세 재고 정보 (클릭 가능한 링크를 위한 파라미터 포함)
-//   detailedStockInfo?: {
-//     gwangju_paper?: {
-//       book_title: string;
-//       availability: {
-//         소장도서관: string;
-//         청구기호: string;
-//         기본청구기호: string;
-//         대출상태: '대출가능' | '대출불가';
-//         반납예정일: string;
-//         recKey?: string;
-//         bookKey?: string;
-//         publishFormCode?: string;
-//       }[];
-//     };
-//   };
-//   addedDate: number;
-//   readStatus: ReadStatus;
-//   rating: number;
-//   customTags?: string[]; // 태그 ID 배열
-//   isFavorite: boolean;
-//   note?: string; // 사용자 메모 (최대 50자)
-//   customSearchTitle?: string; // [추가] 커스텀 검색어
-// };
-
-
-// // This represents a book object within the application's state, including its database ID.
-// export type SelectedBook = BookData & {
-//   id: number;
-// };
-
-// ===== 변경 이후 ====
-
 // ✅ 런타임 검증이 가능한 Zod 스키마 정의 (신규 추가)
 // ▼▼▼▼▼▼▼▼▼▼ 여기에 아래 내용을 새로 추가합니다 ▼▼▼▼▼▼▼▼▼▼
 

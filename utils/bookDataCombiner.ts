@@ -79,27 +79,6 @@ export function createBookDataFromApis( // ✅ 이름 변경
   // 💣 else 블록을 완전히 제거하여, 실패 시 toechonStock과 otherStock이 undefined가 되도록 함
   // ▲▲▲▲▲▲▲▲▲▲ 여기까지 교체 ▲▲▲▲▲▲▲▲▲▲
   
-
-  // // ▼▼▼▼▼▼▼▼▼▼ 이 부분을 아래 코드로 교체하세요 ▼▼▼▼▼▼▼▼▼▼
-  // // 광주 종이책 재고 요약 (toechonStock, otherStock)
-  // if (libraryResult.gwangju_paper && 'summary_total_count' in libraryResult.gwangju_paper) {
-  //   // API 성공 시
-  //   const paperResult = libraryResult.gwangju_paper as GwangjuPaperResult;
-  //   combined.toechonStock = {
-  //     total_count: paperResult.toechon_total_count,
-  //     available_count: paperResult.toechon_available_count,
-  //   };
-  //   combined.otherStock = {
-  //     total_count: paperResult.other_total_count,
-  //     available_count: paperResult.other_available_count,
-  //   };
-  // } else {
-  //   // API 실패 또는 결과 없음 시, 기본값으로 초기화 (매우 중요!)
-  //   combined.toechonStock = { total_count: 0, available_count: 0 };
-  //   combined.otherStock = { total_count: 0, available_count: 0 };
-  // }
-  // // ▲▲▲▲▲▲▲▲▲▲ 여기까지 교체 ▲▲▲▲▲▲▲▲▲▲
-
   if (libraryResult.gyeonggi_ebook_library && !('error' in libraryResult.gyeonggi_ebook_library)) {
     combined.filteredGyeonggiEbookInfo = filterGyeonggiEbookByIsbn(
       aladinBook,

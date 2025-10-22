@@ -572,31 +572,6 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                             </a>
                         </div>
 
-                        {/* <div className="flex flex-wrap gap-4">
-                            <a
-                            href={book.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors duration-300"
-                            >
-                            <BookOpenIcon className="w-5 h-5" />
-                            알라딘 보기
-                            </a>
-                            <a
-                            href={hasEbookLink || '#'}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => !hasEbookLink && e.preventDefault()}
-                            className={`inline-flex items-center justify-center gap-2 px-5 py-2 bg-sky-500 text-white font-semibold rounded-lg transition-colors duration-300 ${
-                                !hasEbookLink ? 'opacity-50 cursor-not-allowed' : 'hover:bg-sky-600'
-                            }`}
-                            title={!hasEbookLink ? "알라딘에서 제공하는 전자책 정보가 없습니다" : "알라딘에서 전자책 보기"}
-                            >
-                            <BookOpenIcon className="w-5 h-5" />
-                            전자책 보기
-                            </a>
-                        </div> */}
-
                         </div>
                     </div>
                 
