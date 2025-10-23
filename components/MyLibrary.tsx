@@ -1406,7 +1406,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                     {book.title.replace(/^\[\w+\]\s*/, '')}
                   </h2>
                   <button
-                    onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title)}
+                    onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title, book.author)}
                     disabled={refreshingIsbn === book.isbn13 || refreshingEbookId === book.id}
                     className="flex-shrink-0 p-1 text-tertiary hover:text-primary hover-surface rounded transition-colors disabled:opacity-50 disabled:cursor-wait"
                     title="재고 정보 갱신"
@@ -1743,7 +1743,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                     </span>
                   </h3>
                   <button
-                    onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title)}
+                    onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title, book.author)}
                     disabled={refreshingIsbn === book.isbn13 || refreshingEbookId === book.id}
                     className="flex-shrink-0 p-0.5 text-tertiary hover:text-primary hover-surface rounded transition-colors disabled:opacity-50 disabled:cursor-wait"
                     title="재고 정보 갱신"

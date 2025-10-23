@@ -126,6 +126,7 @@ export function createLibraryOpenURL(
 export async function fetchBookAvailability(
   isbn: string, 
   title: string,
+  author: string, // ✅ [추가] author 파라미터
   customTitle?: string // [추가] customTitle 파라미터
 ): Promise<LibraryApiResponse> {
   const controller = new AbortController();
@@ -174,6 +175,7 @@ export async function fetchBookAvailability(
       },
       body: JSON.stringify({
         isbn: isbn,
+        author: author, // ✅ [추가] author 정보 전송
         customTitle: customTitle, // 커스텀 검색어
         eduTitle: processedTitleGyeonggiEdu, // 경기도 교육청 전자도서관용
         gyeonggiTitle: ProcessedTitleGyeonggi, // 경기도 전자도서관용

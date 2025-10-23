@@ -206,7 +206,8 @@ interface BookState {
   unselectBook: () => void;
   addToLibrary: () => Promise<void>;
   removeFromLibrary: (id: number) => Promise<void>;
-  refreshBookInfo: (id: number, isbn13: string, title: string) => Promise<void>;
+  // refreshBookInfo: (id: number, isbn13: string, title: string) => Promise<void>;
+  refreshBookInfo: (id: number, isbn13: string, title: string, author: string) => Promise<void>;
   sortLibrary: (key: SortKey) => void;
   fetchUserLibrary: () => Promise<void>;
   fetchRemainingLibrary: () => Promise<void>;
@@ -644,7 +645,7 @@ export const useBookStore = create<BookState>(
 
               // 백그라운드 재고 조회 실행
               const delay = window.location.hostname === 'localhost' ? 100 : 800;
-              setTimeout(() => { get().refreshBookInfo(newBookWithId.id, newBookWithId.isbn13, newBookWithId.title); }, delay);
+              setTimeout(() => { get().refreshBookInfo(newBookWithId.id, newBookWithId.isbn13, newBookWithId.title, newBookWithId.author); }, delay);
 
           } catch(error) {
               console.error("Error adding book to library:", error);
@@ -771,7 +772,7 @@ export const useBookStore = create<BookState>(
 
       // 개별 책에 대한 재고 정보 업데이트
 
-      refreshBookInfo: async (id, isbn13, title) => {
+      refreshBookInfo: async (id, isbn13, title, author) => {
           set({ refreshingIsbn: isbn13, refreshingEbookId: id });
 
           // getBookById를 사용하여 모든 데이터 소스에서 원본 책 정보를 가져옵니다.
@@ -788,6 +789,7 @@ export const useBookStore = create<BookState>(
             const libraryPromise = fetchBookAvailability(
               isbn13,
               title,
+              author, // ✅ [수정] author 정보 전달
               originalBook.customSearchTitle
             );
             const aladinPromise = searchAladinBooks(isbn13, 'ISBN');
@@ -1262,7 +1264,7 @@ export const useBookStore = create<BookState>(
 
           for (const book of batch) {
             try {
-              await get().refreshBookInfo(book.id, book.isbn13, book.title);
+              await get().refreshBookInfo(book.id, book.isbn13, book.title, book.author);
               current++;
             } catch (error) {
               console.error(`Failed to refresh book ${book.id}:`, error);

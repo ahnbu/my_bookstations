@@ -167,7 +167,7 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                         {isFetchingJson ? <Spinner size="sm" /> : 'API'}
                     </button>
                     <button
-                        onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title)}
+                        onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title, book.author)}
                         disabled={refreshingIsbn === book.isbn13 || refreshingEbookId === book.id}
                         className="p-2 text-secondary hover:text-primary rounded-full hover-surface transition-colors disabled:opacity-50 disabled:cursor-wait"
                         title="모든 재고 정보 새로고침"
