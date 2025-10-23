@@ -682,7 +682,8 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                                             // ✅ [핵심 수정] 외부 <button> 래퍼와 div 제거
                                                             <CustomTagComponent
                                                                 key={tag.id}
-                                                                tag={{...tag, color: 'primary'}}
+                                                                tag={tag} // ✅ [수정] tag 객체를 그대로 전달하여 원래 색상을 사용하도록 합니다.
+                                                                // tag={{...tag, color: 'primary'}}
                                                                 showClose={true}
                                                                 size="sm"
                                                                 onClose={() => handleRemoveTag(tagId)}
@@ -696,10 +697,6 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                                     <span className="text-tertiary text-sm">선택된 태그가 없습니다</span>
                                                 )}
                                             </div>
-                                            {/* ================================================================ */}
-                                            {/* ✅ [수정 끝] */}
-                                            {/* ================================================================ */}
-
 
                                             {/* ================================================================ */}
                                             {/* ✅ [수정 시작] 추가 가능한 태그 (Create 기능) */}
@@ -714,10 +711,10 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                                                 // 처리 중인지 확인하여 UI에 즉시 반영
                                                                 const isProcessing = processingTags.has(tag.id);
                                                                 return (
-                                                                                                                                                                      // ✅ [핵심 수정] 외부 <button> 래퍼와 div 제거
                                                                     <CustomTagComponent
                                                                         key={tag.id}
-                                                                        tag={{...tag, color: 'secondary'}}
+                                                                        // tag={{...tag, color: 'secondary'}}
+                                                                        tag={tag} // ✅ [수정] tag 객체를 그대로 전달하여 원래 색상을 사용하도록 합니다.
                                                                         showAdd={true}
                                                                         size="sm"
                                                                         onAdd={() => handleAddTag(tag.id)}
@@ -729,9 +726,7 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                                     </div>
                                                 </>
                                             )}
-                                            {/* ================================================================ */}
-                                            {/* ✅ [수정 끝] */}
-                                            {/* ================================================================ */}
+
                                         </div>
                                     </div>
                                 )}

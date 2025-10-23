@@ -8,7 +8,7 @@ import CustomTagComponent from './CustomTag';
 const SettingsModal: React.FC = () => {
   const { isSettingsModalOpen, closeSettingsModal, setNotification } = useUIStore();
   const { settings, loading, updateUserSettings, createTag, updateTag, deleteTag, getTagUsageCount, exportToCSV, setTheme } = useSettingsStore();
-  const { myLibraryBooks, totalBooksCount, isAllBooksLoaded, fetchRemainingLibrary, bulkRefreshAllBooks, pauseBulkRefresh, resumeBulkRefresh, cancelBulkRefresh } = useBookStore();
+  const { myLibraryBooks, totalBooksCount, isAllBooksLoaded, tagCounts, fetchRemainingLibrary, bulkRefreshAllBooks, pauseBulkRefresh, resumeBulkRefresh, cancelBulkRefresh } = useBookStore();
 
   const [localSettings, setLocalSettings] = useState(settings);
   const [saving, setSaving] = useState(false);
@@ -327,11 +327,16 @@ const SettingsModal: React.FC = () => {
       if (colorDiff !== 0) return colorDiff;
 
       // 2차 정렬: 사용량별 (많이 사용 > 적게 사용)
-      const aUsage = getTagUsageCount(a.id, myLibraryBooks);
-      const bUsage = getTagUsageCount(b.id, myLibraryBooks);
+      // const aUsage = getTagUsageCount(a.id, myLibraryBooks);
+      // const bUsage = getTagUsageCount(b.id, myLibraryBooks);
+      // ✅ [수정] getTagUsageCount 대신 tagCounts 객체를 사용합니다.
+      const aUsage = tagCounts[a.id] || 0;
+      const bUsage = tagCounts[b.id] || 0;
+
       return bUsage - aUsage;
     });
-  }, [settings.tagSettings?.tags, myLibraryBooks, getTagUsageCount]);
+  // }, [settings.tagSettings?.tags, myLibraryBooks, getTagUsageCount]);
+  }, [settings.tagSettings?.tags, tagCounts]);
 
   if (!isSettingsModalOpen) return null;
 
@@ -604,7 +609,7 @@ const SettingsModal: React.FC = () => {
               <div className="flex flex-col h-full">
                 <div className="flex-shrink-0">
                   <h3 className="text-sm font-medium text-primary mb-3">
-                    내 태그 ({sortedTags.length}개)
+                    사용 중 태그 개수 : {sortedTags.length}개
                   </h3>
                 </div>
 
@@ -616,7 +621,9 @@ const SettingsModal: React.FC = () => {
                         <div className="flex items-center gap-3">
                           <CustomTagComponent tag={tag} size="sm" />
                           <span className="text-sm text-secondary">
-                            ({getTagUsageCount(tag.id, myLibraryBooks)}권)
+                            {/* ✅ [수정] getTagUsageCount 대신 tagCounts 객체를 직접 사용합니다. */}
+                            ({tagCounts[tag.id] || 0}권)
+                            {/* ({getTagUsageCount(tag.id, myLibraryBooks)}권) */}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
@@ -671,11 +678,6 @@ const SettingsModal: React.FC = () => {
                                 ? '' // 선택 시 full opacity (ring 제거)
                                 : 'opacity-70 hover:opacity-100'
                             }`}
-                            // className={`px-3 py-1 text-xs font-semibold rounded-md border ${color.class} ${
-                            //   newTagColor === color.value
-                            //     ? 'ring-2 ring-ring ring-offset-2'
-                            //     : 'opacity-70 hover:opacity-100'
-                            // }`}
                             title={color.label}
                           >
                             {color.label}
