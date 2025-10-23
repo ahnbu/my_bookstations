@@ -116,7 +116,10 @@ export default {
     if (request.method === 'POST' && pathname !== '/keyword-search') {
       try {
         const body = await request.json();
-        const { isbn, author = '', customTitle = '', eduTitle = '', gyeonggiTitle = '', siripTitle = '' } = body;
+        // const { isbn, author = '', customTitle = '', eduTitle = '', gyeonggiTitle = '', siripTitle = '' } = body;
+        // ✅ [추가] customTitle이 null 또는 undefined일 경우 빈 문자열로 처리
+        let { isbn, author = '', customTitle = '', eduTitle = '', gyeonggiTitle = '', siripTitle = '' } = body;
+        customTitle = customTitle || ''; 
         console.log(`Request received - ISBN: ${isbn}, Author: "${author}", eduTitle: "${eduTitle}", GyeonggiTitle: "${gyeonggiTitle}", SiripTitle: "${siripTitle}"`);
 
         if (!isbn) {
