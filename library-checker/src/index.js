@@ -12,22 +12,22 @@
 // 메인 핸들러
 // ==============================================
 
-/**
- * 저자명을 비교를 위해 정규화하는 함수.
- * 띄어쓰기, 특수문자, '(지은이)' 등을 모두 제거합니다.
- * @param {string} author - 원본 저자명
- * @returns {string} - 정규화된 저자명
- */
-function normalizeAuthor(author) {
-  if (typeof author !== 'string' || !author) {
-    return '';
-  }
-  return author
-    .toLowerCase() // 소문자로 변환
-    .replace(/\s+/g, '') // 모든 공백 제거
-    .replace(/[\[\]\(\)\{\},.\-:]/g, '') // 괄호, 쉼표 등 특수문자 제거
-    .replace(/(지은이|옮긴이|역|저)/g, ''); // '지은이' 등의 불필요한 단어 제거
-}
+// /**
+//  * 저자명을 비교를 위해 정규화하는 함수.
+//  * 띄어쓰기, 특수문자, '(지은이)' 등을 모두 제거합니다.
+//  * @param {string} author - 원본 저자명
+//  * @returns {string} - 정규화된 저자명
+//  */
+// function normalizeAuthor(author) {
+//   if (typeof author !== 'string' || !author) {
+//     return '';
+//   }
+//   return author
+//     .toLowerCase() // 소문자로 변환
+//     .replace(/\s+/g, '') // 모든 공백 제거
+//     .replace(/[\[\]\(\)\{\},.\-:]/g, '') // 괄호, 쉼표 등 특수문자 제거
+//     .replace(/(지은이|옮긴이|역|저)/g, ''); // '지은이' 등의 불필요한 단어 제거
+// }
 
 // esm.sh를 통해 ES 모듈로 라이브러리를 직접 import 합니다.
 // import { parse } from 'https://esm.sh/node-html-parser';
@@ -179,11 +179,6 @@ export default {
           sirip_ebook: siripEbookResult || null
         };
 
-        // ================================================================
-        // ✅ [CREATE] 저자 필터링을 위한 기준값 변수를 여기에 추가합니다.
-        // ================================================================
-        const originalAuthorPrefix = author ? normalizeAuthor(author).substring(0, 2) : null;
-
         if (eduTitle && results.length > 1) {
             // [추가] 성남, 통합 도서관 결과를 하나의 배열로 합침
             const combinedEduBooks = [];
@@ -218,40 +213,11 @@ export default {
             let seongnam_count = 0;
             let tonghap_count = 0;
             let error_count = 0;
-
-            // const validBooks = [];
             
-            // combinedEduBooks.forEach(book => {
-            //     if (book.error) {
-            //         error_count++;
-            //         return;
-            //     }
-            //     validBooks.push(book); // 에러가 아닌 책만 book_list에 포함
+            // 먼저 에러가 없는 책만 거릅니다.
+            let validBooks = combinedEduBooks.filter(book => !book.error); 
 
-            //     total_count++;
-            //     if(book.대출상태 === '대출가능') {
-            //         available_count++;
-            //     }
-            //     if(book.소장도서관 === '성남도서관') {
-            //         seongnam_count++;
-            //     } else if (book.소장도서관 === '통합도서관') {
-            //         tonghap_count++;
-            //     }
-            // });
-
-            // ================================================================
-            // ✅ [UPDATE] 아래 코드를 삭제된 forEach 자리에 삽입/교체합니다.
-            // ================================================================
-            
-            // 1. 저자 필터링 적용
-            let validBooks = combinedEduBooks.filter(book => !book.error); // 먼저 에러가 없는 책만 거릅니다.
-            if (originalAuthorPrefix) { // 저자 정보가 있을 경우에만 추가 필터링
-              validBooks = validBooks.filter(book => 
-                normalizeAuthor(book['저자']).startsWith(originalAuthorPrefix)
-              );
-            }
-
-            // 2. 필터링된 'validBooks'를 기반으로 요약 정보 재계산
+            // 'validBooks'를 기반으로 요약 정보 재계산
             // ✅ [수정] const 키워드를 제거하여, 기존에 선언된 변수에 값을 재할당합니다.
             total_count = validBooks.length;
             available_count = validBooks.filter(b => b.대출상태 === '대출가능').length;
@@ -274,73 +240,6 @@ export default {
             };
         }
 
-        // ================================================================
-        // ✅ 2. [핵심 수정] 모든 API 결과를 취합한 후, 여기서 한 번에 필터링합니다.
-        // ================================================================
-
-        // 원본 저자명이 제공된 경우에만 필터링 로직을 실행합니다.
-        if (author) {
-          const originalAuthorPrefix = normalizeAuthor(author).substring(0, 2);
-
-          // --- e교육 필터링 ---
-          if (finalResult.gyeonggi_ebook_edu && finalResult.gyeonggi_ebook_edu.book_list) {
-            const filteredList = finalResult.gyeonggi_ebook_edu.book_list.filter(book => 
-              normalizeAuthor(book['저자']).startsWith(originalAuthorPrefix)
-            );
-            // 필터링된 목록을 기준으로 요약 정보 재계산
-            finalResult.gyeonggi_ebook_edu.book_list = filteredList;
-            finalResult.gyeonggi_ebook_edu.total_count = filteredList.length;
-            finalResult.gyeonggi_ebook_edu.available_count = filteredList.filter(b => b.대출상태 === '대출가능').length;
-            finalResult.gyeonggi_ebook_edu.unavailable_count = filteredList.length - finalResult.gyeonggi_ebook_edu.available_count;
-            // (필요 시 seongnam_count, tonghap_count도 재계산)
-          }
-
-          // --- e경기 필터링 ---
-          if (finalResult.gyeonggi_ebook_library && finalResult.gyeonggi_ebook_library.book_list) {
-            const filteredList = finalResult.gyeonggi_ebook_library.book_list.filter(book => 
-              normalizeAuthor(book.author).startsWith(originalAuthorPrefix)
-            );
-            // 필터링된 목록을 기준으로 요약 정보 재계산
-            finalResult.gyeonggi_ebook_library.book_list = filteredList;
-            finalResult.gyeonggi_ebook_library.total_count = filteredList.length;
-            finalResult.gyeonggi_ebook_library.available_count = filteredList.filter(b => b.available).length;
-            finalResult.gyeonggi_ebook_library.unavailable_count = filteredList.length - finalResult.gyeonggi_ebook_library.available_count;
-          }
-
-          // --- e시립 필터링 (소장형, 구독형 각각) ---
-          if (finalResult.sirip_ebook && finalResult.sirip_ebook.details) {
-            // 소장형 필터링
-            if (finalResult.sirip_ebook.details.owned?.book_list) {
-              const filteredList = finalResult.sirip_ebook.details.owned.book_list.filter(book => 
-                normalizeAuthor(book.author).startsWith(originalAuthorPrefix)
-              );
-              finalResult.sirip_ebook.details.owned.book_list = filteredList;
-              finalResult.sirip_ebook.details.owned.total_count = filteredList.length;
-              finalResult.sirip_ebook.details.owned.available_count = filteredList.filter(b => b.isAvailable).length;
-            }
-            // 구독형 필터링
-            if (finalResult.sirip_ebook.details.subscription?.book_list) {
-              const filteredList = finalResult.sirip_ebook.details.subscription.book_list.filter(book => 
-                normalizeAuthor(book.author).startsWith(originalAuthorPrefix)
-              );
-              finalResult.sirip_ebook.details.subscription.book_list = filteredList;
-              finalResult.sirip_ebook.details.subscription.total_count = filteredList.length;
-              finalResult.sirip_ebook.details.subscription.available_count = filteredList.length; // 구독형은 항상 대출 가능
-            }
-            
-            // 시립 통합 요약 정보(summary) 재계산
-            const owned = finalResult.sirip_ebook.details.owned;
-            const subs = finalResult.sirip_ebook.details.subscription;
-            if (finalResult.sirip_ebook.sirip_ebook_summary) {
-              finalResult.sirip_ebook.sirip_ebook_summary.total_count = (owned?.total_count || 0) + (subs?.total_count || 0);
-              finalResult.sirip_ebook.sirip_ebook_summary.available_count = (owned?.available_count || 0) + (subs?.available_count || 0);
-            }
-          }
-        }
-        // ================================================================
-        // ✅ [필터링 로직 끝]
-        // ================================================================
-        
         // [추가] 최종 응답 객체에 isbn과 title 추가
         const responsePayload = {
           title: eduTitle, // 요청받은 eduTitle을 기준으로 title 필드 추가
