@@ -1648,7 +1648,8 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
           ) : (
             // sortedAndFilteredLibraryBooks.map(book => (
             selectedBooksArray.map(book => (
-            <div key={book.id} className="bg-elevated rounded-lg p-3 relative">
+            // <div key={book.id} className="bg-elevated rounded-lg p-3 relative"> 
+            <div key={book.id} className="bg-elevated rounded-lg p-3 relative min-w-0"> 
               {/* Checkbox */}
               <div
                 className="absolute top-2 left-2 z-20 p-1 -m-1"
