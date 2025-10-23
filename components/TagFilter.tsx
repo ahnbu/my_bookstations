@@ -64,6 +64,12 @@ const TagFilter: React.FC<TagFilterProps> = ({
     return null; // 태그가 없으면 필터 영역을 표시하지 않음
   }
 
+    // ✅ [추가] 선택된 활성 태그의 이름 목록을 생성하는 로직
+  const activeTagNames = Array.from(activeTags)
+    .map(id => tags.find(tag => tag.id === id)?.name) // ID로 태그 이름을 찾음
+    .filter(Boolean) // 이름이 없는 경우(undefined)를 필터링
+    .join(', '); // 쉼표와 공백으로 이름들을 연결
+
   // <span className="text-sm text-secondary mr-2">인기 태그:</span>
   //         <span className="text-sm text-secondary mr-2"></span> 
   return (
@@ -93,8 +99,10 @@ const TagFilter: React.FC<TagFilterProps> = ({
 
       {activeTags.size > 0 && (
         <div className="mt-2 pt-2 border-t border-primary">
+          
           <span className="text-xs text-tertiary">
-            {activeTags.size}개 태그로 필터링됨
+            태그 필터링 : <span className="font-medium text-secondary">{activeTagNames}</span>
+            {/* {activeTags.size}개 태그로 필터링됨 */}
           </span>
         </div>
       )}

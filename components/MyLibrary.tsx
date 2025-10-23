@@ -382,6 +382,12 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
 
   if (!isOpen) return null;
 
+    // ✅ [추가] 선택된 태그의 이름 목록을 생성하는 로직
+  const selectedTagNames = Array.from(selectedTagIds)
+    .map(id => availableTags.find(tag => tag.id === id)?.name) // ID에 해당하는 태그 객체를 찾아 이름(name)을 추출
+    .filter(Boolean) // 혹시 모를 undefined 값을 제거
+    .join(', '); // 이름들을 ", "로 연결하여 하나의 문자열로 만듦
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 p-4">
       <div className="bg-elevated rounded-lg shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
@@ -452,10 +458,17 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
                 ))}
               </div>
               {selectedTagIds.size > 0 && (
+                // ✅ [수정] 원하는 메시지 형식으로 변경
+                <div className="text-sm text-secondary mb-4">
+                  {selectedBooks.length}권의 책에 다음 태그를 추가합니다 :{' '}
+                  <span className="font-medium text-primary">{selectedTagNames}</span>
+                </div>
+              )}
+              {/* {selectedTagIds.size > 0 && (
                 <div className="text-sm text-secondary mb-4">
                   {selectedTagIds.size}개 태그를 {selectedBooks.length}권의 책에 추가합니다.
                 </div>
-              )}
+              )} */}
             </div>
           </div>
         </div>
