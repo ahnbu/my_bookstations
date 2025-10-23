@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
-import { SelectedBook, SortKey, ReadStatus, CustomTag, LibraryName } from '../types';
+import { SelectedBook, SortKey, ReadStatus, CustomTag, LibraryName, TagColor } from '../types';
 import { TrashIcon, RefreshIcon, CheckIcon, SearchIcon, CloseIcon, HeartIcon, MessageSquareIcon } from './Icons';
 import Spinner from './Spinner';
 import { useBookStore } from '../stores/useBookStore';
@@ -1429,8 +1429,36 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                   )}
                 </div>
 
-                {/* Custom Tags */}
+                {/* 태그 */}
+
                 {settings.showTags && book.customTags && book.customTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {/* ✅ [수정 시작] 태그를 렌더링하기 전에 정렬 로직 추가 */}
+                    {book.customTags
+                      // 1. tagId 배열을 전체 tag 객체 배열로 변환
+                      .map(tagId => settings.tagSettings.tags.find(t => t.id === tagId))
+                      // 2. 혹시 모를 null/undefined 값 제거
+                      .filter((tag): tag is CustomTag => !!tag) 
+                      // 3. 색상 우선순위에 따라 정렬
+                      .sort((a, b) => {
+                        const colorOrder: Record<TagColor, number> = { 'primary': 0, 'secondary': 1, 'tertiary': 2 };
+                        return (colorOrder[a.color] ?? 99) - (colorOrder[b.color] ?? 99);
+                      })
+                      // 4. 정렬된 배열을 기반으로 컴포넌트 렌더링
+                      .map(tag => (
+                        <CustomTagComponent
+                          key={tag.id}
+                          tag={tag}
+                          isActive={false}
+                          onClick={() => {}}
+                          size="sm"
+                        />
+                      ))
+                    }
+                    {/* ✅ [수정 끝] */}
+                  </div>
+                )}
+                {/* {settings.showTags && book.customTags && book.customTags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {book.customTags.map(tagId => {
                       const tag = settings.tagSettings.tags.find(t => t.id === tagId);
@@ -1445,7 +1473,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                       ) : null;
                     })}
                   </div>
-                )}
+                )} */}
               </div>
               
               {/* 구분선 및 "하단 재고 블록" */}
@@ -1734,8 +1762,36 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                   />
                 )}
 
-                {/* Custom Tags */}
+                {/* 태그 */}
                 {settings.showTags && book.customTags && book.customTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {/* ✅ [수정 시작] 태그를 렌더링하기 전에 정렬 로직 추가 */}
+                    {book.customTags
+                      // 1. tagId 배열을 전체 tag 객체 배열로 변환
+                      .map(tagId => settings.tagSettings.tags.find(t => t.id === tagId))
+                      // 2. 혹시 모를 null/undefined 값 제거
+                      .filter((tag): tag is CustomTag => !!tag) 
+                      // 3. 색상 우선순위에 따라 정렬
+                      .sort((a, b) => {
+                        const colorOrder: Record<TagColor, number> = { 'primary': 0, 'secondary': 1, 'tertiary': 2 };
+                        return (colorOrder[a.color] ?? 99) - (colorOrder[b.color] ?? 99);
+                      })
+                      // 4. 정렬된 배열을 기반으로 컴포넌트 렌더링
+                      .map(tag => (
+                        <CustomTagComponent
+                          key={tag.id}
+                          tag={tag}
+                          isActive={false}
+                          onClick={() => {}}
+                          size="sm"
+                        />
+                      ))
+                    }
+                    {/* ✅ [수정 끝] */}
+                  </div>
+                )}
+
+                {/* {settings.showTags && book.customTags && book.customTags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {book.customTags.map(tagId => {
                       const tag = settings.tagSettings.tags.find(t => t.id === tagId);
@@ -1750,7 +1806,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                       ) : null;
                     })}
                   </div>
-                )}
+                )} */}
                 
                 {/* All Library Stock Info */}
                 {settings.showLibraryStock && <div className="grid grid-cols-2 gap-1 text-xs">
