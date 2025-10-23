@@ -242,9 +242,9 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                 <StockDisplay
                     label="전자책(교육)"
                     searchUrl={createLibraryOpenURL('e교육', book.title, book.customSearchTitle)}
-                    totalCount={book.ebookInfo?.summary?.total_count}
-                    availableCount={book.ebookInfo?.summary?.available_count}
-                    hasError={(book.ebookInfo?.summary?.error_count ?? 0) > 0}
+                    totalCount={book.ebookInfo?.total_count}
+                    availableCount={book.ebookInfo?.available_count}
+                    hasError={(book.ebookInfo?.error_count ?? 0) > 0}
                     isLoading={!book.ebookInfo}
                 />
                 <StockDisplay

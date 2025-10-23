@@ -1515,12 +1515,12 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                 {/* e북.교육 */}
                 <LibraryTag
                   name="e교육"
-                  totalBooks={book.ebookInfo?.summary?.total_count || 0}
-                  availableBooks={book.ebookInfo?.summary?.available_count || 0}
+                  totalBooks={book.ebookInfo?.total_count || 0}
+                  availableBooks={book.ebookInfo?.available_count || 0}
                   searchUrl={createLibraryOpenURL("e교육", book.title, book.customSearchTitle)}
                   // summary에 error_count가 있으므로 더 간단하게 확인 가능
-                  isError={(book.ebookInfo?.summary?.error_count ?? 0) == 2} // 둘 다 에러일때만
-                  // isError={(book.ebookInfo?.summary?.error_count ?? 0) > 0} // 1군데라도 에러일때
+                  isError={(book.ebookInfo?.error_count ?? 0) == 2} // 둘 다 에러일때만
+                  // isError={(book.ebookInfo?.error_count ?? 0) > 0} // 1군데라도 에러일때
                   // isError={book.ebookInfo?.details.some(d => 'error' in d) || false}
                 />
                 
@@ -1555,7 +1555,12 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                 />
                 
                 {/* e북.경기 */}
-                <LibraryTag
+                {/* ISBN필터링 제거 : 1)종이책ISBN이었음, 2)전자책ISBN도 정확히 일치 안함 */}
+                {/* 알라딘 전자책 ISBN: "E898407709", 
+                    도서관 ISBN: "isbn": "8984077097" -> 마지막에 7이 붙어 있음
+                    */}
+                    
+                {/* <LibraryTag
                   name="e경기"
                   totalBooks={(() => {
                     const targetGyeonggiInfo = book.filteredGyeonggiEbookInfo || book.gyeonggiEbookInfo;
@@ -1566,6 +1571,14 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                     return targetGyeonggiInfo && 'available_count' in targetGyeonggiInfo ? targetGyeonggiInfo.available_count : 0;
                   })()}
                   // searchUrl={createGyeonggiEbookSearchURL(book.title)}
+                  searchUrl={createLibraryOpenURL("e경기", book.title, book.customSearchTitle)}
+                  isError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
+                /> */}
+                <LibraryTag
+                  name="e경기"
+                  // ✅ [수정] 'filteredGyeonggiEbookInfo'를 사용하지 않고 'gyeonggiEbookInfo'만 사용하도록 단순화
+                  totalBooks={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.total_count : 0}
+                  availableBooks={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.available_count : 0}
                   searchUrl={createLibraryOpenURL("e경기", book.title, book.customSearchTitle)}
                   isError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
                 />
@@ -1839,12 +1852,12 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                   />
                   <LibraryTag
                     name="e교육"
-                    totalBooks={book.ebookInfo?.summary?.total_count || 0}
-                    availableBooks={book.ebookInfo?.summary?.available_count || 0}
+                    totalBooks={book.ebookInfo?.total_count || 0}
+                    availableBooks={book.ebookInfo?.available_count || 0}
                     searchUrl={createLibraryOpenURL("e교육", book.title, book.customSearchTitle)}
                     // summary에 error_count가 있으므로 더 간단하게 확인 가능
-                    isError={(book.ebookInfo?.summary?.error_count ?? 0) == 2} // 둘 다 에러일때만
-                  // isError={(book.ebookInfo?.summary?.error_count ?? 0) > 0} // 1군데라도 에러일때 
+                    isError={(book.ebookInfo?.error_count ?? 0) == 2} // 둘 다 에러일때만
+                  // isError={(book.ebookInfo?.error_count ?? 0) > 0} // 1군데라도 에러일때 
                     // isError={book.ebookInfo?.details.some(d => 'error' in d) || false}
                   />
                   <LibraryTag
@@ -1873,7 +1886,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                     searchUrl={createLibraryOpenURL("e시립소장", book.title, book.customSearchTitle)}
                     isError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.owned?.error) : false}
                   />
-                  <LibraryTag
+                  {/* <LibraryTag
                     name="e경기"
                     totalBooks={(() => {
                       const targetGyeonggiInfo = book.filteredGyeonggiEbookInfo || book.gyeonggiEbookInfo;
@@ -1883,6 +1896,15 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                       const targetGyeonggiInfo = book.filteredGyeonggiEbookInfo || book.gyeonggiEbookInfo;
                       return targetGyeonggiInfo && 'available_count' in targetGyeonggiInfo ? targetGyeonggiInfo.available_count : 0;
                     })()}
+                    searchUrl={createLibraryOpenURL("e경기", book.title, book.customSearchTitle)}
+                    isError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
+                  /> */}
+                  {/* e북.경기 */}
+                  <LibraryTag
+                    name="e경기"
+                    // ✅ [수정] 'filteredGyeonggiEbookInfo'를 사용하지 않고 'gyeonggiEbookInfo'만 사용하도록 단순화
+                    totalBooks={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.total_count : 0}
+                    availableBooks={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.available_count : 0}
                     searchUrl={createLibraryOpenURL("e경기", book.title, book.customSearchTitle)}
                     isError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
                   />
