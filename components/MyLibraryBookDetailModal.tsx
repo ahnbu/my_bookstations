@@ -263,13 +263,22 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                     hasError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.owned?.error) : false}
                     isLoading={!book.siripEbookInfo}
                 />
-                <StockDisplay
+                {/* <StockDisplay
                     label="전자책(경기)"
                     searchUrl={createLibraryOpenURL('e경기', book.title, book.customSearchTitle)}
                     totalCount={book.filteredGyeonggiEbookInfo && !('error' in book.filteredGyeonggiEbookInfo) ? book.filteredGyeonggiEbookInfo?.total_count : (book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo?.total_count : 0)}
                     availableCount={book.filteredGyeonggiEbookInfo && !('error' in book.filteredGyeonggiEbookInfo) ? book.filteredGyeonggiEbookInfo?.available_count : (book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo?.available_count : 0)}
                     hasError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
                     isLoading={!book.gyeonggiEbookInfo && refreshingEbookId !== book.id} // 로딩 중 아닐 때만 isLoading 처리
+                /> */}
+                <StockDisplay
+                    label="전자책(경기)"
+                    searchUrl={createLibraryOpenURL('e경기', book.title, book.customSearchTitle)}
+                    // ✅ [수정] 'filteredGyeonggiEbookInfo' 참조 로직을 제거하고 'gyeonggiEbookInfo'만 사용하도록 단순화합니다.
+                    totalCount={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.total_count : 0}
+                    availableCount={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.available_count : 0}
+                    hasError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
+                    isLoading={!book.gyeonggiEbookInfo && refreshingEbookId !== book.id}
                 />
             </div>
 
