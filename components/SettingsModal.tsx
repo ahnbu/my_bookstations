@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useBookStore } from '../stores/useBookStore';
-import type { CustomTag, TagColor, Theme } from '../types';
+import type { CustomTag, TagColor, Theme, RefreshType, RefreshLimit} from '../types';
 import CustomTagComponent from './CustomTag';
 
 const SettingsModal: React.FC = () => {
@@ -19,8 +19,25 @@ const SettingsModal: React.FC = () => {
   // [추가] CSV 내보내기 진행 상태 추가
   const [isExporting, setIsExporting] = useState(false);
 
+  // ✅ [수정] 일괄 갱신 관련 상태 확장
+
   // 일괄 갱신 상태
-  const [selectedRefreshLimit, setSelectedRefreshLimit] = useState<number | 'all'>(25);
+  // const [selectedRefreshLimit, setSelectedRefreshLimit] = useState<number | 'all'>(25);
+  // const [refreshState, setRefreshState] = useState({
+  //   isRunning: false,
+  //   isPaused: false,
+  //   current: 0,
+  //   total: 0,
+  //   failed: 0,
+  // });
+
+  const [selectedRefreshType, setSelectedRefreshType] = useState<RefreshType>('recent');
+  const [selectedRefreshLimit, setSelectedRefreshLimit] = useState<RefreshLimit>(25);
+  
+    // 범위 지정을 위한 상태 추가
+  const [rangeStart, setRangeStart] = useState('');
+  const [rangeEnd, setRangeEnd] = useState('');
+
   const [refreshState, setRefreshState] = useState({
     isRunning: false,
     isPaused: false,
@@ -28,7 +45,7 @@ const SettingsModal: React.FC = () => {
     total: 0,
     failed: 0,
   });
-  
+
   // ================================================================
   // ✅ [CREATE] 이 줄을 여기에 추가합니다.
   // useBookStore의 bulkRefreshState를 실시간으로 구독하여 상태 변화를 감지합니다.
@@ -188,18 +205,76 @@ const SettingsModal: React.FC = () => {
   };
 
   // 일괄 갱신 범위 선택지 생성
+  // const getRefreshOptions = () => {
+  //   const totalBooks = totalBooksCount; // DB 전체 권수 사용
+  //   const options = [
+  //     { value: 25, label: '최근 25권' },
+  //     { value: 50, label: '최근 50권' },
+  //     { value: 100, label: '최근 100권' },
+  //     { value: 200, label: '최근 200권' },
+  //     { value: 'all' as const, label: `전체 (${totalBooks}권)` },
+  //   ];
+  //   // 보유 권수보다 큰 선택지 필터링
+  //   return options.filter(opt => opt.value === 'all' || opt.value <= totalBooks);
+  // };
+
+  // ✅ [수정] 일괄 갱신 범위 선택지 생성 함수
+  // const getRefreshOptions = () => {
+  //   const totalBooks = totalBooksCount;
+  //   const halfCount = Math.floor(totalBooks / 2);
+
+  //   const options: { value: string; label: string }[] = [
+  //     { value: 'recent-25', label: '최근 25권' },
+  //     { value: 'recent-50', label: '최근 50권' },
+  //     { value: 'recent-100', label: '최근 100권' },
+  //   ];
+
+  //   if (halfCount > 100) { // 100권과 겹치지 않도록
+  //     options.push({ value: `recent-${halfCount}`, label: `최근 ${halfCount}권` });
+  //     options.push({ value: `old-${halfCount}`, label: `오래된 ${halfCount}권` });
+  //   }
+
+  //   options.push({ value: 'all-all', label: `전체 (${totalBooks}권)` });
+  //   options.push({ value: 'range-custom', label: '범위 지정' });
+
+  //   return options;
+  // };
+
+  // ✅ [수정] 일괄 갱신 범위 선택지 생성 함수 (개선된 버전)
   const getRefreshOptions = () => {
-    const totalBooks = totalBooksCount; // DB 전체 권수 사용
-    const options = [
-      { value: 25, label: '최근 25권' },
-      { value: 50, label: '최근 50권' },
-      { value: 100, label: '최근 100권' },
-      { value: 200, label: '최근 200권' },
-      { value: 'all' as const, label: `전체 (${totalBooks}권)` },
+    const totalBooks = totalBooksCount;
+    const halfCount = Math.floor(totalBooks / 2);
+
+    // 1. 가능한 모든 옵션을 정의합니다.
+    const allPossibleOptions = [
+      { value: 'recent-25', label: '최근 25권', count: 25 },
+      { value: 'recent-50', label: '최근 50권', count: 50 },
+      { value: 'recent-100', label: '최근 100권', count: 100 },
+      // halfCount가 100 이하일 경우, 위 옵션과 중복되므로 추가하지 않습니다.
+      // 또한 halfCount가 의미 있는 숫자일 때만 (예: 10 이상) 추가합니다.
+      halfCount > 100 ? { value: `recent-${halfCount}`, label: `최근 ${halfCount}권`, count: halfCount } : null,
+      halfCount > 100 ? { value: `old-${halfCount}`, label: `오래된 ${halfCount}권`, count: halfCount } : null,
+      { value: 'all-all', label: `전체 (${totalBooks}권)`, count: totalBooks },
+      { value: 'range-custom', label: '범위 지정', count: Infinity }, // 범위 지정은 항상 표시
     ];
 
-    // 보유 권수보다 큰 선택지 필터링
-    return options.filter(opt => opt.value === 'all' || opt.value <= totalBooks);
+    // 2. 유효한 옵션만 필터링합니다.
+    const validOptions = allPossibleOptions.filter(opt => {
+      // null인 항목(조건 미충족) 제거
+      if (!opt) return false;
+      
+      // '전체' 또는 '범위 지정' 옵션은 항상 포함
+      if (opt.value === 'all-all' || opt.value === 'range-custom') return true;
+      
+      // 옵션의 수량이 총 보유 권수보다 작거나 같을 때만 포함
+      return opt.count <= totalBooks;
+    });
+
+    // 3. 중복 가능성 제거 (예: totalBooks가 50일 때 '최근 50권'과 '최근 halfCount'가 겹칠 수 있음)
+    // Map을 사용하여 value가 고유한 옵션만 남깁니다.
+    const uniqueOptions = Array.from(new Map(validOptions.map(opt => [opt.value, opt])).values());
+    
+    return uniqueOptions;
   };
 
   // 예상 소요 시간 계산 (초)
@@ -211,59 +286,188 @@ const SettingsModal: React.FC = () => {
   };
 
   // 일괄 갱신 시작
-  const handleStartBulkRefresh = async () => {
-    const limit = selectedRefreshLimit;
-    const bookCount = limit === 'all' ? totalBooksCount : Math.min(limit, totalBooksCount);
-    const estimatedTime = estimateRefreshTime(bookCount);
+  // const handleStartBulkRefresh = async () => {
+  //   const limit = selectedRefreshLimit;
+  //   const bookCount = limit === 'all' ? totalBooksCount : Math.min(limit, totalBooksCount);
+  //   const estimatedTime = estimateRefreshTime(bookCount);
 
+  //   const confirmed = window.confirm(
+  //     `${bookCount}권의 재고를 갱신하시겠습니까?\n\n예상 소요 시간: 약 ${estimatedTime}초`
+  //   );
+
+  //   if (!confirmed) return;
+
+  //   // ================================================================
+  //   // ✅ [수정 시작]
+  //   // ================================================================
+  //   // '전체'를 선택했거나, 선택한 수량이 현재 로드된 책보다 많을 경우,
+  //   // 그리고 아직 모든 책을 로드하지 않았다면, 나머지 책을 먼저 불러옵니다.
+  //   const shouldFetchAll = (limit === 'all' || (typeof limit === 'number' && limit > myLibraryBooks.length)) && !isAllBooksLoaded;
+
+  //   if (shouldFetchAll) {
+  //     setNotification({
+  //       message: '전체 서재 목록을 불러오는 중입니다...',
+  //       type: 'info',
+  //     });
+
+  //     try {
+  //       await fetchRemainingLibrary();
+  //     } catch (error) {
+  //       setNotification({
+  //         message: '전체 서재 목록을 불러오는 데 실패했습니다.',
+  //         type: 'error',
+  //       });
+  //       return;
+  //     }
+  //   }
+  //   // ================================================================
+  //   // ✅ [수정 끝]
+  //   // ================================================================
+
+  //   setRefreshState({
+  //     isRunning: true,
+  //     isPaused: false,
+  //     current: 0,
+  //     total: bookCount,
+  //     failed: 0,
+  //   });
+
+  //   bulkRefreshAllBooks(limit, {
+  //     onProgress: (current, total, failed) => {
+  //       setRefreshState(prev => ({
+  //         ...prev,
+  //         current,
+  //         total,
+  //         failed,
+  //       }));
+  //     },
+  //     onComplete: (success, failedIds) => {
+  //       setRefreshState({
+  //         isRunning: false,
+  //         isPaused: false,
+  //         current: 0,
+  //         total: 0,
+  //         failed: 0,
+  //       });
+
+  //       if (failedIds.length === 0) {
+  //         setNotification({
+  //           message: `${success}권의 재고 갱신이 완료되었습니다.`,
+  //           type: 'success',
+  //         });
+  //       } else if (success > 0) {
+  //         setNotification({
+  //           message: `${success}권 갱신 완료, ${failedIds.length}권 실패했습니다.`,
+  //           type: 'warning',
+  //         });
+  //       } else {
+  //         setNotification({
+  //           message: '재고 갱신에 실패했습니다. 네트워크 연결을 확인해주세요.',
+  //           type: 'error',
+  //         });
+  //       }
+  //     },
+  //     shouldPause: () => refreshState.isPaused,
+  //     // shouldCancel: () => false, // 취소는 별도 버튼으로 처리
+  //     shouldCancel: () => useBookStore.getState().bulkRefreshState.isCancelled,
+  //   });
+  // };
+
+  
+  // const handleStartBulkRefresh = async () => {
+  //   // 1. 옵션 객체 생성
+  //   const options: any = { type: selectedRefreshType };
+  //   let bookCount = 0;
+
+  //   if (selectedRefreshType === 'recent' || selectedRefreshType === 'old') {
+  //     options.limit = selectedRefreshLimit as number;
+  //     bookCount = Math.min(options.limit, totalBooksCount);
+  //   } else if (selectedRefreshType === 'range') {
+  //     const start = parseInt(rangeStart) || 1;
+  //     const end = parseInt(rangeEnd) || totalBooksCount;
+  //     if (start > end || start < 1 || end > totalBooksCount) {
+  //       setNotification({ message: '범위가 올바르지 않습니다.', type: 'error' });
+  //       return;
+  //     }
+  //     options.start = start;
+  //     options.end = end;
+  //     bookCount = end - start + 1;
+  //   } else { // 'all'
+  //     bookCount = totalBooksCount;
+  //   }
+
+  //   // 2. 확인창 (기존과 유사)
+  //   const estimatedTime = estimateRefreshTime(bookCount);
+  //   const confirmed = window.confirm(
+  //     `${bookCount}권의 재고를 갱신하시겠습니까?\n\n예상 소요 시간: 약 ${estimatedTime}초`
+  //   );
+  //   if (!confirmed) return;
+
+  //   // 3. setRefreshState 및 bulkRefreshAllBooks 호출
+  //   setRefreshState({
+  //     isRunning: true,
+  //     isPaused: false,
+  //     current: 0,
+  //     total: bookCount,
+  //     failed: 0,
+  //   });
+
+  //   // 💥 수정된 options 객체를 전달
+  //   bulkRefreshAllBooks(options, {
+  //     onProgress: (current, total, failed) => { /* ... */ },
+  //     onComplete: (success, failedIds) => { /* ... */ },
+  //     shouldPause: () => refreshState.isPaused,
+  //     shouldCancel: () => useBookStore.getState().bulkRefreshState.isCancelled,
+  //   });
+  // };
+
+  const handleStartBulkRefresh = async () => {
+    // 1. 옵션 객체 생성 및 갱신할 책의 수 계산
+    const options: any = { type: selectedRefreshType };
+    let bookCount = 0;
+
+    if (selectedRefreshType === 'recent' || selectedRefreshType === 'old') {
+      options.limit = selectedRefreshLimit as number;
+      bookCount = Math.min(options.limit, totalBooksCount);
+    } else if (selectedRefreshType === 'range') {
+      const start = parseInt(rangeStart) || 1;
+      const end = parseInt(rangeEnd) || totalBooksCount;
+      if (start > end || start < 1 || end > totalBooksCount) {
+        setNotification({ message: '범위가 올바르지 않습니다.', type: 'error' });
+        return;
+      }
+      options.start = start;
+      options.end = end;
+      bookCount = end - start + 1;
+    } else { // 'all'
+      bookCount = totalBooksCount;
+    }
+
+    // 2. 확인창 표시
+    const estimatedTime = estimateRefreshTime(bookCount);
     const confirmed = window.confirm(
       `${bookCount}권의 재고를 갱신하시겠습니까?\n\n예상 소요 시간: 약 ${estimatedTime}초`
     );
-
     if (!confirmed) return;
 
-    // ================================================================
-    // ✅ [수정 시작]
-    // ================================================================
-    // '전체'를 선택했거나, 선택한 수량이 현재 로드된 책보다 많을 경우,
-    // 그리고 아직 모든 책을 로드하지 않았다면, 나머지 책을 먼저 불러옵니다.
-    const shouldFetchAll = (limit === 'all' || (typeof limit === 'number' && limit > myLibraryBooks.length)) && !isAllBooksLoaded;
-
-    if (shouldFetchAll) {
-      setNotification({
-        message: '전체 서재 목록을 불러오는 중입니다...',
-        type: 'info',
-      });
-
-      try {
-        await fetchRemainingLibrary();
-      } catch (error) {
-        setNotification({
-          message: '전체 서재 목록을 불러오는 데 실패했습니다.',
-          type: 'error',
-        });
-        return;
-      }
-    }
-    // ================================================================
-    // ✅ [수정 끝]
-    // ================================================================
-
+    // 3. UI 상태 초기화 (여기서 설정된 total 값이 최종적으로 사용됩니다)
     setRefreshState({
       isRunning: true,
       isPaused: false,
       current: 0,
-      total: bookCount,
+      total: bookCount, // ✅ 여기서 UI에 표시될 최종 total 값을 설정
       failed: 0,
     });
 
-    bulkRefreshAllBooks(limit, {
-      onProgress: (current, total, failed) => {
+    // 4. bulkRefreshAllBooks 호출
+    bulkRefreshAllBooks(options, {
+      // ✅ [핵심 수정] onProgress 콜백을 올바르게 구현
+      onProgress: (current, totalFromCallback, failed) => {
+        // totalFromCallback은 무시하고, current와 failed 값만 업데이트
         setRefreshState(prev => ({
           ...prev,
-          current,
-          total,
-          failed,
+          current: current,
+          failed: failed,
         }));
       },
       onComplete: (success, failedIds) => {
@@ -276,24 +480,14 @@ const SettingsModal: React.FC = () => {
         });
 
         if (failedIds.length === 0) {
-          setNotification({
-            message: `${success}권의 재고 갱신이 완료되었습니다.`,
-            type: 'success',
-          });
+          setNotification({ message: `${success}권의 재고 갱신이 완료되었습니다.`, type: 'success' });
         } else if (success > 0) {
-          setNotification({
-            message: `${success}권 갱신 완료, ${failedIds.length}권 실패했습니다.`,
-            type: 'warning',
-          });
+          setNotification({ message: `${success}권 갱신 완료, ${failedIds.length}권 실패했습니다.`, type: 'warning' });
         } else {
-          setNotification({
-            message: '재고 갱신에 실패했습니다. 네트워크 연결을 확인해주세요.',
-            type: 'error',
-          });
+          setNotification({ message: '재고 갱신에 실패했습니다. 네트워크 연결을 확인해주세요.', type: 'error' });
         }
       },
       shouldPause: () => refreshState.isPaused,
-      // shouldCancel: () => false, // 취소는 별도 버튼으로 처리
       shouldCancel: () => useBookStore.getState().bulkRefreshState.isCancelled,
     });
   };
@@ -755,24 +949,56 @@ const SettingsModal: React.FC = () => {
 
                       {/* 갱신 범위 선택 */}
                       {!refreshState.isRunning && (
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                          <label className="text-xs text-secondary whitespace-nowrap">
-                            갱신 범위:
-                          </label>
-                          <select
-                            value={selectedRefreshLimit}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setSelectedRefreshLimit(value === 'all' ? 'all' : parseInt(value));
-                            }}
-                            className="input-base flex-1 text-sm"
-                          >
-                            {getRefreshOptions().map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
+                        <div className="space-y-3">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                            <label className="text-xs text-secondary whitespace-nowrap">
+                              갱신 범위:
+                            </label>
+                            {/* ✅ [수정] 새로운 옵션을 위한 select */}
+                            <select
+                              value={`${selectedRefreshType}-${selectedRefreshLimit}`}
+                              onChange={(e) => {
+                                const [type, limit] = e.target.value.split('-');
+                                setSelectedRefreshType(type as RefreshType);
+                                setSelectedRefreshLimit(limit === 'all' || limit === 'custom' ? limit : parseInt(limit));
+                              }}
+                              className="input-base flex-1 text-sm"
+                            >
+                              {getRefreshOptions().map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          
+                          {/* ✅ [추가] 범위 지정 입력 필드 */}
+                          {selectedRefreshType === 'range' && (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                value={rangeStart}
+                                onChange={(e) => setRangeStart(e.target.value)}
+                                placeholder="시작"
+                                className="input-base w-1/2 text-sm text-center"
+                                min="1"
+                                max={totalBooksCount}
+                              />
+                              <span className="text-secondary">~</span>
+                              <input
+                                type="number"
+                                value={rangeEnd}
+                                onChange={(e) => setRangeEnd(e.target.value)}
+                                placeholder="끝"
+                                className="input-base w-1/2 text-sm text-center"
+                                min="1"
+                                max={totalBooksCount}
+                              />
+                              <span className="text-xs text-secondary whitespace-nowrap">
+                                (총 {totalBooksCount}권)
+                              </span>
+                            </div>
+                          )}
                         </div>
                       )}
 

@@ -333,6 +333,10 @@ export type BulkSearchResult = {
   originalInputTitle?: string; // 편집 전 원본 제목 보관
 };
 
+// ✅ [추가] 새로운 일괄 갱신 타입을 위한 타입 정의
+export type RefreshType = 'recent' | 'old' | 'all' | 'range';
+export type RefreshLimit = number | 'all';
+
 // Custom Tag Types
 // export type TagColor = 'blue' | 'green' | 'yellow' | 'red' | 'purple' | 'pink' | 'gray';
 // export type TagColor = 'primary' | 'secondary';
