@@ -8,8 +8,7 @@ import CustomTagComponent from './CustomTag';
 const SettingsModal: React.FC = () => {
   const { isSettingsModalOpen, closeSettingsModal, setNotification } = useUIStore();
   const { settings, loading, updateUserSettings, createTag, updateTag, deleteTag, getTagUsageCount, exportToCSV, setTheme } = useSettingsStore();
-  const { myLibraryBooks, totalBooksCount, isAllBooksLoaded, tagCounts, fetchRemainingLibrary, bulkRefreshAllBooks, pauseBulkRefresh, resumeBulkRefresh, cancelBulkRefresh } = useBookStore();
-
+  const { myLibraryBooks, totalBooksCount, isAllBooksLoaded, tagCounts, bulkRefreshState, fetchRemainingLibrary, bulkRefreshAllBooks, pauseBulkRefresh, resumeBulkRefresh, cancelBulkRefresh } = useBookStore();
   const [localSettings, setLocalSettings] = useState(settings);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'display' | 'tags' | 'data'>('display');
@@ -29,6 +28,12 @@ const SettingsModal: React.FC = () => {
     total: 0,
     failed: 0,
   });
+  
+  // ================================================================
+  // ✅ [CREATE] 이 줄을 여기에 추가합니다.
+  // useBookStore의 bulkRefreshState를 실시간으로 구독하여 상태 변화를 감지합니다.
+  const bulkRefreshStateFromStore = useBookStore(state => state.bulkRefreshState);
+  // ================================================================
 
   useEffect(() => {
     if (isSettingsModalOpen) {
@@ -114,8 +119,13 @@ const SettingsModal: React.FC = () => {
   };
 
   const handleDeleteTag = async (tag: CustomTag) => {
-    const usageCount = getTagUsageCount(tag.id, myLibraryBooks);
+    
+    // ✅ [수정] 함수가 호출되는 시점의 최신 myLibraryBooks 상태를 가져옵니다.
+    // const usageCount = getTagUsageCount(tag.id, myLibraryBooks); // 💥 오래된 myLibraryBooks를 사용
 
+    const currentLibraryBooks = useBookStore.getState().myLibraryBooks;
+    const usageCount = getTagUsageCount(tag.id, currentLibraryBooks);
+    
     if (usageCount > 0) {
       const confirmed = window.confirm(
         `'${tag.name}' 태그는 현재 ${usageCount}권의 책에 사용 중입니다.\n` +
@@ -212,23 +222,32 @@ const SettingsModal: React.FC = () => {
 
     if (!confirmed) return;
 
-    // 전체 갱신 선택 시, 아직 로드되지 않은 책이 있다면 먼저 로드
-    if (limit === 'all' && !isAllBooksLoaded) {
+    // ================================================================
+    // ✅ [수정 시작]
+    // ================================================================
+    // '전체'를 선택했거나, 선택한 수량이 현재 로드된 책보다 많을 경우,
+    // 그리고 아직 모든 책을 로드하지 않았다면, 나머지 책을 먼저 불러옵니다.
+    const shouldFetchAll = (limit === 'all' || (typeof limit === 'number' && limit > myLibraryBooks.length)) && !isAllBooksLoaded;
+
+    if (shouldFetchAll) {
       setNotification({
-        message: '전체 책을 불러오는 중입니다...',
-        type: 'success',
+        message: '전체 서재 목록을 불러오는 중입니다...',
+        type: 'info',
       });
 
       try {
         await fetchRemainingLibrary();
       } catch (error) {
         setNotification({
-          message: '전체 책을 불러오는데 실패했습니다.',
+          message: '전체 서재 목록을 불러오는 데 실패했습니다.',
           type: 'error',
         });
         return;
       }
     }
+    // ================================================================
+    // ✅ [수정 끝]
+    // ================================================================
 
     setRefreshState({
       isRunning: true,
@@ -274,7 +293,8 @@ const SettingsModal: React.FC = () => {
         }
       },
       shouldPause: () => refreshState.isPaused,
-      shouldCancel: () => false, // 취소는 별도 버튼으로 처리
+      // shouldCancel: () => false, // 취소는 별도 버튼으로 처리
+      shouldCancel: () => useBookStore.getState().bulkRefreshState.isCancelled,
     });
   };
 

@@ -21,70 +21,6 @@ import { createBookDataFromApis } from '../utils/bookDataCombiner';
  * @param errorMessage DB 업데이트 실패 시 보여줄 알림 메시지
  */
 
-// async function updateBookInStoreAndDB(
-//   id: number,
-//   updates: Partial<Omit<SelectedBook, 'id'>>, // ✅ SelectedBook 기준으로 변경
-//   // updates: Partial<Omit<BookData, 'id'>>,
-//   // updates: Partial<Omit<BookData, 'id' | 'note'>>, // ✅ note는 별도 컬럼이므로 Omit에 추가
-//   errorMessage: string = '책 정보 업데이트에 실패했습니다.'
-// ): Promise<void> {
-//   // [핵심 수정] getBookById를 호출하여 모든 데이터 소스에서 책을 찾음
-//   const originalBook = await useBookStore.getState().getBookById(id);
-
-//   if (!originalBook) {
-//     console.warn(`[updateBook] Book with id ${id} not found in any available source.`);
-//     return;
-//   }
-
-//   // 1. 낙관적 업데이트 (기존 로직과 동일)
-//   const updatedBook: SelectedBook = { ...originalBook, ...updates };
-//   useBookStore.setState(state => ({
-//     myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? updatedBook : b)),
-//     librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? updatedBook : b)),
-//     libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? updatedBook : b)),
-//     selectedBook:
-//       state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
-//         ? updatedBook
-//         : state.selectedBook,
-//   }));
-
-//   // 2. DB 업데이트 (기존 로직과 동일)
-//   // const { id: bookId, detailedStockInfo, note, ...bookDataForDb } = updatedBook;
-//   const { id: bookId, note, ...bookDataForDb } = updatedBook; // ✅ detailedStockInfo 제거
-
-//   try {
-//     const updateData: { book_data: Json; note?: string | null; title?: string; author?: string } = {
-//       title: updatedBook.title,
-//       author: updatedBook.author,
-//       book_data: bookDataForDb as unknown as Json
-//     };
-//     if ('note' in updates) {
-//       updateData.note = note || null;
-//     }
-//     const { error } = await supabase
-//       .from('user_library')
-//       .update(updateData)
-//       .eq('id', id);
-//     if (error) throw error;
-//   } catch (error) {
-//     // 3. 롤백 (기존 로직과 동일)
-//     console.error(`[updateBook] Failed to update book (id: ${id}) in DB:`, error);
-//     useUIStore.getState().setNotification({
-//       message: `${errorMessage} 변경사항이 저장되지 않았을 수 있습니다.`,
-//       type: 'error',
-//     });
-//     useBookStore.setState(state => ({
-//       myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? originalBook : b)),
-//       librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? originalBook : b)),
-//       libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? originalBook : b)),
-//       selectedBook:
-//         state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
-//           ? originalBook
-//           : state.selectedBook,
-//     }));
-//   }
-// }
-
 // ▼▼▼▼▼▼▼▼▼▼ 이 함수를 아래 코드로 완전히 교체하세요 ▼▼▼▼▼▼▼▼▼▼
 async function updateBookInStoreAndDB(
   id: number,
@@ -1203,24 +1139,127 @@ export const useBookStore = create<BookState>(
         set({ libraryTagFilterResults: [] });
       },
 
+      // bulkRefreshAllBooks: async (limit, callbacks) => {
+      //   const { myLibraryBooks } = get();
+
+      //   // 대상 책 선택
+      //   const getBooksToRefresh = (limit: number | 'all') => {
+      //     if (limit === 'all') {
+      //       return myLibraryBooks;
+      //     }
+      //     // 최근 추가된 순으로 정렬 후 limit개 선택
+      //     return [...myLibraryBooks]
+      //       .sort((a, b) => b.addedDate - a.addedDate)
+      //       .slice(0, limit);
+      //   };
+
+      //   const booksToRefresh = getBooksToRefresh(limit);
+      //   const total = booksToRefresh.length;
+
+      //   // 초기 상태 설정
+      //   set({
+      //     bulkRefreshState: {
+      //       isRunning: true,
+      //       isPaused: false,
+      //       isCancelled: false,
+      //       current: 0,
+      //       total,
+      //       failed: [],
+      //     },
+      //   });
+
+      //   const failed: number[] = [];
+      //   let current = 0;
+
+      //   // 10개씩 배치 처리
+      //   const batchSize = 10;
+      //   for (let i = 0; i < booksToRefresh.length; i += batchSize) {
+      //     // 취소 확인
+      //     if (callbacks.shouldCancel()) {
+      //       set({
+      //         bulkRefreshState: {
+      //           isRunning: false,
+      //           isPaused: false,
+      //           isCancelled: true,
+      //           current,
+      //           total,
+      //           failed,
+      //         },
+      //       });
+      //       callbacks.onComplete(current - failed.length, failed);
+      //       return;
+      //     }
+
+      //     // 일시정지 확인
+      //     while (callbacks.shouldPause()) {
+      //       await new Promise(resolve => setTimeout(resolve, 100));
+      //     }
+
+      //     // 배치 처리
+      //     const batch = booksToRefresh.slice(i, Math.min(i + batchSize, booksToRefresh.length));
+
+      //     for (const book of batch) {
+      //       try {
+      //         await get().refreshBookInfo(book.id, book.isbn13, book.title, book.author);
+      //         current++;
+      //       } catch (error) {
+      //         console.error(`Failed to refresh book ${book.id}:`, error);
+      //         failed.push(book.id);
+      //         current++;
+      //       }
+
+      //       // 진행률 업데이트
+      //       set(state => ({
+      //         bulkRefreshState: {
+      //           ...state.bulkRefreshState,
+      //           current,
+      //           failed,
+      //         },
+      //       }));
+      //       callbacks.onProgress(current, total, failed.length);
+      //     }
+
+      //     // 다음 배치가 있고, 취소되지 않았으면 1초 대기
+      //     if (i + batchSize < booksToRefresh.length && !callbacks.shouldCancel()) {
+      //       await new Promise(resolve => setTimeout(resolve, 1000));
+      //     }
+      //   }
+
+      //   // 완료 상태 설정
+      //   set({
+      //     bulkRefreshState: {
+      //       isRunning: false,
+      //       isPaused: false,
+      //       isCancelled: false,
+      //       current,
+      //       total,
+      //       failed,
+      //     },
+      //   });
+
+      //   callbacks.onComplete(current - failed.length, failed);
+      // },
+
       bulkRefreshAllBooks: async (limit, callbacks) => {
-        const { myLibraryBooks } = get();
+        // ✅ [수정] isAllBooksLoaded와 fetchRemainingLibrary를 미리 가져옵니다.
+        const { isAllBooksLoaded, fetchRemainingLibrary } = get();
 
-        // 대상 책 선택
-        const getBooksToRefresh = (limit: number | 'all') => {
-          if (limit === 'all') {
-            return myLibraryBooks;
+        // 1. 필요한 경우 전체 라이브러리를 먼저 로드합니다.
+        if (limit === 'all' || (typeof limit === 'number' && limit > get().myLibraryBooks.length)) {
+          if (!isAllBooksLoaded) {
+            await fetchRemainingLibrary();
           }
-          // 최근 추가된 순으로 정렬 후 limit개 선택
-          return [...myLibraryBooks]
-            .sort((a, b) => b.addedDate - a.addedDate)
-            .slice(0, limit);
-        };
+        }
+        
+        const booksToRefresh = (() => {
+          const allBooks = get().myLibraryBooks;
+          if (limit === 'all') return allBooks;
+          return [...allBooks].sort((a, b) => b.addedDate - a.addedDate).slice(0, limit);
+        })();
 
-        const booksToRefresh = getBooksToRefresh(limit);
         const total = booksToRefresh.length;
 
-        // 초기 상태 설정
+        // 2. 초기 상태 설정 (isCancelled를 false로 명확히 초기화)
         set({
           bulkRefreshState: {
             isRunning: true,
@@ -1234,72 +1273,65 @@ export const useBookStore = create<BookState>(
 
         const failed: number[] = [];
         let current = 0;
-
-        // 10개씩 배치 처리
         const batchSize = 10;
+        
         for (let i = 0; i < booksToRefresh.length; i += batchSize) {
-          // 취소 확인
-          if (callbacks.shouldCancel()) {
-            set({
-              bulkRefreshState: {
-                isRunning: false,
-                isPaused: false,
-                isCancelled: true,
-                current,
-                total,
-                failed,
-              },
-            });
-            callbacks.onComplete(current - failed.length, failed);
-            return;
+          // ================================================================
+          // ✅ [핵심 수정 1] 루프 시작 시점에서 스토어의 취소 상태를 직접 확인합니다.
+          // 콜백 대신 get()을 사용해 최신 상태를 보장합니다.
+          if (get().bulkRefreshState.isCancelled) {
+            console.log('[Bulk Refresh] Loop start: Cancelled by user.');
+            break; // for 루프를 즉시 중단합니다.
           }
+          // ================================================================
 
-          // 일시정지 확인
-          while (callbacks.shouldPause()) {
+          // 일시정지 로직 (기존과 동일하지만, 취소 확인 추가)
+          while (get().bulkRefreshState.isPaused) {
             await new Promise(resolve => setTimeout(resolve, 100));
+            if (get().bulkRefreshState.isCancelled) {
+              console.log('[Bulk Refresh] Cancelled by user during pause.');
+              break;
+            }
           }
+          if (get().bulkRefreshState.isCancelled) break;
 
-          // 배치 처리
-          const batch = booksToRefresh.slice(i, Math.min(i + batchSize, booksToRefresh.length));
+
+          const batch = booksToRefresh.slice(i, i + batchSize);
 
           for (const book of batch) {
+            // ================================================================
+            // ✅ [핵심 수정 2] 개별 책을 처리하기 직전에 다시 한번 취소 상태를 확인합니다.
+            if (get().bulkRefreshState.isCancelled) {
+              console.log('[Bulk Refresh] Inner loop: Cancelled by user.');
+              break; // for...of 루프를 중단합니다.
+            }
+            // ================================================================
+
             try {
               await get().refreshBookInfo(book.id, book.isbn13, book.title, book.author);
-              current++;
             } catch (error) {
               console.error(`Failed to refresh book ${book.id}:`, error);
               failed.push(book.id);
+            } finally {
               current++;
+              set(state => ({
+                bulkRefreshState: { ...state.bulkRefreshState, current, failed: [...state.bulkRefreshState.failed, ...failed] },
+              }));
+              callbacks.onProgress(current, total, failed.length);
             }
-
-            // 진행률 업데이트
-            set(state => ({
-              bulkRefreshState: {
-                ...state.bulkRefreshState,
-                current,
-                failed,
-              },
-            }));
-            callbacks.onProgress(current, total, failed.length);
           }
+          if (get().bulkRefreshState.isCancelled) break; // 내부 루프 중단 시 외부 루프도 중단
 
-          // 다음 배치가 있고, 취소되지 않았으면 1초 대기
-          if (i + batchSize < booksToRefresh.length && !callbacks.shouldCancel()) {
+          // 다음 배치 대기 (기존과 동일)
+          if (i + batchSize < booksToRefresh.length && !get().bulkRefreshState.isCancelled) {
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
         }
 
-        // 완료 상태 설정
-        set({
-          bulkRefreshState: {
-            isRunning: false,
-            isPaused: false,
-            isCancelled: false,
-            current,
-            total,
-            failed,
-          },
-        });
+        // 최종 완료 상태 설정
+        set(state => ({
+          bulkRefreshState: { ...state.bulkRefreshState, isRunning: false, isPaused: false },
+        }));
 
         callbacks.onComplete(current - failed.length, failed);
       },
