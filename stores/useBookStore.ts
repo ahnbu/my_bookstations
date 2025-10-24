@@ -142,7 +142,6 @@ interface BookState {
   unselectBook: () => void;
   addToLibrary: () => Promise<void>;
   removeFromLibrary: (id: number) => Promise<void>;
-  // refreshBookInfo: (id: number, isbn13: string, title: string) => Promise<void>;
   refreshBookInfo: (id: number, isbn13: string, title: string, author: string) => Promise<void>;
   sortLibrary: (key: SortKey) => void;
   fetchUserLibrary: () => Promise<void>;

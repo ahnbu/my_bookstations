@@ -83,6 +83,7 @@ export const LibraryStockResponseSchema = z.object({
 
 // 1. 순수 API 정보 스키마 (기존 BookData의 API 관련 부분)
 export const ApiCombinedBookDataSchema = AladdinBookItemSchema.extend({
+  lastUpdated: z.number().optional(), // ✅ API 업데이트 시점
   // 도서관 API 원본 정보. 타입이 복잡하므로 z.any()로 처리하고, 런타임 검증이 꼭 필요하다면 별도 스키마 정의.
   gwangjuPaperInfo: z.any().optional(),
   ebookInfo: z.any().nullable().optional(), // 기존 EBookInfo 타입과 유사
@@ -97,7 +98,7 @@ export const ApiCombinedBookDataSchema = AladdinBookItemSchema.extend({
 
 // 2. 사용자 활동 정보 스키마 (기존 BookData의 사용자 관련 부분)
 export const UserActivityDataSchema = z.object({
-  addedDate: z.number(),
+  addedDate: z.number(), // 사용자가 "내 서재에 추가" 시점
   readStatus: z.enum(['읽지 않음', '읽는 중', '완독']),
   rating: z.number().min(0).max(5),
   customTags: z.array(z.string()).optional(),
@@ -263,6 +264,11 @@ export interface GwangjuPaperResult {
 }
 
 export interface LibraryApiResponse {
+  title: string; // ✅ 추가
+  isbn: string; // ✅ 추가
+  author: string; // ✅ 추가
+  customTitle?: string; // ✅ 추가
+  lastUpdated: number; // ✅ 추가
   gwangju_paper: GwangjuPaperResult | GwangjuPaperError;
   // gyeonggi_ebook_edu: (GyeonggiEduEbookList | GyeonggiEduEbookError)[]; // 배열타입
   gyeonggi_ebook_edu: GyeonggiEduEbookResult | GyeonggiEduEbookError; // 객체 타입으로 변경

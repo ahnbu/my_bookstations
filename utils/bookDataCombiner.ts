@@ -52,6 +52,9 @@ export function createBookDataFromApis( // ✅ 이름 변경
   const combined: ApiCombinedBookData = {
     ...aladinBook,
 
+    // ✅ [핵심 수정] API 응답의 최상위 lastUpdated 값을 직접 할당
+    lastUpdated: libraryResult.lastUpdated,
+
     // 도서관 API 원본 정보 할당
     gwangjuPaperInfo: libraryResult.gwangju_paper,
     // ebookInfo: libraryResult.gyeonggi_ebook_edu,

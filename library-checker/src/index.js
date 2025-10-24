@@ -249,6 +249,7 @@ export default {
           isbn: isbn,
           author: author,       // ✅ 요청 시 사용된 author 추가
           customTitle: customTitle, // ✅ 요청 시 사용된 customTitle 추가
+          lastUpdated: Date.now(), // ✅ 여기에 API 응답 시점 타임스탬프 추가
           ...finalResult
         };
 

@@ -282,10 +282,10 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                 />
             </div>
 
-            {/* 시간 정보 UI */}
-            {book.ebookInfo && (
+            {/* 시간 정보 UI - 시간 정보 있을 때만, 없으면 NaN이 아니라 빈값 제시*/}
+            {book.lastUpdated && ( // ✅ book.lastUpdated를 직접 확인
                 <div className="text-xs text-tertiary pt-2 mt-2 text-right">
-                    {formatDate(book.ebookInfo.lastUpdated)} 기준
+                    {formatDate(book.lastUpdated)} 기준
                 </div>
             )}
         </div>
