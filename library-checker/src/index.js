@@ -299,7 +299,8 @@ import { parse } from 'node-html-parser';
 
 // 캐싱 도입 이후 수정코드 - 2025.10.24
 export default {
-  async fetch(request) {
+  // async fetch(request) {
+  async fetch(request, env, ctx) { // ✅ env, ctx 파라미터 추가
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -323,7 +324,8 @@ export default {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
+    
+    // 키워드 검색일 경우
     if (request.method === 'POST' && pathname === '/keyword-search') {
       try {
         const body = await request.json();
@@ -369,12 +371,85 @@ export default {
       }
     }
 
-    // if (request.method === 'POST') {
+    // 일반 검색의 경우
     if (request.method === 'POST' && pathname !== '/keyword-search') {
+      // --- 👇 캐싱 로직 수정 시작 ---
+      const cache = caches.default;
+      
+      // 1. 요청 본문을 읽어서 해시(hash) 값으로 만듭니다.
+      // POST 요청의 본문 내용이 같으면 항상 동일한 해시가 생성됩니다.
+      const bodyText = await request.clone().text();
+      const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(bodyText));
+      const hashHex = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+      // 2. 새로운 URL을 사용하여 GET 요청처럼 위장된 캐시 키를 생성합니다.
+      // URL에 고유한 해시 값을 포함하여, 본문 내용이 다른 POST 요청은 다른 캐시 키를 갖도록 합니다.
+      const cacheUrl = new URL(request.url);
+      cacheUrl.pathname = '/cache/' + hashHex;
+      const cacheKeyRequest = new Request(cacheUrl.toString(), {
+        method: 'GET', // ✅ 메서드를 GET으로 변경
+        headers: request.headers,
+      });
+
+      // 3. 캐시를 조회합니다.
+      let response = await cache.match(cacheKeyRequest);
+
+      // 4. 캐시가 있으면(HIT) 즉시 반환합니다.
+      if (response) {
+        console.log("Cache HIT!");
+        const newHeaders = new Headers(response.headers);
+        Object.entries(corsHeaders).forEach(([key, value]) => newHeaders.set(key, value));
+        newHeaders.set('X-Cache-Status', 'HIT');
+        
+        return new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: newHeaders,
+        });
+      }
+      
+      console.log("Cache MISS!");
+      // --- 👆 캐싱 로직 수정 끝 ---
+      // // --- 👇 캐싱 로직 시작 ---
+
+      // // 1. Cloudflare의 기본 캐시 객체를 가져옵니다.
+      // const cache = caches.default;
+
+      // // 1. 캐시 키 생성을 위해 요청을 복제(clone)합니다.
+      // // 원본 요청(request)은 아직 body가 읽히지 않은 상태로 남아있습니다.
+      // const cacheKeyRequest = new Request(url.toString(), {
+      //   method: request.method,
+      //   headers: request.headers,
+      //   body: await request.clone().text() // 복제본의 body를 읽어서 키를 만듦
+      // });
+
+      // // 3. 캐시를 조회합니다.
+      // let response = await cache.match(cacheKeyRequest);
+
+      // // 4. 캐시가 있으면(HIT) 즉시 반환합니다.
+      // if (response) {
+      //   console.log("Cache HIT!");
+      //   // 캐시된 응답에 최신 CORS 헤더를 적용하여 반환합니다.
+      //   const newHeaders = new Headers(response.headers);
+      //   Object.entries(corsHeaders).forEach(([key, value]) => newHeaders.set(key, value));
+      //   newHeaders.set('X-Cache-Status', 'HIT'); // 디버깅용 헤더 추가
+        
+      //   return new Response(response.body, {
+      //     status: response.status,
+      //     statusText: response.statusText,
+      //     headers: newHeaders,
+      //   });
+      // }
+      
+      // console.log("Cache MISS!");
+
+      // // --- 👆 캐싱 로직 끝 ---
+      
+      // --- 👇 기존 크롤링 로직 (캐시가 없을 때만 실행) ---
       try {
-        const body = await request.json();
-        // const { isbn, author = '', customTitle = '', eduTitle = '', gyeonggiTitle = '', siripTitle = '' } = body;
-        // ✅ [추가] customTitle이 null 또는 undefined일 경우 빈 문자열로 처리
+        // const body = await request.json();
+        const body = JSON.parse(bodyText);
+        
         let { isbn, author = '', customTitle = '', eduTitle = '', gyeonggiTitle = '', siripTitle = '' } = body;
         customTitle = customTitle || ''; 
         console.log(`Request received - ISBN: ${isbn}, Author: "${author}", eduTitle: "${eduTitle}", GyeonggiTitle: "${gyeonggiTitle}", SiripTitle: "${siripTitle}"`);
@@ -513,8 +588,20 @@ export default {
         // API 응답 결과 로그 (유지 - 테스트 응답과 동일한 형태)
         console.log('API Response:', JSON.stringify(responsePayload, null, 2));
         
-        return new Response(JSON.stringify(responsePayload), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        response = new Response(JSON.stringify(responsePayload), { 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' ,
+            'X-Cache-Status': 'MISS' // 캐시가 없었음을 나타내는 디버깅용 헤더
+          } });
 
+        // 6. [캐시 저장] 응답을 사용자에게 보내는 것과 "동시에" 백그라운드에서 캐시에 저장합니다.
+        // ctx.waitUntil을 사용하면 사용자는 응답을 즉시 받고, 캐시 저장은 Worker가 알아서 완료합니다.
+        // expirationTtl: 7200 -> 2시간(초 단위) 동안 캐시를 유지합니다.
+        ctx.waitUntil(cache.put(cacheKeyRequest, response.clone(), { expirationTtl: 7200 }));
+
+        return response;
+        
       } catch (error) {
         console.error(`API Error: ${error.message}`);
         return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
