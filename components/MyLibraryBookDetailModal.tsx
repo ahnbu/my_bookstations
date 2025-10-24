@@ -316,55 +316,71 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
     const [rawBookData, setRawBookData] = useState<object | null>(null);
     const [isFetchingJson, setIsFetchingJson] = useState(false);
 
-    // [수정] ✅ API 버튼 클릭 핸들러 (UI 스토어 액션 호출)
+    // ✅ API 버튼 - 누를 때마다 새롭게 조회 (기존)
     // const handleApiButtonClick = async () => {
     //   if (!book) return;
     //   setIsFetchingJson(true);
-    //   const data = await fetchRawBookData(book.id);
-    //   if (data) {
-    //     openJsonViewerModal(data, `[${book.id}] ${book.title}`);
+
+    //   try {
+    //     // 1. 실시간으로 API 호출
+    //     const libraryPromise = fetchBookAvailability(book.isbn13, book.title, book.customSearchTitle);
+    //     const aladinPromise = searchAladinBooks(book.isbn13, 'ISBN');
+    //     const [libraryResult, aladinResult] = await Promise.allSettled([libraryPromise, aladinPromise]);
+
+    //     if (libraryResult.status === 'rejected') {
+    //       throw libraryResult.reason;
+    //     }
+
+    //     const aladinBookData = aladinResult.status === 'fulfilled'
+    //       ? aladinResult.value.find(b => b.isbn13 === book.isbn13) || null
+    //       : null;
+
+    //     if (!aladinBookData) {
+    //       throw new Error("실시간 알라딘 정보를 가져올 수 없습니다.");
+    //     }
+
+    //     // 2. "순수 API 정보 객체" 생성
+    //     const pureApiData = combineRawApiResults(aladinBookData, libraryResult.value);
+
+    //     // 3. 생성된 객체를 JsonViewerModal로 전달
+    //     openJsonViewerModal(pureApiData, `[API] ${book.title}`);
+
+    //   } catch (error) {
+    //     console.error("API 조합 데이터 생성 실패:", error);
+    //     const errorData = { error: error instanceof Error ? error.message : String(error) };
+    //     openJsonViewerModal(errorData, `[API 호출 실패] ${book.title}`);
+    //   } finally {
+    //     setIsFetchingJson(false);
     //   }
-    //   setIsFetchingJson(false);
     // };
 
-    // ✅ [수정] handleApiButtonClick 함수
+
+    // ✅ API 버튼 - Supabase DB 조회 방식
     const handleApiButtonClick = async () => {
       if (!book) return;
       setIsFetchingJson(true);
-
       try {
-        // 1. 실시간으로 API 호출
-        const libraryPromise = fetchBookAvailability(book.isbn13, book.title, book.customSearchTitle);
-        const aladinPromise = searchAladinBooks(book.isbn13, 'ISBN');
-        const [libraryResult, aladinResult] = await Promise.allSettled([libraryPromise, aladinPromise]);
-
-        if (libraryResult.status === 'rejected') {
-          throw libraryResult.reason;
+        // 1. useBookStore의 fetchRawBookData를 호출하여 DB에서 데이터를 가져옵니다.
+        const data = await fetchRawBookData(book.id);
+        
+        // 2. 가져온 데이터를 JsonViewerModal로 전달합니다.
+        if (data) {
+          // ✅ 제목에 [DB] 프리픽스를 붙여 데이터 출처를 명확히 합니다.
+          openJsonViewerModal(data, `[API] ${book.title}`);
+        } else {
+          // 데이터가 없는 경우를 처리합니다.
+          openJsonViewerModal({ error: "DB에서 저장된 API 데이터를 찾을 수 없습니다." }, `[DB] ${book.title}`);
         }
-
-        const aladinBookData = aladinResult.status === 'fulfilled'
-          ? aladinResult.value.find(b => b.isbn13 === book.isbn13) || null
-          : null;
-
-        if (!aladinBookData) {
-          throw new Error("실시간 알라딘 정보를 가져올 수 없습니다.");
-        }
-
-        // 2. "순수 API 정보 객체" 생성
-        const pureApiData = combineRawApiResults(aladinBookData, libraryResult.value);
-
-        // 3. 생성된 객체를 JsonViewerModal로 전달
-        openJsonViewerModal(pureApiData, `[API] ${book.title}`);
-
       } catch (error) {
-        console.error("API 조합 데이터 생성 실패:", error);
+        console.error("DB 원본 데이터 조회 실패:", error);
         const errorData = { error: error instanceof Error ? error.message : String(error) };
-        openJsonViewerModal(errorData, `[API 호출 실패] ${book.title}`);
+        openJsonViewerModal(errorData, `[DB 조회 실패] ${book.title}`);
       } finally {
         setIsFetchingJson(false);
       }
     };
-    // [수정] bookId가 변경될 때마다 데이터를 가져오는 useEffect
+
+    // [수정] bookId가 변경될 때마다 데이터 가져옴
     useEffect(() => {
         const fetchBook = async () => {
             setIsLoading(true);
