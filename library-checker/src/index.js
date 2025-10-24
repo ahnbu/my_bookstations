@@ -33,6 +33,271 @@
 // import { parse } from 'https://esm.sh/node-html-parser';
 import { parse } from 'node-html-parser';
 
+// 캐싱 도입 이전 정상코드
+// export default {
+//   async fetch(request) {
+//     const corsHeaders = {
+//       'Access-Control-Allow-Origin': '*',
+//       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+//       'Access-Control-Allow-Headers': 'Content-Type',
+//     };
+
+//     if (request.method === 'OPTIONS') {
+//       return new Response(null, { headers: corsHeaders });
+//     }
+
+//     const url = new URL(request.url);
+//     const pathname = url.pathname;
+
+//     if (request.method === 'GET') {
+//       return new Response(
+//         JSON.stringify({
+//           status: "ok",
+//           message: "5-Way 통합 도서관 재고 확인 API + 경기도 전자도서관 + 시립도서관 통합 전자책(소장형+구독형) + 키워드 통합 검색 + Supabase Keep-Alive",
+//           version: "3.3-production-keyword-search"
+//         }),
+//         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+//       );
+//     }
+
+//     if (request.method === 'POST' && pathname === '/keyword-search') {
+//       try {
+//         const body = await request.json();
+//         const { keyword } = body;
+
+//         if (!keyword || !keyword.trim()) {
+//           return new Response(JSON.stringify({ error: 'keyword 파라미터가 필요합니다.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+//         }
+//         console.log(`Keyword search request: "${keyword}"`);
+
+//         // [핵심 수정] 각 프로미스를 안전하게 생성하고 에러를 즉시 로깅합니다.
+//         const safeSearch = async (searchFn, name) => {
+//         try {
+//             return await searchFn(keyword);
+//         } catch (error) {
+//             console.error(`[CRITICAL ERROR] '${name}' 함수 실행 중 치명적 오류 발생:`, error);
+//             return []; // 실패 시 빈 배열 반환
+//         }
+//         };
+//         // [수정] 4개의 키워드 검색 함수를 병렬로 호출
+
+//         const searchPromises = [
+//             safeSearch(searchGwangjuPaperKeyword, 'searchGwangjuPaperKeyword'),
+//             safeSearch(searchGyeonggiEduKeyword, 'searchGyeonggiEduKeyword'),
+//             safeSearch(searchGyeonggiEbookKeyword, 'searchGyeonggiEbookKeyword'),
+//             safeSearch(searchSiripEbookKeyword, 'searchSiripEbookKeyword'),
+//         ];
+        
+//         // // [수정] 4개의 키워드 검색 함수를 병렬로 호출
+//         // const searchPromises = [
+//         //   searchGwangjuPaperKeyword(keyword),
+//         //   searchGyeonggiEduKeyword(keyword),
+//         //   searchGyeonggiEbookKeyword(keyword),
+//         //   searchSiripEbookKeyword(keyword),
+//         // ];
+
+//         const results = await Promise.allSettled(searchPromises);
+
+//         // [수정] 결과를 깔끔하게 통합 (flatMap 사용)
+//         const combinedResults = results
+//           .filter(result => result.status === 'fulfilled' && Array.isArray(result.value))
+//           .flatMap(result => result.value);
+
+//         console.log(`Keyword search completed: ${combinedResults.length} results found`);
+
+//         return new Response(JSON.stringify(combinedResults), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+//       } catch (error) {
+//         console.error('Keyword search error:', error);
+//         return new Response(JSON.stringify({ error: '키워드 검색 중 오류가 발생했습니다.' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+//       }
+//     }
+
+//     // if (request.method === 'POST') {
+//     if (request.method === 'POST' && pathname !== '/keyword-search') {
+//       try {
+//         const body = await request.json();
+//         // const { isbn, author = '', customTitle = '', eduTitle = '', gyeonggiTitle = '', siripTitle = '' } = body;
+//         // ✅ [추가] customTitle이 null 또는 undefined일 경우 빈 문자열로 처리
+//         let { isbn, author = '', customTitle = '', eduTitle = '', gyeonggiTitle = '', siripTitle = '' } = body;
+//         customTitle = customTitle || ''; 
+//         console.log(`Request received - ISBN: ${isbn}, Author: "${author}", eduTitle: "${eduTitle}", GyeonggiTitle: "${gyeonggiTitle}", SiripTitle: "${siripTitle}"`);
+
+//         if (!isbn) {
+//           return new Response(JSON.stringify({ error: 'isbn 파라미터가 필요합니다.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+//         }
+
+//         const promises = [
+//           searchGwangjuLibrary(isbn),
+//         ];
+
+//         // 경기도 교육청 전자도서관
+//         if (eduTitle) {
+//             promises.push(
+//                 searchGyeonggiEduEbook(eduTitle, '10000004'), // 성남 
+//                 searchGyeonggiEduEbook(eduTitle, '10000009')  // 통합
+//             );
+//         }
+        
+//         // 경기도 전자도서관
+//         let gyeonggiEbookPromise = null;
+//         if (gyeonggiTitle) {
+//             gyeonggiEbookPromise = searchGyeonggiEbookLibrary(gyeonggiTitle);
+//         }
+
+//         // 시립도서관 전자책(소장형+구독형 통합)
+//         let siripEbookPromise = null;
+//         if (siripTitle) {
+//             siripEbookPromise = searchSiripEbookIntegrated(siripTitle);
+//         }
+
+//         const results = await Promise.allSettled(promises);
+        
+//         // 경기도 전자도서관 결과 처리
+//         let gyeonggiEbookResult = null;
+//         if (gyeonggiEbookPromise) {
+//             try {
+//                 gyeonggiEbookResult = await gyeonggiEbookPromise;
+//             } catch (error) {
+//                 console.error('경기도 전자도서관 검색 오류:', error.message);
+//                 gyeonggiEbookResult = { error: error.message };
+//             }
+//         }
+
+//         // 시립도서관 통합 전자책 결과 처리
+//         let siripEbookResult = null;
+//         if (siripEbookPromise) {
+//             try {
+//                 siripEbookResult = await siripEbookPromise;
+//             } catch (error) {
+//                 console.error('시립도서관 통합 전자책 검색 오류:', error.message);
+//                 siripEbookResult = { error: error.message };
+//             }
+//         }
+
+//         const finalResult = {
+//           gwangju_paper: results[0].status === 'fulfilled' ? results[0].value : { error: results[0].reason.message },
+//           // [수정] gyeonggi_ebook_edu을 null로 초기화
+//           gyeonggi_ebook_edu: null,
+//           gyeonggi_ebook_library: gyeonggiEbookResult,
+//           sirip_ebook: siripEbookResult || null
+//         };
+
+//         if (eduTitle && results.length > 1) {
+//             // [추가] 성남, 통합 도서관 결과를 하나의 배열로 합침
+//             const combinedEduBooks = [];
+//             if (results[1].status === 'fulfilled' && results[1].value?.book_list) {
+//               combinedEduBooks.push(...results[1].value.book_list);
+//             }
+//             if (results[2].status === 'fulfilled' && results[2].value?.book_list) {
+//               combinedEduBooks.push(...results[2].value.book_list);
+//             }
+
+//             const errorLibs = []; // 에러난 도서관 이름을 저장할 배열
+
+//             if (results[1].status === 'rejected') {
+//                 const errorMessage = `검색 실패: ${results[1].reason.message}`;
+//                 // [개선 1] console.error로 명확한 에러 로그 남기기
+//                 console.error(`[API ERROR] 성남교육도서관(${eduTitle}):`, errorMessage); 
+//                 combinedEduBooks.push({ library: '성남도서관', error: errorMessage });
+//                 errorLibs.push('성남');
+//             }
+//             if (results[2].status === 'rejected') {
+//                 const errorMessage = `검색 실패: ${results[2].reason.message}`;
+//                 // [개선 1] console.error로 명확한 에러 로그 남기기
+//                 console.error(`[API ERROR] 통합교육도서관(${eduTitle}):`, errorMessage);
+//                 combinedEduBooks.push({ library: '통합도서관', error: errorMessage });
+//                 errorLibs.push('통합');
+//             }
+
+            
+//             // [추가] 합쳐진 배열을 기반으로 요약 정보 계산
+//             let total_count = 0;
+//             let available_count = 0;
+//             let seongnam_count = 0;
+//             let tonghap_count = 0;
+//             let error_count = 0;
+            
+//             // 먼저 에러가 없는 책만 거릅니다.
+//             let validBooks = combinedEduBooks.filter(book => !book.error); 
+
+//             // 'validBooks'를 기반으로 요약 정보 재계산
+//             // ✅ [수정] const 키워드를 제거하여, 기존에 선언된 변수에 값을 재할당합니다.
+//             total_count = validBooks.length;
+//             available_count = validBooks.filter(b => b.대출상태 === '대출가능').length;
+//             seongnam_count = validBooks.filter(b => b.소장도서관 === '성남도서관').length;
+//             tonghap_count = validBooks.filter(b => b.소장도서관 === '통합도서관').length;
+//             error_count = errorLibs.length;
+
+//             // [수정] finalResult에 요약 정보가 포함된 객체를 할당
+//             finalResult.gyeonggi_ebook_edu = {
+//                 library_name: "경기도교육청 전자도서관",
+//                 total_count,
+//                 available_count,
+//                 unavailable_count: total_count - available_count,
+//                 seongnam_count,
+//                 tonghap_count,
+//                 error_count,
+//                 // 에러가 발생한 경우에만 상세 정보 문자열 생성
+//                 error_lib_detail: errorLibs.length > 0 ? `에러 발생: ${errorLibs.join(', ')}` : undefined,
+//                 book_list: validBooks
+//             };
+//         }
+
+//         // [추가] 최종 응답 객체에 isbn과 title 추가
+//         const responsePayload = {
+//           title: eduTitle, // 요청받은 eduTitle을 기준으로 title 필드 추가
+//           isbn: isbn,
+//           author: author,       // ✅ 요청 시 사용된 author 추가
+//           customTitle: customTitle, // ✅ 요청 시 사용된 customTitle 추가
+//           lastUpdated: Date.now(), // ✅ 여기에 API 응답 시점 타임스탬프 추가
+//           ...finalResult
+//         };
+
+//         // API 응답 결과 로그 (유지 - 테스트 응답과 동일한 형태)
+//         console.log('API Response:', JSON.stringify(responsePayload, null, 2));
+        
+//         return new Response(JSON.stringify(responsePayload), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+//       } catch (error) {
+//         console.error(`API Error: ${error.message}`);
+//         return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+//       }
+//     }
+
+//     return new Response('Method not allowed', { status: 405 });
+//   },
+
+//   // Supabase 무료요금제 7일 비활성화시 잠금방 위해 3일에 1번씩 ping 보내는 Scheduled Events 처리
+//   async scheduled(event, env, ctx) {
+//     try {
+//       console.log('=== Supabase Keep-Alive Start ===');
+//       console.log('Triggered at:', new Date().toISOString());
+      
+//       const response = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/keep_alive`, {
+//         method: 'POST',
+//         headers: {
+//           'apikey': env.SUPABASE_ANON_KEY,
+//           'Authorization': `Bearer ${env.SUPABASE_ANON_KEY}`,
+//           'Content-Type': 'application/json'
+//         },
+//         body: JSON.stringify({}),
+//         signal: AbortSignal.timeout(DEFAULT_TIMEOUT)
+//       });
+
+//       if (response.ok) {
+//         const result = await response.json();
+//         console.log('✅ Supabase keep-alive SUCCESS:', result);
+//       } else {
+//         console.error('❌ Supabase keep-alive FAILED:', response.status);
+//       }
+//     } catch (error) {
+//       console.error('💥 Supabase keep-alive ERROR:', error.message);
+//     }
+//   }
+// };
+
+// 캐싱 도입 이후 수정코드 - 2025.10.24
 export default {
   async fetch(request) {
     const corsHeaders = {
@@ -86,14 +351,6 @@ export default {
             safeSearch(searchGyeonggiEbookKeyword, 'searchGyeonggiEbookKeyword'),
             safeSearch(searchSiripEbookKeyword, 'searchSiripEbookKeyword'),
         ];
-        
-        // // [수정] 4개의 키워드 검색 함수를 병렬로 호출
-        // const searchPromises = [
-        //   searchGwangjuPaperKeyword(keyword),
-        //   searchGyeonggiEduKeyword(keyword),
-        //   searchGyeonggiEbookKeyword(keyword),
-        //   searchSiripEbookKeyword(keyword),
-        // ];
 
         const results = await Promise.allSettled(searchPromises);
 
@@ -295,6 +552,7 @@ export default {
     }
   }
 };
+
 
 // 기본 타임아웃으로 통일시켜서 설정
 const DEFAULT_TIMEOUT = 15000; 
