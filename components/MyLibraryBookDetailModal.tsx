@@ -618,7 +618,7 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                         <img src={book.cover.replace('coversum', 'cover')} alt={book.title} className="w-48 h-auto object-cover rounded-lg shadow-lg" />
                         </div>
                         <div className="md:col-span-2 text-secondary">
-                        <h3 className="text-2xl font-bold text-primary mb-2">{book.title}</h3>
+                        <h3 className="text-2xl font-bold text-primary mb-2 line-clamp-2">{book.title}</h3>
                         <p className="text-lg text-secondary mb-1">
                             <strong>저자:</strong>{' '}
                             <AuthorButtons
