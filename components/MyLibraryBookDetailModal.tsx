@@ -718,30 +718,38 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                             {/* ================================================================ */}
                                             <div className="flex flex-wrap gap-2">
                                                 {book.customTags && book.customTags.length > 0 ? (
-                                                    book.customTags.map(tagId => {
-                                                        const tag = settings.tagSettings.tags.find(t => t.id === tagId);
-                                                        // 처리 중인지 확인하여 UI에 즉시 반영
-                                                        const isProcessing = processingTags.has(tagId);
-                                                        return tag ? (
-                                                            // ✅ [핵심 수정] 외부 <button> 래퍼와 div 제거
-                                                            <CustomTagComponent
-                                                                key={tag.id}
-                                                                tag={tag} // ✅ [수정] tag 객체를 그대로 전달하여 원래 색상을 사용하도록 합니다.
-                                                                // tag={{...tag, color: 'primary'}}
-                                                                showClose={true}
-                                                                size="sm"
-                                                                onClose={() => handleRemoveTag(tagId)}
-                                                                // Optimistic UI를 위한 className 추가
-                                                                className={isProcessing ? 'opacity-50 cursor-wait' : ''}
-                                                                // disabled는 CustomTagComponent에 없으므로 className으로 처리
-                                                            />
-                                                        ) : null;
-                                                    })
+                                                    book.customTags
+                                                        // 1. tagId 배열을 tag 객체 배열로 변환
+                                                        .map(tagId => settings.tagSettings.tags.find(t => t.id === tagId))
+                                                        // 2. 혹시 모를 null 값 제거
+                                                        .filter((tag): tag is CustomTag => !!tag)
+                                                        // ✅ 3. [추가] 일관된 정렬 로직 적용
+                                                        .sort((a, b) => {
+                                                            const colorOrder: Record<TagColor, number> = { 'primary': 0, 'secondary': 1, 'tertiary': 2 };
+                                                            const colorDifference = (colorOrder[a.color] ?? 99) - (colorOrder[b.color] ?? 99);
+                                                            if (colorDifference !== 0) {
+                                                                return colorDifference;
+                                                            }
+                                                            return a.name.localeCompare(b.name, 'ko-KR');
+                                                        })
+                                                        // 4. 정렬된 배열을 기반으로 렌더링
+                                                        .map(tag => {
+                                                            const isProcessing = processingTags.has(tag.id);
+                                                            return (
+                                                                <CustomTagComponent
+                                                                    key={tag.id}
+                                                                    tag={tag}
+                                                                    showClose={true}
+                                                                    size="sm"
+                                                                    onClose={() => handleRemoveTag(tag.id)}
+                                                                    className={isProcessing ? 'opacity-50 cursor-wait' : ''}
+                                                                />
+                                                            );
+                                                        })
                                                 ) : (
                                                     <span className="text-tertiary text-sm">선택된 태그가 없습니다</span>
                                                 )}
                                             </div>
-
                                             {/* ================================================================ */}
                                             {/* ✅ [수정 시작] 추가 가능한 태그 (Create 기능) */}
                                             {/* ================================================================ */}
