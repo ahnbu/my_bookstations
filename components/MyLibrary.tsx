@@ -10,6 +10,7 @@ import MyLibraryBookDetailModal from './MyLibraryBookDetailModal';
 import TagFilter from './TagFilter';
 import CustomTagComponent from './CustomTag';
 import { addHomeResetListener } from '../utils/events';
+
 // [핵심 수정] import 문 정리
 import { 
     createLibraryOpenURL,
@@ -572,8 +573,20 @@ const MyLibrary: React.FC = () => {
     clearLibraryTagFilter,
     libraryTagFilterResults,
     isFilteringByTag,
+    tagCounts,
   } = useBookStore();
   
+  // ✅ [추가] 색상 기준으로 정렬된 태그 목록을 미리 계산합니다.
+  const sortedAvailableTags = useMemo(() => {
+    if (!settings.tagSettings?.tags) return [];
+    // 원본 배열을 변경하지 않기 위해 복사본([...])을 만들어 정렬합니다.
+    return [...settings.tagSettings.tags].sort((a, b) => {
+      const colorOrder: Record<TagColor, number> = { 'primary': 0, 'secondary': 1, 'tertiary': 2 };
+      // 정의되지 않은 색상에 대한 예외처리(?? 99) 추가
+      return (colorOrder[a.color] ?? 99) - (colorOrder[b.color] ?? 99);
+    });
+  }, [settings.tagSettings.tags]);
+
   const [detailModalBookId, setDetailModalBookId] = useState<number | null>(null);
   const [selectedBooks, setSelectedBooks] = useState<Set<number>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
@@ -979,7 +992,8 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
 
         {/* Second Row: Tag Filter */}
         <TagFilter
-          tags={settings.tagSettings?.tags || []}
+          tags={sortedAvailableTags}  // ✅ [수정] 정렬된 태그 배열을 prop으로 전달
+          // tags={settings.tagSettings?.tags || []}
           activeTags={activeTags}
           onTagClick={handleTagClick}
           onClearAll={handleClearAllTags}
@@ -1454,8 +1468,23 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                       .filter((tag): tag is CustomTag => !!tag) 
                       // 3. 색상 우선순위에 따라 정렬
                       .sort((a, b) => {
+                        // 1차: 색상 우선순위
                         const colorOrder: Record<TagColor, number> = { 'primary': 0, 'secondary': 1, 'tertiary': 2 };
-                        return (colorOrder[a.color] ?? 99) - (colorOrder[b.color] ?? 99);
+                        const colorDifference = (colorOrder[a.color] ?? 99) - (colorOrder[b.color] ?? 99);
+                        if (colorDifference !== 0) {
+                          return colorDifference;
+                        }
+
+                        // 2차: 색상이 같으면 인기도(tagCounts) 순
+                        const countA = tagCounts[a.id] || 0;
+                        const countB = tagCounts[b.id] || 0;
+                        const countDifference = countB - countA;
+                        if (countDifference !== 0) {
+                          return countDifference;
+                        }
+
+                        // 3차: 인기도까지 같으면 이름(name) 가나다순
+                        return a.name.localeCompare(b.name, 'ko-KR');
                       })
                       // 4. 정렬된 배열을 기반으로 컴포넌트 렌더링
                       .map(tag => (
@@ -1800,8 +1829,23 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                       .filter((tag): tag is CustomTag => !!tag) 
                       // 3. 색상 우선순위에 따라 정렬
                       .sort((a, b) => {
+                        // 1차: 색상 우선순위
                         const colorOrder: Record<TagColor, number> = { 'primary': 0, 'secondary': 1, 'tertiary': 2 };
-                        return (colorOrder[a.color] ?? 99) - (colorOrder[b.color] ?? 99);
+                        const colorDifference = (colorOrder[a.color] ?? 99) - (colorOrder[b.color] ?? 99);
+                        if (colorDifference !== 0) {
+                          return colorDifference;
+                        }
+
+                        // 2차: 색상이 같으면 인기도(tagCounts) 순
+                        const countA = tagCounts[a.id] || 0;
+                        const countB = tagCounts[b.id] || 0;
+                        const countDifference = countB - countA;
+                        if (countDifference !== 0) {
+                          return countDifference;
+                        }
+
+                        // 3차: 인기도까지 같으면 이름(name) 가나다순
+                        return a.name.localeCompare(b.name, 'ko-KR');
                       })
                       // 4. 정렬된 배열을 기반으로 컴포넌트 렌더링
                       .map(tag => (
@@ -1818,23 +1862,6 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                   </div>
                 )}
 
-                {/* {settings.showTags && book.customTags && book.customTags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {book.customTags.map(tagId => {
-                      const tag = settings.tagSettings.tags.find(t => t.id === tagId);
-                      return tag ? (
-                        <CustomTagComponent
-                          key={tag.id}
-                          tag={tag}
-                          isActive={false}
-                          onClick={() => {}}
-                          size="sm"
-                        />
-                      ) : null;
-                    })}
-                  </div>
-                )} */}
-                
                 {/* All Library Stock Info */}
                 {settings.showLibraryStock && <div className="grid grid-cols-2 gap-1 text-xs">
                   <LibraryTag
@@ -1998,7 +2025,8 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
           // [핵심 수정] myLibraryBooks 대신 sortedAndFilteredLibraryBooks에서 책을 찾도록 변경
           // selectedBooks={Array.from(selectedBooks).map(id => myLibraryBooks.find(book => book.id === id)!).filter(Boolean)}
           selectedBooks={Array.from(selectedBooks).map(id => sortedAndFilteredLibraryBooks.find(book => book.id === id)!).filter(Boolean)}
-          availableTags={settings.tagSettings?.tags || []}
+          availableTags={sortedAvailableTags} // ✅ [수정] 동일하게 정렬된 태그 배열을 prop으로 전달
+          // availableTags={settings.tagSettings?.tags || []}
           onAddTag={(bookId, tagId) => addTagToBook(bookId, tagId)}
           onRemoveTag={(bookId, tagId) => removeTagFromBook(bookId, tagId)}
           onUpdateMultipleBookTags={updateMultipleBookTags}

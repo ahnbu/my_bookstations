@@ -924,19 +924,82 @@ export const useBookStore = create<BookState>(
         if (currentTags.includes(tagId)) return;
         // [핵심 수정] 스프레드 연산자(...)를 사용해 항상 새로운 배열 생성
         const newTags = [...currentTags, tagId];
+
+        // ✅ [추가] 태그 카운트 즉시 업데이트 (+1)
+        set(state => ({
+          tagCounts: {
+            ...state.tagCounts,
+            [tagId]: (state.tagCounts[tagId] || 0) + 1,
+          }
+        }));
+
         await updateBookInStoreAndDB(id, { customTags: newTags }, '태그 추가에 실패했습니다.');
       },
+
       removeTagFromBook: async (id, tagId) => {
-        // const book = get().myLibraryBooks.find(b => b.id === id);
         const book = await get().getBookById(id); // [개선] getBookById 사용
         if (!book) return;
-        // [핵심 수정] filter 메서드는 항상 새로운 배열을 반환하므로 불변성을 지킴
         const updatedTags = (book.customTags || []).filter(t => t !== tagId);
+
+        // ✅ [추가] removeTagFromBook에 대한 올바른 카운트 업데이트
+        set(state => ({
+          tagCounts: {
+            ...state.tagCounts,
+            [tagId]: Math.max(0, (state.tagCounts[tagId] || 1) - 1),
+          }
+        }));
+
         await updateBookInStoreAndDB(id, { customTags: updatedTags }, '태그 제거에 실패했습니다.');
       },
 
+      // updateBookTags: async (id, tagIds) => {
+      //   const book = await get().getBookById(id);
+      //   // ✅ [추가] 태그 카운트 즉시 업데이트 (-1)
+      //   set(state => ({
+      //     tagCounts: {
+      //       ...state.tagCounts,
+      //       [tagId]: Math.max(0, (state.tagCounts[tagId] || 1) - 1),
+      //     }
+      //   }));
+      //   await updateBookInStoreAndDB(id, { customTags: tagIds }, '태그 업데이트에 실패했습니다.');
+      // },
+
+      
+      // ✅ [수정] updateBookTags 함수 전체를 아래 코드로 교체합니다.
       updateBookTags: async (id, tagIds) => {
         const book = await get().getBookById(id);
+        if (!book) return;
+
+        // --- 카운트 업데이트 로직 시작 ---
+        const oldTags = new Set(book.customTags || []);
+        const newTags = new Set(tagIds);
+        const tagCountChanges: Record<string, number> = {};
+
+        // 새로 추가된 태그 계산
+        newTags.forEach(tagId => {
+            if (!oldTags.has(tagId)) {
+                tagCountChanges[tagId] = (tagCountChanges[tagId] || 0) + 1;
+            }
+        });
+
+        // 제거된 태그 계산
+        oldTags.forEach(tagId => {
+            if (!newTags.has(tagId)) {
+                tagCountChanges[tagId] = (tagCountChanges[tagId] || 0) - 1;
+            }
+        });
+
+        if (Object.keys(tagCountChanges).length > 0) {
+            set(state => {
+                const newTagCounts = { ...state.tagCounts };
+                for (const tagId in tagCountChanges) {
+                    newTagCounts[tagId] = Math.max(0, (newTagCounts[tagId] || 0) + tagCountChanges[tagId]);
+                }
+                return { tagCounts: newTagCounts };
+            });
+        }
+        // --- 카운트 업데이트 로직 끝 ---
+
         await updateBookInStoreAndDB(id, { customTags: tagIds }, '태그 업데이트에 실패했습니다.');
       },
 
@@ -944,6 +1007,44 @@ export const useBookStore = create<BookState>(
       updateMultipleBookTags: async (bookUpdates) => {
           const { getBookById } = get(); // getBookById 함수를 가져옴
 
+          // ✅ [추가 시작] 태그 카운트 즉시 업데이트 로직
+          const originalBooks: (SelectedBook | null)[] = await Promise.all(
+              bookUpdates.map(update => getBookById(update.id))
+          );
+
+          const tagCountChanges: Record<string, number> = {};
+
+          bookUpdates.forEach((update, index) => {
+              const originalBook = originalBooks[index];
+              if (!originalBook) return;
+
+              const oldTags = new Set(originalBook.customTags || []);
+              const newTags = new Set(update.tagIds); // 'tagIds'가 올바른 변수명입니다.
+
+              // 추가된 태그 찾기
+              newTags.forEach(tagId => {
+                  if (!oldTags.has(tagId)) {
+                      tagCountChanges[tagId] = (tagCountChanges[tagId] || 0) + 1;
+                  }
+              });
+
+              // 제거된 태그 찾기
+              oldTags.forEach(tagId => {
+                  if (!newTags.has(tagId)) {
+                      tagCountChanges[tagId] = (tagCountChanges[tagId] || 0) - 1;
+                  }
+              });
+          });
+
+          set(state => {
+              const newTagCounts = { ...state.tagCounts };
+              for (const tagId in tagCountChanges) {
+                  newTagCounts[tagId] = Math.max(0, (newTagCounts[tagId] || 0) + tagCountChanges[tagId]);
+              }
+              return { tagCounts: newTagCounts };
+          });
+          // ✅ [추가 끝]
+          
           // 1. 낙관적 업데이트: UI 상태를 먼저 업데이트
           const updatedBooksMap = new Map<number, SelectedBook>();
           // Promise.all을 사용하여 book 객체를 병렬로 가져옴
