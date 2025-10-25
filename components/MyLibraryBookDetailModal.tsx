@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useCallback} from 'react';
-import { ReadStatus, StockInfo, CustomTag, SelectedBook,  GwangjuPaperResult, GwangjuPaperError, GyeonggiEbookResult
+import { ReadStatus, StockInfo, CustomTag, SelectedBook,  GwangjuPaperResult, GwangjuPaperError, GyeonggiEbookResult, TagColor
 } from '../types';
 import { useBookStore } from '../stores/useBookStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
@@ -751,6 +751,17 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                                                     <div className="flex flex-wrap gap-2">
                                                         {settings.tagSettings.tags
                                                             .filter(tag => !book.customTags?.includes(tag.id))
+                                                            // ✅ [추가] 여기에 일관된 정렬 로직을 삽입합니다.
+                                                            .sort((a, b) => {
+                                                                // 1차: 색상 우선순위
+                                                                const colorOrder: Record<TagColor, number> = { 'primary': 0, 'secondary': 1, 'tertiary': 2 };
+                                                                const colorDifference = (colorOrder[a.color] ?? 99) - (colorOrder[b.color] ?? 99);
+                                                                if (colorDifference !== 0) {
+                                                                    return colorDifference;
+                                                                }
+                                                                // 2차: 색상이 같으면 이름 가나다순
+                                                                return a.name.localeCompare(b.name, 'ko-KR');
+                                                            })
                                                             .map(tag => {
                                                                 // 처리 중인지 확인하여 UI에 즉시 반영
                                                                 const isProcessing = processingTags.has(tag.id);
