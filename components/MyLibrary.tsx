@@ -1544,13 +1544,13 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                 {/* e북.교육 */}
                 <LibraryTag
                   name="e교육"
-                  totalBooks={book.ebookInfo?.total_count || 0}
-                  availableBooks={book.ebookInfo?.available_count || 0}
+                  totalBooks={book.GyeonggiEduEbookInfo?.total_count || 0}
+                  availableBooks={book.GyeonggiEduEbookInfo?.available_count || 0}
                   searchUrl={createLibraryOpenURL("e교육", book.title, book.customSearchTitle)}
                   // summary에 error_count가 있으므로 더 간단하게 확인 가능
-                  isError={(book.ebookInfo?.error_count ?? 0) == 2} // 둘 다 에러일때만
-                  // isError={(book.ebookInfo?.error_count ?? 0) > 0} // 1군데라도 에러일때
-                  // isError={book.ebookInfo?.details.some(d => 'error' in d) || false}
+                  isError={(book.GyeonggiEduEbookInfo?.error_count ?? 0) == 2} // 둘 다 에러일때만
+                  // isError={(book.GyeonggiEduEbookInfo?.error_count ?? 0) > 0} // 1군데라도 에러일때
+                  // isError={book.GyeonggiEduEbookInfo?.details.some(d => 'error' in d) || false}
                 />
                 
                 {/* e북.시립구독 */}
@@ -1880,13 +1880,13 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                   />
                   <LibraryTag
                     name="e교육"
-                    totalBooks={book.ebookInfo?.total_count || 0}
-                    availableBooks={book.ebookInfo?.available_count || 0}
+                    totalBooks={book.GyeonggiEduEbookInfo?.total_count || 0}
+                    availableBooks={book.GyeonggiEduEbookInfo?.available_count || 0}
                     searchUrl={createLibraryOpenURL("e교육", book.title, book.customSearchTitle)}
                     // summary에 error_count가 있으므로 더 간단하게 확인 가능
-                    isError={(book.ebookInfo?.error_count ?? 0) == 2} // 둘 다 에러일때만
-                  // isError={(book.ebookInfo?.error_count ?? 0) > 0} // 1군데라도 에러일때 
-                    // isError={book.ebookInfo?.details.some(d => 'error' in d) || false}
+                    isError={(book.GyeonggiEduEbookInfo?.error_count ?? 0) == 2} // 둘 다 에러일때만
+                  // isError={(book.GyeonggiEduEbookInfo?.error_count ?? 0) > 0} // 1군데라도 에러일때 
+                    // isError={book.GyeonggiEduEbookInfo?.details.some(d => 'error' in d) || false}
                   />
                   <LibraryTag
                     name="e시립구독"
