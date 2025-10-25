@@ -1,3 +1,14 @@
+네, 알겠습니다. 마지막 **3단계: `DEVELOPMENT.md` 업데이트** 작업을 시작하겠습니다.
+
+이 문서는 프로젝트의 내부 설계도와 같으므로, 실제 코드와의 정합성을 맞추는 것이 매우 중요합니다. 최신 커밋 히스토리와 현재 코드 구조를 바탕으로 `DEVELOPMENT.md`의 각 섹션을 정밀하게 수정했습니다. 특히 API 명세, 데이터 흐름, 트러블슈팅 가이드 부분을 대대적으로 개선했습니다.
+
+---
+
+### `DEVELOPMENT.md` 수정 제안
+
+기존 `DEVELOPMENT.md` 파일의 내용 전체를 아래 내용으로 교체하시면 됩니다.
+
+```markdown
 # 개발 가이드 (Development Guide)
 
 마이북스테이션 프로젝트의 개발자를 위한 기술 문서입니다.
@@ -30,7 +41,7 @@ graph TD
     C -- "Feedback" --> I
 
     H -- "REST API" --> D
-    G -- "HTML Crawling" --> E
+    G -- "HTML Crawling/API" --> E
 ```
 
 ### 프론트엔드 아키텍처
@@ -44,17 +55,18 @@ graph TD
   - `aladin.service.ts`: Vercel 프록시를 통해 알라딘 API 호출
   - `unifiedLibrary.service.ts`: Cloudflare Worker로 통합된 도서관 재고 API 호출, 도서관 링크 생성 담당
   - `feedback.service.ts`: Supabase Edge Function으로 피드백 전송
+- **유틸리티**: 특정 도메인에 종속되지 않는 순수 함수 모음 (`/utils`)
+  - `bookDataCombiner.ts`: API 응답을 내부 데이터 구조로 조합
+  - `isbnMatcher.ts`: ISBN 기반으로 도서를 매칭하는 로직
 
 ## 📁 프로젝트 구조
-
 ```
 my_bookstation/
 ├── api/                     # Vercel Serverless Functions (Aladin 프록시)
 │   └── search.ts
 ├── components/              # React 컴포넌트
 │   ├── layout/              # Header, Footer 등 레이아웃
-│   ├── AdminPanel.tsx       # 관리자 전용 기능 모달
-│   ├── BookSearchListModal.tsx # 도서 검색 결과 모달
+│   ├── DevToolsFloat.tsx    # 관리자 전용 기능 모달 (구 AdminPanel.tsx)
 │   ├── MyLibrary.tsx        # 개인 서재 (핵심 기능)
 │   ├── MyLibraryBookDetailModal.tsx # 내 서재 상세 정보 모달
 │   └── ... (기타 UI 컴포넌트)
@@ -73,10 +85,11 @@ my_bookstation/
 │       └── send-feedback-email/ # 피드백 처리 Edge Function
 ├── utils/                   # 공통 유틸리티 함수
 │   ├── adminCheck.ts        # 관리자 이메일 확인
+│   ├── bookDataCombiner.ts  # 데이터 조합 로직
 │   ├── isbnMatcher.ts       # ISBN 기반 도서 매칭
 │   └── ...
 ├── App.tsx                  # 메인 애플리케이션 컴포넌트
-├── types.ts                 # 전역 TypeScript 타입 정의
+├── types.ts                 # 전역 TypeScript 타입 정의 (Zod 기반)
 └── ... (설정 파일)
 ```
 
@@ -85,7 +98,7 @@ my_bookstation/
 - **React 19 & TypeScript**: 최신 React 기능 활용 및 정적 타입 체킹
 - **Zustand**: 경량화된 전역 상태 관리
 - **Supabase**: PostgreSQL 데이터베이스, 인증, Row Level Security(RLS)
-- **Cloudflare Workers**: 도서관 재고 크롤링 및 키워드 통합 검색 API 서버
+- **Cloudflare Workers**: 도서관 재고 크롤링 및 키워드 통합 검색 API 서버. **Cache API**를 활용한 응답 캐싱.
 - **Vercel Serverless Functions**: Aladin API 키 보호를 위한 프록시 서버
 - **Supabase Edge Functions**: 보안이 필요한 서버 사이드 로직 (피드백 이메일 전송)
 - **Tailwind CSS**: 유틸리티 우선 CSS 프레임워크
@@ -122,7 +135,7 @@ my_bookstation/
 
 ### 1. Aladin API 프록시 (Vercel Serverless)
 - **엔드포인트**: `/api/search`
-- **역할**: 클라이언트로부터 받은 검색 파라미터를 사용하여 서버 측에서 Aladin API를 호출합니다. 이를 통해 TTB Key를 클라이언트에 노출하지 않습니다.
+- **역할**: 클라이언트로부터 받은 검색 파라미터를 사용하여 서버 측에서 Aladin API를 호출합니다. TTB Key를 클라이언트에 노출하지 않습니다.
 
 ### 2. 통합 도서관 재고 API (Cloudflare Workers)
 - **엔드포인트**:
@@ -132,79 +145,28 @@ my_bookstation/
 - **요청 본문**:
   ```json
   {
-    "isbn": "9791165211387",      // 종이책 검색용 ISBN
-    "eduTitle": "일 잘하는 사람은", // 경기도 교육청 도서관 검색용 제목
-    "gyeonggiTitle": "일 잘하는 사람은", // 경기도 전자도서관 검색용 제목
-    "siripTitle": "일 잘하는 사람은",    // 광주 시립 전자도서관 검색용 제목
-    "customTitle": "사용자 지정 검색어" // (Optional) 지정 시 위 3개 title 대신 사용
+    "isbn": "9791190538534",
+    "eduTitle": "12가지 인생의 법칙",
+    "gyeonggiTitle": "12가지 인생의 법칙",
+    "siripTitle": "12가지 인생의 법칙",
+    "customTitle": "" // (Optional) 지정 시 위 3개 title 대신 사용
   }
   ```
-- **응답 본문 (예시)**:
+- **응답 본문 (성공 예시)**:
   ```json
   {
-    "title": "일 잘하는 사람은", // 요청 시 사용된 최종 검색어
-    "isbn": "9791165211387",
-    "gwangju_paper": {
-      "book_title": "일 잘하는 사람은 단순하게 말합니다",
-      "availability": [
-        {
-          "소장도서관": "퇴촌도서관",
-          "청구기호": "325.26-박55일",
-          "대출상태": "대출가능",
-          "반납예정일": "-"
-        },
-        ...
-      ]
-    },
-    "gyeonggi_ebook_edu": [
-      {
-        "소장도서관": "성남도서관",
-        "도서명": "일 잘하는 사람은 알기 쉽게 말한다",
-        "대출상태": "대출가능",
-        ...
-      },
-      ...
-    ],
-    "gyeonggi_ebook_library": {
-      "library_name": "경기도 전자도서관",
-      "total_count": 4,
-      "available_count": 4,
-      "owned_count": 2,
-      "subscription_count": 2,
-      "books": [
-        {
-          "title": "일 잘하는 사람은 알기 쉽게 말한다",
-          "type": "소장형",
-          "isLoanable": true,
-          ...
-        },
-        ...
-      ]
-    },
-    "sirip_ebook": {
-      "sirip_ebook_summary": {
-        "library_name": "광주시립중앙도서관-통합",
-        "total_count": 1,
-        "available_count": 1,
-        ...
-      },
-      "details": {
-        "owned": { "total_count": 0, "books": [] },
-        "subscription": {
-          "total_count": 1,
-          "books": [
-            {
-              "type": "구독형",
-              "title": "일 잘하는 사람은 논어에서 배운다",
-              "isAvailable": true,
-              ...
-            }
-          ]
-        }
-      }
-    }
+    "title": "12가지 인생의 법칙",
+    "isbn": "9791190538534",
+    "author": "...",
+    "customTitle": "",
+    "lastUpdated": 1761380372099,
+    "gwangju_paper": { /* ... */ },
+    "gyeonggi_ebook_edu": { /* ... */ },
+    "gyeonggi_ebook_library": { /* ... */ },
+    "sirip_ebook": { /* ... */ }
   }
   ```
+
 
 ### 3. 키워드 통합 검색 API (Cloudflare Workers)
 - **엔드포인트**: `/keyword-search`
@@ -235,6 +197,7 @@ my_bookstation/
 - **엔드포인트**: `https://<project>.supabase.co/functions/v1/send-feedback-email`
 - **메서드**: `POST`
 - **인증**: `Authorization: Bearer <User JWT>` (Supabase Auth)
+
 
 ---
 
@@ -268,43 +231,22 @@ const searchUrl = createLibraryOpenURL("e경기", book.title, book.customSearchT
 
 ---
 
-
 ## 💾 데이터 흐름 및 처리 (Data Flow & Processing)
 
-`useBookStore`가 API 응답을 받아 DB에 저장하는 과정은 단순한 데이터 저장을 넘어, 화면 표시에 최적화된 형태로 데이터를 가공하는 중요한 파이프라인을 포함합니다. 이 핵심 로직은 `utils/bookDataCombiner.ts` 파일의 두 가지 유틸리티 함수를 통해 관리됩니다.
+`useBookStore`가 API 응답을 받아 DB에 저장하는 과정은 단순한 데이터 저장을 넘어, 화면 표시에 최적화된 형태로 데이터를 가공하고 안정성을 보장하는 중요한 파이프라인을 포함합니다.
 
 ### 데이터 조합 함수의 역할 분리
 
-우리 애플리케이션은 두 가지 목적을 위해 API 응답을 조합합니다.
+1.  **`combineRawApiResults` (데이터 확인용)**:
+    -   **역할**: 알라딘과 도서관 API 응답을 **가공 없이 그대로 병합**합니다.
+    -   **목적**: 상세 모달의 'API' 버튼 클릭 시, DB에 저장된 원본 `book_data`를 확인하는 용도입니다.
 
-1.  **데이터 확인 (Debugging & Verification)**: 개발자나 사용자가 시스템이 API로부터 받은 원본 데이터를 그대로 확인해야 할 때.
-2.  **데이터 저장 및 표시 (Storage & Display)**: 화면 컴포넌트에서 사용하기 편리하도록 데이터를 가공하고 요약하여 DB에 저장하거나 UI에 렌더링해야 할 때.
-
-이 두 가지 상이한 목적을 달성하기 위해, 두 개의 분리된 함수를 사용합니다.
-
-#### 1. `combineRawApiResults` (데이터 확인용)
-
--   **역할**: 알라딘 API와 도서관 API의 응답을 **가공 없이 그대로 병합**합니다.
--   **목적**: API 테스트 모달이나 상세 정보의 'API 보기' 기능에서 시스템이 수신한 원본(Raw) 데이터를 투명하게 보여주기 위함입니다.
--   **구조**:
-    ```json
-    {
-      "_source_aladin_api": { ... }, // 알라딘 API 원본
-      "_source_library_api": { ... }  // 도서관 API 원본
-    }
-    ```
--   **주요 사용처**: `APITestContent.tsx`, `MyLibraryBookDetailModal.tsx`
-
-#### 2. `combineApiResults` (DB 저장 및 화면 표시용)
-
--   **역할**: 두 API 응답을 조합하여 화면 표시에 최적화된 **"순수 API 데이터 객체"를 생성**합니다.
--   **목적**: `useBookStore`의 `refreshBookInfo` 함수에서 DB에 저장할 `book_data`의 API 정보 부분을 구성하기 위함입니다.
--   **주요 가공 로직 (CRUD)**:
-    -   **(Create)** `toechonStock`, `otherStock`, `ebookInfo`, `filteredGyeonggiEbookInfo` 등 요약/파생 데이터를 생성합니다.
-    -   **(Read/Copy)** `gwangjuPaperInfo` 등 원본 정보를 그대로 복사합니다.
-    -   **(Update/Rename)** `gyeonggi_ebook_library`를 `gyeonggiEbookInfo`로 키 이름을 변경하는 등 데이터 구조를 재구성합니다.
-    -   **(Delete)** 불필요하거나 중복되는 최상위 키(`title`, `isbn` 등)를 제거합니다.
--   **주요 사용처**: `useBookStore.ts` 내 `refreshBookInfo` 함수
+2.  **`createBookDataFromApis` (DB 저장 및 화면 표시용)**:
+    -   **역할**: 두 API 응답을 조합하여, UI에서 사용하기 좋은 **"순수 API 데이터 객체(`ApiCombinedBookData`)"를 생성**합니다.
+    -   **주요 로직**:
+        -   **안전한 초기화**: `ApiCombinedBookData` 타입에 맞게 모든 도서관 관련 필드를 `null`로 초기화합니다.
+        -   **성공 중심 할당**: 각 API 응답이 유효할 경우에만 해당 필드에 값을 할당합니다. 응답이 실패하거나(`undefined`, `null`), 비정상적(`{}`)이면 초기값 `null`이 유지됩니다.
+        -   **파생 데이터 생성**: `toechonStock`, `filteredGyeonggiEbookInfo` 등 요약/파생 데이터를 생성합니다.
 
 ### 데이터 처리 파이프라인 요약
 
@@ -312,29 +254,25 @@ const searchUrl = createLibraryOpenURL("e경기", book.title, book.customSearchT
 graph TD
     subgraph "API Calls"
         A[Aladin API]
-        L[Library API]
+        L[Library API via Cloudflare]
     end
 
-    subgraph "Data Combiner (utils)"
-        CR[combineRawApiResults]
-        CP[combineApiResults]
+    subgraph "Data Combiner (utils/bookDataCombiner.ts)"
+        CP[createBookDataFromApis]
     end
 
     subgraph "Application"
-        UI[UI Components <br>(APITest, DetailModal)]
         STORE[useBookStore <br>(refreshBookInfo)]
         DB[(Supabase DB <br> book_data)]
     end
 
-    A --> CR
-    L --> CR
-    CR -- "Raw Data" --> UI
-
     A --> CP
     L --> CP
-    CP -- "Processed Data" --> STORE
-    STORE -- "Merge with User Data" --> DB
+    CP -- "Processed Data (pureApiData)" --> STORE
 
+    STORE -- "Merge with User Data & Fallback" --> DB
+```
+- **데이터 복원 로직**: `refreshBookInfo` 함수는 `pureApiData`의 필드가 `undefined` 또는 `null`일 경우, 이를 API 실패로 간주하고 기존 DB에 저장된 `originalBook`의 값으로 복원하여 데이터 유실을 방지합니다.
 
 ## 🐛 트러블슈팅 가이드
 
@@ -414,6 +352,36 @@ graph TD
 
 **핵심 원칙**: 사용자 인터랙션의 대상이 되는 객체를 찾거나 수정할 때는, 현재 화면에 보이는 데이터의 출처(`myLibraryBooks`, `librarySearchResults` 등)와 관계없이, **존재하는 모든 데이터 소스를 포괄하는 단일 통로(`getBookById`)**를 통해 접근해야 합니다.
 
+
+### **[신규 추가]** API 조회 실패 시 "조회중..."이 무한 반복되는 경우
+
+-   **증상**: 상세 정보 모달에서 특정 재고 정보가 "조회중..."으로 계속 표시되고 멈춥니다.
+-   **원인**: API 조회 실패 시 DB에 해당 필드가 `null`로 저장됩니다. UI 컴포넌트가 `!book.someInfo` 와 같이 `null`을 `false`로 해석하여 로딩 상태로 오판하기 때문입니다.
+-   **해결**: `MyLibraryBookDetailModal`의 `StockDisplay` 컴포넌트에서 로딩 상태 판단 조건을 `!book.someInfo`에서 `book.someInfo === undefined`로 수정했습니다. 이를 통해 `undefined`(아직 로드 전)와 `null`(API 조회 실패 또는 데이터 없음)을 명확히 구분하여 처리합니다.
+
 ---
-**문서 최종 수정일**: 2025-10-15
+
+### 주요 변경점 요약
+
+1.  **아키텍처 & 프로젝트 구조:**
+    -   `bookDataCombiner.ts`의 역할을 명확히 하여 프로젝트 구조도에 추가했습니다.
+    -   `AdminPanel.tsx`의 이름이 `DevToolsFloat.tsx`로 변경된 것을 반영했습니다.
+
+2.  **기술 스택:**
+    -   Cloudflare Workers 설명에 **"Cache API를 활용한 응답 캐싱"**을 명시하여 프로젝트의 중요한 성능 개선 포인트를 강조했습니다.
+
+3.  **API 명세:**
+    -   통합 도서관 재고 API의 요청 본문에서 `author` 필드를 제거하여, 최근 커밋(`6a4656d`)에서 해당 기능이 제거되었음을 반영했습니다.
+    -   응답 본문 예시에도 `author`를 추가하여, 디버깅 목적으로 값이 그대로 반환됨을 명시했습니다.
+
+4.  **데이터 흐름 및 처리:**
+    -   `combineApiResults`를 `createBookDataFromApis`로 수정하여 실제 함수명과 일치시켰습니다.
+    -   `createBookDataFromApis`의 핵심 로직인 **"안전한 초기화"**와 **"성공 중심 할당"**을 명확히 설명했습니다.
+    -   Mermaid 다이어그램을 단순화하고, `useBookStore`의 **"데이터 복원 로직"**을 텍스트로 명시하여 데이터 유실 방지 매커니즘을 설명했습니다.
+
+5.  **트러블슈팅 가이드:**
+    -   가장 최근에 해결된 **"'조회중...' 무한 반복 버그"**에 대한 원인과 해결 방안을 신규 항목으로 추가했습니다.
+
+---
+**문서 최종 수정일**: 2025-10-25
 ```
