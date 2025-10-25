@@ -58,7 +58,7 @@ export function createBookDataFromApis( // ✅ 이름 변경
     // 도서관 API 원본 정보 할당
     gwangjuPaperInfo: libraryResult.gwangju_paper,
     // ebookInfo: libraryResult.gyeonggi_ebook_edu,
-    ebookInfo: (libraryResult.gyeonggi_ebook_edu && 'book_list' in libraryResult.gyeonggi_ebook_edu)
+    GyeonggiEduEbookInfo: (libraryResult.gyeonggi_ebook_edu && 'book_list' in libraryResult.gyeonggi_ebook_edu)
              ? libraryResult.gyeonggi_ebook_edu as GyeonggiEduEbookResult
              : null,
     gyeonggiEbookInfo: libraryResult.gyeonggi_ebook_library,

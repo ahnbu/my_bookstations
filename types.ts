@@ -86,7 +86,7 @@ export const ApiCombinedBookDataSchema = AladdinBookItemSchema.extend({
   lastUpdated: z.number().optional(), // ✅ API 업데이트 시점
   // 도서관 API 원본 정보. 타입이 복잡하므로 z.any()로 처리하고, 런타임 검증이 꼭 필요하다면 별도 스키마 정의.
   gwangjuPaperInfo: z.any().optional(),
-  ebookInfo: z.any().nullable().optional(), // 기존 EBookInfo 타입과 유사
+  GyeonggiEduEbookInfo: z.any().nullable().optional(), // 기존 EBookInfo 타입과 유사
   gyeonggiEbookInfo: z.any().nullable().optional(),
   siripEbookInfo: z.any().nullable().optional(),
 

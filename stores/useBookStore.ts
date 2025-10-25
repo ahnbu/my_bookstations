@@ -545,7 +545,7 @@ export const useBookStore = create<BookState>(
             otherStock: { total_count: 0, available_count: 0 },
             // gwangjuPaperInfo: { error: '아직 조회되지 않았습니다.' },
             gwangjuPaperInfo: null,
-            ebookInfo: null,
+            GyeonggiEduEbookInfo: null,
             gyeonggiEbookInfo: null,
             siripEbookInfo: null,
 
@@ -775,41 +775,72 @@ export const useBookStore = create<BookState>(
               customSearchTitle: originalBook.customSearchTitle,
 
               // ✅ [핵심] API 호출 실패('undefined') or 에러인 경우 DB값으로 적용
-              
-              // 광주 종이책 정보 (gwangjuPaperInfo) 복원
-              // toechonStock과 otherStock은 gwangjuPaperInfo를 기반으로 생성되므로,
-              // gwangjuPaperInfo만 복원하면 파생 데이터도 함께 유지됩니다.
-              gwangjuPaperInfo: (pureApiData.gwangjuPaperInfo && 'error' in pureApiData.gwangjuPaperInfo)
+              // 에러일 때와 빈값으로 오면, db값으로 유지
+              // 각 필드를 검사하여 유효하지 않으면 기존(originalBook) 값으로 덮어씁니다.
+              gwangjuPaperInfo: (pureApiData.gwangjuPaperInfo === undefined || pureApiData.gwangjuPaperInfo === null)
                 ? originalBook.gwangjuPaperInfo
                 : pureApiData.gwangjuPaperInfo,
               
-              toechonStock: (pureApiData.gwangjuPaperInfo && 'error' in pureApiData.gwangjuPaperInfo)
+              toechonStock: (pureApiData.toechonStock === undefined || pureApiData.toechonStock === null)
                 ? originalBook.toechonStock
                 : pureApiData.toechonStock,
 
-              otherStock: (pureApiData.gwangjuPaperInfo && 'error' in pureApiData.gwangjuPaperInfo)
+              otherStock: (pureApiData.otherStock === undefined || pureApiData.otherStock === null)
                 ? originalBook.otherStock
                 : pureApiData.otherStock,
 
               // 경기교육청 전자책 정보 (ebookInfo) 복원
-              ebookInfo: (pureApiData.ebookInfo && 'error_count' in pureApiData.ebookInfo && pureApiData.ebookInfo.error_count > 0)
-                ? originalBook.ebookInfo
-                : pureApiData.ebookInfo,
+              GyeonggiEduEbookInfo: (pureApiData.GyeonggiEduEbookInfo === undefined || pureApiData.GyeonggiEduEbookInfo === null)
+                ? originalBook.GyeonggiEduEbookInfo
+                : pureApiData.GyeonggiEduEbookInfo,
               
-              // 경기도 전자도서관 정보 (gyeonggiEbookInfo) 복원
-              gyeonggiEbookInfo: (pureApiData.gyeonggiEbookInfo && 'error' in pureApiData.gyeonggiEbookInfo)
+              gyeonggiEbookInfo: (pureApiData.gyeonggiEbookInfo === undefined || pureApiData.gyeonggiEbookInfo === null)
                 ? originalBook.gyeonggiEbookInfo
                 : pureApiData.gyeonggiEbookInfo,
               
-              // 경기도 전자도서관 필터링된 정보 (filteredGyeonggiEbookInfo) 복원
-              filteredGyeonggiEbookInfo: (pureApiData.gyeonggiEbookInfo && 'error' in pureApiData.gyeonggiEbookInfo)
+              filteredGyeonggiEbookInfo: (pureApiData.filteredGyeonggiEbookInfo === undefined || pureApiData.filteredGyeonggiEbookInfo === null)
                 ? originalBook.filteredGyeonggiEbookInfo
                 : pureApiData.filteredGyeonggiEbookInfo,
 
-              // 시립도서관 전자책 정보 (siripEbookInfo) 복원
-              siripEbookInfo: (pureApiData.siripEbookInfo && ('error' in pureApiData.siripEbookInfo || 'errors' in pureApiData.siripEbookInfo))
+              siripEbookInfo: (pureApiData.siripEbookInfo === undefined || pureApiData.siripEbookInfo === null)
                 ? originalBook.siripEbookInfo
                 : pureApiData.siripEbookInfo,
+
+              // 광주 종이책 정보 (gwangjuPaperInfo) 복원
+              // toechonStock과 otherStock은 gwangjuPaperInfo를 기반으로 생성되므로,
+              // gwangjuPaperInfo만 복원하면 파생 데이터도 함께 유지됩니다.
+              // gwangjuPaperInfo: (pureApiData.gwangjuPaperInfo && 'error' in pureApiData.gwangjuPaperInfo)
+              //   ? originalBook.gwangjuPaperInfo
+              //   : pureApiData.gwangjuPaperInfo,
+              
+              // toechonStock: (pureApiData.gwangjuPaperInfo && 'error' in pureApiData.gwangjuPaperInfo)
+              //   ? originalBook.toechonStock
+              //   : pureApiData.toechonStock,
+
+              // otherStock: (pureApiData.gwangjuPaperInfo && 'error' in pureApiData.gwangjuPaperInfo)
+              //   ? originalBook.otherStock
+              //   : pureApiData.otherStock,
+
+              // // 경기교육청 전자책 정보 (ebookInfo) 복원
+              // ebookInfo: (pureApiData.ebookInfo && 'error_count' in pureApiData.ebookInfo && pureApiData.ebookInfo.error_count > 0)
+              //   ? originalBook.ebookInfo
+              //   : pureApiData.ebookInfo,
+              
+              // // 경기도 전자도서관 정보 (gyeonggiEbookInfo) 복원
+              // gyeonggiEbookInfo: (pureApiData.gyeonggiEbookInfo && 'error' in pureApiData.gyeonggiEbookInfo)
+              //   ? originalBook.gyeonggiEbookInfo
+              //   : pureApiData.gyeonggiEbookInfo,
+              
+              // // 경기도 전자도서관 필터링된 정보 (filteredGyeonggiEbookInfo) 복원
+              // filteredGyeonggiEbookInfo: (pureApiData.gyeonggiEbookInfo && 'error' in pureApiData.gyeonggiEbookInfo)
+              //   ? originalBook.filteredGyeonggiEbookInfo
+              //   : pureApiData.filteredGyeonggiEbookInfo,
+
+              // // 시립도서관 전자책 정보 (siripEbookInfo) 복원
+              // siripEbookInfo: (pureApiData.siripEbookInfo && ('error' in pureApiData.siripEbookInfo || 'errors' in pureApiData.siripEbookInfo))
+              //   ? originalBook.siripEbookInfo
+              //   : pureApiData.siripEbookInfo,
+
             };
 
             // subInfo 업데이트 로직 (새 전자책 정보가 있는데 기존엔 없었을 경우)
