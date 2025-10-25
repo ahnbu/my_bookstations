@@ -8,26 +8,19 @@
 // CloudFlare Workers - 도서관 재고 확인
 // 도서관에 병렬요청하여, 가장 오래 걸린 도서관을 기준으로 
 
-// ==============================================
-// 메인 핸들러
-// ==============================================
-
-// /**
-//  * 저자명을 비교를 위해 정규화하는 함수.
-//  * 띄어쓰기, 특수문자, '(지은이)' 등을 모두 제거합니다.
-//  * @param {string} author - 원본 저자명
-//  * @returns {string} - 정규화된 저자명
-//  */
-// function normalizeAuthor(author) {
-//   if (typeof author !== 'string' || !author) {
-//     return '';
-//   }
-//   return author
-//     .toLowerCase() // 소문자로 변환
-//     .replace(/\s+/g, '') // 모든 공백 제거
-//     .replace(/[\[\]\(\)\{\},.\-:]/g, '') // 괄호, 쉼표 등 특수문자 제거
-//     .replace(/(지은이|옮긴이|역|저)/g, ''); // '지은이' 등의 불필요한 단어 제거
-// }
+/**
+ * 최종 API 응답 객체에 캐싱할 수 없는 심각한 오류가 포함되어 있는지 확인합니다.
+ * @param {object} finalResult - 크롤링 결과가 조합된 객체
+ * @returns {boolean} - 캐싱하면 안 되는 에러가 있으면 true
+ */
+function hasCacheBlockingError(finalResult) {
+  if (finalResult.gwangju_paper && 'error' in finalResult.gwangju_paper) return true;
+  if (finalResult.gyeonggi_ebook_edu && finalResult.gyeonggi_ebook_edu.error_count > 0) return true;
+  if (finalResult.gyeonggi_ebook_library && 'error' in finalResult.gyeonggi_ebook_library) return true;
+  if (finalResult.sirip_ebook && ('error' in finalResult.sirip_ebook || 'errors' in finalResult.sirip_ebook)) return true;
+  
+  return false;
+}
 
 // esm.sh를 통해 ES 모듈로 라이브러리를 직접 import 합니다.
 // import { parse } from 'https://esm.sh/node-html-parser';
@@ -373,54 +366,50 @@ export default {
 
     // 일반 검색의 경우
     if (request.method === 'POST' && pathname !== '/keyword-search') {
-      // --- 👇 캐싱 로직 수정 시작 ---
-      const cache = caches.default;
       
-      // 1. 요청 본문을 읽어서 해시(hash) 값으로 만듭니다.
-      // POST 요청의 본문 내용이 같으면 항상 동일한 해시가 생성됩니다.
-      const bodyText = await request.clone().text();
-      const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(bodyText));
-      const hashHex = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+        const cache = caches.default;
+        const bodyText = await request.clone().text();
+        const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(bodyText));
+        const hashHex = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
 
-      // 2. 새로운 URL을 사용하여 GET 요청처럼 위장된 캐시 키를 생성합니다.
-      // URL에 고유한 해시 값을 포함하여, 본문 내용이 다른 POST 요청은 다른 캐시 키를 갖도록 합니다.
-      const cacheUrl = new URL(request.url);
-      cacheUrl.pathname = '/cache/' + hashHex;
-      const cacheKeyRequest = new Request(cacheUrl.toString(), {
-        method: 'GET', // ✅ 메서드를 GET으로 변경
-        headers: request.headers,
-      });
-
-      // 3. 캐시를 조회합니다.
-      let response = await cache.match(cacheKeyRequest);
-
-      // 4. 캐시가 있으면(HIT) 즉시 반환합니다.
-      if (response) {
-        console.log("Cache HIT!");
-        const newHeaders = new Headers(response.headers);
-        Object.entries(corsHeaders).forEach(([key, value]) => newHeaders.set(key, value));
-        newHeaders.set('X-Cache-Status', 'HIT');
-        
-        return new Response(response.body, {
-          status: response.status,
-          statusText: response.statusText,
-          headers: newHeaders,
+        const cacheUrl = new URL(request.url);
+        cacheUrl.pathname = '/cache/' + hashHex;
+        const cacheKeyRequest = new Request(cacheUrl.toString(), {
+          method: 'GET',
+          headers: request.headers,
         });
-      }
-      
-      console.log("Cache MISS!");
-      // --- 👆 캐싱 로직 수정 끝 ---
-      // // --- 👇 캐싱 로직 시작 ---
 
-      // // 1. Cloudflare의 기본 캐시 객체를 가져옵니다.
+        let response = await cache.match(cacheKeyRequest);
+
+        if (response) {
+          console.log("Cache HIT!");
+          const newHeaders = new Headers(response.headers);
+          Object.entries(corsHeaders).forEach(([key, value]) => newHeaders.set(key, value));
+          newHeaders.set('X-Cache-Status', 'HIT');
+          
+          return new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: newHeaders,
+          });
+        }
+
+      // // --- 👇 캐싱 로직 수정 시작 ---
       // const cache = caches.default;
+      
+      // // 1. 요청 본문을 읽어서 해시(hash) 값으로 만듭니다.
+      // // POST 요청의 본문 내용이 같으면 항상 동일한 해시가 생성됩니다.
+      // const bodyText = await request.clone().text();
+      // const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(bodyText));
+      // const hashHex = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
 
-      // // 1. 캐시 키 생성을 위해 요청을 복제(clone)합니다.
-      // // 원본 요청(request)은 아직 body가 읽히지 않은 상태로 남아있습니다.
-      // const cacheKeyRequest = new Request(url.toString(), {
-      //   method: request.method,
+      // // 2. 새로운 URL을 사용하여 GET 요청처럼 위장된 캐시 키를 생성합니다.
+      // // URL에 고유한 해시 값을 포함하여, 본문 내용이 다른 POST 요청은 다른 캐시 키를 갖도록 합니다.
+      // const cacheUrl = new URL(request.url);
+      // cacheUrl.pathname = '/cache/' + hashHex;
+      // const cacheKeyRequest = new Request(cacheUrl.toString(), {
+      //   method: 'GET', // ✅ 메서드를 GET으로 변경
       //   headers: request.headers,
-      //   body: await request.clone().text() // 복제본의 body를 읽어서 키를 만듦
       // });
 
       // // 3. 캐시를 조회합니다.
@@ -429,10 +418,9 @@ export default {
       // // 4. 캐시가 있으면(HIT) 즉시 반환합니다.
       // if (response) {
       //   console.log("Cache HIT!");
-      //   // 캐시된 응답에 최신 CORS 헤더를 적용하여 반환합니다.
       //   const newHeaders = new Headers(response.headers);
       //   Object.entries(corsHeaders).forEach(([key, value]) => newHeaders.set(key, value));
-      //   newHeaders.set('X-Cache-Status', 'HIT'); // 디버깅용 헤더 추가
+      //   newHeaders.set('X-Cache-Status', 'HIT');
         
       //   return new Response(response.body, {
       //     status: response.status,
@@ -442,12 +430,10 @@ export default {
       // }
       
       // console.log("Cache MISS!");
+      // // --- 👆 캐싱 로직 수정 끝 ---
 
-      // // --- 👆 캐싱 로직 끝 ---
-      
       // --- 👇 기존 크롤링 로직 (캐시가 없을 때만 실행) ---
       try {
-        // const body = await request.json();
         const body = JSON.parse(bodyText);
         
         let { isbn, author = '', customTitle = '', eduTitle = '', gyeonggiTitle = '', siripTitle = '' } = body;
@@ -598,7 +584,16 @@ export default {
         // 6. [캐시 저장] 응답을 사용자에게 보내는 것과 "동시에" 백그라운드에서 캐시에 저장합니다.
         // ctx.waitUntil을 사용하면 사용자는 응답을 즉시 받고, 캐시 저장은 Worker가 알아서 완료합니다.
         // expirationTtl: 7200 -> 2시간(초 단위) 동안 캐시를 유지합니다.
-        ctx.waitUntil(cache.put(cacheKeyRequest, response.clone(), { expirationTtl: 7200 }));
+        // ctx.waitUntil(cache.put(cacheKeyRequest, response.clone(), { expirationTtl: 7200 }));
+
+        // 성공API만 캐시에 저장 -> 에러시에는 저장하지 않음
+        if (!hasCacheBlockingError(finalResult)) {
+          console.log("Response is clean. Caching...");
+          ctx.waitUntil(cache.put(cacheKeyRequest, response.clone(), { expirationTtl: 7200 }));
+        } else {
+          console.warn("Response contains errors. Skipping cache.");
+          response.headers.set('Cache-Control', 'no-store');
+        }
 
         return response;
         

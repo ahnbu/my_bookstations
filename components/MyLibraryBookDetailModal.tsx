@@ -34,14 +34,36 @@ interface StockDisplayProps {
   isLoading?: boolean;
 }
 
+// const StockDisplay: React.FC<StockDisplayProps> = ({
+//   label,
+//   searchUrl,
+//   totalCount = 0,
+//   availableCount = 0,
+//   hasError = false,
+//   isLoading = false
+// }) => {
+//   // 로딩 상태 처리
+//   if (isLoading) {
+//     return (
+//       <div className="flex justify-between items-center">
+//         <span>{label}:</span>
+//         <span className="text-tertiary">조회중...</span>
+//       </div>
+//     );
+//   }
+
 const StockDisplay: React.FC<StockDisplayProps> = ({
   label,
   searchUrl,
-  totalCount = 0,
-  availableCount = 0,
-  hasError = false,
-  isLoading = false
+  totalCount, // ✅ 기본값 제거
+  availableCount, // ✅ 기본값 제거
+  hasError, // ✅ 기본값 제거
+  // isLoading = false // ⛔️ 이 prop은 더 이상 받지 않음
 }) => {
+  // ✅ [핵심 수정] 컴포넌트 내부에서 로딩 상태를 직접 판단합니다.
+  // totalCount가 undefined이고, 에러도 없는 상태를 "로딩 중"으로 간주합니다.
+  const isLoading = totalCount === undefined && !hasError;
+
   // 로딩 상태 처리
   if (isLoading) {
     return (
@@ -51,6 +73,10 @@ const StockDisplay: React.FC<StockDisplayProps> = ({
       </div>
     );
   }
+
+  // --- 👇 이하 로직은 totalCount와 availableCount에 기본값을 부여하여 안전하게 실행 ---
+  const finalTotalCount = totalCount ?? 0;
+  const finalAvailableCount = availableCount ?? 0;
 
   // 1. 상태 이름 결정 (로직 중앙화)
   type StockStatus = 'available' | 'unavailable' | 'none';
@@ -71,7 +97,8 @@ const StockDisplay: React.FC<StockDisplayProps> = ({
   };
   const textColorClass = statusColorClassMap[status];
 
-  const titleText = `총 ${totalCount}권, 대출가능 ${availableCount}권${hasError ? ' - 현재 정보 갱신 실패' : ''}`;
+  // const titleText = `총 ${totalCount}권, 대출가능 ${availableCount}권${hasError ? ' - 현재 정보 갱신 실패' : ''}`;
+  const titleText = `총 ${finalTotalCount}권, 대출가능 ${finalAvailableCount}권${hasError ? ' - 현재 정보 갱신 실패' : ''}`;
 
   return (
     <div className="flex justify-between items-center">
@@ -229,7 +256,7 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                     totalCount={book.toechonStock?.total_count}
                     availableCount={book.toechonStock?.available_count}
                     hasError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false}
-                    isLoading={!book.toechonStock && !book.gwangjuPaperInfo}
+                    // isLoading={!book.toechonStock && !book.gwangjuPaperInfo}
                 />
                 <StockDisplay
                     label="기타"
@@ -237,7 +264,7 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                     totalCount={book.otherStock?.total_count}
                     availableCount={book.otherStock?.available_count}
                     hasError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false}
-                    isLoading={!book.otherStock && !book.gwangjuPaperInfo}
+                    // isLoading={!book.otherStock && !book.gwangjuPaperInfo}
                 />
                 <StockDisplay
                     label="전자책(교육)"
@@ -245,7 +272,7 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                     totalCount={book.ebookInfo?.total_count}
                     availableCount={book.ebookInfo?.available_count}
                     hasError={(book.ebookInfo?.error_count ?? 0) > 0}
-                    isLoading={!book.ebookInfo}
+                    // isLoading={!book.ebookInfo}
                 />
                 <StockDisplay
                     label="전자책(시립구독)"
@@ -253,7 +280,7 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                     totalCount={book.siripEbookInfo?.details?.subscription?.total_count}
                     availableCount={book.siripEbookInfo?.details?.subscription?.available_count}
                     hasError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.subscription?.error) : false}
-                    isLoading={!book.siripEbookInfo}
+                    // isLoading={!book.siripEbookInfo}
                 />
                 <StockDisplay
                     label="전자책(시립소장)"
@@ -261,24 +288,16 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                     totalCount={book.siripEbookInfo?.details?.owned?.total_count}
                     availableCount={book.siripEbookInfo?.details?.owned?.available_count}
                     hasError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.owned?.error) : false}
-                    isLoading={!book.siripEbookInfo}
+                    // isLoading={!book.siripEbookInfo}
                 />
-                {/* <StockDisplay
-                    label="전자책(경기)"
-                    searchUrl={createLibraryOpenURL('e경기', book.title, book.customSearchTitle)}
-                    totalCount={book.filteredGyeonggiEbookInfo && !('error' in book.filteredGyeonggiEbookInfo) ? book.filteredGyeonggiEbookInfo?.total_count : (book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo?.total_count : 0)}
-                    availableCount={book.filteredGyeonggiEbookInfo && !('error' in book.filteredGyeonggiEbookInfo) ? book.filteredGyeonggiEbookInfo?.available_count : (book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo?.available_count : 0)}
-                    hasError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
-                    isLoading={!book.gyeonggiEbookInfo && refreshingEbookId !== book.id} // 로딩 중 아닐 때만 isLoading 처리
-                /> */}
                 <StockDisplay
                     label="전자책(경기)"
                     searchUrl={createLibraryOpenURL('e경기', book.title, book.customSearchTitle)}
-                    // ✅ [수정] 'filteredGyeonggiEbookInfo' 참조 로직을 제거하고 'gyeonggiEbookInfo'만 사용하도록 단순화합니다.
+                    // 'filteredGyeonggiEbookInfo' 참조 제거 'gyeonggiEbookInfo'만 사용
                     totalCount={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.total_count : 0}
                     availableCount={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.available_count : 0}
                     hasError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
-                    isLoading={!book.gyeonggiEbookInfo && refreshingEbookId !== book.id}
+                    // isLoading={!book.gyeonggiEbookInfo && refreshingEbookId !== book.id}
                 />
             </div>
 
