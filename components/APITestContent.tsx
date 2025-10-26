@@ -13,6 +13,7 @@ const APITestContent: React.FC = () => {
   const [testType, setTestType] = useState<TestType>('combined');
   const [isbn, setIsbn] = useState<string>('9791162543481');
   const [title, setTitle] = useState<string>('세상에서 가장 긴 행복 탐구 보고서');
+  const [author, setAuthor] = useState<string>('리처드 J. 데이비슨, 샤론 베글리');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [fullApiResult, setFullApiResult] = useState<LibraryApiResponse | null>(null);
   const [aladinResult, setAladinResult] = useState<AladdinBookItem | null>(null);
@@ -75,11 +76,12 @@ const APITestContent: React.FC = () => {
     setApiSelectedBook(book);
     setIsbn(book.isbn13);
     setTitle(book.title);
+    setAuthor(book.author);
     setAladinResult(book);
     setIsSearchModalOpen(false);
     
     // 자동으로 도서관 API 테스트 실행
-    runApiTest(book.isbn13, book.title);
+    runApiTest(book.isbn13, book.title, book.author);
   };
 
   // 선택된 책이 변경되면 자동으로 API 테스트 실행 (기존 로직 유지)
@@ -92,8 +94,8 @@ const APITestContent: React.FC = () => {
   }, [apiSelectedBook]);
 
   // ✅ [수정] runApiTest 함수
-  const runApiTest = async (testIsbn: string, testTitle: string) => {
-    if (!testIsbn?.trim() || !testTitle?.trim()) {
+  const runApiTest = async (testIsbn: string, testTitle: string, testAuthor: string) => {
+    if (!testIsbn?.trim() || !testTitle?.trim() || !testAuthor?.trim()) {
       setError('ISBN과 도서 제목을 모두 입력해주세요.');
       return;
     }
@@ -104,7 +106,7 @@ const APITestContent: React.FC = () => {
     setError(null);
 
     try {
-      const libraryPromise = fetchBookAvailability(testIsbn.trim(), testTitle.trim());
+      const libraryPromise = fetchBookAvailability(testIsbn.trim(), testTitle.trim(), testAuthor.trim());
       const aladinPromise = searchAladinBooks(testIsbn.trim(), 'ISBN');
       const [libraryResult, aladinResultSettled] = await Promise.allSettled([libraryPromise, aladinPromise]);
 
@@ -141,7 +143,7 @@ const APITestContent: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    await runApiTest(isbn, title);
+    await runApiTest(isbn, title, author);
   };
 
   const processedTitle = title ? processGyeonggiEbookEduTitle(title) : '';
