@@ -574,6 +574,10 @@ const MyLibrary: React.FC = () => {
     libraryTagFilterResults,
     isFilteringByTag,
     tagCounts,
+    filterLibraryByFavorites, // ✅ 새로 추가
+    clearLibraryFavoritesFilter, // ✅ 새로 추가
+    libraryFavoritesFilterResults, // ✅ 새로 추가
+    isFilteringByFavorites, // ✅ 새로 추가
   } = useBookStore();
   
   // ✅ [추가] 색상 기준으로 정렬된 태그 목록을 미리 계산합니다.
@@ -604,6 +608,18 @@ const MyLibrary: React.FC = () => {
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
   const [noteInputValue, setNoteInputValue] = useState('');
   
+  // 좋아요 필터  
+  const handleToggleFavoritesFilter = () => {
+    const isNowFiltering = !showFavoritesOnly;
+    setShowFavoritesOnly(isNowFiltering);
+
+    if (isNowFiltering) {
+      filterLibraryByFavorites(); // ✅ '좋아요' 필터링 시작
+    } else {
+      clearLibraryFavoritesFilter(); // ✅ '좋아요' 필터링 해제
+    }
+  };
+
   // 필터 리셋 함수
   const resetLibraryFilters = useCallback(() => {
     setDebouncedSearchQuery('');
@@ -830,6 +846,8 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
     } else if (activeTags.size > 0) {
       // 2순위: 태그 필터 활성화 → 서버 태그 필터링 결과 사용
       filteredBooks = [...libraryTagFilterResults];
+    } else if (showFavoritesOnly) {
+      filteredBooks = [...libraryFavoritesFilterResults];
     } else {
       // 3순위: 필터 없음 → 로컬 데이터 사용
       filteredBooks = [...myLibraryBooks];
@@ -843,9 +861,9 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
       );
     }
 
-    if (showFavoritesOnly) {
-      filteredBooks = filteredBooks.filter(book => book.isFavorite === true);
-    }
+    // if (showFavoritesOnly) {
+    //   filteredBooks = filteredBooks.filter(book => book.isFavorite === true);
+    // }
 
     // Then sort the filtered books
     return filteredBooks.sort((a, b) => {
@@ -874,7 +892,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
         }
         return 0;
     });
-  }, [myLibraryBooks, librarySearchResults, libraryTagFilterResults, sortConfig, debouncedSearchQuery, activeTags, showFavoritesOnly, authorFilter]);
+  }, [myLibraryBooks, librarySearchResults, libraryTagFilterResults, sortConfig, debouncedSearchQuery, activeTags, showFavoritesOnly, authorFilter, libraryFavoritesFilterResults]);
 
   // 페이지네이션이 적용된 표시할 책 목록 계산
   const displayedBooks = useMemo(() => {
@@ -1111,7 +1129,8 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                 </svg>
               </button>
               <button
-                onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                // onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                onClick={handleToggleFavoritesFilter} // ✅ onClick 핸들러 변경
                 className="p-1 btn-base btn-primary rounded-lg transition-colors duration-200"
                 title={showFavoritesOnly ? "전체 책 보기" : "좋아하는 책만 보기"}
               >
@@ -1246,7 +1265,8 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                 </svg>
               </button>
               <button
-                onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                // onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                onClick={handleToggleFavoritesFilter} // ✅ onClick 핸들러 변경
                 className="p-1 btn-base btn-primary rounded-lg transition-colors duration-200"
                 title={showFavoritesOnly ? "전체 책 보기" : "좋아하는 책만 보기"}
               >
@@ -1282,13 +1302,23 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
       {viewType === 'card' ? (
         /* Card View */
         <div className="space-y-4 max-w-4xl mx-auto">
-        {(isSearchingLibrary || isFilteringByTag) ? (
+        {/* {(isSearchingLibrary || isFilteringByTag) ? (
           <div className="text-center p-8">
             <Spinner />
             <p className="mt-2 text-secondary">
               {isSearchingLibrary ? '서재에서 검색 중입니다...' : '태그로 필터링 중입니다...'}
             </p>
           </div>
+        ) : displayedBooks.length === 0 && debouncedSearchQuery.trim().length >= 2 ? ( */}
+        {(isSearchingLibrary || isFilteringByTag || isFilteringByFavorites) ? (
+        <div className="text-center p-8">
+          <Spinner />
+          <p className="mt-2 text-secondary">
+            {isSearchingLibrary ? '서재에서 검색 중입니다...' : 
+            isFilteringByTag ? '태그로 필터링 중입니다...' : 
+            '좋아하는 책을 찾는 중입니다...'}
+          </p>
+        </div>
         ) : displayedBooks.length === 0 && debouncedSearchQuery.trim().length >= 2 ? (
           <div className="text-center text-secondary p-8 bg-secondary rounded-lg shadow-md">
             <h3 className="text-lg font-medium mb-2">검색 결과가 없습니다</h3>
