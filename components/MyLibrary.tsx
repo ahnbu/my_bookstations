@@ -1180,7 +1180,6 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                 />
               </label>
               <span className="text-sm text-secondary">
-                {/* {selectedBooks.size}개 선택(총 {sortedAndFilteredLibraryBooks.length}권{!showAllBooks && !hasActiveFilters() && sortedAndFilteredLibraryBooks.length > displayedBooks.length ? `, ${displayedBooks.length}권 표시` : ''}) */}
                 {selectedBooks.size}개 선택(총 {hasActiveFilters() ? sortedAndFilteredLibraryBooks.length : totalBooksCount}권{!showAllBooks && !hasActiveFilters() && totalBooksCount > displayedBooks.length ? ` 중 ${displayedBooks.length}권 표시` : ''})
               </span>
             </div>
@@ -1412,24 +1411,6 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                           전자책
                         </a>
                       )}
-                      {/* <a 
-                        href={book.link} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className={buttonClass}
-                      >
-                        종이책
-                      </a>
-                      {hasEbook && (
-                        <a 
-                          href={book.subInfo.ebookList[0].link} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="flex-1 px-1 py-1 bg-elevated border border-secondary text-secondary text-xs rounded hover:bg-secondary hover:text-primary transition-colors text-center whitespace-nowrap"
-                        >
-                          전자책
-                        </a>
-                      )} */}
                     </>
                   );
                 })()}
@@ -1530,22 +1511,6 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                     {/* ✅ [수정 끝] */}
                   </div>
                 )}
-                {/* {settings.showTags && book.customTags && book.customTags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {book.customTags.map(tagId => {
-                      const tag = settings.tagSettings.tags.find(t => t.id === tagId);
-                      return tag ? (
-                        <CustomTagComponent
-                          key={tag.id}
-                          tag={tag}
-                          isActive={false}
-                          onClick={() => {}}
-                          size="sm"
-                        />
-                      ) : null;
-                    })}
-                  </div>
-                )} */}
               </div>
               
               {/* 구분선 및 "하단 재고 블록" */}
@@ -1612,27 +1577,6 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                   searchUrl={createLibraryOpenURL("e시립소장", book.title, book.customSearchTitle)}
                   isError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.owned?.error) : false}
                 />
-                
-                {/* e북.경기 */}
-                {/* ISBN필터링 제거 : 1)종이책ISBN이었음, 2)전자책ISBN도 정확히 일치 안함 */}
-                {/* 알라딘 전자책 ISBN: "E898407709", 
-                    도서관 ISBN: "isbn": "8984077097" -> 마지막에 7이 붙어 있음
-                    */}
-                    
-                {/* <LibraryTag
-                  name="e경기"
-                  totalBooks={(() => {
-                    const targetGyeonggiInfo = book.filteredGyeonggiEbookInfo || book.gyeonggiEbookInfo;
-                    return targetGyeonggiInfo && 'total_count' in targetGyeonggiInfo ? targetGyeonggiInfo.total_count : 0;
-                  })()}
-                  availableBooks={(() => {
-                    const targetGyeonggiInfo = book.filteredGyeonggiEbookInfo || book.gyeonggiEbookInfo;
-                    return targetGyeonggiInfo && 'available_count' in targetGyeonggiInfo ? targetGyeonggiInfo.available_count : 0;
-                  })()}
-                  // searchUrl={createGyeonggiEbookSearchURL(book.title)}
-                  searchUrl={createLibraryOpenURL("e경기", book.title, book.customSearchTitle)}
-                  isError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
-                /> */}
                 <LibraryTag
                   name="e경기"
                   // ✅ [수정] 'filteredGyeonggiEbookInfo'를 사용하지 않고 'gyeonggiEbookInfo'만 사용하도록 단순화
@@ -1705,9 +1649,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
               <p className="text-sm mt-1">다른 키워드로 검색해보세요.</p>
             </div>
           ) : (
-            // sortedAndFilteredLibraryBooks.map(book => (
             selectedBooksArray.map(book => (
-            // <div key={book.id} className="bg-elevated rounded-lg p-3 relative"> 
             <div key={book.id} className="bg-elevated rounded-lg p-3 relative min-w-0"> 
               {/* Checkbox */}
               <div
@@ -1716,18 +1658,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
               >
                 <input
                   type="checkbox"
-                  // checked={selectedBooks.has(book.id)}
                   checked={book.isSelected}
-                  /* onChange={(e) => {
-                    const newSelection = new Set(selectedBooks);
-                    if (e.target.checked) {
-                      newSelection.add(book.id);
-                    } else {
-                      newSelection.delete(book.id);
-                    }
-                    setSelectedBooks(newSelection);
-                    setSelectAll(newSelection.size === sortedAndFilteredLibraryBooks.length);
-                  }} */
                   onChange={(e) => {
                     e.stopPropagation();
                     handleBookSelection(book.id, e.target.checked);
@@ -1944,19 +1875,6 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
                     searchUrl={createLibraryOpenURL("e시립소장", book.title, book.customSearchTitle)}
                     isError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.owned?.error) : false}
                   />
-                  {/* <LibraryTag
-                    name="e경기"
-                    totalBooks={(() => {
-                      const targetGyeonggiInfo = book.filteredGyeonggiEbookInfo || book.gyeonggiEbookInfo;
-                      return targetGyeonggiInfo && 'total_count' in targetGyeonggiInfo ? targetGyeonggiInfo.total_count : 0;
-                    })()}
-                    availableBooks={(() => {
-                      const targetGyeonggiInfo = book.filteredGyeonggiEbookInfo || book.gyeonggiEbookInfo;
-                      return targetGyeonggiInfo && 'available_count' in targetGyeonggiInfo ? targetGyeonggiInfo.available_count : 0;
-                    })()}
-                    searchUrl={createLibraryOpenURL("e경기", book.title, book.customSearchTitle)}
-                    isError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
-                  /> */}
                   {/* e북.경기 */}
                   <LibraryTag
                     name="e경기"

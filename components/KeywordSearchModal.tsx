@@ -263,70 +263,11 @@ const KeywordSearchModal: React.FC = () => {
                     );
                   })}
                 </tbody>
-
-                {/*
-                <tbody>
-                  {sortedResults.map((result, index) => {
-                    // 요구사항 처리를 위한 데이터 가공
-                    const displayAuthor = result.author.length > 3 // 저자 3자 넘으면 ...처리
-                      ? `${result.author.slice(0, 3)}...`
-                      : result.author;
-
-                    const displayTitle = result.title.length > 25 // 제목 25자 넘으면 ...처리
-                      ? `${result.title.slice(0, 25)}...`
-                      : result.title;  // YYYY 형식만 추출 (정규식 사용)
-                    const displayPubDate = result.pubDate.match(/\d{4}/)?.[0] || result.pubDate;
-                    return (
-                      <tr key={index} className="border-b border-primary hover-surface transition-colors">
-                        <td className="px-4 py-3 text-sm text-secondary truncate whitespace-nowrap">{result.type}</td>
-                        <td className="px-4 py-3 text-sm text-secondary truncate whitespace-nowrap">{result.libraryName}</td>
-                        <td className="px-4 py-3 text-sm truncate whitespace-nowrap max-w-xs">                           
-                          <a
-                            href={createLibraryOpenURL(result.libraryName as LibraryName, result.title)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-500 dark:text-blue-400 hover:underline"
-                            title={result.title} // 마우스를 올리면 전체 제목이 보이도록 설정
-                          >
-                            {displayTitle} 
-                          </a>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-secondary truncate whitespace-nowrap" title={result.author}>
-                            {displayAuthor}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-secondary truncate whitespace-nowrap">{displayPubDate}</td>
-                        <td className="px-4 py-3 text-sm truncate whitespace-nowrap">
-                          {result.isAvailable ? (
-                            <span className="flex items-center text-green-600 font-medium">
-                              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                              가능
-                            </span>
-                          ) : (
-                            <span className="flex items-center text-red-600 font-medium">
-                              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
-                              불가
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody> 
-                */}
                 
               </table>
             </div>
           )}
         </div>
-
-        {/* 하단 버튼 */}
-        {/* <div className="flex justify-end p-6 border-t border-primary"> */}
-        {/* <div className="flex justify-end p-6">
-
-          <button onClick={handleClose} className="btn-base btn-secondary px-6 py-2 font-semibold">
-            닫기
-          </button>
-        </div> */}
       </div>
     </div>
   );

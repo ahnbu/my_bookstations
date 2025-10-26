@@ -265,19 +265,6 @@ const BookDetails: React.FC = () => {
               )}
             </div>
           ) : null}
-
-          {/* {selectedBook.priceSales && selectedBook.priceStandard && (
-            <div className="flex items-baseline mb-4">
-              <p className="text-xl font-bold text-blue-400">{selectedBook.priceSales.toLocaleString()}원</p>
-              <p className="text-sm text-tertiary line-through ml-3">{selectedBook.priceStandard.toLocaleString()}원</p>
-            </div>
-          )} */}
-
-          {/*
-          <p className="text-sm text-tertiary leading-relaxed mb-6">
-            {selectedBook.description || "제공된 설명이 없습니다."}
-          </p>
-          */}
           
           <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
             <button
@@ -329,29 +316,6 @@ const BookDetails: React.FC = () => {
               <BookOpenIcon className="w-4 h-4" />
               전자책 보기
             </a>
-{/*             
-            <a
-              href={selectedBook.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-primary font-semibold rounded-lg hover:bg-green-700 transition-colors duration-300 text-sm"
-            >
-              <BookOpenIcon className="w-4 h-4" />
-              알라딘 보기
-            </a>
-            <a
-              href={hasEbookLink || '#'}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => !hasEbookLink && e.preventDefault()}
-              className={`w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-sky-500 text-primary font-semibold rounded-lg transition-colors duration-300 text-sm ${
-                !hasEbookLink ? 'opacity-50 cursor-not-allowed' : 'hover:bg-sky-600'
-              }`}
-              title={!hasEbookLink ? "알라딘에서 제공하는 전자책 정보가 없습니다" : "알라딘에서 전자책 보기"}
-            >
-              <BookOpenIcon className="w-4 h-4" />
-              전자책 보기
-            </a> */}
           </div>
         </div>
       </div>

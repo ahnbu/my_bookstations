@@ -91,30 +91,6 @@ const APITestContent: React.FC = () => {
     }
   }, [apiSelectedBook]);
 
-  // const runApiTest = async (testIsbn: string, testTitle: string) => {
-  //   if (!testIsbn.trim() || !testTitle.trim()) {
-  //     setError('ISBN과 도서 제목을 모두 입력해주세요.');
-  //     return;
-  //   }
-
-  //   setIsLoading(true);
-  //   setFullApiResult(null);
-  //   setError(null);
-
-  //   try {
-  //     const data = await fetchBookAvailability(testIsbn.trim(), testTitle.trim());
-  //     setFullApiResult(data);
-  //   } catch (err) {
-  //     if (err instanceof Error) {
-  //       setError(err.message);
-  //     } else {
-  //       setError('알 수 없는 오류가 발생했습니다.');
-  //     }
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
-
   // ✅ [수정] runApiTest 함수
   const runApiTest = async (testIsbn: string, testTitle: string) => {
     if (!testIsbn?.trim() || !testTitle?.trim()) {
@@ -238,52 +214,7 @@ const APITestContent: React.FC = () => {
         onSelectBook={handleApiSelectBook}
       />
 
-      {/* 수동 입력 섹션 
-      <div className="border-t border-gray-600 pt-6"></div>
-      
-      <div>
-        <h3 className="text-xl font-semibold text-white mb-4">✏️ 수동 입력 테스트</h3>
-      </div> */}
-
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> */}
-          {/* ISBN Input */}
-          {/* <div>
-            <label htmlFor="isbn-test" className="block text-sm font-medium text-gray-300 mb-2">
-              ISBN (13자리)
-            </label>
-            <input
-              id="isbn-test"
-              type="text"
-              value={isbn}
-              onChange={(e) => setIsbn(e.target.value)}
-              placeholder="예: 9791130629353"
-              className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow duration-300"
-              disabled={isLoading}
-            />
-          </div> */}
-
-          {/* Title Input */}
-          {/* <div>
-            <label htmlFor="title-test" className="block text-sm font-medium text-gray-300 mb-2">
-              도서 제목
-            </label>
-            <input
-              id="title-test"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="예: 네이비씰 균형의 기술"
-              className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow duration-300"
-              disabled={isLoading}
-            />
-            {title && (
-              <p className="text-xs text-gray-400 mt-1">
-                처리된 검색어: <span className="text-blue-400">"{processedTitle}"</span>
-              </p>
-            )}
-          </div>
-        </div> */}
 
         <button
           type="submit"

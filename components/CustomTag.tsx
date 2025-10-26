@@ -124,44 +124,6 @@ const CustomTagComponent: React.FC<CustomTagProps> = ({
       )}
     </button>
   );
-  // return (
-  //   <span
-  //     className={baseClasses}
-  //     onClick={onClick}
-  //     title={onClick ? `클릭하여 '${tag.name}' 태그로 필터링` : undefined}
-  //   >
-  //     {tag.name}
-  //     {showCount !== undefined && (
-  //       <span className="ml-1 opacity-75">
-  //         ({showCount})
-  //       </span>
-  //     )}
-  //     {showClose && (
-  //       <button
-  //         onClick={(e) => {
-  //           e.stopPropagation();
-  //           onClose?.();
-  //         }}
-  //         className="ml-1 p-0.5 text-current hover:text-red-400 transition-colors rounded"
-  //         title="태그 제거"
-  //       >
-  //         <CloseIcon className="w-3 h-3" />
-  //       </button>
-  //     )}
-  //     {showAdd && (
-  //       <button
-  //         onClick={(e) => {
-  //           e.stopPropagation();
-  //           onAdd?.();
-  //         }}
-  //         className="ml-1 p-0.5 text-current hover:text-green-400 transition-colors rounded"
-  //         title="태그 추가"
-  //       >
-  //         <PlusIcon className="w-3 h-3" />
-  //       </button>
-  //     )}
-  //   </span>
-  // );
 };
 
 export default CustomTagComponent;

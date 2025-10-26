@@ -19,20 +19,6 @@ const TagFilter: React.FC<TagFilterProps> = ({
   // useBookStore에서 전체 서재 기준 태그 카운트 가져오기
   const { tagCounts } = useBookStore();
 
-  // // 태그 사용량 정렬 및 상위 10개만 표시
-  // const tagUsageStats = React.useMemo(() => {
-  //   // 사용량 많은 순으로 정렬하고 상위 10개만 표시
-  //   return tags
-  //     .map(tag => ({
-  //       tag,
-  //       count: tagCounts[tag.id] || 0
-  //     }))
-  //     .filter(item => item.count > 0) // 사용된 태그만 필터링
-  //     .sort((a, b) => b.count - a.count)  // 2. 인기도 순으로 정렬
-  //     // .slice(0, 10); // 💥 3. 상위 10개만 잘라냄!
-  // }, [tags, tagCounts]);
-
-
   // ✅ [수정] 1순위: 색상, 2순위: 인기도 순으로 정렬
   const tagUsageStats = React.useMemo(() => {
     // 사용량 많은 순으로 정렬
@@ -70,8 +56,6 @@ const TagFilter: React.FC<TagFilterProps> = ({
     .filter(Boolean) // 이름이 없는 경우(undefined)를 필터링
     .join(', '); // 쉼표와 공백으로 이름들을 연결
 
-  // <span className="text-sm text-secondary mr-2">인기 태그:</span>
-  //         <span className="text-sm text-secondary mr-2"></span> 
   return (
     <div className="mb-4 p-3 bg-secondary rounded-lg border border-primary">
       <div className="flex flex-wrap items-center gap-2">

@@ -656,74 +656,6 @@ export const useBookStore = create<BookState>(
           }
       },
 
-      // 개별 책 삭제
-
-      // removeFromLibrary: async (id: number) => {
-      //   try {
-      //       const { error } = await supabase.from('user_library').delete().eq('id', id);
-      //       if (error) throw error;
-
-      //       set(state => {
-      //           const newLibraryBooks = state.myLibraryBooks.filter(b => b.id !== id);
-      //           let newSelectedBook = state.selectedBook;
-
-      //           // If the deleted book was the selected book, unselect it to prevent errors.
-      //           if (newSelectedBook && 'id' in newSelectedBook && newSelectedBook.id === id) {
-      //               newSelectedBook = null;
-      //           }
-                
-      //           return {
-      //               myLibraryBooks: newLibraryBooks,
-      //               selectedBook: newSelectedBook,
-      //           };
-      //       });
-      //   } catch(error) {
-      //       console.error("Error removing book from library:", error);
-      //       useUIStore.getState().setNotification({ message: '서재에서 책을 삭제하는 데 실패했습니다.', type: 'error'});
-      //   }
-      // },
-
-
-      // useBook-store.ts
-
-      // removeFromLibrary: async (id: number) => {
-      //     // 1. (선택적이지만 권장) 낙관적 UI 업데이트: DB 응답을 기다리지 않고 UI부터 즉시 변경
-      //     const { myLibraryBooks, librarySearchResults, libraryTagFilterResults } = get();
-
-      //     // 롤백을 위해 원본 상태 저장
-      //     const originalState = { myLibraryBooks, librarySearchResults, libraryTagFilterResults };
-
-      //     set(state => ({
-      //       // ✅ 모든 관련 배열에서 삭제된 아이템을 필터링하여 새로운 상태를 만듦
-      //       myLibraryBooks: state.myLibraryBooks.filter(b => b.id !== id),
-      //       librarySearchResults: state.librarySearchResults.filter(b => b.id !== id),
-      //       libraryTagFilterResults: state.libraryTagFilterResults.filter(b => b.id !== id),
-      //       totalBooksCount: state.totalBooksCount -1, // ✅ 전체 책 개수도 1 감소
-      //     }));
-
-      //     // 2. DB에서 데이터 삭제
-      //     try {
-      //         const { error } = await supabase.from('user_library').delete().eq('id', id);
-      //         if (error) throw error; // 에러 발생 시 catch 블록으로 이동
-
-      //         // (성공 시 추가 작업)
-      //         // 만약 삭제된 책이 selectedBook이었다면, 선택 해제
-      //         const { selectedBook, unselectBook } = get();
-      //         if (selectedBook && 'id' in selectedBook && selectedBook.id === id) {
-      //           unselectBook();
-      //         }
-
-      //     } catch(error) {
-      //         console.error("Error removing book from library:", error);
-      //         useUIStore.getState().setNotification({ message: '서재에서 책을 삭제하는 데 실패했습니다.', type: 'error'});
-
-      //         // 3. (실패 시) 롤백: UI 상태를 원래대로 되돌림
-      //         set(originalState);
-      //         set(state => ({ totalBooksCount: state.totalBooksCount + 1 })); // 감소시켰던 책 개수 복원
-      //     }
-      // },
-
-
       removeFromLibrary: async (id: number) => {
           // 1. 롤백을 위해 원본 상태 저장 및 삭제할 책 정보 찾기
           const { myLibraryBooks, librarySearchResults, libraryTagFilterResults, myLibraryIsbnSet } = get();
@@ -859,42 +791,6 @@ export const useBookStore = create<BookState>(
               siripEbookInfo: (pureApiData.siripEbookInfo === undefined || pureApiData.siripEbookInfo === null)
                 ? originalBook.siripEbookInfo
                 : pureApiData.siripEbookInfo,
-
-              // 광주 종이책 정보 (gwangjuPaperInfo) 복원
-              // toechonStock과 otherStock은 gwangjuPaperInfo를 기반으로 생성되므로,
-              // gwangjuPaperInfo만 복원하면 파생 데이터도 함께 유지됩니다.
-              // gwangjuPaperInfo: (pureApiData.gwangjuPaperInfo && 'error' in pureApiData.gwangjuPaperInfo)
-              //   ? originalBook.gwangjuPaperInfo
-              //   : pureApiData.gwangjuPaperInfo,
-              
-              // toechonStock: (pureApiData.gwangjuPaperInfo && 'error' in pureApiData.gwangjuPaperInfo)
-              //   ? originalBook.toechonStock
-              //   : pureApiData.toechonStock,
-
-              // otherStock: (pureApiData.gwangjuPaperInfo && 'error' in pureApiData.gwangjuPaperInfo)
-              //   ? originalBook.otherStock
-              //   : pureApiData.otherStock,
-
-              // // 경기교육청 전자책 정보 (ebookInfo) 복원
-              // ebookInfo: (pureApiData.ebookInfo && 'error_count' in pureApiData.ebookInfo && pureApiData.ebookInfo.error_count > 0)
-              //   ? originalBook.ebookInfo
-              //   : pureApiData.ebookInfo,
-              
-              // // 경기도 전자도서관 정보 (gyeonggiEbookInfo) 복원
-              // gyeonggiEbookInfo: (pureApiData.gyeonggiEbookInfo && 'error' in pureApiData.gyeonggiEbookInfo)
-              //   ? originalBook.gyeonggiEbookInfo
-              //   : pureApiData.gyeonggiEbookInfo,
-              
-              // // 경기도 전자도서관 필터링된 정보 (filteredGyeonggiEbookInfo) 복원
-              // filteredGyeonggiEbookInfo: (pureApiData.gyeonggiEbookInfo && 'error' in pureApiData.gyeonggiEbookInfo)
-              //   ? originalBook.filteredGyeonggiEbookInfo
-              //   : pureApiData.filteredGyeonggiEbookInfo,
-
-              // // 시립도서관 전자책 정보 (siripEbookInfo) 복원
-              // siripEbookInfo: (pureApiData.siripEbookInfo && ('error' in pureApiData.siripEbookInfo || 'errors' in pureApiData.siripEbookInfo))
-              //   ? originalBook.siripEbookInfo
-              //   : pureApiData.siripEbookInfo,
-
             };
 
             // subInfo 업데이트 로직 (새 전자책 정보가 있는데 기존엔 없었을 경우)
@@ -1005,19 +901,6 @@ export const useBookStore = create<BookState>(
 
         await updateBookInStoreAndDB(id, { customTags: updatedTags }, '태그 제거에 실패했습니다.');
       },
-
-      // updateBookTags: async (id, tagIds) => {
-      //   const book = await get().getBookById(id);
-      //   // ✅ [추가] 태그 카운트 즉시 업데이트 (-1)
-      //   set(state => ({
-      //     tagCounts: {
-      //       ...state.tagCounts,
-      //       [tagId]: Math.max(0, (state.tagCounts[tagId] || 1) - 1),
-      //     }
-      //   }));
-      //   await updateBookInStoreAndDB(id, { customTags: tagIds }, '태그 업데이트에 실패했습니다.');
-      // },
-
       
       // ✅ [수정] updateBookTags 함수 전체를 아래 코드로 교체합니다.
       updateBookTags: async (id, tagIds) => {

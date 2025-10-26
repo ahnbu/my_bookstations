@@ -89,25 +89,6 @@ const WelcomeModal: React.FC = () => {
 
       {/* 모달 컨텐츠 */}
       <div className="relative bg-primary border border-secondary rounded-lg shadow-xl w-full max-w-md mx-4 flex flex-col">
-        {/* 헤더 
-        <div className="flex items-center justify-between p-6 border-b border-secondary">
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">📚</span>
-            <div>
-              <h2 className="text-xl font-bold text-primary">환영합니다!</h2>
-              <p className="text-sm text-secondary">마이 북스테이션에 처음 방문하셨군요</p>
-            </div>
-          </div>
-          <button
-            onClick={handleClose}
-            className="text-secondary hover:text-primary transition-colors p-2 hover:bg-secondary rounded-full"
-            title="닫기 (ESC)"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div> */}
 
         {/* 컨텐츠 */}
         <div className="p-6 space-y-4">

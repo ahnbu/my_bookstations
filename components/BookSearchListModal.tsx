@@ -10,10 +10,6 @@ const BookSearchListModal: React.FC = () => {
   const { searchResults, selectBook, myLibraryBooks, hasMoreResults, isLoadingMore, loadMoreSearchResults, myLibraryIsbnSet, isBookInLibrary } = useBookStore();
   const handleBookClick = (book: AladdinBookItem) => { // [수정] any 대신 AladdinBookItem 타입 사용
 
-  // // ▼▼▼▼▼▼▼▼▼▼ [디버깅 로그 #3] - 렌더링 시점의 Set 상태 확인 ▼▼▼▼▼▼▼▼▼▼
-  // console.log(`[MODAL-DEBUG-3] Modal is rendering. Current ISBN Set size: ${myLibraryIsbnSet.size}`);
-  // // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
-
     // 중복 책 체크
     const duplicateBook = myLibraryBooks.find(libraryBook => libraryBook.isbn13 === book.isbn13);
 

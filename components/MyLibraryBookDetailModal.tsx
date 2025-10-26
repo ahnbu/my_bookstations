@@ -34,24 +34,6 @@ interface StockDisplayProps {
   isLoading?: boolean;
 }
 
-// const StockDisplay: React.FC<StockDisplayProps> = ({
-//   label,
-//   searchUrl,
-//   totalCount = 0,
-//   availableCount = 0,
-//   hasError = false,
-//   isLoading = false
-// }) => {
-//   // 로딩 상태 처리
-//   if (isLoading) {
-//     return (
-//       <div className="flex justify-between items-center">
-//         <span>{label}:</span>
-//         <span className="text-tertiary">조회중...</span>
-//       </div>
-//     );
-//   }
-
 const StockDisplay: React.FC<StockDisplayProps> = ({
   label,
   searchUrl,
@@ -335,45 +317,6 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
     const [rawBookData, setRawBookData] = useState<object | null>(null);
     const [isFetchingJson, setIsFetchingJson] = useState(false);
 
-    // ✅ API 버튼 - 누를 때마다 새롭게 조회 (기존)
-    // const handleApiButtonClick = async () => {
-    //   if (!book) return;
-    //   setIsFetchingJson(true);
-
-    //   try {
-    //     // 1. 실시간으로 API 호출
-    //     const libraryPromise = fetchBookAvailability(book.isbn13, book.title, book.customSearchTitle);
-    //     const aladinPromise = searchAladinBooks(book.isbn13, 'ISBN');
-    //     const [libraryResult, aladinResult] = await Promise.allSettled([libraryPromise, aladinPromise]);
-
-    //     if (libraryResult.status === 'rejected') {
-    //       throw libraryResult.reason;
-    //     }
-
-    //     const aladinBookData = aladinResult.status === 'fulfilled'
-    //       ? aladinResult.value.find(b => b.isbn13 === book.isbn13) || null
-    //       : null;
-
-    //     if (!aladinBookData) {
-    //       throw new Error("실시간 알라딘 정보를 가져올 수 없습니다.");
-    //     }
-
-    //     // 2. "순수 API 정보 객체" 생성
-    //     const pureApiData = combineRawApiResults(aladinBookData, libraryResult.value);
-
-    //     // 3. 생성된 객체를 JsonViewerModal로 전달
-    //     openJsonViewerModal(pureApiData, `[API] ${book.title}`);
-
-    //   } catch (error) {
-    //     console.error("API 조합 데이터 생성 실패:", error);
-    //     const errorData = { error: error instanceof Error ? error.message : String(error) };
-    //     openJsonViewerModal(errorData, `[API 호출 실패] ${book.title}`);
-    //   } finally {
-    //     setIsFetchingJson(false);
-    //   }
-    // };
-
-
     // ✅ API 버튼 - Supabase DB 조회 방식
     const handleApiButtonClick = async () => {
       if (!book) return;
@@ -574,12 +517,6 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
         // 책을 찾지 못했거나 에러가 발생한 경우, 아무것도 렌더링하지 않음 (useEffect에서 onClose가 호출됨)
         return null; 
     }
-
-    // 레이아웃 로직 변수 정의
-    // const hasEbookLink = book.subInfo?.ebookList?.[0]?.link;
-    // const hasLeftContent = settings.showRating || settings.showReadStatus || settings.showTags || settings.showBookNotes;
-    // const hasRightContent = settings.showLibraryStock;
-    // const isLibraryStockOnly = !hasLeftContent && hasRightContent;
 
     // [수정] ✅ mallType을 기준으로 종이책/전자책 링크를 정확히 할당
     const isEbookResult = book.mallType === 'EBOOK';
