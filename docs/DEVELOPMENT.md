@@ -274,20 +274,106 @@ graph TD
 ```
 - **데이터 복원 로직**: `refreshBookInfo` 함수는 `pureApiData`의 필드가 `undefined` 또는 `null`일 경우, 이를 API 실패로 간주하고 기존 DB에 저장된 `originalBook`의 값으로 복원하여 데이터 유실을 방지합니다.
 
+
+
 ## 🐛 트러블슈팅 가이드
 
-### 경기도 광주시 퇴촌도서관 상세페이지 웹 방화벽 차단
-- **증상**: 크롤링 데이터에 포함된 상세페이지 URL(`resourcedetail/detail.do?...`)로 직접 접근 시 "Web firewall security policies have been blocked" 에러 페이지가 표시됨.
-- **원인**: 도서관 시스템의 보안 정책 강화로 외부에서의 상세페이지 직접 링크가 차단됨.
-- **해결**: `createLibraryOpenURL` 함수에서 '퇴촌' 케이스 처리 시, 상세페이지 URL 대신 **제목 기반 검색 결과 페이지 URL**을 생성합니다. 사용자는 검색 결과 목록에서 해당 도서를 클릭하여 상세 정보를 확인할 수 있습니다.
+이 섹션은 프로젝트 개발 중 발생했던 주요 문제들과 그 해결 과정을 기록하여, 유사 문제 발생 시 빠르고 효과적으로 대응하기 위한 가이드입니다.
 
-### API 요청 타임아웃 (전체 응답 지연)
-- **증상**: 하나의 도서관 서버 응답이 지연되면 전체 재고 조회(`Promise.allSettled`)가 늦어짐.
-- **해결**: Cloudflare Worker(`library-checker/src/index.js`)에서 각 도서관 `fetch` 요청에 `AbortSignal.timeout(15000)` (15초)을 설정했습니다. 특정 서버가 15초 내에 응답하지 않으면 해당 요청만 실패 처리하고 나머지 결과를 반환합니다.
+---
 
-### 경기도 전자도서관 검색 결과 0건 (특수문자 문제)
-- **증상**: 책 제목에 특수문자가 포함된 경우 검색 결과가 0건으로 나옴.
-- **해결**: API 호출 방식을 복잡한 `detailQuery` 파라미터 대신, 실제 웹사이트 검색창과 동일하게 동작하는 `keyword` 파라미터 방식으로 변경하여 검색 정확도를 높였습니다.
+### **[유형 1] 크롤링 실패: 세션 쿠키(Session Cookie)가 필요한 경우**
+
+-   **대상 사이트**: 광주시립도서관 구독형 전자책
+-   **증상**: Cloudflare Worker 로그에 `시립도서관 구독형 전자책 검색 오류: Error: 시립도서관 구독형 전자책 HTTP 400` 오류가 반복적으로 기록됩니다. 브라우저에서 직접 접속 시에는 정상적으로 작동합니다.
+-   **원인 분석**: 도서관 서버의 안티-스크래핑(Anti-Scraping) 정책 강화. 서버가 이제는 단순 `GET` 요청을 차단하고, **유효한 세션 쿠키(`SESSION`, `JSESSIONID`)를 포함한 요청**만 허용하도록 변경되었습니다.
+-   **해결 전략**: **2단계 요청(Two-Step Request)** 로직을 구현하여 실제 사용자의 브라우저 흐름을 모방합니다.
+
+    1.  **1단계: 세션 획득 (Session Acquisition)**
+        -   Worker는 먼저 실제 검색어 없이 도서관 검색 페이지의 기본 URL로 `GET` 요청을 보냅니다.
+        -   이 요청에 대한 서버의 응답 헤더에서 `Set-Cookie` 값을 추출하여, 서버가 발급한 고유 세션 ID를 획득합니다.
+
+    2.  **2단계: 인증된 검색 (Authenticated Search)**
+        -   Worker는 실제 검색어가 포함된 URL로 두 번째 `GET` 요청을 보냅니다.
+        -   이때, 요청 헤더에 **`Cookie` 필드를 추가**하고, 1단계에서 획득한 세션 쿠키 값을 그대로 담아 전송합니다.
+        -   또한, **`Referer` 헤더**에 기본 검색 페이지 URL을 명시하여, "검색 페이지에서 정상적으로 이동한 요청"임을 서버에 알려줍니다.
+
+    **핵심 코드 (`library-checker/src/index.js`):**
+    ```javascript
+    async function searchSiripEbookSubs(searchTitle) {
+      try {
+        const baseSearchUrl = 'https://gjcitylib.dkyobobook.co.kr/search/searchList.ink';
+        
+        // 1. 세션 쿠키 획득
+        const initialResponse = await fetch(baseSearchUrl, { /* ... */ });
+        const sessionCookie = initialResponse.headers.get('set-cookie');
+        if (!sessionCookie) {
+          throw new Error('세션 쿠키를 찾을 수 없습니다.');
+        }
+        
+        // 2. 쿠키를 포함하여 실제 검색 수행
+        const searchUrl = `${baseSearchUrl}?schTxt=${encodedTitle}`;
+        const response = await fetch(searchUrl, { 
+          method: 'GET', 
+          headers: {
+            'Cookie': sessionCookie,
+            'Referer': baseSearchUrl,
+            // ... 기타 필수 헤더
+          },
+        });
+        // ...
+      } catch (error) { /* ... */ }
+    }
+    ```
+
+---
+
+### **[유형 2] 크롤링 실패: 동적 인증 토큰(Dynamic Token)이 필요한 경우**
+
+-   **대상 사이트**: 경기도 전자도서관 구독형 전자책
+-   **증상**: `401 Unauthorized` 또는 `403 Forbidden` 오류가 발생하며, 일반적인 헤더 구성으로는 요청이 거부됩니다.
+-   **원인 분석**: 서버가 매 요청마다 실시간으로 생성된 **시간 기반 동적 인증 토큰**을 `token` 헤더에 요구합니다. 이 토큰이 없거나 유효하지 않으면 요청이 차단됩니다.
+-   **해결 전략**: 도서관 사이트의 JavaScript 코드를 분석하여 토큰 생성 규칙을 파악하고, 이를 Worker 코드 내에서 그대로 재현합니다.
+
+    1.  **1단계: KST 시간 생성**
+        -   서버가 한국 표준시(KST, UTC+9)를 기준으로 시간을 검증하므로, `new Date(new Date().getTime() + 9 * 60 * 60 * 1000)` 코드를 통해 KST 현재 시간을 계산합니다.
+
+    2.  **2단계: 토큰 문자열 조합**
+        -   생성된 KST 시간을 `YYYYMMDDHHMM` 형식의 문자열로 변환합니다.
+        -   이 타임스탬프와 서버가 지정한 고정 ID(`0000000685`)를 쉼표로 연결하여 원본 토큰 문자열을 만듭니다. (예: `202510271530,0000000685`)
+
+    3.  **3단계: Base64 인코딩**
+        -   조합된 토큰 문자열을 Base64로 인코딩합니다. 이때, 실행 환경(Cloudflare Worker의 `btoa` / Node.js의 `Buffer`)에 맞는 함수를 사용해야 합니다.
+
+    4.  **4단계: 인증된 검색 (Authenticated Search)**
+        -   검색 API 엔드포인트(`https://api.bookers.life/...`)로 `POST` 요청을 보냅니다.
+        -   요청 헤더의 **`token` 필드**에 3단계에서 생성한 동적 토큰을 담아 전송합니다.
+
+    **핵심 코드 (`library-checker/src/index.js`):**
+    ```javascript
+    // (경기도 전자도서관 구독형 검색 함수 내)
+    // 1 & 2. KST 시간 기반 토큰 문자열 생성
+    const now = new Date(new Date().getTime() + 9 * 60 * 60 * 1000);
+    const timestamp = /* YYYYMMDDHHMM 형식으로 변환 */;
+    const tokenString = `${timestamp},0000000685`;
+    
+    // 3. Base64 인코딩 (Cloudflare 환경)
+    const dynamicToken = btoa(tokenString);
+
+    // 4. 토큰을 헤더에 담아 POST 요청
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'token': dynamicToken,
+        'Content-Type': 'application/json;charset=UTF-8',
+        'Referer': 'https://ebook.library.kr/',
+        // ... 기타 헤더
+      },
+      body: JSON.stringify({ search: query, /* ... */ })
+    });
+    ```
+-   **교훈**: 두 사례는 크롤링 시 마주치는 대표적인 인증 패턴입니다. `40x` 계열 오류 발생 시, 단순 헤더 변경 외에 **다단계 인증(세션 쿠키) 또는 동적 토큰** 요구 여부를 반드시 확인해야 합니다.
+
 
 ### 초기 로딩된 데이터에만 기능이 작동하는 경우
 
@@ -353,11 +439,25 @@ graph TD
 **핵심 원칙**: 사용자 인터랙션의 대상이 되는 객체를 찾거나 수정할 때는, 현재 화면에 보이는 데이터의 출처(`myLibraryBooks`, `librarySearchResults` 등)와 관계없이, **존재하는 모든 데이터 소스를 포괄하는 단일 통로(`getBookById`)**를 통해 접근해야 합니다.
 
 
-### **[신규 추가]** API 조회 실패 시 "조회중..."이 무한 반복되는 경우
+### API 조회 실패 시 "조회중..."이 무한 반복되는 경우
 
 -   **증상**: 상세 정보 모달에서 특정 재고 정보가 "조회중..."으로 계속 표시되고 멈춥니다.
 -   **원인**: API 조회 실패 시 DB에 해당 필드가 `null`로 저장됩니다. UI 컴포넌트가 `!book.someInfo` 와 같이 `null`을 `false`로 해석하여 로딩 상태로 오판하기 때문입니다.
 -   **해결**: `MyLibraryBookDetailModal`의 `StockDisplay` 컴포넌트에서 로딩 상태 판단 조건을 `!book.someInfo`에서 `book.someInfo === undefined`로 수정했습니다. 이를 통해 `undefined`(아직 로드 전)와 `null`(API 조회 실패 또는 데이터 없음)을 명확히 구분하여 처리합니다.
+
+
+### 경기도 광주시 퇴촌도서관 상세페이지 웹 방화벽 차단
+- **증상**: 크롤링 데이터에 포함된 상세페이지 URL(`resourcedetail/detail.do?...`)로 직접 접근 시 "Web firewall security policies have been blocked" 에러 페이지가 표시됨.
+- **원인**: 도서관 시스템의 보안 정책 강화로 외부에서의 상세페이지 직접 링크가 차단됨.
+- **해결**: `createLibraryOpenURL` 함수에서 '퇴촌' 케이스 처리 시, 상세페이지 URL 대신 **제목 기반 검색 결과 페이지 URL**을 생성합니다. 사용자는 검색 결과 목록에서 해당 도서를 클릭하여 상세 정보를 확인할 수 있습니다.
+
+### API 요청 타임아웃 (전체 응답 지연)
+- **증상**: 하나의 도서관 서버 응답이 지연되면 전체 재고 조회(`Promise.allSettled`)가 늦어짐.
+- **해결**: Cloudflare Worker(`library-checker/src/index.js`)에서 각 도서관 `fetch` 요청에 `AbortSignal.timeout(15000)` (15초)을 설정했습니다. 특정 서버가 15초 내에 응답하지 않으면 해당 요청만 실패 처리하고 나머지 결과를 반환합니다.
+
+### 경기도 전자도서관 검색 결과 0건 (특수문자 문제)
+- **증상**: 책 제목에 특수문자가 포함된 경우 검색 결과가 0건으로 나옴.
+- **해결**: API 호출 방식을 복잡한 `detailQuery` 파라미터 대신, 실제 웹사이트 검색창과 동일하게 동작하는 `keyword` 파라미터 방식으로 변경하여 검색 정확도를 높였습니다.
 
 ---
 
