@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
-import { SelectedBook, SortKey, ReadStatus, CustomTag, LibraryName, TagColor } from '../types';
+import { SelectedBook, SortKey, ReadStatus, CustomTag, LibraryName, TagColor, ViewType } from '../types';
 import { TrashIcon, RefreshIcon, CheckIcon, SearchIcon, CloseIcon, HeartIcon, MessageSquareIcon } from './Icons';
 import Spinner from './Spinner';
 import { useBookStore } from '../stores/useBookStore';
@@ -10,6 +10,8 @@ import MyLibraryBookDetailModal from './MyLibraryBookDetailModal';
 import TagFilter from './TagFilter';
 import CustomTagComponent from './CustomTag';
 import { addHomeResetListener } from '../utils/events';
+import MyLibraryListItem from './MyLibraryListItem'; // ✅ 새로 만든 컴포넌트 import
+import MyLibraryToolbar from './MyLibraryToolbar';   // ✅ 새로 추가
 
 // [핵심 수정] import 문 정리
 import { 
@@ -19,134 +21,6 @@ import {
 
 // [핵심 수정] createSearchSubject 정의 변경
 const createSearchSubject = processGyeonggiEbookEduTitle;
-
-// --- START: ReadStatusDropdown 로컬 컴포넌트 추가 ---
-interface CustomReadStatusDropdownProps {
-  value: ReadStatus;
-  onChange: (newStatus: ReadStatus) => void;
-  size?: 'sm' | 'md';
-}
-
-const ReadStatusDropdown: React.FC<CustomReadStatusDropdownProps> = ({
-  value,
-  onChange,
-  size = 'md',
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const options: ReadStatus[] = ['읽지 않음', '읽는 중', '완독'];
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  const sizeClasses = {
-    xs: 'text-xs px-2 py-1',
-    sm: 'text-xs px-2 py-1',
-    md: 'text-sm px-3 py-2',
-  };
-
-  // [핵심 수정] 반응형 너비 클래스를 적용
-  const widthClass = size === 'sm' 
-    ? 'w-full sm:w-24' // 기본은 w-full, sm(640px) 이상일 때만 w-24
-    : ''; // md 사이즈는 너비를 직접 제어하지 않음
-
-  return (
-    <div ref={dropdownRef} className={`relative inline-block text-left ${widthClass}`}>
-      <button
-        type="button"
-        className={`${size === 'sm' ? 'item-dropdown-btn' : 'input-base'} inline-flex ${size === 'sm' ? 'items-center gap-2' : 'w-full justify-between items-center gap-x-1.5'} ${sizeClasses[size]}`}
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        {value}
-        <svg className={`-mr-1 h-5 w-5 text-gray-400 transform transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-        </svg>
-      </button>
-
-      {isOpen && (
-        <div className="absolute right-0 z-10 mt-2 w-full origin-top-right rounded-md bg-elevated shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-          <div className="py-1">
-            {options.map((option) => (
-              <button
-                key={option}
-                onClick={() => {
-                  onChange(option);
-                  setIsOpen(false);
-                }}
-                className={`block w-full text-left px-4 py-2 text-sm ${
-                  option === value ? 'bg-accent text-primary' : 'text-secondary hover-surface'
-                }`}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-// --- END: ReadStatusDropdown 로컬 컴포넌트 ---
-
-const SortArrow: React.FC<{ order: 'asc' | 'desc' }> = ({ order }) => (
-  <span className="ml-1 inline-block w-3 h-3 text-xs">
-    {order === 'asc' ? '▲' : '▼'}
-  </span>
-);
-
-// LibraryTag Component
-interface LibraryTagProps {
-  name: string;
-  totalBooks: number;
-  availableBooks: number;
-  searchUrl: string;
-  size?: 'sm' | 'md';
-  isError?: boolean; // [추가]
-}
-
-// 2025.10.13 v2- API에러시 퇴촌(에러) -> (빨간점) 퇴촌(0/0)로 표시하도록 수정
-const LibraryTag: React.FC<LibraryTagProps> = ({ name, totalBooks, availableBooks, searchUrl, size = 'md', isError = false }) => {
-  // - API 실패시: 빨간색 (status-unavailable)
-  // - API 성공 & 재고 있으면: 녹색 (status-available)
-  // - API 성공 & 재고 없으면: 회색 (status-none)
-  const getStatus = () => {
-    if (isError) return 'unavailable'; // 빨간색 (기존 unavailable 스타일 재활용)
-    if (totalBooks > 0) return 'available'; // 녹색
-    return 'none'; // 회색
-  };
-
-  const status = getStatus();
-
-  const titleText = isError 
-    ? `${name} - 정보 조회 실패 (표시된 정보는 과거 데이터일 수 있음)` 
-    : `${name} - 총 ${totalBooks}권 (available_count: ${availableBooks}권)`;
-
-  const displayText = `${name} (${totalBooks}/${availableBooks})`;
-
-  return (
-    <a
-      href={searchUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={`library-tag ${size === 'sm' ? 'library-tag-sm' : ''} status-${status} truncate`}
-      title={titleText}
-    >
-      <div className={`status-indicator ${status}`}></div>
-      <span>{displayText}</span>
-    </a>
-  );
-};
-
-type ViewType = 'card' | 'grid';
 
 // Bulk Tag Management Modal Component
 interface BulkTagModalProps {
@@ -596,9 +470,6 @@ const MyLibrary: React.FC = () => {
   const [selectAll, setSelectAll] = useState(false);
   const [viewType, setViewType] = useState<ViewType>('card');
   const [gridColumns, setGridColumns] = useState(5);
-  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
-  const mobileSortDropdownRef = useRef<HTMLDivElement>(null);
-  const desktopSortDropdownRef = useRef<HTMLDivElement>(null);
   const [backgroundRefreshComplete, setBackgroundRefreshComplete] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
@@ -608,6 +479,24 @@ const MyLibrary: React.FC = () => {
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
   const [noteInputValue, setNoteInputValue] = useState('');
   
+  // ✅ '전체 선택'과 '선택 삭제'를 위한 핸들러 함수를 정의합니다.
+  const handleSelectAllChange = (checked: boolean) => {
+    setSelectAll(checked);
+    if (checked) {
+      setSelectedBooks(new Set(sortedAndFilteredLibraryBooks.map(book => book.id)));
+    } else {
+      setSelectedBooks(new Set());
+    }
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedBooks.size > 0 && window.confirm(`선택된 ${selectedBooks.size}권의 책을 삭제하시겠습니까?`)) {
+      selectedBooks.forEach(bookId => removeFromLibrary(bookId));
+      setSelectedBooks(new Set());
+      setSelectAll(false);
+    }
+  };
+
   // 좋아요 필터  
   const handleToggleFavoritesFilter = () => {
     const isNowFiltering = !showFavoritesOnly;
@@ -623,7 +512,8 @@ const MyLibrary: React.FC = () => {
   // 필터 리셋 함수
   const resetLibraryFilters = useCallback(() => {
     setDebouncedSearchQuery('');
-    setActiveTags(new Set());
+    // setActiveTags(new Set());
+    setActiveTags(new Set<string>()); 
     setShowFavoritesOnly(false);
     clearAuthorFilter();
     // showAllBooks는 유지 - 사용자가 전체보기를 선택했다면 그 의도 유지
@@ -632,17 +522,6 @@ const MyLibrary: React.FC = () => {
 
   // 전체 내 서재 상태 리셋 함수 (홈 리셋용) - 성능 최적화
   const resetAllLibraryStates = useCallback(() => {
-    // 외부 store Zustand 스토어의 상태를 초기 로딩 상태로 되돌리기 위해 fetchUserLibrary를 호출합니다.
-
-    // const { sortConfig: currentSortConfig, sortLibrary: sortLibraryAction, setLibrarySearchQuery: setSearchQuery, clearAuthorFilter: clearAuthor } = useBookStore.getState();
-    // setSearchQuery('');
-    // clearAuthor();
-
-    // if (currentSortConfig.key !== 'addedDate' || currentSortConfig.order !== 'desc') {
-    //   sortLibraryAction('addedDate');
-    // }
-
-    // Zustand 스토어의 상태를 초기 로딩 상태로 되돌리기 위해 fetchUserLibrary를 호출합니다.
     fetchUserLibrary();
 
     // 검색 관련 상태 초기화
@@ -652,7 +531,8 @@ const MyLibrary: React.FC = () => {
 
     // 로컬 상태 리셋 (배치 업데이트)
     setDebouncedSearchQuery('');
-    setActiveTags(new Set());
+    // setActiveTags(new Set());
+    setActiveTags(new Set<string>());
     setShowFavoritesOnly(false);
     setShowAllBooks(false);
     setSelectedBooks(new Set());
@@ -707,6 +587,9 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
   });
 }, []); // 의존성 배열이 비어있으므로 이 함수는 단 한 번만 생성됩니다.
 
+
+  // ================== ✅ 이 부분을 추가하세요 ==================
+
   // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -725,26 +608,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
     }
   }, [debouncedSearchQuery, searchUserLibrary, clearLibrarySearch]);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (
-        mobileSortDropdownRef.current && !mobileSortDropdownRef.current.contains(target) &&
-        desktopSortDropdownRef.current && !desktopSortDropdownRef.current.contains(target)
-      ) {
-        setSortDropdownOpen(false);
-      }
-    };
-
-    if (sortDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [sortDropdownOpen]);
+  // ================== ✅ 여기까지 추가 ==================
 
   // 필터 리셋 함수를 store에 등록
   useEffect(() => {
@@ -793,7 +657,8 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
 
   // Tag filtering handlers
   const handleTagClick = (tagId: string) => {
-    const newActiveTags = new Set(activeTags);
+    // const newActiveTags = new Set(activeTags); 
+    const newActiveTags = new Set<string>(activeTags);
     if (newActiveTags.has(tagId)) {
       newActiveTags.delete(tagId);
     } else {
@@ -808,9 +673,11 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
       clearLibraryTagFilter();
     }
   };
+  // }, [activeTags, filterLibraryByTags, clearLibraryTagFilter]); // ✅ 의존성 배열 추가
 
   const handleClearAllTags = () => {
-    setActiveTags(new Set());
+    // setActiveTags(new Set());
+    setActiveTags(new Set<string>());
     clearLibraryTagFilter();
   };
 
@@ -950,692 +817,85 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
 
   return (
     <div className="mt-12 animate-fade-in">
-      {/* Header - Three Row Layout */}
-      <div className="mb-6 space-y-3 max-w-4xl mx-auto">
-        {/* First Row: Search + View Controls */}
-        <div className="flex justify-between items-center gap-3">
-          {/* Search Input */}
-          <div className="relative flex-1 sm:flex-initial">
-            <input
-              type="text"
-              value={librarySearchQuery}
-              onChange={(e) => setLibrarySearchQuery(e.target.value)}
-              placeholder="제목, 저자명으로 내 서재를 검색하세요"
-              className="input-base block w-full sm:w-80 pl-3 pr-10 py-2 text-sm"
-            />
-            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-              <SearchIcon className="h-4 w-4 text-tertiary" />
-            </div>
-            {librarySearchQuery && (
-              <button
-                onClick={() => setLibrarySearchQuery('')}
-                className="absolute inset-y-0 right-0 pr-9 flex items-center"
-                title="검색어 지우기"
-              >
-                <CloseIcon className="h-4 w-4 text-tertiary hover:text-primary" />
-              </button>
-            )}
-          </div>
-
-          {/* View Toggle */}
-          <div className="flex items-center gap-1 bg-tertiary rounded-lg p-1 flex-shrink-0">
-            <button
-              onClick={() => setViewType('card')}
-              className={`p-2 rounded transition-colors duration-200 ${
-                viewType === 'card'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-tertiary hover:text-primary hover-surface'
-              }`}
-              title="카드 보기"
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M3 4a1 1 0 000 2h14a1 1 0 100-2H3zM3 8a1 1 0 000 2h14a1 1 0 100-2H3zM3 12a1 1 0 100 2h14a1 1 0 100-2H3z" clipRule="evenodd" />
-              </svg>
-            </button>
-            <button
-              onClick={() => setViewType('grid')}
-              className={`p-2 rounded transition-colors duration-200 ${
-                viewType === 'grid'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-tertiary hover:text-primary hover-surface'
-              }`}
-              title="그리드 보기"
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Second Row: Tag Filter */}
-        <TagFilter
-          tags={sortedAvailableTags}  // ✅ [수정] 정렬된 태그 배열을 prop으로 전달
-          // tags={settings.tagSettings?.tags || []}
-          activeTags={activeTags}
-          onTagClick={handleTagClick}
-          onClearAll={handleClearAllTags}
-        />
-
-        {/* Third Row: Responsive 2-row layout for mobile, 1-row for desktop */}
-        <div className="space-y-3 md:space-y-0">
-          {/* Mobile: First Row - Book count + Sort */}
-          <div className="flex justify-between items-center md:hidden">
-            <span className="text-sm text-secondary font-medium">
-              {/* 총 {sortedAndFilteredLibraryBooks.length}권{!showAllBooks && !hasActiveFilters() && sortedAndFilteredLibraryBooks.length > displayedBooks.length ? ` (${displayedBooks.length}권 표시)` : ''} */}
-              총 {hasActiveFilters() ? sortedAndFilteredLibraryBooks.length : totalBooksCount}권{!showAllBooks && !hasActiveFilters() && totalBooksCount > displayedBooks.length ? ` (${displayedBooks.length}권 표시)` : ''}
-            </span>
-            {/* Sort Dropdown */}
-            <div className="relative" ref={mobileSortDropdownRef}>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setSortDropdownOpen(!sortDropdownOpen);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setSortDropdownOpen(!sortDropdownOpen);
-                  } else if (e.key === 'Escape') {
-                    setSortDropdownOpen(false);
-                  }
-                }}
-                className="flex items-center gap-2 px-3 py-2 bg-tertiary text-primary rounded-lg hover-surface transition-colors duration-200 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                aria-expanded={sortDropdownOpen}
-                aria-haspopup="true"
-                aria-label="정렬 방식 선택"
-              >
-                <span>{getCurrentSortName()}</span>
-                <svg
-                  className={`w-4 h-4 transition-transform duration-200 ${sortDropdownOpen ? 'rotate-180' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-
-              {sortDropdownOpen && (
-                <div className="absolute top-full right-0 mt-1 w-36 bg-elevated border border-secondary rounded-lg shadow-xl z-20 animate-in fade-in duration-200">
-                  {(Object.entries(sortOptions) as [SortKey, string][]).map(([key, label]) => (
-                    <button
-                      key={key}
-                      onClick={() => {
-                        sortLibrary(key);
-                        setSortDropdownOpen(false);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          sortLibrary(key);
-                          setSortDropdownOpen(false);
-                        } else if (e.key === 'Escape') {
-                          setSortDropdownOpen(false);
-                        }
-                      }}
-                      className={`w-full text-left px-3 py-2 text-sm transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg focus:ring-2 focus:ring-blue-500 focus:outline-none ${
-                        sortConfig.key === key
-                          ? 'bg-blue-600 text-white'
-                          : 'text-primary hover-surface hover:text-primary focus-surface'
-                      }`}
-                      aria-label={`${label}로 정렬`}
-                    >
-                      <span className="flex items-center justify-between">
-                        {label}
-                        {sortConfig.key === key && <SortArrow order={sortConfig.order} />}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Mobile: Second Row - Selection + Action Buttons */}
-          <div className="flex justify-between items-center md:hidden">
-            <div className="flex items-center gap-3">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={selectAll}
-                  onChange={(e) => {
-                    setSelectAll(e.target.checked);
-                    if (e.target.checked) {
-                      setSelectedBooks(new Set(sortedAndFilteredLibraryBooks.map(book => book.id)));
-                    } else {
-                      setSelectedBooks(new Set());
-                    }
-                  }}
-                  className="w-4 h-4 text-blue-600 bg-tertiary border-primary rounded focus:ring-blue-500"
-                  title="전체 선택"
-                />
-              </label>
-              <span className="text-sm text-secondary">
-                {selectedBooks.size}권 선택
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setBulkTagModalOpen(true)}
-                disabled={selectedBooks.size === 0}
-                className="p-1 btn-base btn-primary rounded-lg"
-                title="선택된 책에 태그 관리"
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd" />
-                </svg>
-              </button>
-              <button
-                // onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                onClick={handleToggleFavoritesFilter} // ✅ onClick 핸들러 변경
-                className="p-1 btn-base btn-primary rounded-lg transition-colors duration-200"
-                title={showFavoritesOnly ? "전체 책 보기" : "좋아하는 책만 보기"}
-              >
-                <HeartIcon
-                  className={`w-5 h-5 transition-colors duration-200 ${
-                    showFavoritesOnly
-                      ? 'text-red-500 fill-red-500'
-                      : 'text-[#131729] fill-[#131729]'
-                  }`}
-                />
-              </button>
-              <button
-                onClick={() => {
-                  // Delete selected books logic
-                  if (selectedBooks.size > 0 && window.confirm(`선택된 ${selectedBooks.size}권의 책을 삭제하시겠습니까?`)) {
-                    selectedBooks.forEach(bookId => removeFromLibrary(bookId));
-                    setSelectedBooks(new Set());
-                    setSelectAll(false);
-                  }
-                }}
-                disabled={selectedBooks.size === 0}
-                className="p-1 btn-base btn-primary rounded-lg"
-                title="선택된 책 삭제"
-              >
-                <TrashIcon className="w-5 h-5 text-[#131729]" />
-              </button>
-            </div>
-          </div>
-
-          {/* Desktop: Single Row Layout (hidden on mobile) */}
-          <div className="hidden md:flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={selectAll}
-                  onChange={(e) => {
-                    setSelectAll(e.target.checked);
-                    if (e.target.checked) {
-                      setSelectedBooks(new Set(sortedAndFilteredLibraryBooks.map(book => book.id)));
-                    } else {
-                      setSelectedBooks(new Set());
-                    }
-                  }}
-                  className="w-5 h-5 text-blue-600 bg-tertiary border-primary rounded focus:ring-blue-500"
-                  title="전체 선택"
-                />
-              </label>
-              <span className="text-sm text-secondary">
-                {selectedBooks.size}개 선택(총 {hasActiveFilters() ? sortedAndFilteredLibraryBooks.length : totalBooksCount}권{!showAllBooks && !hasActiveFilters() && totalBooksCount > displayedBooks.length ? ` 중 ${displayedBooks.length}권 표시` : ''})
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {/* Sort Dropdown */}
-              <div className="relative" ref={desktopSortDropdownRef}>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setSortDropdownOpen(!sortDropdownOpen);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      setSortDropdownOpen(!sortDropdownOpen);
-                    } else if (e.key === 'Escape') {
-                      setSortDropdownOpen(false);
-                    }
-                  }}
-                  className="flex items-center gap-2 px-3 py-2 bg-tertiary text-primary rounded-lg hover-surface transition-colors duration-200 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  aria-expanded={sortDropdownOpen}
-                  aria-haspopup="true"
-                  aria-label="정렬 방식 선택"
-                >
-                  <span>{getCurrentSortName()}</span>
-                  <svg
-                    className={`w-4 h-4 transition-transform duration-200 ${sortDropdownOpen ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {sortDropdownOpen && (
-                  <div className="absolute top-full right-0 mt-1 w-36 bg-elevated border border-secondary rounded-lg shadow-xl z-20 animate-in fade-in duration-200">
-                    {(Object.entries(sortOptions) as [SortKey, string][]).map(([key, label]) => (
-                      <button
-                        key={key}
-                        onClick={() => {
-                          sortLibrary(key);
-                          setSortDropdownOpen(false);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            sortLibrary(key);
-                            setSortDropdownOpen(false);
-                          } else if (e.key === 'Escape') {
-                            setSortDropdownOpen(false);
-                          }
-                        }}
-                        className={`w-full text-left px-3 py-2 text-sm transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg focus:ring-2 focus:ring-blue-500 focus:outline-none ${
-                          sortConfig.key === key
-                            ? 'bg-blue-600 text-white'
-                            : 'text-primary hover-surface hover:text-primary focus-surface'
-                        }`}
-                        aria-label={`${label}로 정렬`}
-                      >
-                        <span className="flex items-center justify-between">
-                          {label}
-                          {sortConfig.key === key && <SortArrow order={sortConfig.order} />}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <button
-                onClick={() => setBulkTagModalOpen(true)}
-                disabled={selectedBooks.size === 0}
-                className="p-1 btn-base btn-primary rounded-lg"
-                title="선택된 책에 태그 관리"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd" />
-                </svg>
-              </button>
-              <button
-                // onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                onClick={handleToggleFavoritesFilter} // ✅ onClick 핸들러 변경
-                className="p-1 btn-base btn-primary rounded-lg transition-colors duration-200"
-                title={showFavoritesOnly ? "전체 책 보기" : "좋아하는 책만 보기"}
-              >
-                <HeartIcon
-                  className={`w-4 h-4 transition-colors duration-200 ${
-                    showFavoritesOnly
-                      ? 'text-red-500 fill-red-500'
-                      : 'text-[#131729] fill-[#131729]'
-                  }`}
-                />
-              </button>
-              <button
-                onClick={() => {
-                  // Delete selected books logic
-                  if (selectedBooks.size > 0 && window.confirm(`선택된 ${selectedBooks.size}권의 책을 삭제하시겠습니까?`)) {
-                    selectedBooks.forEach(bookId => removeFromLibrary(bookId));
-                    setSelectedBooks(new Set());
-                    setSelectAll(false);
-                  }
-                }}
-                disabled={selectedBooks.size === 0}
-                className="p-1 btn-base btn-primary rounded-lg"
-                title="선택된 책 삭제"
-              >
-                <TrashIcon className="w-4 h-4 text-[#131729]" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* ================= ✅ 아래 코드를 붙여넣으세요 ================= */}
+      <MyLibraryToolbar
+        searchQuery={librarySearchQuery}
+        onSearchQueryChange={setLibrarySearchQuery}
+        viewType={viewType}
+        onViewTypeChange={setViewType}
+        availableTags={sortedAvailableTags}
+        activeTags={activeTags}
+        onTagClick={handleTagClick}
+        onClearAllTags={handleClearAllTags}
+        sortConfig={sortConfig}
+        onSortChange={sortLibrary}
+        selectedBookCount={selectedBooks.size}
+        filteredBookCount={sortedAndFilteredLibraryBooks.length}
+        totalBookCount={totalBooksCount}
+        displayedBookCount={displayedBooks.length}
+        isAllBooksShown={showAllBooks}
+        hasActiveFilters={hasActiveFilters()}
+        selectAllChecked={selectAll}
+        onSelectAllChange={handleSelectAllChange}
+        onBulkTagManage={() => setBulkTagModalOpen(true)}
+        onToggleFavoritesFilter={handleToggleFavoritesFilter}
+        isFavoritesFilterActive={showFavoritesOnly}
+        onDeleteSelected={handleDeleteSelected}
+      />
+      {/* ================= ✅ 여기까지 ================= */}
       
       {/* View Type Conditional Rendering */}
       {viewType === 'card' ? (
         /* Card View */
         <div className="space-y-4 max-w-4xl mx-auto">
-        {/* {(isSearchingLibrary || isFilteringByTag) ? (
-          <div className="text-center p-8">
-            <Spinner />
-            <p className="mt-2 text-secondary">
-              {isSearchingLibrary ? '서재에서 검색 중입니다...' : '태그로 필터링 중입니다...'}
-            </p>
-          </div>
-        ) : displayedBooks.length === 0 && debouncedSearchQuery.trim().length >= 2 ? ( */}
-        {(isSearchingLibrary || isFilteringByTag || isFilteringByFavorites) ? (
-        <div className="text-center p-8">
-          <Spinner />
-          <p className="mt-2 text-secondary">
-            {isSearchingLibrary ? '서재에서 검색 중입니다...' : 
-            isFilteringByTag ? '태그로 필터링 중입니다...' : 
-            '좋아하는 책을 찾는 중입니다...'}
-          </p>
-        </div>
-        ) : displayedBooks.length === 0 && debouncedSearchQuery.trim().length >= 2 ? (
-          <div className="text-center text-secondary p-8 bg-secondary rounded-lg shadow-md">
-            <h3 className="text-lg font-medium mb-2">검색 결과가 없습니다</h3>
-            <p className="text-sm">'{debouncedSearchQuery}' 에 대한 검색 결과를 찾을 수 없습니다.</p>
-            <p className="text-sm mt-1">다른 키워드로 검색해보세요.</p>
-          </div>
-        ) : (
-          // (수정이전 원본) sortedAndFilteredLibraryBooks.map(book => (
-          selectedBooksArray.map(book => (
-          <div key={book.id} className="flex items-start gap-4 p-4 mb-4 bg-elevated rounded-lg">
-            {/* Checkbox Column */}
-            <div className="flex items-center justify-center">
-              <input 
-                type="checkbox" 
-                // (수정이전 원본) checked={selectedBooks.has(book.id)}
-                checked={book.isSelected} 
-                /* (수정이전 원본) onChange={(e) => {
-                  const newSelection = new Set(selectedBooks);
-                  if (e.target.checked) {
-                    newSelection.add(book.id);
-                  } else {
-                    newSelection.delete(book.id);
-                  }
-                  setSelectedBooks(newSelection);
-                  setSelectAll(newSelection.size === sortedAndFilteredLibraryBooks.length);
-                }} */
-                onChange={(e) => handleBookSelection(book.id, e.target.checked)} 
-                className="w-4 h-4 text-blue-600 bg-tertiary border-primary rounded focus:ring-blue-500"
+          {/* ================= ✅ 아래 코드를 붙여넣으세요 ================= */}
+          {(isSearchingLibrary || isFilteringByTag || isFilteringByFavorites) ? (
+            <div className="text-center p-8">
+              <Spinner />
+              <p className="mt-2 text-secondary">
+                {isSearchingLibrary ? '서재에서 검색 중입니다...' : 
+                isFilteringByTag ? '태그로 필터링 중입니다...' : 
+                '좋아하는 책을 찾는 중입니다...'}
+              </p>
+            </div>
+          ) : displayedBooks.length === 0 && debouncedSearchQuery.trim().length >= 2 ? (
+            <div className="text-center text-secondary p-8 bg-secondary rounded-lg shadow-md">
+              <h3 className="text-lg font-medium mb-2">검색 결과가 없습니다</h3>
+              <p className="text-sm">'{debouncedSearchQuery}' 에 대한 검색 결과를 찾을 수 없습니다.</p>
+              <p className="text-sm mt-1">다른 키워드로 검색해보세요.</p>
+            </div>
+          ) : (
+            selectedBooksArray.map(book => (
+              <MyLibraryListItem
+                key={book.id}
+                book={book}
+                viewType="card"
+                refreshingIsbn={refreshingIsbn}
+                refreshingEbookId={refreshingEbookId}
+                tagCounts={tagCounts}
+                editingNoteId={editingNoteId}
+                noteInputValue={noteInputValue}
+                onSelect={handleBookSelection}
+                onRefresh={refreshAllBookInfo}
+                onOpenDetail={setDetailModalBookId}
+                onToggleFavorite={toggleFavorite}
+                onUpdateReadStatus={updateReadStatus}
+                onUpdateRating={updateRating}
+                onNoteEdit={handleNoteEdit}
+                onNoteSave={() => handleNoteSave(book.id)}
+                onNoteCancel={handleNoteCancel}
+                onNoteChange={setNoteInputValue}
+                onNoteKeyDown={(e) => handleNoteKeyDown(e, book.id)}
               />
-            </div>
-            
-            {/* Image and Button Column */}
-            <div className="flex flex-col flex-shrink-0 w-24">
-              <div className="relative">
-                <img
-                  src={book.cover}
-                  alt={book.title}
-                  className="w-full max-h-full object-contain rounded cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => setDetailModalBookId(book.id)}
-                  title="상세 정보 보기"
-                />
-                {/* Heart Icon for Favorite */}
-                {settings.showFavorites && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFavorite(book.id);
-                    }}
-                    className="absolute top-1 left-1 p-1 bg-black bg-opacity-50 rounded-full hover:bg-opacity-70 transition-all duration-200"
-                    title={book.isFavorite ? "좋아요 취소" : "좋아요"}
-                  >
-                    <HeartIcon
-                      className={`w-4 h-4 transition-colors duration-200 ${
-                        book.isFavorite
-                          ? 'text-red-500 fill-red-500'
-                          : 'text-white hover:text-red-300'
-                      }`}
-                    />
-                  </button>
-                )}
-              </div>
-              
-              {/* Action Buttons */}
-              <div className="flex gap-1 mt-2">
-                {(() => {
-                  const isEbookResult = book.mallType === 'EBOOK';
-
-                  const paperBookLink = isEbookResult
-                    ? book.subInfo?.paperBookList?.[0]?.link || null
-                    : book.link;
-                    
-                  const ebookLink = isEbookResult
-                    ? book.link
-                    : book.subInfo?.ebookList?.[0]?.link || null;
-                  
-                  const hasBothFormats = paperBookLink && ebookLink;
-                  // const hasEbook = book.subInfo?.ebookList?.[0]?.isbn13;
-                  const buttonClass = hasBothFormats 
-                    ? "flex-1 px-1 py-1 bg-elevated border border-secondary text-secondary text-xs rounded hover:bg-secondary hover:text-primary transition-colors text-center whitespace-nowrap"
-                    : "w-full px-2 py-1 bg-elevated border border-secondary text-secondary text-xs rounded hover:bg-secondary hover:text-primary transition-colors text-center";
-                  
-                  return (
-                    <>
-                      {paperBookLink && (
-                        <a href={paperBookLink} target="_blank" rel="noopener noreferrer" className={buttonClass}>
-                          종이책
-                        </a>
-                      )}
-                      {ebookLink && (
-                        <a href={ebookLink} target="_blank" rel="noopener noreferrer" className={buttonClass}>
-                          전자책
-                        </a>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-            
-            {/* Right Column: Book Information */}
-            <div className="flex-1 flex flex-col min-w-0">
-              {/* "상단 정보 블록" (이 블록의 높이가 이미지 높이의 기준이 됨) */}
-              <div className="space-y-3">
-                {/* Title with Refresh Icon */}
-                <div className="flex justify-between items-start">
-                  <h2 
-                    className="text-lg font-bold text-primary leading-tight flex-1 pr-2 cursor-pointer hover:text-blue-400 transition-colors whitespace-nowrap overflow-hidden text-ellipsis"
-                    onClick={() => setDetailModalBookId(book.id)}
-                    title={book.title.replace(/^\[\w+\]\s*/, '')} // title 속성에 전체 제목 표시
-                  >
-                    {book.title.replace(/^\[\w+\]\s*/, '')}
-                  </h2>
-                  <button
-                    onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title, book.author)}
-                    disabled={refreshingIsbn === book.isbn13 || refreshingEbookId === book.id}
-                    className="flex-shrink-0 p-1 text-tertiary hover:text-primary hover-surface rounded transition-colors disabled:opacity-50 disabled:cursor-wait"
-                    title="재고 정보 갱신"
-                  >
-                    {refreshingIsbn === book.isbn13 || refreshingEbookId === book.id ? (
-                      <Spinner />
-                    ) : (
-                      <RefreshIcon className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-                
-                {/* Author and Publication Date */}
-                <p className="text-sm text-secondary">
-                  {book.author.replace(/\s*\([^)]*\)/g, '').split(',')[0]} | {book.pubDate.substring(0, 7).replace('-', '년 ')}월
-                </p>
-                
-                {/* Read Status and Star Rating */}
-                <div className="flex items-center gap-4 flex-wrap">
-                  {settings.showReadStatus && (
-                    <ReadStatusDropdown
-                      value={book.readStatus}
-                      onChange={(newStatus) => updateReadStatus(book.id, newStatus)}
-                      size="sm"
-                    />
-                  )}
-                  {settings.showRating && (
-                    <StarRating
-                      rating={book.rating}
-                      onRatingChange={(newRating) => updateRating(book.id, newRating)}
-                      size="md"
-                    />
-                  )}
-                </div>
-
-                {/* 태그 */}
-
-                {settings.showTags && book.customTags && book.customTags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {/* ✅ [수정 시작] 태그를 렌더링하기 전에 정렬 로직 추가 */}
-                    {book.customTags
-                      // 1. tagId 배열을 전체 tag 객체 배열로 변환
-                      .map(tagId => settings.tagSettings.tags.find(t => t.id === tagId))
-                      // 2. 혹시 모를 null/undefined 값 제거
-                      .filter((tag): tag is CustomTag => !!tag) 
-                      // 3. 색상 우선순위에 따라 정렬
-                      .sort((a, b) => {
-                        // 1차: 색상 우선순위
-                        const colorOrder: Record<TagColor, number> = { 'primary': 0, 'secondary': 1, 'tertiary': 2 };
-                        const colorDifference = (colorOrder[a.color] ?? 99) - (colorOrder[b.color] ?? 99);
-                        if (colorDifference !== 0) {
-                          return colorDifference;
-                        }
-
-                        // 2차: 색상이 같으면 인기도(tagCounts) 순
-                        const countA = tagCounts[a.id] || 0;
-                        const countB = tagCounts[b.id] || 0;
-                        const countDifference = countB - countA;
-                        if (countDifference !== 0) {
-                          return countDifference;
-                        }
-
-                        // 3차: 인기도까지 같으면 이름(name) 가나다순
-                        return a.name.localeCompare(b.name, 'ko-KR');
-                      })
-                      // 4. 정렬된 배열을 기반으로 컴포넌트 렌더링
-                      .map(tag => (
-                        <CustomTagComponent
-                          key={tag.id}
-                          tag={tag}
-                          isActive={false}
-                          onClick={() => {}}
-                          size="sm"
-                        />
-                      ))
-                    }
-                    {/* ✅ [수정 끝] */}
-                  </div>
-                )}
-              </div>
-              
-              {/* 구분선 및 "하단 재고 블록" */}
-              {settings.showLibraryStock && <hr className="my-3 border-secondary" />}
-
-              {/* Library Inventory Grid */}
-              {settings.showLibraryStock && <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {/* 퇴촌lib */}
-                <LibraryTag
-                  name="퇴촌"
-                  totalBooks={book.toechonStock?.total_count || 0}
-                  availableBooks={book.toechonStock?.available_count || 0}
-                  searchUrl={createLibraryOpenURL("퇴촌", book.title, book.customSearchTitle)}
-                  isError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false} // 추가
-                />
-                
-                {/* 기타lib */}
-                <LibraryTag
-                  name="기타"
-                  totalBooks={book.otherStock?.total_count || 0}
-                  availableBooks={book.otherStock?.available_count || 0}
-                  searchUrl={createLibraryOpenURL("기타", book.title, book.customSearchTitle)}
-                  isError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false} // 추가
-                />
-                
-                {/* e북.교육 */}
-                <LibraryTag
-                  name="e교육"
-                  totalBooks={book.GyeonggiEduEbookInfo?.total_count || 0}
-                  availableBooks={book.GyeonggiEduEbookInfo?.available_count || 0}
-                  searchUrl={createLibraryOpenURL("e교육", book.title, book.customSearchTitle)}
-                  // summary에 error_count가 있으므로 더 간단하게 확인 가능
-                  isError={(book.GyeonggiEduEbookInfo?.error_count ?? 0) == 2} // 둘 다 에러일때만
-                  // isError={(book.GyeonggiEduEbookInfo?.error_count ?? 0) > 0} // 1군데라도 에러일때
-                  // isError={book.GyeonggiEduEbookInfo?.details.some(d => 'error' in d) || false}
-                />
-                
-                {/* e북.시립구독 */}
-                <LibraryTag
-                  name="e시립구독"
-                  totalBooks={(() => {
-                    const siripInfo = book.siripEbookInfo;
-                    return siripInfo?.details?.subscription?.total_count || 0;
-                  })()}
-                  availableBooks={(() => {
-                    const siripInfo = book.siripEbookInfo;
-                    return siripInfo?.details?.subscription?.available_count || 0;
-                  })()}
-                  searchUrl={createLibraryOpenURL("e시립구독", book.title, book.customSearchTitle)}
-                  isError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.subscription?.error) : false}
-                />
-                
-                {/* e북.시립소장 */}
-                <LibraryTag
-                  name="e시립소장"
-                  totalBooks={(() => {
-                    const siripInfo = book.siripEbookInfo;
-                    return siripInfo?.details?.owned?.total_count || 0;
-                  })()}
-                  availableBooks={(() => {
-                    const siripInfo = book.siripEbookInfo;
-                    return siripInfo?.details?.owned?.available_count || 0;
-                  })()}
-                  searchUrl={createLibraryOpenURL("e시립소장", book.title, book.customSearchTitle)}
-                  isError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.owned?.error) : false}
-                />
-                <LibraryTag
-                  name="e경기"
-                  // ✅ [수정] 'filteredGyeonggiEbookInfo'를 사용하지 않고 'gyeonggiEbookInfo'만 사용하도록 단순화
-                  totalBooks={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.total_count : 0}
-                  availableBooks={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.available_count : 0}
-                  searchUrl={createLibraryOpenURL("e경기", book.title, book.customSearchTitle)}
-                  isError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
-                />
-              </div>}
-
-              {/* Book Note Section */}
-              {settings.showBookNotes && book.note && (
-                <div className="mt-3 pt-3 border-t border-secondary">
-                  {editingNoteId === book.id ? (
-                    /* Editing Mode */
-                    <div className="flex items-center gap-2">
-                      <MessageSquareIcon className="w-4 h-4 text-secondary flex-shrink-0" />
-                      <input
-                        type="text"
-                        value={noteInputValue}
-                        onChange={(e) => setNoteInputValue(e.target.value)}
-                        onKeyDown={(e) => handleNoteKeyDown(e, book.id)}
-                        onBlur={() => handleNoteSave(book.id)}
-                        maxLength={50}
-                        placeholder="메모를 입력하세요..."
-                        className="flex-1 px-2 py-1 text-xs bg-tertiary border border-secondary rounded text-primary focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                        autoFocus
-                      />
-                      <button
-                        onClick={() => handleNoteSave(book.id)}
-                        className="p-1 text-secondary hover:text-green-500 transition-colors"
-                        title="저장"
-                      >
-                        <CheckIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    /* Display Mode */
-                    <div className="flex items-center gap-2">
-                      <MessageSquareIcon className="w-4 h-4 text-secondary flex-shrink-0" />
-                      <span
-                        className="flex-1 text-xs text-secondary truncate cursor-pointer hover:text-primary"
-                        onClick={() => handleNoteEdit(book.id, book.note)}
-                        title={book.note || '메모를 추가하려면 클릭하세요'}
-                      >
-                        {book.note || '메모'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )))}
+            ))
+          )}
+          {/* ================= ✅ 여기까지 ================= */}
         </div>
       ) : (
         /* Grid View */
         <div className="grid gap-4 max-w-4xl mx-auto" style={{ gridTemplateColumns: `repeat(${gridColumns}, 1fr)` }}>
-          {(isSearchingLibrary || isFilteringByTag) ? (
+          {/* ================= ✅ 아래 코드를 붙여넣으세요 ================= */}
+          {(isSearchingLibrary || isFilteringByTag) ? ( // 그리드 뷰에는 isFilteringByFavorites가 빠져있었네요. 필요하면 추가하세요.
             <div className="col-span-full text-center p-8">
               <Spinner />
               <p className="mt-2 text-secondary">
@@ -1650,286 +910,30 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
             </div>
           ) : (
             selectedBooksArray.map(book => (
-            <div key={book.id} className="bg-elevated rounded-lg p-3 relative min-w-0"> 
-              {/* Checkbox */}
-              <div
-                className="absolute top-2 left-2 z-20 p-1 -m-1"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <input
-                  type="checkbox"
-                  checked={book.isSelected}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    handleBookSelection(book.id, e.target.checked);
-                  }}
-                  className="w-4 h-4 text-blue-600 bg-tertiary border-primary rounded focus:ring-blue-500 cursor-pointer relative z-20"
-                />
-              </div>
-
-              {/* Heart Icon for Favorite */}
-              {settings.showFavorites && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFavorite(book.id);
-                  }}
-                  className="absolute top-2 right-2 z-20 p-1 bg-black bg-opacity-50 rounded-full hover:bg-opacity-70 transition-all duration-200"
-                  title={book.isFavorite ? "좋아요 취소" : "좋아요"}
-                >
-                  <HeartIcon
-                    className={`w-4 h-4 transition-colors duration-200 ${
-                      book.isFavorite
-                        ? 'text-red-500 fill-red-500'
-                        : 'text-white hover:text-red-300'
-                    }`}
-                  />
-                </button>
-              )}
-
-              {/* Book Cover */}
-              <div className="text-center mb-3">
-                <img
-                  src={book.cover}
-                  alt={book.title}
-                  className="w-full h-40 object-contain rounded mb-2 cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => setDetailModalBookId(book.id)}
-                  title="상세 정보 보기"
-                />
-                
-                {/* Action Buttons */}
-                <div className="flex gap-1 justify-center">
-                  <a 
-                    href={book.link} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="px-2 py-1 bg-elevated border border-secondary text-secondary text-xs rounded hover:bg-secondary hover:text-primary transition-colors"
-                  >
-                    종이책
-                  </a>
-                  {book.subInfo?.ebookList?.[0]?.isbn13 && (
-                    <a 
-                      href={book.subInfo.ebookList[0].link} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="px-2 py-1 bg-elevated border border-secondary text-secondary text-xs rounded hover:bg-secondary hover:text-primary transition-colors"
-                    >
-                      전자책
-                    </a>
-                  )}
-                </div>
-              </div>
-              
-              {/* Book Info */}
-              <div className="space-y-2">
-                {/* Title with Refresh Icon */}
-                <div className="flex justify-between items-start gap-1">
-                  <h3 className="text-sm font-bold text-primary line-clamp-2 flex-1">
-                    <span
-                      className="cursor-pointer hover:text-blue-400 transition-colors"
-                      onClick={() => setDetailModalBookId(book.id)}
-                      title={book.title}
-                    >
-                      {book.title.replace(/^\[\w+\]\s*/, '')}
-                    </span>
-                  </h3>
-                  <button
-                    onClick={() => refreshAllBookInfo(book.id, book.isbn13, book.title, book.author)}
-                    disabled={refreshingIsbn === book.isbn13 || refreshingEbookId === book.id}
-                    className="flex-shrink-0 p-0.5 text-tertiary hover:text-primary hover-surface rounded transition-colors disabled:opacity-50 disabled:cursor-wait"
-                    title="재고 정보 갱신"
-                  >
-                    {refreshingIsbn === book.isbn13 || refreshingEbookId === book.id ? (
-                      <div className="w-3 h-3 flex items-center justify-center">
-                        <Spinner />
-                      </div>
-                    ) : (
-                      <RefreshIcon className="w-3 h-3" />
-                    )}
-                  </button>
-                </div>
-                
-                {/* Author */}
-                <p className="text-xs text-secondary truncate">
-                  {book.author.replace(/\s*\([^)]*\)/g, '').split(',')[0]}
-                </p>
-                
-                {/* Publication Date */}
-                <p className="text-xs text-secondary">
-                  {book.pubDate.substring(0, 7).replace('-', '년 ')}월
-                </p>
-                
-                {/* Star Rating */}
-                {settings.showRating && (
-                  <div className="flex justify-start">
-                    <StarRating
-                      rating={book.rating}
-                      onRatingChange={(newRating) => updateRating(book.id, newRating)}
-                      size="md"
-                    />
-                  </div>
-                )}
-                
-                {/* Read Status */}
-                {settings.showReadStatus && (
-                  <ReadStatusDropdown
-                    value={book.readStatus}
-                    onChange={(newStatus) => updateReadStatus(book.id, newStatus)}
-                    size="sm"
-                  />
-                )}
-
-                {/* 태그 */}
-                {settings.showTags && book.customTags && book.customTags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {/* ✅ [수정 시작] 태그를 렌더링하기 전에 정렬 로직 추가 */}
-                    {book.customTags
-                      // 1. tagId 배열을 전체 tag 객체 배열로 변환
-                      .map(tagId => settings.tagSettings.tags.find(t => t.id === tagId))
-                      // 2. 혹시 모를 null/undefined 값 제거
-                      .filter((tag): tag is CustomTag => !!tag) 
-                      // 3. 색상 우선순위에 따라 정렬
-                      .sort((a, b) => {
-                        // 1차: 색상 우선순위
-                        const colorOrder: Record<TagColor, number> = { 'primary': 0, 'secondary': 1, 'tertiary': 2 };
-                        const colorDifference = (colorOrder[a.color] ?? 99) - (colorOrder[b.color] ?? 99);
-                        if (colorDifference !== 0) {
-                          return colorDifference;
-                        }
-
-                        // 2차: 색상이 같으면 인기도(tagCounts) 순
-                        const countA = tagCounts[a.id] || 0;
-                        const countB = tagCounts[b.id] || 0;
-                        const countDifference = countB - countA;
-                        if (countDifference !== 0) {
-                          return countDifference;
-                        }
-
-                        // 3차: 인기도까지 같으면 이름(name) 가나다순
-                        return a.name.localeCompare(b.name, 'ko-KR');
-                      })
-                      // 4. 정렬된 배열을 기반으로 컴포넌트 렌더링
-                      .map(tag => (
-                        <CustomTagComponent
-                          key={tag.id}
-                          tag={tag}
-                          isActive={false}
-                          onClick={() => {}}
-                          size="sm"
-                        />
-                      ))
-                    }
-                    {/* ✅ [수정 끝] */}
-                  </div>
-                )}
-
-                {/* All Library Stock Info */}
-                {settings.showLibraryStock && <div className="grid grid-cols-2 gap-1 text-xs">
-                  <LibraryTag
-                    name="퇴촌"
-                    totalBooks={book.toechonStock?.total_count || 0}
-                    availableBooks={book.toechonStock?.available_count || 0}
-                    searchUrl={createLibraryOpenURL("퇴촌", book.title, book.customSearchTitle)}
-                    isError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false}
-                  />
-                  <LibraryTag
-                    name="기타"
-                    totalBooks={book.otherStock?.total_count || 0}
-                    availableBooks={book.otherStock?.available_count || 0}
-                    searchUrl={createLibraryOpenURL("기타", book.title, book.customSearchTitle)}
-                    isError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false}
-                  />
-                  <LibraryTag
-                    name="e교육"
-                    totalBooks={book.GyeonggiEduEbookInfo?.total_count || 0}
-                    availableBooks={book.GyeonggiEduEbookInfo?.available_count || 0}
-                    searchUrl={createLibraryOpenURL("e교육", book.title, book.customSearchTitle)}
-                    // summary에 error_count가 있으므로 더 간단하게 확인 가능
-                    isError={(book.GyeonggiEduEbookInfo?.error_count ?? 0) == 2} // 둘 다 에러일때만
-                  // isError={(book.GyeonggiEduEbookInfo?.error_count ?? 0) > 0} // 1군데라도 에러일때 
-                    // isError={book.GyeonggiEduEbookInfo?.details.some(d => 'error' in d) || false}
-                  />
-                  <LibraryTag
-                    name="e시립구독"
-                    totalBooks={(() => {
-                      const siripInfo = book.siripEbookInfo;
-                      return siripInfo?.details?.subscription?.total_count || 0;
-                    })()}
-                    availableBooks={(() => {
-                      const siripInfo = book.siripEbookInfo;
-                      return siripInfo?.details?.subscription?.available_count || 0;
-                    })()}
-                    searchUrl={createLibraryOpenURL("e시립구독", book.title, book.customSearchTitle)}
-                    isError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.subscription?.error) : false}
-                  />
-                  <LibraryTag
-                    name="e시립소장"
-                    totalBooks={(() => {
-                      const siripInfo = book.siripEbookInfo;
-                      return siripInfo?.details?.owned?.total_count || 0;
-                    })()}
-                    availableBooks={(() => {
-                      const siripInfo = book.siripEbookInfo;
-                      return siripInfo?.details?.owned?.available_count || 0;
-                    })()}
-                    searchUrl={createLibraryOpenURL("e시립소장", book.title, book.customSearchTitle)}
-                    isError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.owned?.error) : false}
-                  />
-                  {/* e북.경기 */}
-                  <LibraryTag
-                    name="e경기"
-                    // ✅ [수정] 'filteredGyeonggiEbookInfo'를 사용하지 않고 'gyeonggiEbookInfo'만 사용하도록 단순화
-                    totalBooks={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.total_count : 0}
-                    availableBooks={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.available_count : 0}
-                    searchUrl={createLibraryOpenURL("e경기", book.title, book.customSearchTitle)}
-                    isError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
-                  />
-                </div>}
-
-                {/* Book Note Section */}
-                {settings.showBookNotes && book.note && (
-                  <div className="mt-2 pt-2 border-t border-secondary">
-                    {editingNoteId === book.id ? (
-                      /* Editing Mode */
-                      <div className="flex items-center gap-1">
-                        <MessageSquareIcon className="w-3 h-3 text-secondary flex-shrink-0" />
-                        <input
-                          type="text"
-                          value={noteInputValue}
-                          onChange={(e) => setNoteInputValue(e.target.value)}
-                          onKeyDown={(e) => handleNoteKeyDown(e, book.id)}
-                          onBlur={() => handleNoteSave(book.id)}
-                          maxLength={50}
-                          placeholder="메모..."
-                          className="flex-1 px-1 py-0.5 text-xs bg-tertiary border border-secondary rounded text-primary focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                          autoFocus
-                        />
-                        <button
-                          onClick={() => handleNoteSave(book.id)}
-                          className="p-0.5 text-secondary hover:text-green-500 transition-colors"
-                          title="저장"
-                        >
-                          <CheckIcon className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ) : (
-                      /* Display Mode */
-                      <div className="flex items-center gap-1">
-                        <MessageSquareIcon className="w-3 h-3 text-secondary flex-shrink-0" />
-                        <span
-                          className="flex-1 text-xs text-secondary truncate cursor-pointer hover:text-primary"
-                          onClick={() => handleNoteEdit(book.id, book.note)}
-                          title={book.note || '메모를 추가하려면 클릭하세요'}
-                        >
-                          {book.note || '메모...'}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )))}
+              <MyLibraryListItem
+                key={book.id}
+                book={book}
+                viewType="grid"
+                refreshingIsbn={refreshingIsbn}
+                refreshingEbookId={refreshingEbookId}
+                tagCounts={tagCounts}
+                editingNoteId={editingNoteId}
+                noteInputValue={noteInputValue}
+                onSelect={handleBookSelection}
+                onRefresh={refreshAllBookInfo}
+                onOpenDetail={setDetailModalBookId}
+                onToggleFavorite={toggleFavorite}
+                onUpdateReadStatus={updateReadStatus}
+                onUpdateRating={updateRating}
+                onNoteEdit={handleNoteEdit}
+                onNoteSave={() => handleNoteSave(book.id)}
+                onNoteCancel={handleNoteCancel}
+                onNoteChange={setNoteInputValue}
+                onNoteKeyDown={(e) => handleNoteKeyDown(e, book.id)}
+              />
+            ))
+          )}
+          {/* ================= ✅ 여기까지 ================= */}
         </div>
       )}
 

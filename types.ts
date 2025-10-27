@@ -320,9 +320,9 @@ export type EBookInfo = {
   lastUpdated: number;
 };
 
-
-
 export type SortKey = 'title' | 'author' | 'addedDate' | 'rating' | 'readStatus' | 'pubDate';
+
+export type ViewType = 'card' | 'grid'; // ✅ 이 줄을 추가하세요.
 
 // Bulk Search Types
 export type BulkSearchStatus = 'pending' | 'searching' | 'found' | 'multiple' | 'none' | 'error';
