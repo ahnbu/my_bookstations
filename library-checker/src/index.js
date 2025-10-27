@@ -13,11 +13,30 @@
  * @param {object} finalResult - 크롤링 결과가 조합된 객체
  * @returns {boolean} - 캐싱하면 안 되는 에러가 있으면 true
  */
+// function hasCacheBlockingError(finalResult) {
+//   if (finalResult.gwangju_paper && 'error' in finalResult.gwangju_paper) return true;
+//   if (finalResult.gyeonggi_ebook_edu && finalResult.gyeonggi_ebook_edu.error_count > 0) return true;
+//   if (finalResult.gyeonggi_ebook_library && 'error' in finalResult.gyeonggi_ebook_library) return true;
+//   // if (finalResult.sirip_ebook && ('error' in finalResult.sirip_ebook || 'errors' in finalResult.sirip_ebook)) return true;
+//   if (finalResult.sirip_ebook && finalResult.sirip_ebook.errors) return true;
+  
+//   return false;
+// }
+
+
+// ✅ 이 함수 전체를 교체하세요.
 function hasCacheBlockingError(finalResult) {
+  // 1. 광주 종이책: 최상위 'error' 키 확인
   if (finalResult.gwangju_paper && 'error' in finalResult.gwangju_paper) return true;
+  
+  // 2. 경기 교육청: 'error_count'가 0보다 큰지 확인
   if (finalResult.gyeonggi_ebook_edu && finalResult.gyeonggi_ebook_edu.error_count > 0) return true;
+  
+  // 3. 경기도 전자도서관: 최상위 'error' 키 확인
   if (finalResult.gyeonggi_ebook_library && 'error' in finalResult.gyeonggi_ebook_library) return true;
-  if (finalResult.sirip_ebook && ('error' in finalResult.sirip_ebook || 'errors' in finalResult.sirip_ebook)) return true;
+  
+  // 4. 시립 전자책: 내부에 'errors' 객체가 존재하는지 확인
+  if (finalResult.sirip_ebook && finalResult.sirip_ebook.errors) return true;
   
   return false;
 }
@@ -163,7 +182,8 @@ export default {
         // 시립도서관 전자책(소장형+구독형 통합)
         let siripEbookPromise = null;
         if (siripTitle) {
-            siripEbookPromise = searchSiripEbookIntegrated(siripTitle);
+            // siripEbookPromise = searchSiripEbookIntegrated(siripTitle);
+            siripEbookPromise = searchSiripEbookIntegrated(siripTitle, env); // ✅ env 전달
         }
 
         const results = await Promise.allSettled(promises);
@@ -269,27 +289,66 @@ export default {
           ...finalResult
         };
 
-        // API 응답 결과 로그 (유지 - 테스트 응답과 동일한 형태)
-        console.log('API Response:', JSON.stringify(responsePayload, null, 2));
-        
-        response = new Response(JSON.stringify(responsePayload), { 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' ,
-            'X-Cache-Status': 'MISS' // 캐시가 없었음을 나타내는 디버깅용 헤더
-          } });
+        // // API 응답 결과 로그 (유지 - 테스트 응답과 동일한 형태)
+        // console.log('API Response:', JSON.stringify(responsePayload, null, 2));
+      
+        // response = new Response(JSON.stringify(responsePayload), { 
+        //   headers: { 
+        //     ...corsHeaders, 
+        //     'Content-Type': 'application/json' ,
+        //     'X-Cache-Status': 'MISS' // 캐시가 없었음을 나타내는 디버깅용 헤더
+        //   } });
 
-        // 성공API만 캐시에 저장 -> 에러시에는 저장하지 않음
+        // // 성공API만 캐시에 저장 -> 에러시에는 저장하지 않음
+        // if (!hasCacheBlockingError(finalResult)) {
+        //   console.log("Response is clean. Caching...");
+        //   ctx.waitUntil(cache.put(cacheKeyRequest, response.clone(), { expirationTtl: 7200 }));
+        // } else {
+        //   console.warn("Response contains errors. Skipping cache.");
+        //   response.headers.set('Cache-Control', 'no-store');
+        // }
+
+        // return response;
+        
+        // API 응답 결과 로그
+        console.log('API Response:', JSON.stringify(responsePayload, null, 2));
+
+        // 1. 클라이언트에게 보낼 최종 응답 객체를 생성합니다.
+        const finalResponse = new Response(JSON.stringify(responsePayload), {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'X-Cache-Status': 'MISS'
+          }
+        });
+
+        // 2. 에러가 없는 깨끗한 응답일 경우에만 캐싱을 시도합니다.
         if (!hasCacheBlockingError(finalResult)) {
           console.log("Response is clean. Caching...");
-          ctx.waitUntil(cache.put(cacheKeyRequest, response.clone(), { expirationTtl: 7200 }));
+
+          // 3. 캐시에 저장하기 위한 "GET 요청에 대한 응답"처럼 보이는 새로운 객체를 만듭니다.
+          const cacheableHeaders = new Headers(finalResponse.headers);
+          // Cache-Control 헤더를 명시하여 캐시 동작을 제어합니다.
+          cacheableHeaders.set('Cache-Control', 'public, max-age=7200');
+          
+          const cacheableResponse = new Response(finalResponse.clone().body, {
+            status: finalResponse.status,
+            statusText: finalResponse.statusText,
+            headers: cacheableHeaders,
+          });
+
+          // 4. await를 사용하여 캐시 저장이 완료될 때까지 기다립니다. (로컬 테스트 확실성 보장)
+          await cache.put(cacheKeyRequest, cacheableResponse);
+
         } else {
           console.warn("Response contains errors. Skipping cache.");
-          response.headers.set('Cache-Control', 'no-store');
+          // 에러가 있는 응답은 캐시되지 않도록 헤더를 설정합니다.
+          finalResponse.headers.set('Cache-Control', 'no-store');
         }
 
-        return response;
-        
+        // 5. 클라이언트에게 최종 응답을 반환합니다.
+        return finalResponse;
+
       } catch (error) {
         console.error(`API Error: ${error.message}`);
         return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -565,13 +624,14 @@ async function searchGyeonggiEbookSubs(query) {
 
 // 경기광주 시립도서관 전자책 (소장+구독) 통합 검색
 // 현재는 소장, 구독이 나눠져 있으나 추후 합칠 수 있으므로 그대로 유지
-async function searchSiripEbookIntegrated(searchTitle) {
+async function searchSiripEbookIntegrated(searchTitle, env) {
   try {
     
     // 소장형과 구독형을 병렬로 검색
     const [ownedResults, subscriptionResults] = await Promise.allSettled([
       searchSiripEbookOwned(searchTitle),
-      searchSiripEbookSubs(searchTitle)
+      // searchSiripEbookSubs(searchTitle)
+      searchSiripEbookSubs(searchTitle, env) // ✅ env를 전달합니다.
     ]);
     
     // 결과 처리
@@ -823,59 +883,334 @@ async function searchSiripEbookOwned(searchTitle) {
 
 
 // 경기광주 시립도서관 전자책 (구독) 검색 - 세션쿠키 v2
-async function searchSiripEbookSubs(searchTitle) {
-  try {
-    const encodedTitle = encodeURIComponent(searchTitle);
-    const baseSearchUrl = 'https://gjcitylib.dkyobobook.co.kr/search/searchList.ink';
+// async function searchSiripEbookSubs(searchTitle) {
+//   try {
+//     const encodedTitle = encodeURIComponent(searchTitle);
+//     const baseSearchUrl = 'https://gjcitylib.dkyobobook.co.kr/search/searchList.ink';
 
-    // ================== ✅ 1단계: 세션 쿠키 획득 (헤더 강화) ==================
-    // 실제 브라우저가 보내는 헤더를 최대한 모방하여 첫 접속부터 신뢰도를 높입니다.
-    const initialHeaders = {
+//     // ================== ✅ 1단계: 세션 쿠키 획득 (헤더 강화) ==================
+//     // 실제 브라우저가 보내는 헤더를 최대한 모방하여 첫 접속부터 신뢰도를 높입니다.
+//     const initialHeaders = {
+//       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+//       'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+//       'Connection': 'keep-alive',
+//       'Sec-Fetch-Dest': 'document',
+//       'Sec-Fetch-Mode': 'navigate',
+//       'Sec-Fetch-Site': 'none', // 첫 접속이므로 'none' 또는 'cross-site'가 적절
+//       'Sec-Fetch-User': '?1',
+//       'Upgrade-Insecure-Requests': '1',
+//       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+//     };
+
+//     const initialResponse = await fetch(baseSearchUrl, {
+//       method: 'GET',
+//       headers: initialHeaders,
+//       signal: AbortSignal.timeout(DEFAULT_TIMEOUT)
+//     });
+
+//     if (!initialResponse.ok) {
+//       throw new Error(`세션 획득 실패: HTTP ${initialResponse.status}`);
+//     }
+
+//     const sessionCookie = initialResponse.headers.get('set-cookie');
+//     if (!sessionCookie) {
+//       throw new Error('세션 쿠키를 찾을 수 없습니다.');
+//     }
+    
+//     // ================== ✅ 2단계: 쿠키를 포함하여 실제 검색 수행 (헤더 유지) ==================
+//     const searchUrl = `${baseSearchUrl}?schTxt=${encodedTitle}`;
+
+//     // 1단계 헤더 구성을 기반으로, 'Cookie'와 'Referer'만 추가/수정합니다.
+//     const searchHeaders = {
+//       ...initialHeaders, // 1단계에서 사용한 헤더를 그대로 상속
+//       'Cookie': sessionCookie,
+//       'Referer': baseSearchUrl,
+//       'Sec-Fetch-Site': 'same-origin', // 페이지 내에서 검색했으므로 'same-origin'으로 변경
+//     };
+
+//     const response = await fetch(searchUrl, { 
+//       method: 'GET', 
+//       headers: searchHeaders, 
+//       signal: AbortSignal.timeout(DEFAULT_TIMEOUT) 
+//     });
+    
+//     if (!response.ok) {
+//       throw new Error(`시립도서관 구독형 전자책 HTTP ${response.status}`);
+//     }
+
+//     const htmlContent = await response.text();
+//     return parseSiripEbookSubsHTML(htmlContent, searchTitle);
+
+//   } catch (error) {
+//     console.error('시립도서관 구독형 전자책 검색 오류:', error);
+//     throw new Error(`시립도서관 구독형 전자책 검색 실패: ${error.message}`);
+//   }
+// }
+
+// (파일 상단 또는 적절한 위치에 헬퍼 함수 추가)
+
+/**
+ * KV에서 유효한 세션 쿠키를 가져옵니다. 없으면 null을 반환합니다.
+ * @param {object} env - Cloudflare Worker 환경 변수
+ */
+async function getCachedSession(env) {
+  if (!env.SESSION_CACHE) return null;
+  const sessionData = await env.SESSION_CACHE.get("sirip_subs_session", { type: "json" });
+  if (sessionData && sessionData.cookie && Date.now() < sessionData.expires) {
+    // console.log("✅ Cached session is valid. Reusing cookie.");
+    return sessionData.cookie;
+  }
+  // console.log(" Cached session not found or expired.");
+  return null;
+}
+
+// /**
+//  * 새로운 세션 쿠키를 획득하고 KV에 저장합니다.
+//  * @param {object} env - Cloudflare Worker 환경 변수
+//  * @returns {string|null} - 새로 발급받은 쿠키 또는 실패 시 null
+//  */
+// async function refreshAndCacheSession(env) {
+//   const baseSearchUrl = 'https://gjcitylib.dkyobobook.co.kr/search/searchList.ink';
+//   const initialHeaders = {
+//       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+//       'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+//       'Connection': 'keep-alive',
+//       'Sec-Fetch-Dest': 'document',
+//       'Sec-Fetch-Mode': 'navigate',
+//       'Sec-Fetch-Site': 'none',
+//       'Sec-Fetch-User': '?1',
+//       'Upgrade-Insecure-Requests': '1',
+//       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+//   };
+
+//   try {
+//     const response = await fetch(baseSearchUrl, {
+//       method: 'GET',
+//       headers: initialHeaders,
+//       signal: AbortSignal.timeout(DEFAULT_TIMEOUT)
+//     });
+
+//     if (!response.ok) {
+//       console.error(`세션 갱신 실패: HTTP ${response.status}`);
+//       return null;
+//     }
+
+//     const newCookie = response.headers.get('set-cookie');
+//     if (newCookie && env.SESSION_CACHE) {
+//       const sessionData = {
+//         cookie: newCookie,
+//         expires: Date.now() + 25 * 60 * 1000, // 25분 후 만료 (서버 세션 30분에 대비)
+//       };
+//       // KV에 저장. expirationTtl은 KV에서의 자동 삭제 시간
+//       await env.SESSION_CACHE.put("sirip_subs_session", JSON.stringify(sessionData), { expirationTtl: 1800 }); // 30분
+//       // console.log(" New session cached successfully.");
+//       return newCookie;
+//     }
+//     return null;
+//   } catch (error) {
+//     console.error("세션 갱신 중 오류 발생:", error);
+//     return null;
+//   }
+// }
+
+// ✅ 수정 후: refreshAndCacheSession 함수 전체를 아래 코드로 교체합니다.
+/**
+ * 새로운 세션 쿠키를 획득하고 KV에 저장합니다.
+ * @param {object} env - Cloudflare Worker 환경 변수
+ * @returns {string|null} - 새로 발급받은 쿠키 또는 실패 시 null
+ */
+async function refreshAndCacheSession(env) {
+  const baseSearchUrl = 'https://gjcitylib.dkyobobook.co.kr/search/searchList.ink';
+  // ✅ searchSiripEbookSubs와 동일한 수준의 정교한 헤더를 여기에 직접 정의합니다.
+  const initialHeaders = {
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
       'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
       'Connection': 'keep-alive',
       'Sec-Fetch-Dest': 'document',
       'Sec-Fetch-Mode': 'navigate',
-      'Sec-Fetch-Site': 'none', // 첫 접속이므로 'none' 또는 'cross-site'가 적절
+      'Sec-Fetch-Site': 'none', // 첫 접속이므로 'none'
       'Sec-Fetch-User': '?1',
       'Upgrade-Insecure-Requests': '1',
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
-    };
+  };
 
-    const initialResponse = await fetch(baseSearchUrl, {
+  try {
+    const response = await fetch(baseSearchUrl, {
       method: 'GET',
       headers: initialHeaders,
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT)
     });
 
-    if (!initialResponse.ok) {
-      throw new Error(`세션 획득 실패: HTTP ${initialResponse.status}`);
+    if (!response.ok) {
+      console.error(`세션 갱신 실패: HTTP ${response.status}`);
+      return null;
     }
 
-    const sessionCookie = initialResponse.headers.get('set-cookie');
+    const newCookie = response.headers.get('set-cookie');
+    if (newCookie && env.SESSION_CACHE) {
+      const sessionData = {
+        cookie: newCookie,
+        expires: Date.now() + 25 * 60 * 1000, // 25분 후 만료
+      };
+      await env.SESSION_CACHE.put("sirip_subs_session", JSON.stringify(sessionData), { expirationTtl: 1800 }); // KV에서 30분 후 자동 삭제
+      return newCookie;
+    }
+    return null;
+  } catch (error) {
+    console.error("세션 갱신 중 오류 발생:", error);
+    return null;
+  }
+}
+
+// =================================================================================
+// searchSiripEbookSubs 함수를 아래 코드로 완전히 교체합니다.
+// =================================================================================
+
+// async function searchSiripEbookSubs(searchTitle, env) {
+//   // fetch 핸들러에서 env를 가져와야 합니다. 이 함수는 fetch 핸들러 내부에서 호출된다고 가정합니다.
+//   // 이 예제에서는 전역에 선언된 env를 사용한다고 가정하지만, 실제로는 파라미터로 전달해야 합니다.
+//   // 이 함수를 호출하는 곳에서 `searchSiripEbookSubs(searchTitle, env)` 형태로 변경해야 합니다.
+//   // **주의: 이 함수를 호출하는 `searchSiripEbookIntegrated` 함수도 `(searchTitle, env)`를 받도록 수정하고,
+//   // 최상위 `fetch` 핸들러에서 `siripEbookPromise = searchSiripEbookIntegrated(siripTitle, env);` 형태로 호출해야 합니다.**
+
+//   // 이 함수는 Standalone으로 동작하지 않으므로, 호출부 수정이 필수적입니다.
+//   // 지금은 전역 `env`가 있다고 가정하고 진행합니다. (실제로는 이렇게 하면 안됨)
+
+//   // 이 함수는 메인 fetch 핸들러에서 호출되므로, env가 전달된다고 가정하고 진행합니다.
+//   // 예를 들어, `searchSiripEbookSubs(searchTitle, env)` 형태로 호출되어야 합니다.
+
+//   try {
+//     const encodedTitle = encodeURIComponent(searchTitle);
+//     const baseSearchUrl = 'https://gjcitylib.dkyobobook.co.kr/search/searchList.ink';
+
+  
+//     // ✅ 전역 `globalThis.env` 대신 전달받은 `env`를 사용합니다.
+//     // 1. KV에서 유효한 세션 가져오기
+//     let sessionCookie = await getCachedSession(env);
+//     // 2. 세션이 없거나 만료되었으면 새로 발급
+//     if (!sessionCookie) {
+//         sessionCookie = await refreshAndCacheSession(env);
+//     }
+//     // 3. 세션 획득에 최종 실패했다면 에러 처리
+//     if (!sessionCookie) {
+//       throw new Error("유효한 세션을 획득할 수 없습니다.");
+//     }
+    
+//     // 4. 획득한 세션으로 검색 수행
+//     const searchUrl = `${baseSearchUrl}?schTxt=${encodedTitle}`;
+//     const searchHeaders = {
+//         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+//         'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+//         'Connection': 'keep-alive',
+//         'Cookie': sessionCookie,
+//         'Referer': baseSearchUrl,
+//         'Sec-Fetch-Dest': 'document',
+//         'Sec-Fetch-Mode': 'navigate',
+//         'Sec-Fetch-Site': 'same-origin',
+//         'Sec-Fetch-User': '?1',
+//         'Upgrade-Insecure-Requests': '1',
+//         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+//     };
+    
+//     const response = await fetch(searchUrl, { 
+//       method: 'GET', 
+//       headers: searchHeaders, 
+//       signal: AbortSignal.timeout(DEFAULT_TIMEOUT) 
+//     });
+    
+//     // 5. 검색 실패 시, 캐시된 세션이 문제일 수 있으므로 캐시를 지우고 재시도 (1회만)
+//     if (!response.ok && response.status === 400) {
+//       // console.warn("Search failed with status 400. Clearing cache and retrying once.");
+//       await env.SESSION_CACHE.delete("sirip_subs_session");
+//       const newSessionCookie = await refreshAndCacheSession(env);
+//       if (!newSessionCookie) {
+//         throw new Error("세션 재발급 후 검색에 실패했습니다.");
+//       }
+      
+//       const retryHeaders = { ...searchHeaders, 'Cookie': newSessionCookie };
+//       const retryResponse = await fetch(searchUrl, {
+//         method: 'GET',
+//         headers: retryHeaders,
+//         signal: AbortSignal.timeout(DEFAULT_TIMEOUT)
+//       });
+      
+//       if (!retryResponse.ok) {
+//         throw new Error(`재시도 실패: 시립도서관 구독형 전자책 HTTP ${retryResponse.status}`);
+//       }
+      
+//       const htmlContent = await retryResponse.text();
+//       return parseSiripEbookSubsHTML(htmlContent, searchTitle);
+//     }
+
+//     if (!response.ok) {
+//         throw new Error(`시립도서관 구독형 전자책 HTTP ${response.status}`);
+//     }
+
+//     const htmlContent = await response.text();
+//     return parseSiripEbookSubsHTML(htmlContent, searchTitle);
+
+//   } catch (error) {
+//     console.error('시립도서관 구독형 전자책 검색 오류:', error);
+//     throw new Error(`시립도서관 구독형 전자책 검색 실패: ${error.message}`);
+//   }
+// }
+
+// ✅ searchSiripEbookSubs 함수 전체를 아래 코드로 교체합니다.
+async function searchSiripEbookSubs(searchTitle, env) {
+  try {
+    const encodedTitle = encodeURIComponent(searchTitle);
+    const baseSearchUrl = 'https://gjcitylib.dkyobobook.co.kr/search/searchList.ink';
+
+    let sessionCookie = await getCachedSession(env);
+
     if (!sessionCookie) {
-      throw new Error('세션 쿠키를 찾을 수 없습니다.');
+      sessionCookie = await refreshAndCacheSession(env);
     }
     
-    // ================== ✅ 2단계: 쿠키를 포함하여 실제 검색 수행 (헤더 유지) ==================
+    if (!sessionCookie) {
+      throw new Error("유효한 세션을 획득할 수 없습니다.");
+    }
+    
     const searchUrl = `${baseSearchUrl}?schTxt=${encodedTitle}`;
-
-    // 1단계 헤더 구성을 기반으로, 'Cookie'와 'Referer'만 추가/수정합니다.
+    // ✅ 헤더를 여기서 다시 정의합니다.
     const searchHeaders = {
-      ...initialHeaders, // 1단계에서 사용한 헤더를 그대로 상속
-      'Cookie': sessionCookie,
-      'Referer': baseSearchUrl,
-      'Sec-Fetch-Site': 'same-origin', // 페이지 내에서 검색했으므로 'same-origin'으로 변경
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Connection': 'keep-alive',
+        'Cookie': sessionCookie,
+        'Referer': baseSearchUrl,
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'same-origin',
+        'Sec-Fetch-User': '?1',
+        'Upgrade-Insecure-Requests': '1',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
     };
-
-    const response = await fetch(searchUrl, { 
+    
+    let response = await fetch(searchUrl, { 
       method: 'GET', 
       headers: searchHeaders, 
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT) 
     });
     
+    if (!response.ok && response.status === 400) {
+      console.warn("Search failed with 400. Clearing cache and retrying once.");
+      await env.SESSION_CACHE.delete("sirip_subs_session");
+      const newSessionCookie = await refreshAndCacheSession(env);
+      if (!newSessionCookie) {
+        throw new Error("세션 재발급 후 검색에 실패했습니다.");
+      }
+      
+      const retryHeaders = { ...searchHeaders, 'Cookie': newSessionCookie };
+      response = await fetch(searchUrl, {
+        method: 'GET',
+        headers: retryHeaders,
+        signal: AbortSignal.timeout(DEFAULT_TIMEOUT)
+      });
+    }
+
     if (!response.ok) {
-      throw new Error(`시립도서관 구독형 전자책 HTTP ${response.status}`);
+        throw new Error(`시립도서관 구독형 전자책 HTTP ${response.status}`);
     }
 
     const htmlContent = await response.text();
