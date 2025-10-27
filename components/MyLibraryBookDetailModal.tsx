@@ -1,5 +1,6 @@
 
-import React, { useEffect, useState, useCallback} from 'react';
+// import React, { useEffect, useState, useCallback} from 'react';
+import React, { useEffect, useState, useCallback, useRef, useLayoutEffect } from 'react';
 import { ReadStatus, StockInfo, CustomTag, SelectedBook,  GwangjuPaperResult, GwangjuPaperError, GyeonggiEbookResult, TagColor
 } from '../types';
 import { useBookStore } from '../stores/useBookStore';
@@ -317,6 +318,10 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
     const [rawBookData, setRawBookData] = useState<object | null>(null);
     const [isFetchingJson, setIsFetchingJson] = useState(false);
 
+    // ✅ 1. 스크롤 컨테이너와 위치 저장을 위한 Ref 생성
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const scrollPositionRef = useRef<number>(0);
+
     // ✅ API 버튼 - Supabase DB 조회 방식
     const handleApiButtonClick = async () => {
       if (!book) return;
@@ -369,7 +374,13 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
         }
     }, [updatedBookFromStore, book]);
 
-    
+    // ✅ 3. 'book' 상태가 변경되어 리렌더링된 후, 저장된 스크롤 위치로 복원
+    useLayoutEffect(() => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = scrollPositionRef.current;
+        }
+    }, [book]); // 'book'이 변경될 때마다 이 효과를 실행
+
     // ==================
     // 메모 기능 Start 
     // ==================
@@ -388,6 +399,11 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
 
     // --- 태그 추가(Create) 핸들러 ---
     const handleAddTag = useCallback(async (tagId: string) => {
+      // ✅ 2. 상태 업데이트 직전에 현재 스크롤 위치를 저장
+      if (scrollContainerRef.current) {
+        scrollPositionRef.current = scrollContainerRef.current.scrollTop;
+      }
+
       // book 데이터가 없거나 이미 처리 중이면 중복 실행 방지
       if (!book || processingTags.has(tagId)) return;
 
@@ -411,6 +427,10 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
 
     // --- 태그 삭제(Delete) 핸들러 ---
     const handleRemoveTag = useCallback(async (tagId: string) => {
+      // ✅ 2. 상태 업데이트 직전에 현재 스크롤 위치를 저장
+      if (scrollContainerRef.current) {
+        scrollPositionRef.current = scrollContainerRef.current.scrollTop;
+      }
       // book 데이터가 없거나 이미 처리 중이면 중복 실행 방지
       if (!book || processingTags.has(tagId)) return;
       
@@ -548,7 +568,8 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                   </button>
                 </div>
                 
-                <div className="p-6 overflow-y-auto">
+                {/* <div className="p-6 overflow-y-auto"> */}
+                <div ref={scrollContainerRef} className="p-6 overflow-y-auto">
                     {/* [복원] 도서 상세 정보 블록 */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="md:col-span-1 flex justify-center items-start">
