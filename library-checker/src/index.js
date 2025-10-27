@@ -752,22 +752,99 @@ async function searchSiripEbookOwned(searchTitle) {
 // }
 
 // 경기광주 시립도서관 전자책 (구독) 검색 - 세션쿠키 요청으로 크롤링 기준 강화 반영(2025.10.27)
+// async function searchSiripEbookSubs(searchTitle) {
+//   try {
+//     const encodedTitle = encodeURIComponent(searchTitle);
+//     const baseSearchUrl = 'https://gjcitylib.dkyobobook.co.kr/search/searchList.ink';
+    
+//     // ================== ✅ 1단계: 세션 쿠키 획득 ==================
+//     // 먼저 검색 페이지에 접속하여 세션 쿠키를 발급받습니다.
+//     const initialResponse = await fetch(baseSearchUrl, {
+//       method: 'GET',
+//       headers: {
+//         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+//         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+//         'Accept-Language': 'ko-KR,ko;q=0.9',
+//         'Connection': 'keep-alive',
+//         'Upgrade-Insecure-Requests': '1'
+//       },
+//       signal: AbortSignal.timeout(DEFAULT_TIMEOUT)
+//     });
+
+//     if (!initialResponse.ok) {
+//       throw new Error(`세션 획득 실패: HTTP ${initialResponse.status}`);
+//     }
+
+//     // 서버가 응답한 'set-cookie' 헤더 값을 추출합니다.
+//     const sessionCookie = initialResponse.headers.get('set-cookie');
+//     if (!sessionCookie) {
+//       throw new Error('세션 쿠키를 찾을 수 없습니다.');
+//     }
+    
+//     // ================== ✅ 2단계: 쿠키를 포함하여 실제 검색 수행 ==================
+//     const searchUrl = `${baseSearchUrl}?schTxt=${encodedTitle}&reSchTxt=&selViewCnt=20&pageIndex=1`;
+
+//     // cURL에서 분석한 필수 헤더들을 기반으로 재구성합니다.
+//     // 특히 'Cookie'와 'Referer' 헤더가 중요합니다.
+//     const searchHeaders = {
+//       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+//       'Accept-Language': 'ko-KR,ko;q=0.9',
+//       'Connection': 'keep-alive',
+//       'Cookie': sessionCookie, // 1단계에서 획득한 쿠키를 여기에 삽입
+//       'Referer': baseSearchUrl, // 내가 방금 접속했던 페이지를 Referer로 지정
+//       'Sec-Fetch-Dest': 'document',
+//       'Sec-Fetch-Mode': 'navigate',
+//       'Sec-Fetch-Site': 'same-origin',
+//       'Sec-Fetch-User': '?1',
+//       'Upgrade-Insecure-Requests': '1',
+//       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+//     };
+
+//     const response = await fetch(searchUrl, { 
+//       method: 'GET', 
+//       headers: searchHeaders, 
+//       signal: AbortSignal.timeout(DEFAULT_TIMEOUT) 
+//     });
+    
+//     if (!response.ok) {
+//       // 오류 발생 시 상태 코드와 함께 더 구체적인 에러 메시지를 생성합니다.
+//       throw new Error(`시립도서관 구독형 전자책 HTTP ${response.status}`);
+//     }
+
+//     const htmlContent = await response.text();
+//     return parseSiripEbookSubsHTML(htmlContent, searchTitle);
+
+//   } catch (error) {
+//     console.error('시립도서관 구독형 전자책 검색 오류:', error);
+//     // 에러를 상위로 전파하여 Promise.allSettled에서 처리하도록 합니다.
+//     throw new Error(`시립도서관 구독형 전자책 검색 실패: ${error.message}`);
+//   }
+// }
+
+
+// 경기광주 시립도서관 전자책 (구독) 검색 - 세션쿠키 v2
 async function searchSiripEbookSubs(searchTitle) {
   try {
     const encodedTitle = encodeURIComponent(searchTitle);
     const baseSearchUrl = 'https://gjcitylib.dkyobobook.co.kr/search/searchList.ink';
-    
-    // ================== ✅ 1단계: 세션 쿠키 획득 ==================
-    // 먼저 검색 페이지에 접속하여 세션 쿠키를 발급받습니다.
+
+    // ================== ✅ 1단계: 세션 쿠키 획득 (헤더 강화) ==================
+    // 실제 브라우저가 보내는 헤더를 최대한 모방하여 첫 접속부터 신뢰도를 높입니다.
+    const initialHeaders = {
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+      'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+      'Connection': 'keep-alive',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none', // 첫 접속이므로 'none' 또는 'cross-site'가 적절
+      'Sec-Fetch-User': '?1',
+      'Upgrade-Insecure-Requests': '1',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+    };
+
     const initialResponse = await fetch(baseSearchUrl, {
       method: 'GET',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-        'Accept-Language': 'ko-KR,ko;q=0.9',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1'
-      },
+      headers: initialHeaders,
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT)
     });
 
@@ -775,29 +852,20 @@ async function searchSiripEbookSubs(searchTitle) {
       throw new Error(`세션 획득 실패: HTTP ${initialResponse.status}`);
     }
 
-    // 서버가 응답한 'set-cookie' 헤더 값을 추출합니다.
     const sessionCookie = initialResponse.headers.get('set-cookie');
     if (!sessionCookie) {
       throw new Error('세션 쿠키를 찾을 수 없습니다.');
     }
     
-    // ================== ✅ 2단계: 쿠키를 포함하여 실제 검색 수행 ==================
-    const searchUrl = `${baseSearchUrl}?schTxt=${encodedTitle}&reSchTxt=&selViewCnt=20&pageIndex=1`;
+    // ================== ✅ 2단계: 쿠키를 포함하여 실제 검색 수행 (헤더 유지) ==================
+    const searchUrl = `${baseSearchUrl}?schTxt=${encodedTitle}`;
 
-    // cURL에서 분석한 필수 헤더들을 기반으로 재구성합니다.
-    // 특히 'Cookie'와 'Referer' 헤더가 중요합니다.
+    // 1단계 헤더 구성을 기반으로, 'Cookie'와 'Referer'만 추가/수정합니다.
     const searchHeaders = {
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-      'Accept-Language': 'ko-KR,ko;q=0.9',
-      'Connection': 'keep-alive',
-      'Cookie': sessionCookie, // 1단계에서 획득한 쿠키를 여기에 삽입
-      'Referer': baseSearchUrl, // 내가 방금 접속했던 페이지를 Referer로 지정
-      'Sec-Fetch-Dest': 'document',
-      'Sec-Fetch-Mode': 'navigate',
-      'Sec-Fetch-Site': 'same-origin',
-      'Sec-Fetch-User': '?1',
-      'Upgrade-Insecure-Requests': '1',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+      ...initialHeaders, // 1단계에서 사용한 헤더를 그대로 상속
+      'Cookie': sessionCookie,
+      'Referer': baseSearchUrl,
+      'Sec-Fetch-Site': 'same-origin', // 페이지 내에서 검색했으므로 'same-origin'으로 변경
     };
 
     const response = await fetch(searchUrl, { 
@@ -807,7 +875,6 @@ async function searchSiripEbookSubs(searchTitle) {
     });
     
     if (!response.ok) {
-      // 오류 발생 시 상태 코드와 함께 더 구체적인 에러 메시지를 생성합니다.
       throw new Error(`시립도서관 구독형 전자책 HTTP ${response.status}`);
     }
 
@@ -816,7 +883,6 @@ async function searchSiripEbookSubs(searchTitle) {
 
   } catch (error) {
     console.error('시립도서관 구독형 전자책 검색 오류:', error);
-    // 에러를 상위로 전파하여 Promise.allSettled에서 처리하도록 합니다.
     throw new Error(`시립도서관 구독형 전자책 검색 실패: ${error.message}`);
   }
 }

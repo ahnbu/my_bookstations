@@ -285,46 +285,56 @@ graph TD
 ### **[유형 1] 크롤링 실패: 세션 쿠키(Session Cookie)가 필요한 경우**
 
 -   **대상 사이트**: 광주시립도서관 구독형 전자책
--   **증상**: Cloudflare Worker 로그에 `시립도서관 구독형 전자책 검색 오류: Error: 시립도서관 구독형 전자책 HTTP 400` 오류가 반복적으로 기록됩니다. 브라우저에서 직접 접속 시에는 정상적으로 작동합니다.
--   **원인 분석**: 도서관 서버의 안티-스크래핑(Anti-Scraping) 정책 강화. 서버가 이제는 단순 `GET` 요청을 차단하고, **유효한 세션 쿠키(`SESSION`, `JSESSIONID`)를 포함한 요청**만 허용하도록 변경되었습니다.
--   **해결 전략**: **2단계 요청(Two-Step Request)** 로직을 구현하여 실제 사용자의 브라우저 흐름을 모방합니다.
+-   **증상**:
+    -   (초기) `HTTP 400 Bad Request` 오류가 검색 요청 시 발생.
+    -   (1차 수정 후) 간헐적으로 `세션 획득 실패: HTTP 400` 오류가 **최초 접속 시** 발생.
+-   **원인 분석**: 도서관 서버의 안티-스크래핑 정책이 **다단계로 강화**되었습니다.
+    1.  **1차 방어**: `Cookie` 헤더가 없는 검색 요청을 차단합니다.
+    2.  **2차 방어**: 더 나아가, 세션 쿠키를 요청하는 **최초 접속 단계부터** 요청 헤더를 검증하여, 실제 브라우저와 다른 패턴(예: `Sec-Fetch-*` 헤더 누락)을 보이는 요청을 봇으로 간주하고 차단합니다.
+-   **해결 전략**: **"완전한 브라우저 헤더 모방"**을 적용한 2단계 요청(Two-Step Request) 로직을 구현합니다.
 
     1.  **1단계: 세션 획득 (Session Acquisition)**
-        -   Worker는 먼저 실제 검색어 없이 도서관 검색 페이지의 기본 URL로 `GET` 요청을 보냅니다.
-        -   이 요청에 대한 서버의 응답 헤더에서 `Set-Cookie` 값을 추출하여, 서버가 발급한 고유 세션 ID를 획득합니다.
+        -   Worker는 실제 브라우저가 첫 방문 시 보내는 것과 거의 동일한 **정교한 헤더 세트**(`User-Agent`, `Sec-Fetch-Dest`, `Sec-Fetch-Mode`, `Sec-Fetch-Site: 'none'` 등)를 구성하여 기본 검색 페이지로 `GET` 요청을 보냅니다.
+        -   이 신뢰도 높은 요청에 대한 응답 헤더에서 `Set-Cookie` 값을 정상적으로 추출합니다.
 
     2.  **2단계: 인증된 검색 (Authenticated Search)**
         -   Worker는 실제 검색어가 포함된 URL로 두 번째 `GET` 요청을 보냅니다.
-        -   이때, 요청 헤더에 **`Cookie` 필드를 추가**하고, 1단계에서 획득한 세션 쿠키 값을 그대로 담아 전송합니다.
-        -   또한, **`Referer` 헤더**에 기본 검색 페이지 URL을 명시하여, "검색 페이지에서 정상적으로 이동한 요청"임을 서버에 알려줍니다.
+        -   이때, 요청 헤더는 **1단계의 헤더 구성을 그대로 상속**받고, 아래 두 가지만 수정/추가합니다.
+            -   **`Cookie`**: 1단계에서 획득한 세션 쿠키 값을 추가합니다.
+            -   **`Sec-Fetch-Site`**: `'same-origin'`으로 변경하여, 페이지 내에서 정상적으로 이동한 요청임을 명시합니다.
+
+    이러한 흐름은 서버의 다단계 봇 탐지 로직을 효과적으로 우회하며, 장기적으로 안정적인 데이터 수집을 보장합니다.
 
     **핵심 코드 (`library-checker/src/index.js`):**
     ```javascript
     async function searchSiripEbookSubs(searchTitle) {
       try {
-        const baseSearchUrl = 'https://gjcitylib.dkyobobook.co.kr/search/searchList.ink';
-        
-        // 1. 세션 쿠키 획득
-        const initialResponse = await fetch(baseSearchUrl, { /* ... */ });
+        // ...
+        // 1. 실제 브라우저와 유사한 정교한 헤더로 세션 획득 요청
+        const initialHeaders = {
+          'Accept': 'text/html...',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'none', // 첫 방문이므로 'none'
+          'User-Agent': 'Mozilla/5.0 ...',
+        };
+        const initialResponse = await fetch(baseSearchUrl, { headers: initialHeaders });
         const sessionCookie = initialResponse.headers.get('set-cookie');
-        if (!sessionCookie) {
-          throw new Error('세션 쿠키를 찾을 수 없습니다.');
-        }
+        // ...
         
-        // 2. 쿠키를 포함하여 실제 검색 수행
-        const searchUrl = `${baseSearchUrl}?schTxt=${encodedTitle}`;
-        const response = await fetch(searchUrl, { 
-          method: 'GET', 
-          headers: {
-            'Cookie': sessionCookie,
-            'Referer': baseSearchUrl,
-            // ... 기타 필수 헤더
-          },
-        });
+        // 2. 획득한 쿠키를 포함하고, 일부 헤더를 수정하여 검색 요청
+        const searchHeaders = {
+          ...initialHeaders, // 헤더 상속
+          'Cookie': sessionCookie,
+          'Referer': baseSearchUrl,
+          'Sec-Fetch-Site': 'same-origin', // 페이지 내 이동이므로 'same-origin'
+        };
+        const response = await fetch(searchUrl, { headers: searchHeaders });
         // ...
       } catch (error) { /* ... */ }
     }
     ```
+-   **교훈**: 크롤링 차단 시, 단순히 누락된 값을 채우는 것을 넘어, **요청 순서와 각 단계별 헤더의 맥락(`Sec-Fetch-Site` 등)까지 모방**하는 것이 중요합니다. 서버의 보안 정책은 계속 진화하므로, 지속적인 모니터링과 패턴 분석이 필수적입니다.
 
 ---
 
