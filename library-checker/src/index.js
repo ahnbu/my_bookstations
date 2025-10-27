@@ -1467,8 +1467,10 @@ async function searchGyeonggiEduKeyword(keyword) {
         const eduResults = await Promise.allSettled(searchPromises);
 
         eduResults.forEach(result => {
-            if (result.status === 'fulfilled' && result.value?.availability) {
-                result.value.availability.forEach(book => {
+            // if (result.status === 'fulfilled' && result.value?.availability) {
+            // result.value.availability.forEach(book => {
+            if (result.status === 'fulfilled' && result.value?.book_list) { 
+                result.value.book_list.forEach(book => {
                     results.push({
                         type: '전자책',
                         libraryName: 'e교육',
