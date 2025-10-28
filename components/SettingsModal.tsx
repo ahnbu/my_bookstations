@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useBookStore } from '../stores/useBookStore';
-import type { CustomTag, TagColor, Theme, RefreshType, RefreshLimit} from '../types';
+import type { CustomTag, TagColor, Theme, RefreshType, RefreshLimit, ViewType} from '../types';
 import CustomTagComponent from './CustomTag';
 
 const SettingsModal: React.FC = () => {
@@ -564,6 +564,7 @@ const SettingsModal: React.FC = () => {
                   </button>
                 </div>
 
+                {/* 기본 보기 건수 */}
                 <div className="flex items-center justify-between">
                   <div>
                     <label className="text-sm font-medium text-primary">
@@ -584,6 +585,41 @@ const SettingsModal: React.FC = () => {
                     <option value={100}>100권</option>
                     <option value={200}>200권</option>
                   </select>
+                </div>
+
+                {/* 기본 보기 방식 - 카드뷰, 그리드뷰 */}
+                                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium text-primary">
+                      기본 보기 방식
+                    </label>
+                    <p className="text-xs text-secondary mt-1 hidden sm:block">
+                      내 서재 진입 시 기본으로 표시될 보기 방식을 설정합니다.
+                    </p>
+                  </div>
+                  <div className="theme-button-group flex flex-col sm:flex-row gap-2">
+                    {[
+                      { value: 'card', label: '카드 뷰', icon: ' M3 4a1 1 0 000 2h14a1 1 0 100-2H3zM3 8a1 1 0 000 2h14a1 1 0 100-2H3zM3 12a1 1 0 100 2h14a1 1 0 100-2H3z' },
+                      { value: 'grid', label: '그리드 뷰', icon: 'M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' }
+                    ].map((view) => (
+                      <button
+                        key={view.value}
+                        onClick={() => {
+                          const newViewType = view.value as ViewType;
+                          setLocalSettings(prev => ({ ...prev, defaultViewType: newViewType }));
+                        }}
+                        disabled={saving}
+                        className={`btn-base flex-1 ${
+                          localSettings.defaultViewType === view.value
+                            ? 'btn-primary'
+                            : 'btn-secondary'
+                        }`}
+                      >
+                        <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d={view.icon} clipRule="evenodd" /></svg>
+                        {view.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="space-y-3">

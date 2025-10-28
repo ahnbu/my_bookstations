@@ -61,6 +61,7 @@ const getDefaultSettings = (): UserSettings => {
       maxTags: 5,
     },
     theme: 'system',
+    defaultViewType: 'card', // ✅ 이 줄을 추가하세요. (기본값 'card')
   };
 };
 

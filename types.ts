@@ -375,6 +375,7 @@ export type UserSettings = {
   defaultPageSize: number;
   tagSettings: UserTagSettings;
   theme: Theme;
+  defaultViewType: ViewType; // ✅ 이 줄을 추가하세요.
 };
 
 

@@ -468,7 +468,8 @@ const MyLibrary: React.FC = () => {
   const [detailModalBookId, setDetailModalBookId] = useState<number | null>(null);
   const [selectedBooks, setSelectedBooks] = useState<Set<number>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
-  const [viewType, setViewType] = useState<ViewType>('card');
+  // const [viewType, setViewType] = useState<ViewType>('card');
+  const [viewType, setViewType] = useState<ViewType>(settings.defaultViewType || 'card');
   const [gridColumns, setGridColumns] = useState(5);
   const [backgroundRefreshComplete, setBackgroundRefreshComplete] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
@@ -589,6 +590,12 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
 
 
   // ================== ✅ 이 부분을 추가하세요 ==================
+
+  useEffect(() => {
+    if (settings.defaultViewType && settings.defaultViewType !== viewType) {
+      setViewType(settings.defaultViewType);
+    }
+  }, [settings.defaultViewType]);
 
   // Debounce search query
   useEffect(() => {
