@@ -375,7 +375,9 @@ export type UserSettings = {
   defaultPageSize: number;
   tagSettings: UserTagSettings;
   theme: Theme;
-  defaultViewType: ViewType; // ✅ 이 줄을 추가하세요.
+  defaultViewType: ViewType; // ✅ 기본 보기 선택
+  defaultFilterFavorites: boolean; // ✅ 기본 필터링 선택 : 좋아요 여부
+  defaultFilterTagIds: string[];  // ✅ 기본 필터링 선택 : 태그
 };
 
 

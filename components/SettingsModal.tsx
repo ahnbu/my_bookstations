@@ -587,41 +587,147 @@ const SettingsModal: React.FC = () => {
                   </select>
                 </div>
 
-                {/* 기본 보기 방식 - 카드뷰, 그리드뷰 */}
-                                <div className="space-y-3">
+
+                {/* ✅ 초기 화면 세팅 : 뷰 & 필터 설정 */}
+                <div className="space-y-6 pt-6 mt-6 border-t border-secondary">
                   <div>
-                    <label className="text-sm font-medium text-primary">
-                      기본 보기 방식
-                    </label>
+                    <h4 className="text-sm font-medium text-primary">
+                      내 서재 초기 필터 설정
+                    </h4>
                     <p className="text-xs text-secondary mt-1 hidden sm:block">
-                      내 서재 진입 시 기본으로 표시될 보기 방식을 설정합니다.
+                      내 서재에 처음 진입할 때 자동으로 적용할 필터를 설정합니다.
                     </p>
                   </div>
-                  <div className="theme-button-group flex flex-col sm:flex-row gap-2">
-                    {[
-                      { value: 'card', label: '카드 뷰', icon: ' M3 4a1 1 0 000 2h14a1 1 0 100-2H3zM3 8a1 1 0 000 2h14a1 1 0 100-2H3zM3 12a1 1 0 100 2h14a1 1 0 100-2H3z' },
-                      { value: 'grid', label: '그리드 뷰', icon: 'M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' }
-                    ].map((view) => (
-                      <button
-                        key={view.value}
-                        onClick={() => {
-                          const newViewType = view.value as ViewType;
-                          setLocalSettings(prev => ({ ...prev, defaultViewType: newViewType }));
-                        }}
-                        disabled={saving}
-                        className={`btn-base flex-1 ${
-                          localSettings.defaultViewType === view.value
-                            ? 'btn-primary'
-                            : 'btn-secondary'
-                        }`}
-                      >
-                        <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d={view.icon} clipRule="evenodd" /></svg>
-                        {view.label}
-                      </button>
-                    ))}
+
+                  {/* 기본 보기 방식 - 카드뷰, 그리드뷰 */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm font-medium text-primary">
+                        기본 보기 방식
+                      </label>
+                      <p className="text-xs text-secondary mt-1 hidden sm:block">
+                        내 서재 진입 시 기본으로 표시될 보기 방식을 설정합니다.
+                      </p>
+                    </div>
+                    <div className="theme-button-group flex flex-col sm:flex-row gap-2">
+                      {[
+                        { value: 'card', label: '카드 뷰', icon: ' M3 4a1 1 0 000 2h14a1 1 0 100-2H3zM3 8a1 1 0 000 2h14a1 1 0 100-2H3zM3 12a1 1 0 100 2h14a1 1 0 100-2H3z' },
+                        { value: 'grid', label: '그리드 뷰', icon: 'M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' }
+                      ].map((view) => (
+                        <button
+                          key={view.value}
+                          onClick={() => {
+                            const newViewType = view.value as ViewType;
+                            setLocalSettings(prev => ({ ...prev, defaultViewType: newViewType }));
+                          }}
+                          disabled={saving}
+                          className={`btn-base flex-1 ${
+                            localSettings.defaultViewType === view.value
+                              ? 'btn-primary'
+                              : 'btn-secondary'
+                          }`}
+                        >
+                          <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d={view.icon} clipRule="evenodd" /></svg>
+                          {view.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
+
+                  {/* 좋아요 필터 설정 */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-sm font-medium text-primary">
+                        '좋아요'한 책만 보기
+                      </label>
+                      <p className="text-xs text-secondary mt-1 hidden sm:block">
+                        이 옵션을 켜면 서재 진입 시 '좋아요' 필터가 자동으로 활성화됩니다.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        // 좋아요 필터와 태그 필터는 동시에 활성화될 수 없으므로,
+                        // 좋아요를 켜면 태그 필터 설정을 초기화합니다.
+                        const isEnabling = !localSettings.defaultFilterFavorites;
+                        setLocalSettings(prev => ({
+                          ...prev,
+                          defaultFilterFavorites: isEnabling,
+                          ...(isEnabling && { defaultFilterTagIds: [] }) // 켤 때만 태그 초기화
+                        }));
+                      }}
+                      disabled={saving}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
+                        localSettings.defaultFilterFavorites ? 'bg-blue-600' : 'bg-gray-200'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          localSettings.defaultFilterFavorites ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* 태그 필터 설정 */}
+                  <div>
+                    <label className="text-sm font-medium text-primary">
+                      기본 태그 필터
+                    </label>
+                    <p className="text-xs text-secondary mt-1 mb-3 hidden sm:block">
+                      서재 진입 시 자동으로 필터링할 태그를 선택하세요. (최대 3개)
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {sortedTags.map(tag => (
+                        <CustomTagComponent
+                          key={tag.id}
+                          tag={tag}
+                          // ✅ [수정] 옵셔널 체이닝과 null 병합 연산자 추가
+                          isActive={(localSettings.defaultFilterTagIds ?? []).includes(tag.id)}
+                          onClick={() => {
+                            // ✅ [수정] 여기도 동일하게 수정
+                            const currentTags = localSettings.defaultFilterTagIds ?? [];
+                            let newTags: string[];
+                            if (currentTags.includes(tag.id)) {
+                              newTags = currentTags.filter(id => id !== tag.id);
+                            } else {
+                              if (currentTags.length < 3) {
+                                newTags = [...currentTags, tag.id];
+                              } else {
+                                setNotification({ message: '최대 3개의 태그만 선택할 수 있습니다.', type: 'warning' });
+                                return; // 변경 없음
+                              }
+                            }
+                          // isActive={localSettings.defaultFilterTagIds.includes(tag.id)}
+                          // onClick={() => {
+                          //   const currentTags = localSettings.defaultFilterTagIds;
+                          //   let newTags: string[];
+                          //   if (currentTags.includes(tag.id)) {
+                          //     newTags = currentTags.filter(id => id !== tag.id);
+                          //   } else {
+                          //     if (currentTags.length < 3) {
+                          //       newTags = [...currentTags, tag.id];
+                          //     } else {
+                          //       setNotification({ message: '최대 3개의 태그만 선택할 수 있습니다.', type: 'warning' });
+                          //       return; // 변경 없음
+                          //     }
+                          //   }
+                            // 태그를 선택하면 '좋아요' 필터는 자동으로 해제합니다.
+                            setLocalSettings(prev => ({
+                              ...prev,
+                              defaultFilterTagIds: newTags,
+                              defaultFilterFavorites: false
+                            }));
+                          }}
+                          size="sm"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                
                 </div>
 
+
+                {/*  테마 선택 */}
                 <div className="space-y-3">
                   <div>
                     <label className="text-sm font-medium text-primary">

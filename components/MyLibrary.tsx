@@ -468,17 +468,22 @@ const MyLibrary: React.FC = () => {
   const [detailModalBookId, setDetailModalBookId] = useState<number | null>(null);
   const [selectedBooks, setSelectedBooks] = useState<Set<number>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
-  // const [viewType, setViewType] = useState<ViewType>('card');
-  const [viewType, setViewType] = useState<ViewType>(settings.defaultViewType || 'card');
   const [gridColumns, setGridColumns] = useState(5);
   const [backgroundRefreshComplete, setBackgroundRefreshComplete] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
   const [bulkTagModalOpen, setBulkTagModalOpen] = useState(false);
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [showAllBooks, setShowAllBooks] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
   const [noteInputValue, setNoteInputValue] = useState('');
+
+  // const [viewType, setViewType] = useState<ViewType>('card');
+  // const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
+  // const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+
+  // ✅ [수정] 초기 상태를 settings 값에서 가져오도록 변경
+  const [viewType, setViewType] = useState<ViewType>(settings.defaultViewType || 'card');
+  const [activeTags, setActiveTags] = useState<Set<string>>(new Set(settings.defaultFilterTagIds || []));
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState<boolean>(settings.defaultFilterFavorites || false);
   
   // ✅ '전체 선택'과 '선택 삭제'를 위한 핸들러 함수를 정의합니다.
   const handleSelectAllChange = (checked: boolean) => {
@@ -513,13 +518,32 @@ const MyLibrary: React.FC = () => {
   // 필터 리셋 함수
   const resetLibraryFilters = useCallback(() => {
     setDebouncedSearchQuery('');
-    // setActiveTags(new Set());
-    setActiveTags(new Set<string>()); 
-    setShowFavoritesOnly(false);
     clearAuthorFilter();
-    // showAllBooks는 유지 - 사용자가 전체보기를 선택했다면 그 의도 유지
-    // setSelectedTagIds는 BulkTagModal 내부 state이므로 여기서 접근하지 않음
-  }, [clearAuthorFilter]);
+    // ✅ [수정] 필터 리셋 시, 저장된 기본 설정값으로 되돌아가도록 수정
+    const { defaultFilterFavorites, defaultFilterTagIds } = settings;
+
+    // 로컬 상태 업데이트
+    setShowFavoritesOnly(defaultFilterFavorites);
+    setActiveTags(new Set(defaultFilterTagIds));
+
+    // 스토어 필터링 함수 호출
+    clearLibrarySearch(); // 검색어는 항상 초기화
+    if (defaultFilterFavorites) {
+      filterLibraryByFavorites();
+      clearLibraryTagFilter(); // 좋아요 필터가 켜지면 태그 필터는 해제
+    } else if (defaultFilterTagIds.length > 0) {
+      filterLibraryByTags(defaultFilterTagIds);
+      clearLibraryFavoritesFilter(); // 태그 필터가 켜지면 좋아요 필터는 해제
+    } else {
+      // 둘 다 꺼져있으면 모든 필터 해제
+      clearLibraryTagFilter();
+      clearLibraryFavoritesFilter();
+    }
+  }, [clearAuthorFilter, settings, clearLibrarySearch, filterLibraryByFavorites, clearLibraryTagFilter, filterLibraryByTags, clearLibraryFavoritesFilter]); // 의존성 배열에 settings와 필터 함수 추가
+
+  //   setActiveTags(new Set<string>()); 
+  //   setShowFavoritesOnly(false);
+  // }, [clearAuthorFilter]);
 
   // 전체 내 서재 상태 리셋 함수 (홈 리셋용) - 성능 최적화
   const resetAllLibraryStates = useCallback(() => {
@@ -589,13 +613,28 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
 }, []); // 의존성 배열이 비어있으므로 이 함수는 단 한 번만 생성됩니다.
 
 
-  // ================== ✅ 이 부분을 추가하세요 ==================
-
+  // ✅ 초기 화면 세팅
   useEffect(() => {
-    if (settings.defaultViewType && settings.defaultViewType !== viewType) {
-      setViewType(settings.defaultViewType);
+    // settings에서 초기 설정 값들을 가져옵니다.
+    const { defaultViewType, defaultFilterFavorites, defaultFilterTagIds } = settings;
+
+    // --- 1. 보기 방식(View Type) 설정 적용 ---
+    if (defaultViewType && defaultViewType !== viewType) {
+      setViewType(defaultViewType);
     }
-  }, [settings.defaultViewType]);
+
+    // --- 2. 초기 필터 적용 ---
+    // 좋아요 필터 적용
+    if (defaultFilterFavorites) {
+      setShowFavoritesOnly(true);
+      filterLibraryByFavorites();
+    } 
+    // 태그 필터 적용 (좋아요 필터가 꺼져 있을 때만)
+    else if (defaultFilterTagIds && defaultFilterTagIds.length > 0) {
+      setActiveTags(new Set(defaultFilterTagIds));
+      filterLibraryByTags(defaultFilterTagIds);
+    }
+  }, [settings]); // ✅ 의존성 배열을 [settings]로 변경
 
   // Debounce search query
   useEffect(() => {
