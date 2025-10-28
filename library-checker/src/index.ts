@@ -1021,17 +1021,58 @@ export default {
 
     if (request.method === 'POST' && pathname !== '/keyword-search') {
         const cache = caches.default;
-        const bodyText = await request.clone().text();
-        const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(bodyText));
+
+        // --- 👇 캐시 키 생성 로직 변경 ---
+        const body: ApiRequest = await request.clone().json(); // .text() 대신 .json()으로 파싱
+        // ✅ 1. 모든 필요한 변수를 try 블록 이전에 구조 분해 할당으로 선언합니다.
+        const { 
+            isbn, 
+            author = '', 
+            customTitle = '', 
+            eduTitle = '', 
+            gyeonggiTitle = '', 
+            siripTitle = '' 
+        } = body;
+        
+        // --- 👇 캐시 키 생성 로직 ---
+        const cacheableData = {
+            isbn,
+            customTitle, // 기본값 ''가 이미 할당되어 안전합니다.
+            eduTitle,
+            gyeonggiTitle,
+            siripTitle
+        };
+
+        // 2. 객체의 키를 기준으로 정렬하여 항상 동일한 순서의 문자열을 보장합니다.
+        const sortedKeys = Object.keys(cacheableData).sort();
+        const sortedCacheableData = sortedKeys.reduce((obj, key) => {
+            obj[key as keyof typeof cacheableData] = cacheableData[key as keyof typeof cacheableData];
+            return obj;
+        }, {} as typeof cacheableData);
+
+        const cacheKeyString = JSON.stringify(sortedCacheableData);
+
+        // 3. 이 일관된 문자열을 해싱합니다.
+        const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(cacheKeyString));
         const hashHex = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
-  
+        
+        // ==========================================================
+        // ✅ [수정] 캐시 키를 명시적인 Request 객체로 생성
+        // ==========================================================
+        // 1. 캐시 전용 URL을 만듭니다.
         const cacheUrl = new URL(request.url);
         cacheUrl.pathname = '/cache/' + hashHex;
+
+        // 2. 이 URL을 사용하여 깨끗하고 명시적인 GET 요청 객체를 캐시 키로 생성합니다.
+        //    이렇게 하면 원본 POST 요청의 헤더가 캐시 키에 영향을 주지 않아 안정성이 높아집니다.
         const cacheKeyRequest = new Request(cacheUrl.toString(), {
           method: 'GET',
-          headers: request.headers,
         });
-  
+        
+        console.log('[CACHE DEBUG] Key String:', cacheKeyString);
+        console.log('[CACHE DEBUG] Cache Key URL:', cacheUrl.toString());
+
+        // 3. 수정된 cacheKeyRequest 객체로 캐시를 조회합니다.
         let response = await cache.match(cacheKeyRequest);
   
         if (response) {
@@ -1048,15 +1089,36 @@ export default {
         }
   
         try {
-            const body: ApiRequest = JSON.parse(bodyText);
-    
-            let { isbn, author = '', customTitle = '', eduTitle = '', gyeonggiTitle = '', siripTitle = '' } = body;
-            customTitle = customTitle || '';
             console.log(`Request received - ISBN: ${isbn}, Author: "${author}", eduTitle: "${eduTitle}", GyeonggiTitle: "${gyeonggiTitle}", SiripTitle: "${siripTitle}"`);
     
             if (!isbn) {
               return new Response(JSON.stringify({ error: 'isbn 파라미터가 필요합니다.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
             }
+
+        // const cacheKey = `https://library-checker.byungwook-an.workers.dev/cache/${hashHex}`;
+        
+        // // 2. cache.match에 Request 객체 대신 URL 문자열을 전달합니다.
+        // let response = await cache.match(cacheKey);
+  
+        // if (response) {
+        //   console.log("Cache HIT!");
+        //   const newHeaders = new Headers(response.headers);
+        //   Object.entries(corsHeaders).forEach(([key, value]) => newHeaders.set(key, value));
+        //   newHeaders.set('X-Cache-Status', 'HIT');
+  
+        //   return new Response(response.body, {
+        //     status: response.status,
+        //     statusText: response.statusText,
+        //     headers: newHeaders,
+        //   });
+        // }
+  
+        // try {
+        //     console.log(`Request received - ISBN: ${isbn}, Author: "${author}", eduTitle: "${eduTitle}", GyeonggiTitle: "${gyeonggiTitle}", SiripTitle: "${siripTitle}"`);
+    
+        //     if (!isbn) {
+        //       return new Response(JSON.stringify({ error: 'isbn 파라미터가 필요합니다.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        //     }
     
             const promises: Promise<any>[] = [
               searchGwangjuLibrary(isbn),
@@ -1188,7 +1250,12 @@ export default {
               headers: {
                 ...corsHeaders,
                 'Content-Type': 'application/json',
-                'X-Cache-Status': 'MISS'
+                'X-Cache-Status': 'MISS',
+                // 4. 이 응답은 공개적으로 캐시할 수 있으며, 1일(86400초) 동안 유효하다고 명시합니다.
+                //    이 헤더가 캐시 MISS 문제의 핵심 해결책입니다.
+                //  (예: 12시간은 43200).
+                // 'Cache-Control': 'public, max-age=86400' // 24시간
+                'Cache-Control': 'public, max-age=43200' // 12시간
               }
             });
     
