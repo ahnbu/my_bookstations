@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "esnext",          // 최신 JavaScript 기능 사용
+    "module": "esnext",          // ES 모듈 시스템 사용
+    "lib": ["esnext"],           // ES 최신 라이브러리 타입 사용
+    "types": ["@cloudflare/workers-types"], // Cloudflare 전용 타입 로드
+    "strict": true,              // 엄격한 타입 검사 활성화 (강력 권장)
+    "esModuleInterop": true,     // CommonJS 모듈과의 호환성 지원
+    "moduleResolution": "node",  // 'node-html-parser' 같은 모듈 해석 방식
+    "noEmit": true,              // tsc가 직접 파일을 생성하지 않음 (wrangler가 처리)
+    "allowJs": true,             // JS 파일과 TS 파일을 함께 사용할 수 있도록 허용
+    "checkJs": false             // 기존 JS 파일에 대한 타입 검사는 비활성화
+  },
+  "include": ["src"] // 타입 검사 및 컴파일 대상 폴더 지정
+}
