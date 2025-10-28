@@ -761,35 +761,48 @@ export const useBookStore = create<BookState>(
               customTags: originalBook.customTags,
               customSearchTitle: originalBook.customSearchTitle,
 
-            // ✅ [핵심] API 호출 실패('undefined') or 에러인 경우 DB값으로 적용
-            // 에러일 때와 빈값으로 오면, db값으로 유지
-            // 각 필드를 검사하여 유효하지 않으면 기존(originalBook) 값으로 덮어씁니다.
-            // ✅ 각 API의 고유한 에러 형태를 감지하여 폴백 조건을 강화합니다.
-            gwangjuPaperInfo: (pureApiData.gwangjuPaperInfo === undefined || pureApiData.gwangjuPaperInfo === null || 'error' in pureApiData.gwangjuPaperInfo)
-              ? originalBook.gwangjuPaperInfo
-              : pureApiData.gwangjuPaperInfo,
+              // -- gwangjuPaperInfo --
+              gwangjuPaperInfo: (
+                // API 조회 실패했고,
+                'error' in pureApiData.gwangjuPaperInfo &&
+                // 기존 책에 유효한 데이터가 있다면 (book_list가 있는 객체라면)
+                originalBook.gwangjuPaperInfo && !('error' in originalBook.gwangjuPaperInfo)
+              )
+                ? originalBook.gwangjuPaperInfo // 기존 데이터 유지
+                : pureApiData.gwangjuPaperInfo, // 아니면 (성공했거나, 신규 책이라) API 결과 사용
 
-            // toechonStock: (pureApiData.toechonStock === undefined || pureApiData.toechonStock === null || (pureApiData.gwangjuPaperInfo && 'error' in pureApiData.gwangjuPaperInfo))
-            //   ? originalBook.toechonStock
-            //   : pureApiData.toechonStock,
+              // -- GyeonggiEduEbookInfo --
+              GyeonggiEduEbookInfo: (
+                // API 조회 실패했고,
+                (pureApiData.GyeonggiEduEbookInfo?.error_count ?? 0) > 0 &&
+                // 기존 책에 유효한 데이터가 있다면
+                originalBook.GyeonggiEduEbookInfo && (originalBook.GyeonggiEduEbookInfo?.error_count ?? 0) === 0
+              )
+                ? originalBook.GyeonggiEduEbookInfo // 기존 데이터 유지
+                : pureApiData.GyeonggiEduEbookInfo, // 아니면 API 결과 사용
 
-            // otherStock: (pureApiData.otherStock === undefined || pureApiData.otherStock === null || (pureApiData.gwangjuPaperInfo && 'error' in pureApiData.gwangjuPaperInfo))
-            //   ? originalBook.otherStock
-            //   : pureApiData.otherStock,
+              // -- gyeonggiEbookInfo --
+              gyeonggiEbookInfo: (
+                // API 조회 실패했고,
+                pureApiData.gyeonggiEbookInfo && 'error' in pureApiData.gyeonggiEbookInfo &&
+                // 기존 책에 유효한 데이터가 있다면
+                originalBook.gyeonggiEbookInfo && !('error' in originalBook.gyeonggiEbookInfo)
+              )
+                ? originalBook.gyeonggiEbookInfo // 기존 데이터 유지
+                : pureApiData.gyeonggiEbookInfo, // 아니면 API 결과 사용
 
-            GyeonggiEduEbookInfo: (pureApiData.GyeonggiEduEbookInfo === undefined || pureApiData.GyeonggiEduEbookInfo === null || (pureApiData.GyeonggiEduEbookInfo?.error_count ?? 0) > 0)
-              ? originalBook.GyeonggiEduEbookInfo
-              : pureApiData.GyeonggiEduEbookInfo,
+              // -- siripEbookInfo --
+              siripEbookInfo: (
+                // API 조회 실패했고 (API 응답 자체에 에러가 있거나, 세부 결과에 에러가 있는 경우)
+                (pureApiData.siripEbookInfo === null || pureApiData.siripEbookInfo?.errors) &&
+                // 기존 책에 유효한 데이터가 있다면
+                originalBook.siripEbookInfo && !originalBook.siripEbookInfo?.errors
+              )
+                ? originalBook.siripEbookInfo // 기존 데이터 유지
+                : pureApiData.siripEbookInfo, // 아니면 API 결과 사용 (신규 책의 경우 에러 객체가 저장됨)
+
+            };
             
-            siripEbookInfo: (pureApiData.siripEbookInfo === undefined || pureApiData.siripEbookInfo === null || pureApiData.siripEbookInfo.errors)
-              ? originalBook.siripEbookInfo
-              : pureApiData.siripEbookInfo,
-            
-            gyeonggiEbookInfo: (pureApiData.gyeonggiEbookInfo === undefined || pureApiData.gyeonggiEbookInfo === null || 'error' in pureApiData.gyeonggiEbookInfo)
-              ? originalBook.gyeonggiEbookInfo
-              : pureApiData.gyeonggiEbookInfo,
-
-          };
             // subInfo 업데이트 로직 (새 전자책 정보가 있는데 기존엔 없었을 경우)
             const hasNewEbookInfo = aladinBookData.subInfo?.ebookList?.[0]?.isbn13;
             const hasOldEbookInfo = originalBook.subInfo?.ebookList?.[0]?.isbn13;

@@ -335,8 +335,39 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
         
         // 2. 가져온 데이터를 JsonViewerModal로 전달합니다.
         if (data) {
+          // ✅ [신규] 여기서 키 순서를 재정렬합니다.
+          // 1. 원하는 최상위 키 순서를 배열로 정의합니다. (네트워크 탭 기준)
+          const desiredKeyOrder = [
+            'title', 'author', 'isbn13', 'pubDate', 'publisher', 'link', 'cover', 
+            'priceStandard', 'priceSales', 'description', 'subInfo', 'mallType','lastUpdated',
+            'addedDate', 'readStatus', 'rating', 'isFavorite', 'customTags', 'customSearchTitle',
+            'gwangjuPaperInfo', 
+            'GyeonggiEduEbookInfo', 
+            'gyeonggiEbookInfo', 
+            'siripEbookInfo',
+          ];
+
+          // 2. 원하는 순서대로 새로운 객체를 생성합니다.
+          const reorderedData: { [key: string]: any } = {};
+          const dataKeys = new Set(Object.keys(data));
+
+          // 원하는 순서의 키부터 reorderedData에 추가
+          desiredKeyOrder.forEach(key => {
+            if (dataKeys.has(key)) {
+              reorderedData[key] = data[key as keyof typeof data];
+              dataKeys.delete(key);
+            }
+          });
+
+          // 나머지 키들을 (알파벳 순으로) 추가하여 데이터 누락 방지
+          Array.from(dataKeys).sort().forEach(key => {
+            reorderedData[key] = data[key as keyof typeof data];
+          });
+
+          // 3. 순서가 재정렬된 객체를 JSON 뷰어 모달로 전달합니다.
+          openJsonViewerModal(reorderedData, `[API] ${book.title}`);
           // ✅ 제목에 [DB] 프리픽스를 붙여 데이터 출처를 명확히 합니다.
-          openJsonViewerModal(data, `[API] ${book.title}`);
+          // openJsonViewerModal(data, `[API] ${book.title}`);
         } else {
           // 데이터가 없는 경우를 처리합니다.
           openJsonViewerModal({ error: "DB에서 저장된 API 데이터를 찾을 수 없습니다." }, `[DB] ${book.title}`);
