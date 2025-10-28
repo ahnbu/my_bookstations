@@ -706,31 +706,98 @@ async function searchSiripEbookOwned(searchTitle) {
 }
 
 // 경기광주 시립도서관 전자책 (구독) 검색 - 세션쿠키 요청 이전
+// async function searchSiripEbookSubs(searchTitle) {
+//   try {
+//     const encodedTitle = encodeURIComponent(searchTitle);
+//     const url = `https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?brcd=&sntnAuthCode=&contentAll=&cttsDvsnCode=&orderByKey=&schClst=all&schDvsn=000&reSch=&ctgrId=&allClstCheck=on&clstCheck=ctts&clstCheck=autr&clstCheck=pbcm&allDvsnCheck=000&dvsnCheck=001&schTxt=${encodedTitle}&reSchTxt=`;
+    
+//     const headers = {
+//       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+//       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+//       'Accept-Language': 'ko-KR,ko;q=0.9',
+//       'Accept-Encoding': 'gzip, deflate, br, zstd',
+//       'Referer': 'https://gjcitylib.dkyobobook.co.kr/',
+//       'Connection': 'keep-alive',
+//       'Upgrade-Insecure-Requests': '1',
+//       'Sec-Ch-Ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
+//       'Sec-Ch-Ua-Mobile': '?0',
+//       'Sec-Ch-Ua-Platform': '"Windows"',
+//       'Sec-Fetch-Dest': 'document',
+//       'Sec-Fetch-Mode': 'navigate',
+//       'Sec-Fetch-Site': 'none',
+//       'Sec-Fetch-User': '?1'
+//     };
+
+//     const response = await fetch(url, { 
+//       method: 'GET', 
+//       headers: headers, 
+//       signal: AbortSignal.timeout(DEFAULT_TIMEOUT) 
+//     });
+    
+//     if (!response.ok) {
+//       throw new Error(`시립도서관 구독형 전자책 HTTP ${response.status}`);
+//     }
+
+//     // [핵심 변경] response.text()를 호출하지 않고, Response 객체 자체를 파서에 전달합니다.
+//     // 파서가 async 함수이므로 await를 사용합니다.
+//     const htmlContent = await response.text();
+//     return parseSiripEbookSubsHTML(htmlContent, searchTitle);
+
+//     // return await parseSiripEbookSubsHTML(response);
+
+//   } catch (error) {
+//     console.error('시립도서관 구독형 전자책 검색 오류:', error);
+//     throw new Error(`시립도서관 구독형 전자책 검색 실패: ${error.message}`);
+//   }
+// }
+
+// 경기광주 시립도서관 전자책 (구독) 검색 - 헤더 정교하게
 async function searchSiripEbookSubs(searchTitle) {
   try {
     const encodedTitle = encodeURIComponent(searchTitle);
-    const url = `https://gjcitylib.dkyobobook.co.kr/search/searchList.ink?brcd=&sntnAuthCode=&contentAll=&cttsDvsnCode=&orderByKey=&schClst=all&schDvsn=000&reSch=&ctgrId=&allClstCheck=on&clstCheck=ctts&clstCheck=autr&clstCheck=pbcm&allDvsnCheck=000&dvsnCheck=001&schTxt=${encodedTitle}&reSchTxt=`;
-    
-    const headers = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+    const baseSearchUrl = 'https://gjcitylib.dkyobobook.co.kr/search/searchList.ink';
+
+    // 1단계: 세션 획득을 위한 요청. 항상 새로 요청합니다.
+    // 헤더는 실제 브라우저와 유사하게 최대한 정교하게 구성합니다.
+    const initialHeaders = {
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-      'Accept-Language': 'ko-KR,ko;q=0.9',
-      'Accept-Encoding': 'gzip, deflate, br, zstd',
-      'Referer': 'https://gjcitylib.dkyobobook.co.kr/',
+      'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
       'Connection': 'keep-alive',
-      'Upgrade-Insecure-Requests': '1',
-      'Sec-Ch-Ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
-      'Sec-Ch-Ua-Mobile': '?0',
-      'Sec-Ch-Ua-Platform': '"Windows"',
       'Sec-Fetch-Dest': 'document',
       'Sec-Fetch-Mode': 'navigate',
       'Sec-Fetch-Site': 'none',
-      'Sec-Fetch-User': '?1'
+      'Sec-Fetch-User': '?1',
+      'Upgrade-Insecure-Requests': '1',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
     };
 
-    const response = await fetch(url, { 
+    const initialResponse = await fetch(baseSearchUrl, {
+      method: 'GET',
+      headers: initialHeaders,
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT)
+    });
+
+    if (!initialResponse.ok) {
+      throw new Error(`세션 획득 실패: HTTP ${initialResponse.status}`);
+    }
+
+    const sessionCookie = initialResponse.headers.get('set-cookie');
+    if (!sessionCookie) {
+      throw new Error('세션 쿠키를 획득하지 못했습니다.');
+    }
+    
+    // 2단계: 획득한 쿠키로 즉시 검색 수행
+    const searchUrl = `${baseSearchUrl}?schTxt=${encodedTitle}`;
+    const searchHeaders = {
+      ...initialHeaders, // 1단계 헤더를 상속하여 일관성 유지
+      'Cookie': sessionCookie,
+      'Referer': baseSearchUrl,
+      'Sec-Fetch-Site': 'same-origin', // 페이지 내 이동으로 맥락 부여
+    };
+
+    const response = await fetch(searchUrl, { 
       method: 'GET', 
-      headers: headers, 
+      headers: searchHeaders, 
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT) 
     });
     
@@ -738,15 +805,12 @@ async function searchSiripEbookSubs(searchTitle) {
       throw new Error(`시립도서관 구독형 전자책 HTTP ${response.status}`);
     }
 
-    // [핵심 변경] response.text()를 호출하지 않고, Response 객체 자체를 파서에 전달합니다.
-    // 파서가 async 함수이므로 await를 사용합니다.
     const htmlContent = await response.text();
     return parseSiripEbookSubsHTML(htmlContent, searchTitle);
 
-    // return await parseSiripEbookSubsHTML(response);
-
   } catch (error) {
-    console.error('시립도서관 구독형 전자책 검색 오류:', error);
+    // 에러를 한 곳에서 일관되게 처리하고 상위로 전파합니다.
+    console.error('시립도서관 구독형 전자책 검색 오류:', error.message);
     throw new Error(`시립도서관 구독형 전자책 검색 실패: ${error.message}`);
   }
 }

@@ -19,10 +19,10 @@
 		"ENVIRONMENT": "development",
 		"DEBUG": "true"
 	},
-	"kv_namespaces": [
-		{
-			"binding": "SESSION_CACHE",
-			"id": "fa96885744cd4b13925ff821d327b378"
-		}
-	]
+	// "kv_namespaces": [
+	// 	{
+	// 		"binding": "SESSION_CACHE",
+	// 		"id": "fa96885744cd4b13925ff821d327b378"
+	// 	}
+	// ]
 }
