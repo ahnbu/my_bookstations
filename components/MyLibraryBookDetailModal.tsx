@@ -236,16 +236,21 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                 <StockDisplay
                     label="퇴촌"
                     searchUrl={createLibraryOpenURL('퇴촌', book.title, book.customSearchTitle)}
-                    totalCount={book.toechonStock?.total_count}
-                    availableCount={book.toechonStock?.available_count}
+                    // totalCount={book.toechonStock?.total_count}
+                    // availableCount={book.toechonStock?.available_count}
+                    // undefined를 전달하는 이유는 StockDisplay 컴포넌트가 undefined 값을 "로딩 중" 상태로 해석하도록 개선되었기 때문입니다. 이는 조회중... 무한 반복 버그를 해결한 좋은 로직
+                    totalCount={book.gwangjuPaperInfo && 'toechon_total_count' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.toechon_total_count : undefined}
+                    availableCount={book.gwangjuPaperInfo && 'toechon_available_count' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.toechon_available_count : undefined}
                     hasError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false}
                     // isLoading={!book.toechonStock && !book.gwangjuPaperInfo}
                 />
                 <StockDisplay
                     label="기타"
                     searchUrl={createLibraryOpenURL('기타', book.title, book.customSearchTitle)}
-                    totalCount={book.otherStock?.total_count}
-                    availableCount={book.otherStock?.available_count}
+                    // totalCount={book.otherStock?.total_count}
+                    // availableCount={book.otherStock?.available_count}
+                    totalCount={book.gwangjuPaperInfo && 'other_total_count' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.other_total_count : undefined}
+                    availableCount={book.gwangjuPaperInfo && 'other_available_count' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.other_available_count : undefined}
                     hasError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false}
                     // isLoading={!book.otherStock && !book.gwangjuPaperInfo}
                 />
@@ -276,11 +281,9 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                 <StockDisplay
                     label="전자책(경기)"
                     searchUrl={createLibraryOpenURL('e경기', book.title, book.customSearchTitle)}
-                    // 'filteredGyeonggiEbookInfo' 참조 제거 'gyeonggiEbookInfo'만 사용
-                    totalCount={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.total_count : 0}
-                    availableCount={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.available_count : 0}
+                    totalCount={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.total_count : undefined}
+                    availableCount={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.available_count : undefined}
                     hasError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
-                    // isLoading={!book.gyeonggiEbookInfo && refreshingEbookId !== book.id}
                 />
             </div>
 

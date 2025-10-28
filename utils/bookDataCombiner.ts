@@ -4,12 +4,8 @@ import {
   AladdinBookItem,
   LibraryApiResponse,
   GyeonggiEduEbookResult,
-  GyeonggiEbookResult,
-  GwangjuPaperResult,
   ApiCombinedBookData, // ✅ 새로 정의한 명시적 타입 임포트
 } from '../types';
-import { filterGyeonggiEbookByIsbn } from './isbnMatcher';
-
 
 /**
  * [RAW 데이터 확인용]
@@ -43,7 +39,7 @@ export function combineRawApiResults(
  * @returns {object} - 알라딘과 도서관 API 정보가 조합된 객체 (사용자 정보 없음)
  */
 
-export function createBookDataFromApis( // ✅ 이름 변경
+export function createBookDataFromApis( 
   aladinBook: AladdinBookItem,
   libraryResult: LibraryApiResponse
 ): ApiCombinedBookData { // ✅ 반환 타입 변경
@@ -64,33 +60,6 @@ export function createBookDataFromApis( // ✅ 이름 변경
     gyeonggiEbookInfo: libraryResult.gyeonggi_ebook_library,
     siripEbookInfo: libraryResult.sirip_ebook,
   };
-
-    // ▼▼▼▼▼▼▼▼▼▼ 이 부분을 아래 코드로 교체하세요 ▼▼▼▼▼▼▼▼▼▼
-  // 광주 종이책 재고 요약 (toechonStock, otherStock)
-  if (libraryResult.gwangju_paper && 'summary_total_count' in libraryResult.gwangju_paper) {
-    // API 성공 시에만 재고 정보를 생성
-    const paperResult = libraryResult.gwangju_paper as GwangjuPaperResult;
-    combined.toechonStock = {
-      total_count: paperResult.toechon_total_count,
-      available_count: paperResult.toechon_available_count,
-    };
-    combined.otherStock = {
-      total_count: paperResult.other_total_count,
-      available_count: paperResult.other_available_count,
-    };
-  }
-  // 💣 else 블록을 완전히 제거하여, 실패 시 toechonStock과 otherStock이 undefined가 되도록 함
-  // ▲▲▲▲▲▲▲▲▲▲ 여기까지 교체 ▲▲▲▲▲▲▲▲▲▲
-  
-  if (libraryResult.gyeonggi_ebook_library && !('error' in libraryResult.gyeonggi_ebook_library)) {
-    combined.filteredGyeonggiEbookInfo = filterGyeonggiEbookByIsbn(
-      aladinBook,
-      libraryResult.gyeonggi_ebook_library as GyeonggiEbookResult
-    );
-  } else if (libraryResult.gyeonggi_ebook_library) {
-    combined.filteredGyeonggiEbookInfo = libraryResult.gyeonggi_ebook_library;
-  }
-  
   // 3. 타입에 맞는 최종 객체 반환
   return combined;
 }

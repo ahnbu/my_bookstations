@@ -93,7 +93,7 @@ export const ApiCombinedBookDataSchema = AladdinBookItemSchema.extend({
   // 화면 표시를 위한 파생/요약 정보
   toechonStock: z.object({ total_count: z.number(), available_count: z.number() }).optional(),
   otherStock: z.object({ total_count: z.number(), available_count: z.number() }).optional(),
-  filteredGyeonggiEbookInfo: z.any().optional(),
+  // filteredGyeonggiEbookInfo: z.any().optional(),
 });
 
 // 2. 사용자 활동 정보 스키마 (기존 BookData의 사용자 관련 부분)

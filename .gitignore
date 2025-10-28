@@ -15,6 +15,7 @@ dist-ssr
 book_list_save
 working_code
 *.local
+.docs/git_commit_history/*
 
 # Editor directories and files
 .serena/*
