@@ -11,7 +11,7 @@ const SettingsModal: React.FC = () => {
   const { myLibraryBooks, totalBooksCount, isAllBooksLoaded, tagCounts, bulkRefreshState, fetchRemainingLibrary, bulkRefreshAllBooks, pauseBulkRefresh, resumeBulkRefresh, cancelBulkRefresh } = useBookStore();
   const [localSettings, setLocalSettings] = useState(settings);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'display' | 'tags' | 'data'>('display');
+  const [activeTab, setActiveTab] = useState<'display' | 'initial' | 'tags' | 'data'>('display');
   const [editingTag, setEditingTag] = useState<CustomTag | null>(null);
   const [newTagName, setNewTagName] = useState('');
   const [newTagColor, setNewTagColor] = useState<TagColor>('primary');
@@ -362,6 +362,18 @@ const SettingsModal: React.FC = () => {
   // }, [settings.tagSettings?.tags, myLibraryBooks, getTagUsageCount]);
   }, [settings.tagSettings?.tags, tagCounts]);
 
+  
+  // ✅ [신규] 선택된 기본 필터 태그의 이름 목록을 생성합니다.
+  const selectedDefaultTagNames = useMemo(() => {
+    const tagIds = localSettings.defaultFilterTagIds ?? [];
+    if (tagIds.length === 0) return '';
+
+    return tagIds
+      .map(id => sortedTags.find(tag => tag.id === id)?.name) // ID로 태그 이름을 찾음
+      .filter(Boolean) // 이름이 없는 경우(undefined)를 필터링
+      .join(', '); // 쉼표와 공백으로 이름들을 연결
+  }, [localSettings.defaultFilterTagIds, sortedTags]); // localSettings나 sortedTags가 바뀔 때만 재계산
+
   if (!isSettingsModalOpen) return null;
 
   return (
@@ -388,6 +400,17 @@ const SettingsModal: React.FC = () => {
             }`}
           >
             표시옵션
+          </button>
+          {/* ✅ [신규] '초기화면' 탭 버튼을 여기에 추가합니다. */}
+          <button
+            onClick={() => setActiveTab('initial')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${
+              activeTab === 'initial'
+                ? 'border-focus text-blue-600'
+                : 'border-transparent text-secondary hover:text-primary'
+            }`}
+          >
+            초기화면
           </button>
           <button
             onClick={() => setActiveTab('tags')}
@@ -587,17 +610,62 @@ const SettingsModal: React.FC = () => {
                   </select>
                 </div>
 
-
-                {/* ✅ 초기 화면 세팅 : 뷰 & 필터 설정 */}
-                <div className="space-y-6 pt-6 mt-6 border-t border-secondary">
+                {/*  테마 선택 */}
+                <div className="space-y-3">
                   <div>
+                    <label className="text-sm font-medium text-primary">
+                      테마
+                    </label>
+                    <p className="text-xs text-secondary mt-1 hidden sm:block">
+                      애플리케이션의 외관을 설정합니다.
+                    </p>
+                  </div>
+                  <div className="theme-button-group flex flex-col sm:flex-row gap-2">
+                    {[
+                      { value: 'light', label: '라이트', icon: '☀️' },
+                      { value: 'dark', label: '다크', icon: '🌙' },
+                      { value: 'system', label: '시스템', icon: '⚙️' }
+                    ].map((theme) => (
+                      <button
+                        key={theme.value}
+                        onClick={async () => {
+                          const newTheme = theme.value as Theme;
+                          setLocalSettings(prev => ({ ...prev, theme: newTheme }));
+                          try {
+                            await setTheme(newTheme);
+                          } catch (error) {
+                            setNotification({ message: '테마 설정에 실패했습니다.', type: 'error' });
+                          }
+                        }}
+                        disabled={saving}
+                        className={`btn-base flex-1 ${
+                          localSettings.theme === theme.value
+                            ? 'btn-primary'
+                            : 'btn-secondary'
+                        }`}
+                      >
+                        <span className="mr-2">{theme.icon}</span>
+                        {theme.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 초기화면 세팅 탭 */}
+            {activeTab === 'initial' && (
+              <div className="space-y-6 pb-4">
+                                {/* ✅ 초기 화면 세팅 : 뷰 & 필터 설정 */}
+                {/* <div className="space-y-6 pt-6 mt-6 border-t border-secondary"> */}
+                  {/* <div>
                     <h4 className="text-sm font-medium text-primary">
                       내 서재 초기 필터 설정
                     </h4>
                     <p className="text-xs text-secondary mt-1 hidden sm:block">
                       내 서재에 처음 진입할 때 자동으로 적용할 필터를 설정합니다.
                     </p>
-                  </div>
+                  </div> */}
 
                   {/* 기본 보기 방식 - 카드뷰, 그리드뷰 */}
                   <div className="space-y-3">
@@ -652,7 +720,7 @@ const SettingsModal: React.FC = () => {
                         setLocalSettings(prev => ({
                           ...prev,
                           defaultFilterFavorites: isEnabling,
-                          ...(isEnabling && { defaultFilterTagIds: [] }) // 켤 때만 태그 초기화
+                          // ...(isEnabling && { defaultFilterTagIds: [] }) // 켤 때만 태그 초기화
                         }));
                       }}
                       disabled={saving}
@@ -670,21 +738,42 @@ const SettingsModal: React.FC = () => {
 
                   {/* 태그 필터 설정 */}
                   <div>
-                    <label className="text-sm font-medium text-primary">
-                      기본 태그 필터
-                    </label>
-                    <p className="text-xs text-secondary mt-1 mb-3 hidden sm:block">
-                      서재 진입 시 자동으로 필터링할 태그를 선택하세요. (최대 3개)
-                    </p>
+                    {/* ✅ [수정] 제목과 초기화 버튼을 한 줄에 배치하기 위해 flex 사용 */}
+                    <div className="flex justify-between items-center mb-3">
+                      <div>
+                        <label className="text-sm font-medium text-primary">
+                          기본 태그 필터
+                        </label>
+                        <p className="text-xs text-secondary mt-1 hidden sm:block">
+                          서재 진입 시 자동으로 필터링할 태그를 선택하세요. (최대 3개)
+                        </p>
+                      </div>
+                      
+                      {/* ✅ [신규] '초기화' 버튼 추가 */}
+                      {(localSettings.defaultFilterTagIds ?? []).length > 0 && (
+                        <button
+                          onClick={() => {
+                            setLocalSettings(prev => ({
+                              ...prev,
+                              defaultFilterTagIds: [] // 태그 선택을 빈 배열로 초기화
+                            }));
+                          }}
+                          className="text-xs text-secondary hover:text-primary underline"
+                          title="선택한 태그 모두 해제"
+                        >
+                          초기화
+                        </button>
+                      )}
+                    </div>
+
                     <div className="flex flex-wrap gap-2">
                       {sortedTags.map(tag => (
                         <CustomTagComponent
                           key={tag.id}
                           tag={tag}
-                          // ✅ [수정] 옵셔널 체이닝과 null 병합 연산자 추가
                           isActive={(localSettings.defaultFilterTagIds ?? []).includes(tag.id)}
                           onClick={() => {
-                            // ✅ [수정] 여기도 동일하게 수정
+                            // ... (기존 onClick 로직은 그대로 유지)
                             const currentTags = localSettings.defaultFilterTagIds ?? [];
                             let newTags: string[];
                             if (currentTags.includes(tag.id)) {
@@ -694,83 +783,33 @@ const SettingsModal: React.FC = () => {
                                 newTags = [...currentTags, tag.id];
                               } else {
                                 setNotification({ message: '최대 3개의 태그만 선택할 수 있습니다.', type: 'warning' });
-                                return; // 변경 없음
+                                return;
                               }
                             }
-                          // isActive={localSettings.defaultFilterTagIds.includes(tag.id)}
-                          // onClick={() => {
-                          //   const currentTags = localSettings.defaultFilterTagIds;
-                          //   let newTags: string[];
-                          //   if (currentTags.includes(tag.id)) {
-                          //     newTags = currentTags.filter(id => id !== tag.id);
-                          //   } else {
-                          //     if (currentTags.length < 3) {
-                          //       newTags = [...currentTags, tag.id];
-                          //     } else {
-                          //       setNotification({ message: '최대 3개의 태그만 선택할 수 있습니다.', type: 'warning' });
-                          //       return; // 변경 없음
-                          //     }
-                          //   }
-                            // 태그를 선택하면 '좋아요' 필터는 자동으로 해제합니다.
                             setLocalSettings(prev => ({
                               ...prev,
                               defaultFilterTagIds: newTags,
-                              defaultFilterFavorites: false
                             }));
                           }}
                           size="sm"
                         />
                       ))}
                     </div>
-                  </div>
-                
-                </div>
 
-
-                {/*  테마 선택 */}
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium text-primary">
-                      테마
-                    </label>
-                    <p className="text-xs text-secondary mt-1 hidden sm:block">
-                      애플리케이션의 외관을 설정합니다.
-                    </p>
-                  </div>
-                  <div className="theme-button-group flex flex-col sm:flex-row gap-2">
-                    {[
-                      { value: 'light', label: '라이트', icon: '☀️' },
-                      { value: 'dark', label: '다크', icon: '🌙' },
-                      { value: 'system', label: '시스템', icon: '⚙️' }
-                    ].map((theme) => (
-                      <button
-                        key={theme.value}
-                        onClick={async () => {
-                          const newTheme = theme.value as Theme;
-                          setLocalSettings(prev => ({ ...prev, theme: newTheme }));
-                          try {
-                            await setTheme(newTheme);
-                          } catch (error) {
-                            setNotification({ message: '테마 설정에 실패했습니다.', type: 'error' });
-                          }
-                        }}
-                        disabled={saving}
-                        className={`btn-base flex-1 ${
-                          localSettings.theme === theme.value
-                            ? 'btn-primary'
-                            : 'btn-secondary'
-                        }`}
-                      >
-                        <span className="mr-2">{theme.icon}</span>
-                        {theme.label}
-                      </button>
-                    ))}
+                    {/* ✅ [신규] 선택된 태그 목록 표시 */}
+                    {(localSettings.defaultFilterTagIds ?? []).length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-secondary">
+                        <span className="text-xs text-tertiary">
+                          필터링 미리보기 : <span className="font-medium text-secondary">{selectedDefaultTagNames}</span>
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
+              // </div>
             )}
 
-            {/* Tag Management Tab */}
+            {/* 태그관리 탭 */}
             {activeTab === 'tags' && (
               <div className="flex flex-col h-full">
                 <div className="flex-shrink-0">
@@ -856,7 +895,7 @@ const SettingsModal: React.FC = () => {
               </div>
             )}
 
-            {/* Data Management Tab */}
+            {/* 내보내기, 일괄갱신 탭 */}
             {activeTab === 'data' && (
               <div className="space-y-6">
                 {/* CSV 내보내기 */}
@@ -1040,7 +1079,8 @@ const SettingsModal: React.FC = () => {
         )}
 
         {/* Footer Buttons - 표시 옵션 탭에서만 표시 */}
-        {activeTab === 'display' && (
+        {/* {activeTab === 'display' && ( */}
+        {(activeTab === 'display' || activeTab === 'initial') && (
           <div className="flex gap-2 pt-6 mt-6 border-t border-secondary flex-shrink-0">
             <button
               type="button"

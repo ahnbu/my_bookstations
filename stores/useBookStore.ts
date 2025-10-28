@@ -40,13 +40,13 @@ async function updateBookInStoreAndDB(
     myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? updatedBook : b)),
     librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? updatedBook : b)),
     libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? updatedBook : b)),
-    libraryFavoritesFilterResults: state.libraryFavoritesFilterResults
-      .map(b => (b.id === id ? updatedBook : b)) // 우선 업데이트하고
-      .filter(b => b.isFavorite !== false), // isFavorite가 false로 변경된 책은 목록에서 제거
-    selectedBook:
-      state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
-        ? updatedBook
-        : state.selectedBook,
+    // libraryFavoritesFilterResults: state.libraryFavoritesFilterResults
+    //   .map(b => (b.id === id ? updatedBook : b)) // 우선 업데이트하고
+    //   .filter(b => b.isFavorite !== false), // isFavorite가 false로 변경된 책은 목록에서 제거
+    // selectedBook:
+    //   state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
+    //     ? updatedBook
+    //     : state.selectedBook,
   }));
 
   // 2. DB 업데이트
@@ -84,7 +84,7 @@ async function updateBookInStoreAndDB(
         myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? originalBook : b)),
         librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? originalBook : b)),
         libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? originalBook : b)),
-        libraryFavoritesFilterResults: state.libraryFavoritesFilterResults.map(b => (b.id === id ? originalBook : b)),
+        // libraryFavoritesFilterResults: state.libraryFavoritesFilterResults.map(b => (b.id === id ? originalBook : b)),
         selectedBook:
           state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
             ? originalBook
@@ -130,10 +130,10 @@ interface BookState {
   fetchRawBookData: (id: number) => Promise<BookData | null>; // 책상세>API book_data 조회
 
   // 좋아요 처리
-  libraryFavoritesFilterResults: SelectedBook[];
-  isFilteringByFavorites: boolean;
-  filterLibraryByFavorites: () => Promise<void>;
-  clearLibraryFavoritesFilter: () => void;
+  // filterLibraryByFavorites: () => Promise<void>;
+  // clearLibraryFavoritesFilter: () => void;
+  // libraryFavoritesFilterResults: SelectedBook[];
+  // isFilteringByFavorites: boolean;
 
   // Bulk refresh state
   bulkRefreshState: {
@@ -176,7 +176,8 @@ interface BookState {
   searchUserLibrary: (query: string) => Promise<void>;
   clearLibrarySearch: () => void;
   fetchTagCounts: () => Promise<void>;
-  filterLibraryByTags: (tagIds: string[]) => Promise<void>;
+  // filterLibraryByTags: (tagIds: string[]) => Promise<void>;
+  filterLibraryByTags: (tagIds: string[], filterByFavorites: boolean) => Promise<void>;
   clearLibraryTagFilter: () => void;
   // bulkRefreshAllBooks: (
   //   limit: number | 'all',
@@ -232,8 +233,8 @@ export const useBookStore = create<BookState>(
       isFilteringByTag: false,
 
       // 좋아요 필터링
-      libraryFavoritesFilterResults: [],
-      isFilteringByFavorites: false,
+      // libraryFavoritesFilterResults: [],
+      // isFilteringByFavorites: false,
 
       // Pagination state
       currentPage: 1,
@@ -253,44 +254,44 @@ export const useBookStore = create<BookState>(
       },
       
       // ✅ [신규 추가] '좋아요' 필터링 액션
-      filterLibraryByFavorites: async () => {
-        const { session } = useAuthStore.getState();
-        if (!session?.user) return;
+      // filterLibraryByFavorites: async () => {
+      //   const { session } = useAuthStore.getState();
+      //   if (!session?.user) return;
 
-        set({ isFilteringByFavorites: true });
-        try {
-          const { data, error } = await supabase
-            .from('user_library')
-            .select('id, book_data, note')
-            .eq('user_id', session.user.id)
-            // JSONB 타입에 최적화된 'contains' 연산자로 정확하게 조회합니다.
-            .contains('book_data', { isFavorite: true })
-            .order('created_at', { ascending: false });
+      //   set({ isFilteringByFavorites: true });
+      //   try {
+      //     const { data, error } = await supabase
+      //       .from('user_library')
+      //       .select('id, book_data, note')
+      //       .eq('user_id', session.user.id)
+      //       // JSONB 타입에 최적화된 'contains' 연산자로 정확하게 조회합니다.
+      //       .contains('book_data', { isFavorite: true })
+      //       .order('created_at', { ascending: false });
 
-          if (error) throw error;
+      //     if (error) throw error;
 
-          const results = (data || []).map(item => {
-            const bookDataWithDefaults = {
-              ...{ readStatus: '읽지 않음', rating: 0 },
-              ...item.book_data,
-            };
-            return {
-              ...bookDataWithDefaults,
-              id: item.id,
-              note: item.note,
-            };
-          });
-          set({ libraryFavoritesFilterResults: results, isFilteringByFavorites: false });
-        } catch (error) {
-          console.error('Error filtering by favorites:', error);
-          set({ libraryFavoritesFilterResults: [], isFilteringByFavorites: false });
-        }
-      },
+      //     const results = (data || []).map(item => {
+      //       const bookDataWithDefaults = {
+      //         ...{ readStatus: '읽지 않음', rating: 0 },
+      //         ...item.book_data,
+      //       };
+      //       return {
+      //         ...bookDataWithDefaults,
+      //         id: item.id,
+      //         note: item.note,
+      //       };
+      //     });
+      //     set({ libraryFavoritesFilterResults: results, isFilteringByFavorites: false });
+      //   } catch (error) {
+      //     console.error('Error filtering by favorites:', error);
+      //     set({ libraryFavoritesFilterResults: [], isFilteringByFavorites: false });
+      //   }
+      // },
       
-      // ✅ [신규 추가] '좋아요' 필터 해제 액션
-      clearLibraryFavoritesFilter: () => {
-        set({ libraryFavoritesFilterResults: [] });
-      },
+      // // ✅ [신규 추가] '좋아요' 필터 해제 액션
+      // clearLibraryFavoritesFilter: () => {
+      //   set({ libraryFavoritesFilterResults: [] });
+      // },
 
       isBookInLibrary: (isbn13: string) => {
         // ✅ 함수 구현: Set에서 확인
@@ -1207,24 +1208,61 @@ export const useBookStore = create<BookState>(
         }
       },
 
-      filterLibraryByTags: async (tagIds: string[]) => {
-        if (tagIds.length === 0) {
-          get().clearLibraryTagFilter();
-          return;
-        }
+      // filterLibraryByTags: async (tagIds: string[]) => {
+      //   if (tagIds.length === 0) {
+      //     get().clearLibraryTagFilter();
+      //     return;
+      //   }
 
-        const { session } = useAuthStore.getState();
-        if (!session?.user) return;
+      //   const { session } = useAuthStore.getState();
+      //   if (!session?.user) return;
 
-        set({ isFilteringByTag: true });
+      //   set({ isFilteringByTag: true });
+      //   try {
+      //     const { data, error } = await supabase.rpc('get_books_by_tags', {
+      //       tags_to_filter: tagIds,
+      //     });
+
+      //     if (error) throw error;
+
+      //     const results = (data || []).map(item => {
+      //       const bookDataWithDefaults = {
+      //         ...{ readStatus: '읽지 않음', rating: 0 },
+      //         ...item.book_data,
+      //       };
+      //       return {
+      //         ...bookDataWithDefaults,
+      //         id: item.id,
+      //         note: item.note,
+      //       };
+      //     });
+
+      //     set({ libraryTagFilterResults: results, isFilteringByTag: false });
+      //   } catch (error) {
+      //     console.error('Error filtering by tags:', error);
+      //     set({ libraryTagFilterResults: [], isFilteringByTag: false });
+      //   }
+      // },
+
+
+      
+      // ✅ [핵심 수정] filterLibraryByTags 함수를 AND 조건을 처리하도록 완전히 변경합니다.
+      filterLibraryByTags: async (tagIds: string[], filterByFavorites: boolean) => {
+        set({ isFilteringByTag: true, libraryTagFilterResults: [] });
         try {
+          // ✅ [수정] Supabase에 생성된 함수 이름과 파라미터 이름에 정확히 맞춰줍니다.
           const { data, error } = await supabase.rpc('get_books_by_tags', {
             tags_to_filter: tagIds,
+            filter_by_favorites: filterByFavorites,
           });
 
           if (error) throw error;
 
-          const results = (data || []).map(item => {
+          // ✅ [수정] 반환된 데이터 구조에 맞춰 파싱 로직을 변경합니다.
+          // SQL 함수가 user_library 테이블 전체 행(id, book_data, note 포함)을 반환하므로,
+          // book_data를 추출하고 id, note를 합쳐주는 과정이 필요합니다.
+          const filteredBooks = data.map((item: any) => {
+            // 기본값(readStatus, rating)을 포함하여 SelectedBook 형태로 재구성
             const bookDataWithDefaults = {
               ...{ readStatus: '읽지 않음', rating: 0 },
               ...item.book_data,
@@ -1235,11 +1273,13 @@ export const useBookStore = create<BookState>(
               note: item.note,
             };
           });
+          set({ libraryTagFilterResults: filteredBooks });
 
-          set({ libraryTagFilterResults: results, isFilteringByTag: false });
         } catch (error) {
-          console.error('Error filtering by tags:', error);
-          set({ libraryTagFilterResults: [], isFilteringByTag: false });
+          console.error('Error filtering library by tags and favorites:', error);
+          set({ libraryTagFilterResults: [] });
+        } finally {
+          set({ isFilteringByTag: false });
         }
       },
 

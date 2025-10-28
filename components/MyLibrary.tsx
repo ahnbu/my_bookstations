@@ -448,10 +448,6 @@ const MyLibrary: React.FC = () => {
     libraryTagFilterResults,
     isFilteringByTag,
     tagCounts,
-    filterLibraryByFavorites, // ✅ 새로 추가
-    clearLibraryFavoritesFilter, // ✅ 새로 추가
-    libraryFavoritesFilterResults, // ✅ 새로 추가
-    isFilteringByFavorites, // ✅ 새로 추가
   } = useBookStore();
   
   // ✅ [추가] 색상 기준으로 정렬된 태그 목록을 미리 계산합니다.
@@ -476,13 +472,12 @@ const MyLibrary: React.FC = () => {
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
   const [noteInputValue, setNoteInputValue] = useState('');
 
-  // const [viewType, setViewType] = useState<ViewType>('card');
-  // const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
-  // const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+
 
   // ✅ [수정] 초기 상태를 settings 값에서 가져오도록 변경
   const [viewType, setViewType] = useState<ViewType>(settings.defaultViewType || 'card');
-  const [activeTags, setActiveTags] = useState<Set<string>>(new Set(settings.defaultFilterTagIds || []));
+  // const [activeTags, setActiveTags] = useState<Set<string>>(new Set(settings.defaultFilterTagIds || []));
+  const [activeTags, setActiveTags] = useState<Set<string>>(new Set((settings.defaultFilterTagIds as string[]) || []));
   const [showFavoritesOnly, setShowFavoritesOnly] = useState<boolean>(settings.defaultFilterFavorites || false);
   
   // ✅ '전체 선택'과 '선택 삭제'를 위한 핸들러 함수를 정의합니다.
@@ -505,41 +500,20 @@ const MyLibrary: React.FC = () => {
 
   // 좋아요 필터  
   const handleToggleFavoritesFilter = () => {
-    const isNowFiltering = !showFavoritesOnly;
-    setShowFavoritesOnly(isNowFiltering);
-
-    if (isNowFiltering) {
-      filterLibraryByFavorites(); // ✅ '좋아요' 필터링 시작
-    } else {
-      clearLibraryFavoritesFilter(); // ✅ '좋아요' 필터링 해제
-    }
+    setShowFavoritesOnly(prev => !prev);
   };
 
   // 필터 리셋 함수
+  // ✅ [수정] 필터 리셋 함수: 이제 로컬 상태만 기본값으로 되돌립니다.
   const resetLibraryFilters = useCallback(() => {
     setDebouncedSearchQuery('');
     clearAuthorFilter();
-    // ✅ [수정] 필터 리셋 시, 저장된 기본 설정값으로 되돌아가도록 수정
+    clearLibrarySearch();
+
     const { defaultFilterFavorites, defaultFilterTagIds } = settings;
-
-    // 로컬 상태 업데이트
     setShowFavoritesOnly(defaultFilterFavorites);
-    setActiveTags(new Set(defaultFilterTagIds));
-
-    // 스토어 필터링 함수 호출
-    clearLibrarySearch(); // 검색어는 항상 초기화
-    if (defaultFilterFavorites) {
-      filterLibraryByFavorites();
-      clearLibraryTagFilter(); // 좋아요 필터가 켜지면 태그 필터는 해제
-    } else if (defaultFilterTagIds.length > 0) {
-      filterLibraryByTags(defaultFilterTagIds);
-      clearLibraryFavoritesFilter(); // 태그 필터가 켜지면 좋아요 필터는 해제
-    } else {
-      // 둘 다 꺼져있으면 모든 필터 해제
-      clearLibraryTagFilter();
-      clearLibraryFavoritesFilter();
-    }
-  }, [clearAuthorFilter, settings, clearLibrarySearch, filterLibraryByFavorites, clearLibraryTagFilter, filterLibraryByTags, clearLibraryFavoritesFilter]); // 의존성 배열에 settings와 필터 함수 추가
+    setActiveTags(new Set((defaultFilterTagIds as string[]) || []));
+  }, [clearAuthorFilter, settings, clearLibrarySearch]);
 
   //   setActiveTags(new Set<string>()); 
   //   setShowFavoritesOnly(false);
@@ -614,27 +588,35 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
 
 
   // ✅ 초기 화면 세팅
+    // ✅ [핵심 수정 1] settings 동기화 useEffect: 로컬 상태만 업데이트
   useEffect(() => {
-    // settings에서 초기 설정 값들을 가져옵니다.
     const { defaultViewType, defaultFilterFavorites, defaultFilterTagIds } = settings;
 
-    // --- 1. 보기 방식(View Type) 설정 적용 ---
-    if (defaultViewType && defaultViewType !== viewType) {
-      setViewType(defaultViewType);
-    }
+    setViewType(defaultViewType || 'card');
+    setShowFavoritesOnly(defaultFilterFavorites || false);
+    setActiveTags(new Set((defaultFilterTagIds as string[]) || []));
+  }, [settings]);
 
-    // --- 2. 초기 필터 적용 ---
-    // 좋아요 필터 적용
-    if (defaultFilterFavorites) {
-      setShowFavoritesOnly(true);
-      filterLibraryByFavorites();
-    } 
-    // 태그 필터 적용 (좋아요 필터가 꺼져 있을 때만)
-    else if (defaultFilterTagIds && defaultFilterTagIds.length > 0) {
-      setActiveTags(new Set(defaultFilterTagIds));
-      filterLibraryByTags(defaultFilterTagIds);
+
+  // ✅ [핵심 수정 2] 데이터 로딩 useEffect: 로컬 필터 상태 변경 시 RPC 호출
+  useEffect(() => {
+    const tagsToFilter = Array.from(activeTags);
+
+    // 검색어가 있으면 서버 필터링을 하지 않음 (검색이 우선)
+    if (debouncedSearchQuery.trim().length >= 2) {
+      clearLibraryTagFilter(); // 기존 필터 결과는 지워줌
+      return;
     }
-  }, [settings]); // ✅ 의존성 배열을 [settings]로 변경
+    
+    // '좋아요' 또는 '태그' 필터 중 하나라도 활성화되어 있으면 RPC 호출
+    if (tagsToFilter.length > 0 || showFavoritesOnly) {
+      filterLibraryByTags(tagsToFilter, showFavoritesOnly);
+    } else {
+      // 모든 필터가 비활성화되면 필터 결과 목록을 비움
+      clearLibraryTagFilter();
+    }
+  }, [activeTags, showFavoritesOnly, debouncedSearchQuery, filterLibraryByTags, clearLibraryTagFilter]);
+
 
   // Debounce search query
   useEffect(() => {
@@ -702,29 +684,21 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
   };
 
   // Tag filtering handlers
+  // ✅ [수정] 태그 클릭 핸들러: 이제 로컬 상태만 변경합니다.
   const handleTagClick = (tagId: string) => {
-    // const newActiveTags = new Set(activeTags); 
-    const newActiveTags = new Set<string>(activeTags);
-    if (newActiveTags.has(tagId)) {
-      newActiveTags.delete(tagId);
-    } else {
-      newActiveTags.add(tagId);
-    }
-    setActiveTags(newActiveTags);
-
-    // [핵심 수정] DB 필터링 함수 호출
-    if (newActiveTags.size > 0) {
-      filterLibraryByTags(Array.from(newActiveTags));
-    } else {
-      clearLibraryTagFilter();
-    }
+    setActiveTags(prevTags => {
+      const newActiveTags = new Set(prevTags);
+      if (newActiveTags.has(tagId)) {
+        newActiveTags.delete(tagId);
+      } else {
+        newActiveTags.add(tagId);
+      }
+      return newActiveTags;
+    });
   };
-  // }, [activeTags, filterLibraryByTags, clearLibraryTagFilter]); // ✅ 의존성 배열 추가
 
   const handleClearAllTags = () => {
-    // setActiveTags(new Set());
-    setActiveTags(new Set<string>());
-    clearLibraryTagFilter();
+    setActiveTags(new Set());
   };
 
   // 그리드 컬럼별 완전한 행을 위한 사전 계산 테이블
@@ -753,16 +727,16 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
     // [핵심 수정] 필터 우선순위에 따라 기본 데이터셋 결정
     let filteredBooks: SelectedBook[];
 
+    const hasServerFilters = activeTags.size > 0 || showFavoritesOnly;
+
     if (debouncedSearchQuery.trim().length >= 2) {
-      // 1순위: 텍스트 검색 활성화 → 서버 검색 결과 사용
+      // 1순위: 텍스트 검색 결과
       filteredBooks = [...librarySearchResults];
-    } else if (activeTags.size > 0) {
-      // 2순위: 태그 필터 활성화 → 서버 태그 필터링 결과 사용
+    } else if (hasServerFilters) {
+      // 2순위: 태그 또는 좋아요 필터 결과 (통합된 결과를 사용)
       filteredBooks = [...libraryTagFilterResults];
-    } else if (showFavoritesOnly) {
-      filteredBooks = [...libraryFavoritesFilterResults];
     } else {
-      // 3순위: 필터 없음 → 로컬 데이터 사용
+      // 3순위: 필터 없음 (기본 서재 목록)
       filteredBooks = [...myLibraryBooks];
     }
 
@@ -805,7 +779,16 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
         }
         return 0;
     });
-  }, [myLibraryBooks, librarySearchResults, libraryTagFilterResults, sortConfig, debouncedSearchQuery, activeTags, showFavoritesOnly, authorFilter, libraryFavoritesFilterResults]);
+  }, [
+    myLibraryBooks, 
+    librarySearchResults, 
+    libraryTagFilterResults, 
+    sortConfig, 
+    debouncedSearchQuery, 
+    activeTags, 
+    showFavoritesOnly, 
+    authorFilter
+  ]);
 
   // 페이지네이션이 적용된 표시할 책 목록 계산
   const displayedBooks = useMemo(() => {
@@ -895,13 +878,14 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
         /* Card View */
         <div className="space-y-4 max-w-4xl mx-auto">
           {/* ================= ✅ 아래 코드를 붙여넣으세요 ================= */}
-          {(isSearchingLibrary || isFilteringByTag || isFilteringByFavorites) ? (
+          {(isSearchingLibrary || isFilteringByTag ) ? (
             <div className="text-center p-8">
               <Spinner />
               <p className="mt-2 text-secondary">
-                {isSearchingLibrary ? '서재에서 검색 중입니다...' : 
-                isFilteringByTag ? '태그로 필터링 중입니다...' : 
-                '좋아하는 책을 찾는 중입니다...'}
+                  {isSearchingLibrary 
+                  ? '서재에서 검색 중입니다...' 
+                  : '필터링 중입니다...' // 메시지를 하나로 통일
+                }
               </p>
             </div>
           ) : displayedBooks.length === 0 && debouncedSearchQuery.trim().length >= 2 ? (
@@ -945,7 +929,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
             <div className="col-span-full text-center p-8">
               <Spinner />
               <p className="mt-2 text-secondary">
-                {isSearchingLibrary ? '서재에서 검색 중입니다...' : '태그로 필터링 중입니다...'}
+                {isSearchingLibrary ? '서재에서 검색 중입니다...' : '필터링 중입니다...'}
               </p>
             </div>
           ) : displayedBooks.length === 0 && debouncedSearchQuery.trim().length >= 2 ? (
