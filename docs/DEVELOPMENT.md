@@ -343,6 +343,55 @@ graph TD
     ```
 -   **교훈**: 두 사례는 크롤링 시 마주치는 대표적인 인증 패턴입니다. `40x` 계열 오류 발생 시, 단순 헤더 변경 외에 **다단계 인증(세션 쿠키) 또는 동적 토큰** 요구 여부를 반드시 확인해야 합니다.
 
+---
+
+### **[유형 3] 캐싱 실패: 동일한 요청에도 계속 Cache MISS가 발생하는 경우**
+
+-   **대상 시스템**: Cloudflare Workers Cache API
+-   **증상**: 동일한 `POST` 요청을 반복적으로 보내도 Worker 로그에 계속 `Cache MISS`가 기록되고, 응답 시간도 줄어들지 않는다. `cache.put()`이 호출되는 로그는 확인되지만, `cache.match()`는 항상 실패한다.
+-   **원인 분석**: Cloudflare Cache API는 HTTP 표준을 엄격하게 준수한다. 캐시에 응답을 성공적으로 저장하고 조회하려면 다음 두 가지 조건이 충족되어야 하지만, 초기 코드에서는 이를 간과했다.
+    1.  **캐시 가능한 응답 헤더 부재**: `cache.put()`으로 저장하는 `Response` 객체에 `Cache-Control`과 같은 캐싱 지시 헤더가 없으면, Cloudflare는 이 응답을 "캐시할 가치가 없는" 일회성 데이터로 간주하고 실제로 저장하지 않을 수 있다.
+    2.  **불안정한 캐시 키**: `POST` 요청 자체를 캐시 키(`cache.match(request)`)로 사용하면, `Content-Type` 등 미묘한 헤더 차이로 인해 동일한 요청으로 인식되지 않을 수 있다.
+-   **해결 전략**: 캐싱 로직을 HTTP 표준에 맞게 명시적으로 수정한다.
+    1.  **안정적인 캐시 키 생성**: 원본 `POST` 요청 본문에서 캐싱에 영향을 주는 데이터(ISBN, 제목 등)를 추출하여 정렬하고, 이를 해싱하여 고유한 식별자를 만든다. 이 식별자를 경로로 사용하는 **새로운 `GET` 메서드의 `Request` 객체**(`new Request('https://.../cache/<hash>')`)를 생성하여 캐시 키로 사용한다. 이렇게 하면 원본 요청의 헤더와 무관하게 일관된 키를 보장할 수 있다.
+    2.  **`Cache-Control` 헤더 명시**: 캐시 MISS가 발생하여 새로운 응답을 생성할 때, 해당 `Response` 객체의 헤더에 **`'Cache-Control': 'public, max-age=43200'`** (12시간)을 명시적으로 추가한다. 이 헤더는 "이 응답은 공개적으로 캐시해도 좋으며, 12시간 동안 유효하다"는 명확한 지시를 캐시 시스템에 전달한다.
+    3.  **에러 응답 캐싱 방지**: 크롤링 중 일부 도서관에서 오류가 발생한 응답은 캐싱하지 않도록, 해당 `Response` 객체에는 `'Cache-Control': 'no-store'` 헤더를 설정하여 잘못된 데이터가 캐시에 저장되는 것을 방지한다.
+
+    **핵심 코드 (`library-checker/src/index.ts`):**
+    ```typescript
+    // 1. 안정적인 GET 요청 객체를 캐시 키로 생성
+    const cacheUrl = new URL(request.url);
+    cacheUrl.pathname = '/cache/' + hashHex;
+    const cacheKeyRequest = new Request(cacheUrl.toString(), { method: 'GET' });
+
+    // 캐시 조회
+    let response = await cache.match(cacheKeyRequest);
+
+    if (response) {
+      console.log("Cache HIT!");
+      // ...
+    } else {
+      // ... 크롤링 로직 수행 ...
+      
+      // 2. 캐시할 응답에 Cache-Control 헤더 추가
+      const responseHeaders = {
+        // ... 기타 헤더
+        'Cache-Control': 'public, max-age=43200' 
+      };
+      
+      const newResponse = new Response(JSON.stringify(payload), { headers: responseHeaders });
+
+      // 캐시에 저장
+      if (!hasError) {
+        ctx.waitUntil(cache.put(cacheKeyRequest, newResponse.clone()));
+      }
+      
+      return newResponse;
+    }
+    ```
+-   **교훈**: 서버리스 환경의 캐시 API를 사용할 때는 내부 동작을 추측하기보다, **HTTP 캐싱 표준(특히 `Cache-Control` 헤더)을 명확히 준수**하는 것이 가장 확실하고 안정적인 방법이다. 캐시 키는 항상 일관성과 유일성이 보장되도록 신중하게 설계해야 한다.
+
+---
 
 ### 초기 로딩된 데이터에만 기능이 작동하는 경우
 
