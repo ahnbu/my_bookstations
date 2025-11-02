@@ -275,6 +275,93 @@ graph TD
 - **데이터 복원 로직**: `refreshBookInfo` 함수는 `pureApiData`의 필드가 `undefined` 또는 `null`일 경우, 이를 API 실패로 간주하고 기존 DB에 저장된 `originalBook`의 값으로 복원하여 데이터 유실을 방지합니다.
 
 
+---
+
+## 🗃️ 데이터베이스 유지보수 및 최적화 로그 (Database Maintenance & Optimization Log)
+
+이 섹션은 Supabase의 'Database Linter'를 통해 발견된 경고들을 해결하고, 프로젝트의 성능, 보안, 안정성을 향상시킨 내역을 기록합니다.
+
+### **최종 수정일: 2025-11-02**
+
+#### **요약**
+Supabase 대시보드에서 보고된 성능 및 보안 관련 경고들에 대해 전면적인 검토 및 수정을 진행했습니다. 모든 주요 경고 항목을 해결하여 데이터베이스의 안정성과 확장성을 확보했습니다.
+
+| 경고 유형 (Warning Type) | 상태 (Status) | 주요 조치 (Action Taken) |
+| :--- | :--- | :--- |
+| `vulnerable_postgres_version` | ✅ **완료** | 보안 패치가 포함된 최신 버전으로 PostgreSQL 업그레이드 완료. |
+| `auth_rls_initplan` | ✅ **완료** | 모든 RLS 정책에서 `auth.uid()`를 `(select auth.uid())`로 변경하여 쿼리 성능 최적화. |
+| `function_search_path_mutable`| ✅ **완료** | 모든 DB 함수에 `search_path`를 명시적으로 설정하여 보안 강화. |
+| `extension_in_public` | ✅ **완료** | `pg_trgm` 확장 프로그램을 `extensions` 스키마로 분리하여 관리 효율성 증대. |
+| `auth_otp_long_expiry` | ✅ **완료** | 이메일 OTP 만료 시간을 24시간(`86400s`)에서 10분(`600s`)으로 단축하여 보안 강화. |
+| `auth_leaked_password_protection`| ⚠️ **확인** | 유료 플랜 기능으로 확인. 클라이언트 단에서 `zxcvbn` 라이브러리를 통한 비밀번호 강도 검사로 대체 권장. |
+
+---
+
+### **상세 조치 내역**
+
+#### **1. RLS 정책 성능 최적화 (`auth_rls_initplan`)**
+
+-   **문제점**: `user_library`, `user_settings`, `dev_notes` 테이블의 RLS 정책이 각 행마다 `auth.uid()` 함수를 반복 호출하여, 데이터 증가 시 심각한 성능 저하를 유발했습니다.
+-   **해결 과정**:
+    1.  `auth.uid()`를 서브쿼리 형태인 `(select auth.uid())`로 감싸, 쿼리 당 단 한 번만 실행되도록 수정했습니다.
+    2.  초기 수정 시, `user_settings` 테이블에서 `uuid`와 `bigint` 타입 불일치 에러(`operator does not exist: uuid = bigint`)가 발생했습니다.
+    3.  `Table Editor`에서 테이블 스키마를 직접 확인하여 `user_settings`와 `dev_notes` 테이블에서 사용자 식별 컬럼이 `id`가 아닌 `user_id`임을 파악하고, 이를 정책에 정확히 반영했습니다.
+-   **최종 조치**: 아래 SQL 쿼리를 실행하여 모든 관련 RLS 정책을 성공적으로 최적화했습니다.
+
+    ```sql
+    -- user_library 테이블 정책 최적화
+    ALTER POLICY "Allow individual read access" ON public.user_library USING (((select auth.uid()) = user_id));
+    ALTER POLICY "Allow individual insert access" ON public.user_library WITH CHECK (((select auth.uid()) = user_id));
+    ALTER POLICY "Allow individual update access" ON public.user_library USING (((select auth.uid()) = user_id)) WITH CHECK (((select auth.uid()) = user_id));
+    ALTER POLICY "Allow individual delete access" ON public.user_library USING (((select auth.uid()) = user_id));
+    
+    -- user_settings 테이블 정책 최적화
+    ALTER POLICY "Users can view own settings" ON public.user_settings USING (((select auth.uid()) = user_id));
+    ALTER POLICY "Users can insert own settings" ON public.user_settings WITH CHECK (((select auth.uid()) = user_id));
+    ALTER POLICY "Users can update own settings" ON public.user_settings USING (((select auth.uid()) = user_id));
+    ALTER POLICY "Users can delete own settings" ON public.user_settings USING (((select auth.uid()) = user_id));
+    
+    -- dev_notes 테이블 정책 최적화
+    ALTER POLICY "Users can view own dev notes" ON public.dev_notes USING (((select auth.uid()) = user_id));
+    ALTER POLICY "Users can insert own dev notes" ON public.dev_notes WITH CHECK (((select auth.uid()) = user_id));
+    ALTER POLICY "Users can update own dev notes" ON public.dev_notes USING (((select auth.uid()) = user_id));
+    ALTER POLICY "Users can delete own dev notes" ON public.dev_notes USING (((select auth.uid()) = user_id));
+    ```
+
+#### **2. 함수 안정성 및 보안 강화 (`function_search_path_mutable`)**
+
+-   **문제점**: 데이터베이스 함수들에 `search_path`가 고정되어 있지 않아, 잠재적인 스키마 하이재킹 공격에 취약했습니다.
+-   **해결 과정**:
+    1.  초기 수정 시, `get_books_by_tags` 와 `get_all_user_library_isbn` 함수에서 '함수가 존재하지 않는다'는 에러가 발생했습니다.
+    2.  원인은 `ALTER FUNCTION` 구문에 사용된 함수의 인자(Signature)가 실제 데이터베이스에 정의된 것과 달랐기 때문입니다.
+    3.  `pg_proc` 테이블을 조회하는 쿼리를 통해 모든 대상 함수의 정확한 인자 정보를 파악했습니다.
+        -   `get_books_by_tags`: `(text[])`, `(text[], boolean)` 두 가지 오버로딩된 형태임을 확인.
+        -   그 외 함수들: 인자를 받지 않는 형태임을 확인.
+-   **최종 조치**: 정확한 함수 서명(Signature)을 사용하여 아래 SQL 쿼리를 실행, 모든 함수의 `search_path`를 `public`으로 고정했습니다.
+
+    ```sql
+    -- 인자가 있는 함수 수정
+    ALTER FUNCTION public.get_books_by_tags(text[]) SET search_path = 'public';
+    ALTER FUNCTION public.get_books_by_tags(text[], boolean) SET search_path = 'public';
+    
+    -- 인자가 없는 함수 수정
+    ALTER FUNCTION public.get_all_user_library_isbn() SET search_path = 'public';
+    ALTER FUNCTION public.get_all_user_library_isns() SET search_path = 'public';
+    ALTER FUNCTION public.get_tag_counts_for_user() SET search_path = 'public';
+    ALTER FUNCTION public.keep_alive() SET search_path = 'public';
+    ALTER FUNCTION public.update_updated_at_column() SET search_path = 'public';
+    ```
+
+#### **3. 데이터베이스 구조 개선 및 기타 보안 조치**
+
+-   **확장 프로그램 스키마 분리 (`extension_in_public`)**: `pg_trgm` 확장 프로그램을 `public` 스키마에서 전용 `extensions` 스키마로 이전하여 관리 효율성을 높였습니다.
+    ```sql
+    CREATE SCHEMA IF NOT EXISTS extensions;
+    ALTER EXTENSION pg_trgm SET SCHEMA extensions;
+    ```
+-   **OTP 만료 시간 단축 (`auth_otp_long_expiry`)**: 이메일 인증 코드의 유효 시간을 24시간(`86400`초)에서 10분(`600`초)으로 대폭 단축하여 인증 보안을 강화했습니다.
+    -   **수정 경로**: `Authentication` > `Sign In / Providers` > `Email` > `Email OTP Expiration`
+    
 
 ## 🐛 트러블슈팅 가이드
 
