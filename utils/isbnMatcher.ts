@@ -73,9 +73,9 @@ export function filterGyeonggiEbookByIsbn(
   // 필터링된 결과를 바탕으로 새로운 GyeonggiEbookResult 객체를 생성하여 반환
   return {
     ...gyeonggiResult,
-    total_count: matchedBooks.length,
-    available_count: availableCount,
-    unavailable_count: matchedBooks.length - availableCount,
+    total_count_summary: matchedBooks.length,
+    available_count_summary: availableCount,
+    unavailable_count_summary: matchedBooks.length - availableCount,
     book_list: matchedBooks,
   };
 }

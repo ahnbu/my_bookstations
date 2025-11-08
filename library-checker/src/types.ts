@@ -84,11 +84,11 @@ export interface GyeonggiEbook {
 
 export interface GyeonggiEbookResult {
   library_name: string;
-  total_count: number;
-  available_count: number;
-  unavailable_count: number;
-  owned_count: number;
-  subscription_count: number;
+  total_count_summary: number;
+  available_count_summary: number;
+  unavailable_count_summary: number;
+  total_count_owned: number;
+  total_count_subs: number;
   book_list: GyeonggiEbook[];
 }
 
@@ -135,11 +135,11 @@ export interface SiripEbookDetails {
 export interface SiripEbookResult {
   sirip_ebook_summary: {
     library_name: string;
-    total_count: number;
-    available_count: number;
-    unavailable_count: number;
-    owned_count: number;
-    subscription_count: number;
+    total_count_summary: number;
+    available_count_summary: number;
+    unavailable_count_summary: number;
+    total_count_owned: number;
+    total_count_subs: number;
     search_query: string;
   };
   details: SiripEbookDetails;

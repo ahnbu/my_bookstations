@@ -10,12 +10,6 @@ import {
   GyeonggiEduEbookList,
   GyeonggiEduEbookError,
   GyeonggiEduEbookSummary,
-  // GyeonggiEbookResult,
-  // SiripEbookResult,
-  // GwangjuPaperResult,
-  // GwangjuPaperError,
-  // GyeonggiEbookError,
-  // SiripEbookError,
   LibraryName
 } from '../types';
 

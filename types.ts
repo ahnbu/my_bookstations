@@ -93,7 +93,6 @@ export const ApiCombinedBookDataSchema = AladdinBookItemSchema.extend({
   // 화면 표시를 위한 파생/요약 정보
   toechonStock: z.object({ total_count: z.number(), available_count: z.number() }).optional(),
   otherStock: z.object({ total_count: z.number(), available_count: z.number() }).optional(),
-  // filteredGyeonggiEbookInfo: z.any().optional(),
 });
 
 // 2. 사용자 활동 정보 스키마 (기존 BookData의 사용자 관련 부분)
@@ -182,11 +181,11 @@ export interface GyeonggiEbookList {
 
 export interface GyeonggiEbookResult {
   library_name: string;
-  total_count: number;
-  available_count: number;
-  unavailable_count: number;
-  owned_count: number;
-  subscription_count: number;
+  total_count_summary: number;
+  available_count_summary: number;
+  unavailable_count_summary: number;
+  total_count_owned: number;
+  total_count_subs: number;
   book_list: GyeonggiEbookList[];
 }
 
@@ -211,9 +210,9 @@ export interface SiripEbook {
 
 export interface SiripEbookResult {
   library_name: string;
-  total_count: number;
-  available_count: number;
-  unavailable_count: number;
+  total_count_summary: number;
+  available_count_summary: number;
+  unavailable_count_summary: number;
   book_list: SiripEbook[];
   // 새로운 통합 구조 지원
   details?: {
@@ -237,11 +236,11 @@ export interface SiripEbookResult {
   // 통합 결과 정보
   sirip_ebook_summary?: {
     library_name: string;
-    total_count: number;
-    available_count: number;
-    unavailable_count: number;
-    owned_count: number;
-    subscription_count: number;
+    total_count_summary: number;
+    available_count_summary: number;
+    unavailable_count_summary: number;
+    total_count_owned: number;
+    total_count_subs: number;
     search_query: string;
   };
 }
@@ -270,7 +269,6 @@ export interface LibraryApiResponse {
   customTitle?: string; // ✅ 추가
   lastUpdated: number; // ✅ 추가
   gwangju_paper: GwangjuPaperResult | GwangjuPaperError;
-  // gyeonggi_ebook_edu: (GyeonggiEduEbookList | GyeonggiEduEbookError)[]; // 배열타입
   gyeonggi_ebook_edu: GyeonggiEduEbookResult | GyeonggiEduEbookError; // 객체 타입으로 변경
   gyeonggi_ebook_library?: GyeonggiEbookResult | GyeonggiEbookError;
   sirip_ebook?: SiripEbookResult | SiripEbookError;

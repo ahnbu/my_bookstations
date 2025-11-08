@@ -195,11 +195,11 @@ async function searchGyeonggiEbookLibrary(searchText: string): Promise<GyeonggiE
   
       return {
         library_name: '경기도 전자도서관',
-        total_count: totalStock,
-        available_count: availableCount,
-        unavailable_count: totalStock - availableCount,
-        owned_count: ownedBooks.length,
-        subscription_count: subscriptionBooks.length,
+        total_count_summary: totalStock,
+        available_count_summary: availableCount,
+        unavailable_count_summary: totalStock - availableCount,
+        total_count_owned: ownedBooks.length,
+        total_count_subs: subscriptionBooks.length,
         book_list: combinedBooks,
       };
     } catch (error) {
@@ -352,11 +352,11 @@ async function searchSiripEbookIntegrated(searchTitle: string): Promise<SiripEbo
       const integratedResult: SiripEbookResult = {
         sirip_ebook_summary: {
           library_name: '광주시립중앙도서관-통합',
-          total_count: totalBooks,
-          available_count: totalAvailable,
-          unavailable_count: totalUnavailable,
-          owned_count: siripOwnedData.total_count,
-          subscription_count: siripSubsData.total_count,
+          total_count_summary: totalBooks,
+          available_count_summary: totalAvailable,
+          unavailable_count_summary: totalUnavailable,
+          total_count_owned: siripOwnedData.total_count,
+          total_count_subs: siripSubsData.total_count,
           search_query: searchTitle
         },
         details: {
@@ -1094,31 +1094,6 @@ export default {
             if (!isbn) {
               return new Response(JSON.stringify({ error: 'isbn 파라미터가 필요합니다.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
             }
-
-        // const cacheKey = `https://library-checker.byungwook-an.workers.dev/cache/${hashHex}`;
-        
-        // // 2. cache.match에 Request 객체 대신 URL 문자열을 전달합니다.
-        // let response = await cache.match(cacheKey);
-  
-        // if (response) {
-        //   console.log("Cache HIT!");
-        //   const newHeaders = new Headers(response.headers);
-        //   Object.entries(corsHeaders).forEach(([key, value]) => newHeaders.set(key, value));
-        //   newHeaders.set('X-Cache-Status', 'HIT');
-  
-        //   return new Response(response.body, {
-        //     status: response.status,
-        //     statusText: response.statusText,
-        //     headers: newHeaders,
-        //   });
-        // }
-  
-        // try {
-        //     console.log(`Request received - ISBN: ${isbn}, Author: "${author}", eduTitle: "${eduTitle}", GyeonggiTitle: "${gyeonggiTitle}", SiripTitle: "${siripTitle}"`);
-    
-        //     if (!isbn) {
-        //       return new Response(JSON.stringify({ error: 'isbn 파라미터가 필요합니다.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-        //     }
     
             const promises: Promise<any>[] = [
               searchGwangjuLibrary(isbn),

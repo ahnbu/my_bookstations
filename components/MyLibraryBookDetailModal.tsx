@@ -257,8 +257,8 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                 <StockDisplay
                     label="전자책(교육)"
                     searchUrl={createLibraryOpenURL('e교육', book.title, book.customSearchTitle)}
-                    totalCount={book.GyeonggiEduEbookInfo?.total_count}
-                    availableCount={book.GyeonggiEduEbookInfo?.available_count}
+                    totalCount={book.GyeonggiEduEbookInfo?.total_count_summary}
+                    availableCount={book.GyeonggiEduEbookInfo?.available_count_summary}
                     hasError={(book.GyeonggiEduEbookInfo?.error_count ?? 0) > 0}
                     // isLoading={!book.GyeonggiEduEbookInfo}
                 />
@@ -281,8 +281,8 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                 <StockDisplay
                     label="전자책(경기)"
                     searchUrl={createLibraryOpenURL('e경기', book.title, book.customSearchTitle)}
-                    totalCount={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.total_count : undefined}
-                    availableCount={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.available_count : undefined}
+                    totalCount={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.total_count_summary : undefined}
+                    availableCount={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.available_count_summary : undefined}
                     hasError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
                 />
             </div>
