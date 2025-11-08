@@ -596,8 +596,8 @@ export const useBookStore = create<BookState>(
             ...(selectedBook as AladdinBookItem), // selectedBook은 AladdinBookItem 타입
             
             // 도서관/재고 정보 초기화
-            toechonStock: { total_count: 0, available_count: 0 },
-            otherStock: { total_count: 0, available_count: 0 },
+            toechonStock: { totalCount: 0, availableCount: 0 },
+            otherStock: { totalCount: 0, availableCount: 0 },
             // gwangjuPaperInfo: { error: '아직 조회되지 않았습니다.' },
             gwangjuPaperInfo: null,
             GyeonggiEduEbookInfo: null,
@@ -765,7 +765,7 @@ export const useBookStore = create<BookState>(
               gwangjuPaperInfo: (
                 // API 조회 실패했고,
                 'error' in pureApiData.gwangjuPaperInfo &&
-                // 기존 책에 유효한 데이터가 있다면 (book_list가 있는 객체라면)
+                // 기존 책에 유효한 데이터가 있다면 (bookList가 있는 객체라면)
                 originalBook.gwangjuPaperInfo && !('error' in originalBook.gwangjuPaperInfo)
               )
                 ? originalBook.gwangjuPaperInfo // 기존 데이터 유지
@@ -774,9 +774,9 @@ export const useBookStore = create<BookState>(
               // -- GyeonggiEduEbookInfo --
               GyeonggiEduEbookInfo: (
                 // API 조회 실패했고,
-                (pureApiData.GyeonggiEduEbookInfo?.error_count ?? 0) > 0 &&
+                (pureApiData.GyeonggiEduEbookInfo?.errorCount ?? 0) > 0 &&
                 // 기존 책에 유효한 데이터가 있다면
-                originalBook.GyeonggiEduEbookInfo && (originalBook.GyeonggiEduEbookInfo?.error_count ?? 0) === 0
+                originalBook.GyeonggiEduEbookInfo && (originalBook.GyeonggiEduEbookInfo?.errorCount ?? 0) === 0
               )
                 ? originalBook.GyeonggiEduEbookInfo // 기존 데이터 유지
                 : pureApiData.GyeonggiEduEbookInfo, // 아니면 API 결과 사용

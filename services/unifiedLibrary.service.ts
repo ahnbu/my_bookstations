@@ -15,10 +15,10 @@ import {
 
 // 개발/프로덕션 환경에 따른 API 엔드포인트 설정
 const isDevelopment = import.meta.env.MODE === 'development';
-const API_ENDPOINT = isDevelopment 
+const apiEndpoint = isDevelopment 
   ? 'http://127.0.0.1:8787'  // 로컬 Cloudflare Workers 개발 서버
   : 'https://library-checker.byungwook-an.workers.dev'; // 프로덕션 Workers 배포
-const REQUEST_TIMEOUT = 30000; // 30초
+const requestTimeout = 30000; // 30초
 
 // 디버그 정보 로깅 함수
 function debugLog(message: string, data?: any) {
@@ -77,11 +77,11 @@ export function processSiripEbookTitle(title: string): string {
 
 export function createLibraryOpenURL(
   libraryName: LibraryName, 
-  bookTitle: string, 
+  title: string, 
   customSearchTitle?: string
 ): string {
   // 1. 최종 검색어 결정: 커스텀 검색어가 있으면 최우선으로 사용, 없으면 기본 가공 로직 적용
-  const keyword = customSearchTitle || createOptimalSearchTitle(bookTitle);
+  const keyword = customSearchTitle || createOptimalSearchTitle(title);
   const encodedKeyword = encodeURIComponent(keyword);
 
   // 2. 도서관 이름(libraryName)에 따라 적절한 URL 반환
@@ -124,7 +124,7 @@ export async function fetchBookAvailability(
   customTitle?: string // [추가] customTitle 파라미터
 ): Promise<LibraryApiResponse> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+  const timeoutId = setTimeout(() => controller.abort(), requestTimeout);
 
   // [핵심 수정] customTitle 처리 로직 변경
   let processedTitleGyeonggiEdu: string;
@@ -153,7 +153,7 @@ export async function fetchBookAvailability(
   });
 
   try {
-    debugLog(`API 호출 시작 - 엔드포인트: ${API_ENDPOINT}`);
+    debugLog(`API 호출 시작 - 엔드포인트: ${apiEndpoint}`);
     debugLog('요청 데이터:', {
       isbn: isbn,
       customTitle: customTitle,
@@ -162,7 +162,7 @@ export async function fetchBookAvailability(
       siripTitle: ProcessedTitleSirip
     });
 
-    const response = await fetch(API_ENDPOINT, {
+    const response = await fetch(apiEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -208,32 +208,32 @@ export async function fetchBookAvailability(
  */
 export function GyeonggiEduEbookSummarize(GyeonggiEduEbooks: (GyeonggiEduEbookList | GyeonggiEduEbookError)[]): GyeonggiEduEbookSummary {
   const summary: GyeonggiEduEbookSummary = {
-    total_count_summary: 0,
-    available_count_summary: 0,
-    unavailable_count_summary: 0,
-    total_count_seongnam: 0,
-    total_count_tonghap: 0,
-    error_count: 0,
+    totalCountSummary: 0,
+    availableCountSummary: 0,
+    unavailableCountSummary: 0,
+    totalCountSeongnam: 0,
+    totalCountTonghap: 0,
+    errorCount: 0,
   };
 
   GyeonggiEduEbooks.forEach(item => {
     if ('error' in item) {
-      summary.error_count++;
+      summary.errorCount++;
       return;
     }
 
-    summary.total_count_summary++;
+    summary.totalCountSummary++;
     
-    if (item.대출상태 === '대출가능') {
-      summary.available_count_summary++;
-    } else if (item.대출상태 === '대출불가') {
-      summary.unavailable_count_summary++;
+    if (item.loanStatus === '대출가능') {
+      summary.availableCountSummary++;
+    } else if (item.loanStatus === '대출불가') {
+      summary.unavailableCountSummary++;
     }
 
-    if (item.소장도서관 === '성남도서관') {
-      summary.total_count_seongnam++;
-    } else if (item.소장도서관 === '통합도서관') {
-      summary.total_count_tonghap++;
+    if (item.libraryName === '성남도서관') {
+      summary.totalCountSeongnam++;
+    } else if (item.libraryName === '통합도서관') {
+      summary.totalCountTonghap++;
     }
   });
 
@@ -287,26 +287,5 @@ export function isEBooksEmpty(ebooks: (GyeonggiEduEbookList | GyeonggiEduEbookEr
  * @returns boolean
  */
 export function hasAvailableEBooks(ebooks: (GyeonggiEduEbookList | GyeonggiEduEbookError)[]): boolean {
-  return ebooks.some(item => !('error' in item) && item.대출상태 === '대출가능');
-}
-
-/**
- * 경기광주 시립도서관 상세 페이지 URL 생성
- * @param recKey - 검색 결과 키
- * @param bookKey - 도서 키
- * @param publishFormCode - 출판 형태 코드
- * @returns 상세 페이지 URL
- */
-
-/**
- * 퇴촌도서관 재고 클릭 가능 여부 확인
- * @param item - 도서 재고 정보
- * @returns boolean - 클릭 가능 여부
- */
-export function isLibraryStockClickable(item: PaperBookAvailability): boolean {
-  return item.소장도서관 === '퇴촌도서관' && 
-         item.대출상태 === '대출가능' &&
-         !!item.recKey && 
-         !!item.bookKey && 
-         !!item.publishFormCode;
+  return ebooks.some(item => !('error' in item) && item.loanStatus === '대출가능');
 }

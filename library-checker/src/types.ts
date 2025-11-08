@@ -28,46 +28,46 @@ export interface KeywordSearchRequest {
 
 // --- 광주 시립도서관 (종이책) ---
 export interface GwangjuPaperBook {
-  '소장도서관': string;
-  '청구기호': string;
-  '기본청구기호': string;
-  '대출상태': '대출가능' | '대출불가' | '알 수 없음';
-  '반납예정일': string;
+  'libraryName': string;
+  'callNo': string;
+  'baseCallNo': string;
+  'loanStatus': '대출가능' | '대출불가' | '알 수 없음';
+  'dueDate': string;
 }
 
 export interface GwangjuPaperResult {
-  library_name: string;
-  total_count_summary: number;
-  total_count_toechon: number;
-  total_count_other: number;
-  available_count_summary: number;
-  available_count_toechon: number;
-  available_count_other: number;
-  book_title: string;
-  book_list: GwangjuPaperBook[];
+  libraryName: string;
+  totalCountSummary: number;
+  totalCountToechon: number;
+  totalCountOther: number;
+  availableCountSummary: number;
+  availableCountToechon: number;
+  availableCountOther: number;
+  title: string;
+  bookList: GwangjuPaperBook[];
 }
 
 // --- 경기도 교육청 전자도서관 (전자책) ---
 export interface GyeonggiEduEbook {
-  '소장도서관': '성남도서관' | '통합도서관';
-  '도서명': string;
-  '저자': string;
-  '출판사': string;
-  '발행일': string;
-  '대출상태': '대출가능' | '대출불가' | '알 수 없음';
+  'libraryName': '성남도서관' | '통합도서관';
+  'title': string;
+  'author': string;
+  'publisher': string;
+  'pubDate': string;
+  'loanStatus': '대출가능' | '대출불가' | '알 수 없음';
   'isbn': string;
 }
 
 export interface GyeonggiEduEbookResult {
-  library_name: string;
-  total_count_summary: number;
-  available_count_summary: number;
-  unavailable_count_summary: number;
-  total_count_seongnam: number;
-  total_count_tonghap: number;
-  error_count: number;
-  error_lib_detail?: string;
-  book_list: (GyeonggiEduEbook | { library: string; error: string })[];
+  libraryName: string;
+  totalCountSummary: number;
+  availableCountSummary: number;
+  unavailableCountSummary: number;
+  totalCountSeongnam: number;
+  totalCountTonghap: number;
+  errorCount: number;
+  errorLibDetail?: string;
+  bookList: (GyeonggiEduEbook | { library: string; error: string })[];
 }
 
 
@@ -79,17 +79,17 @@ export interface GyeonggiEbook {
   publisher: string;
   isbn: string;
   pubDate: string;
-  available: boolean;
+  loanStatus: boolean;
 }
 
 export interface GyeonggiEbookResult {
-  library_name: string;
-  total_count_summary: number;
-  available_count_summary: number;
-  unavailable_count_summary: number;
-  total_count_owned: number;
-  total_count_subs: number;
-  book_list: GyeonggiEbook[];
+  libraryName: string;
+  totalCountSummary: number;
+  availableCountSummary: number;
+  unavailableCountSummary: number;
+  totalCountOwned: number;
+  totalCountSubs: number;
+  bookList: GyeonggiEbook[];
 }
 
 // --- 광주 시립도서관 (전자책) ---
@@ -115,32 +115,32 @@ export interface SiripEbookSubscription {
 
 export interface SiripEbookDetails {
   owned: {
-    library_name: string;
-    total_count: number;
-    available_count: number;
-    unavailable_count: number;
-    book_list: SiripEbookOwned[];
+    libraryName: string;
+    totalCount: number;
+    availableCount: number;
+    unavailableCount: number;
+    bookList: SiripEbookOwned[];
     error?: string;
   };
   subscription: {
-    library_name: string;
-    total_count: number;
-    available_count: number;
-    unavailable_count: number;
-    book_list: SiripEbookSubscription[];
+    libraryName: string;
+    totalCount: number;
+    availableCount: number;
+    unavailableCount: number;
+    bookList: SiripEbookSubscription[];
     error?: string;
   };
 }
 
 export interface SiripEbookResult {
-  sirip_ebook_summary: {
-    library_name: string;
-    total_count_summary: number;
-    available_count_summary: number;
-    unavailable_count_summary: number;
-    total_count_owned: number;
-    total_count_subs: number;
-    search_query: string;
+  siripEbookSummary: {
+    libraryName: string;
+    totalCountSummary: number;
+    availableCountSummary: number;
+    unavailableCountSummary: number;
+    totalCountOwned: number;
+    totalCountSubs: number;
+    searchQuery: string;
   };
   details: SiripEbookDetails;
   errors?: {
@@ -160,10 +160,10 @@ export interface LibraryApiResponse {
   author: string;
   customTitle: string;
   lastUpdated: number;
-  gwangju_paper: GwangjuPaperResult | { error: string };
-  gyeonggi_ebook_edu: GyeonggiEduEbookResult | null;
-  gyeonggi_ebook_library: GyeonggiEbookResult | { error: string } | null;
-  sirip_ebook: SiripEbookResult | { error: string } | null;
+  gwangjuPaper: GwangjuPaperResult | { error: string };
+  gyeonggiEbookEdu: GyeonggiEduEbookResult | null;
+  gyeonggiEbookLib: GyeonggiEbookResult | { error: string } | null;
+  siripEbook: SiripEbookResult | { error: string } | null;
 }
 
 // --- 키워드 검색 응답 ---

@@ -160,10 +160,10 @@ my_bookstation/
     "author": "...",
     "customTitle": "",
     "lastUpdated": 1761380372099,
-    "gwangju_paper": { /* ... */ },
-    "gyeonggi_ebook_edu": { /* ... */ },
-    "gyeonggi_ebook_library": { /* ... */ },
-    "sirip_ebook": { /* ... */ }
+    "gwangjuPaper": { /* ... */ },
+    "gyeonggiEbookEdu": { /* ... */ },
+    "gyeonggiEbookLib": { /* ... */ },
+    "siripEbook": { /* ... */ }
   }
   ```
 

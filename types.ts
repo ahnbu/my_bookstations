@@ -1,7 +1,4 @@
-
 import { z } from 'zod';
-
-
 
 export type Json =
   | string
@@ -43,15 +40,6 @@ export const AladdinBookItemSchema = z.object({
     })).optional(),
   }).optional(),
   mallType: z.enum(['BOOK', 'EBOOK', 'MUSIC', 'DVD', 'FOREIGN', 'USED']),
-  // subInfo: z.object({
-  //   ebookList: z.array(z.object({
-  //     itemId: z.number(),
-  //     isbn: z.string(),
-  //     isbn13: z.string(),
-  //     priceSales: z.number(),
-  //     link: z.string(),
-  //   })).optional(),
-  // }).optional(),
 });
 
 export const AladdinAPIResponseSchema = z.object({
@@ -61,16 +49,16 @@ export const AladdinAPIResponseSchema = z.object({
 });
 
 export const LibraryAvailabilitySchema = z.object({
-  "소장도서관": z.string(),
-  "청구기호": z.string(),
-  "기본청구기호": z.string(),
-  "대출상태": z.string(),
-  "반납예정일": z.string(),
+  "libraryName": z.string(),
+  "callNo": z.string(),
+  "baseCallNo": z.string(),
+  "loanStatus": z.string(),
+  "dueDate": z.string(),
 });
 
 export const LibraryStockResponseSchema = z.object({
-  book_title: z.string().optional(),
-  availability: z.array(LibraryAvailabilitySchema).optional(),
+  title: z.string().optional(),
+  loanStatus: z.array(LibraryAvailabilitySchema).optional(),
   error: z.string().optional(),
   isbn: z.string().optional(),
 });
@@ -91,8 +79,8 @@ export const ApiCombinedBookDataSchema = AladdinBookItemSchema.extend({
   siripEbookInfo: z.any().nullable().optional(),
 
   // 화면 표시를 위한 파생/요약 정보
-  toechonStock: z.object({ total_count: z.number(), available_count: z.number() }).optional(),
-  otherStock: z.object({ total_count: z.number(), available_count: z.number() }).optional(),
+  toechonStock: z.object({ totalCount: z.number(), availableCount: z.number() }).optional(),
+  otherStock: z.object({ totalCount: z.number(), availableCount: z.number() }).optional(),
 });
 
 // 2. 사용자 활동 정보 스키마 (기존 BookData의 사용자 관련 부분)
@@ -135,24 +123,20 @@ export type SelectedBook = z.infer<typeof SelectedBookSchema>;
 // ======== 이동 =======
 
 export interface PaperBookAvailability {
-  소장도서관: string;
-  청구기호: string;
-  기본청구기호: string;
-  대출상태: '대출가능' | '대출불가';
-  반납예정일: string;
-  // 퇴촌도서관 상세 페이지 링크용 파라미터 (대출가능 상태일 때만)
-  recKey?: string;
-  bookKey?: string;
-  publishFormCode?: string;
+  libraryName: string;
+  callNo: string;
+  baseCallNo: string;
+  loanStatus: '대출가능' | '대출불가';
+  dueDate: string;
 }
 
 export interface GyeonggiEduEbookList {
-  소장도서관: string;
-  도서명: string;
-  저자: string;
-  출판사: string;
-  발행일: string;
-  대출상태: '대출가능' | '대출불가';
+  libraryName: string;
+  title: string;
+  author: string;
+  publisher: string;
+  pubDate: string;
+  loanStatus: '대출가능' | '대출불가';
 }
 
 export interface GyeonggiEduEbookError {
@@ -167,26 +151,25 @@ export interface GwangjuPaperError {
 export interface GyeonggiEbookList {
   type: '소장형' | '구독형';
   title: string;
-  // status: '대출가능' | '대출불가';
-  available: boolean;
-  current_borrow?: number;
-  total_capacity?: number;
+  loanStatus: boolean;
+  currentBorrow?: number;
+  totalCapacity?: number;
   author?: string;
   publisher?: string;
   isbn?: string;
   owner?: string;
   reservable?: boolean;
-  reserve_count?: number;
+  reserveCount?: number;
 }
 
 export interface GyeonggiEbookResult {
-  library_name: string;
-  total_count_summary: number;
-  available_count_summary: number;
-  unavailable_count_summary: number;
-  total_count_owned: number;
-  total_count_subs: number;
-  book_list: GyeonggiEbookList[];
+  libraryName: string;
+  totalCountSummary: number;
+  availableCountSummary: number;
+  unavailableCountSummary: number;
+  totalCountOwned: number;
+  totalCountSubs: number;
+  bookList: GyeonggiEbookList[];
 }
 
 export interface GyeonggiEbookError {
@@ -199,49 +182,49 @@ export interface SiripEbook {
   title: string;
   author: string;
   publisher: string;
-  publish_date: string;
-  loan_status: string;
-  status: '대출가능' | '대출불가';
-  total_count: number;
-  available_count: number;
-  available: boolean;
-  library_name: string;
+  publishDate: string;
+  loanStatus: '대출가능' | '대출불가' | '알 수 없음'; // ✅ loanStatus로 통일하고 타입 명시
+  // loanStatus: string;
+  // status: '대출가능' | '대출불가';
+  // available: boolean;
+  totalCount: number;
+  availableCount: number;
+  libraryName: string;
 }
 
 export interface SiripEbookResult {
-  library_name: string;
-  total_count_summary: number;
-  available_count_summary: number;
-  unavailable_count_summary: number;
-  book_list: SiripEbook[];
-  // 새로운 통합 구조 지원
+  libraryName: string;
+  totalCountSummary: number;
+  availableCountSummary: number;
+  unavailableCountSummary: number;
+  bookList: SiripEbook[];
   details?: {
     owned: {
-      library_name: string;
-      total_count: number;
-      available_count: number;
-      unavailable_count: number;
-      book_list: SiripEbook[];
+      libraryName: string;
+      totalCount: number;
+      availableCount: number;
+      unavailableCount: number;
+      bookList: SiripEbook[];
       error?: string;
     };
     subscription: {
-      library_name: string;
-      total_count: number;
-      available_count: number;
-      unavailable_count: number;
-      book_list: SiripEbook[];
+      libraryName: string;
+      totalCount: number;
+      availableCount: number;
+      unavailableCount: number;
+      bookList: SiripEbook[];
       error?: string;
     };
   };
   // 통합 결과 정보
-  sirip_ebook_summary?: {
-    library_name: string;
-    total_count_summary: number;
-    available_count_summary: number;
-    unavailable_count_summary: number;
-    total_count_owned: number;
-    total_count_subs: number;
-    search_query: string;
+  siripEbookSummary?: {
+    libraryName: string;
+    totalCountSummary: number;
+    availableCountSummary: number;
+    unavailableCountSummary: number;
+    totalCountOwned: number;
+    totalCountSubs: number;
+    searchQuery: string;
   };
 }
 
@@ -251,15 +234,15 @@ export interface SiripEbookError {
 
 // 광주시립도서관 종이책 추가
 export interface GwangjuPaperResult {
-  library_name: string,
-  total_count_summary: number;
-  total_count_toechon: number;
-  total_count_other: number;
-  available_count_summary: number;
-  available_count_toechon: number;
-  available_count_other: number;
-  book_title: string;
-  book_list: PaperBookAvailability[];
+  libraryName: string,
+  totalCountSummary: number;
+  totalCountToechon: number;
+  totalCountOther: number;
+  availableCountSummary: number;
+  availableCountToechon: number;
+  availableCountOther: number;
+  title: string;
+  bookList: PaperBookAvailability[];
 }
 
 export interface LibraryApiResponse {
@@ -268,33 +251,33 @@ export interface LibraryApiResponse {
   author: string; // ✅ 추가
   customTitle?: string; // ✅ 추가
   lastUpdated: number; // ✅ 추가
-  gwangju_paper: GwangjuPaperResult | GwangjuPaperError;
-  gyeonggi_ebook_edu: GyeonggiEduEbookResult | GyeonggiEduEbookError; // 객체 타입으로 변경
-  gyeonggi_ebook_library?: GyeonggiEbookResult | GyeonggiEbookError;
-  sirip_ebook?: SiripEbookResult | SiripEbookError;
+  gwangjuPaper: GwangjuPaperResult | GwangjuPaperError;
+  gyeonggiEbookEdu: GyeonggiEduEbookResult | GyeonggiEduEbookError; // 객체 타입으로 변경
+  gyeonggiEbookLib?: GyeonggiEbookResult | GyeonggiEbookError;
+  siripEbook?: SiripEbookResult | SiripEbookError;
 }
 
-// [추가] gyeonggi_ebook_edu의 새로운 객체 타입을 정의합니다.
+// [추가] gyeonggiEbookEdu의 새로운 객체 타입을 정의합니다.
 export interface GyeonggiEduEbookResult {
-  library_name: string;
-  total_count_summary: number;
-  available_count_summary: number;
-  unavailable_count_summary: number;
-  total_count_seongnam: number;
-  total_count_tonghap: number;
-  error_count: number;
-  error_lib_detail?: string; // [수정] 선택적 필드로 error_lib_detail 추가
-  book_list: (GyeonggiEduEbookList | GyeonggiEduEbookError)[];
+  libraryName: string;
+  totalCountSummary: number;
+  availableCountSummary: number;
+  unavailableCountSummary: number;
+  totalCountSeongnam: number;
+  totalCountTonghap: number;
+  errorCount: number;
+  errorLibDetail?: string; // [수정] 선택적 필드로 errorLibDetail 추가
+  bookList: (GyeonggiEduEbookList | GyeonggiEduEbookError)[];
 }
 
 export interface GyeonggiEduEbookSummary {
-  total_count_summary: number;
-  available_count_summary: number;
-  unavailable_count_summary: number;
-  total_count_seongnam: number;
-  total_count_tonghap: number;
-  error_count: number;
-  error_lib_detail?: string; // [수정] 선택적 필드 추가
+  totalCountSummary: number;
+  availableCountSummary: number;
+  unavailableCountSummary: number;
+  totalCountSeongnam: number;
+  totalCountTonghap: number;
+  errorCount: number;
+  errorLibDetail?: string; // [수정] 선택적 필드 추가
 }
 
 // [추가] 도서관별 바로가기 URL을 생성하는 통합 함수
@@ -305,8 +288,8 @@ export type LibraryName = '퇴촌' | '기타' | 'e교육' | 'e시립구독' | 'e
 // Internal types that don't need runtime validation from an external source
 // Making StockInfo compatible with Json type by using record syntax
 export type StockInfo = {
-  total_count: number;
-  available_count: number;
+  totalCount: number;
+  availableCount: number;
 };
 
 export type ReadStatus = '읽지 않음' | '읽는 중' | '완독';

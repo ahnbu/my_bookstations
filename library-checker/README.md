@@ -69,33 +69,33 @@ curl -X POST "http://127.0.0.1:8787" \
 
 ```json
 {
-  "gwangju_paper": {
-    "book_title": "도서 제목",
+  "gwangjuPaper": {
+    "title": "도서 제목",
     "availability": [
       {
-        "소장도서관": "광주시립중앙도서관",
-        "청구기호": "813.6-소32아",
-        "기본청구기호": "813.6-소32아",
-        "대출상태": "대출가능",
-        "반납예정일": "-"
+        "libraryName": "광주시립중앙도서관",
+        "callNo": "813.6-소32아",
+        "baseCallNo": "813.6-소32아",
+        "loanStatus": "대출가능",
+        "dueDate": "-"
       }
     ]
   },
-          "gyeonggi_ebook_edu": [
+          "gyeonggiEbookEdu": [
     {
-      "소장도서관": "성남도서관",
+      "libraryName": "성남도서관",
       "도서명": "아몬드",
       "저자": "손원평",
       "출판사": "창비",
       "발행일": "2017-03-31",
-      "대출상태": "대출가능"
+      "loanStatus": "대출가능"
     }
   ],
-  "gyeonggi_ebook_library": {
-    "library_name": "경기도 전자도서관",
-    "total_count": 1,
-    "available_count": 1,
-    "unavailable_count": 0,
+  "gyeonggiEbookLib": {
+    "libraryName": "경기도 전자도서관",
+    "totalCount": 1,
+    "availableCount": 1,
+    "unavailableCount": 0,
     "owned_count": 1,
     "subscription_count": 0,
     "books": [

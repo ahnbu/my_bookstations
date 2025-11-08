@@ -40,13 +40,13 @@ export function filterGyeonggiEbookByIsbn(
   book: AladdinBookItem,
   gyeonggiResult: GyeonggiEbookResult
 ): GyeonggiEbookResult {
-  // API 응답이 에러거나 book_list가 없으면 그대로 반환
-  if ('error' in gyeonggiResult || !gyeonggiResult.book_list) {
+  // API 응답이 에러거나 bookList가 없으면 그대로 반환
+  if ('error' in gyeonggiResult || !gyeonggiResult.bookList) {
     return gyeonggiResult;
   }
 
   // ✅ isBookMatched 함수의 로직을 여기에 직접 통합하여 사용
-  const matchedBooks = gyeonggiResult.book_list.filter(ebookItem => {
+  const matchedBooks = gyeonggiResult.bookList.filter(ebookItem => {
     const paperIsbn = book.isbn13;
     const ebookIsbn = book.subInfo?.ebookList?.[0]?.isbn13;
     const resultIsbn = ebookItem.isbn;
@@ -68,15 +68,15 @@ export function filterGyeonggiEbookByIsbn(
     return false;
   });
 
-  const availableCount = matchedBooks.filter(b => b.available).length;
+  const availableCount = matchedBooks.filter(b => b.loanStatus).length;
 
   // 필터링된 결과를 바탕으로 새로운 GyeonggiEbookResult 객체를 생성하여 반환
   return {
     ...gyeonggiResult,
-    total_count_summary: matchedBooks.length,
-    available_count_summary: availableCount,
-    unavailable_count_summary: matchedBooks.length - availableCount,
-    book_list: matchedBooks,
+    totalCountSummary: matchedBooks.length,
+    availableCountSummary: availableCount,
+    unavailableCountSummary: matchedBooks.length - availableCount,
+    bookList: matchedBooks,
   };
 }
 

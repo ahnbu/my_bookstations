@@ -52,13 +52,13 @@ export function createBookDataFromApis(
     lastUpdated: libraryResult.lastUpdated,
 
     // 도서관 API 원본 정보 할당
-    gwangjuPaperInfo: libraryResult.gwangju_paper,
-    // ebookInfo: libraryResult.gyeonggi_ebook_edu,
-    GyeonggiEduEbookInfo: (libraryResult.gyeonggi_ebook_edu && 'book_list' in libraryResult.gyeonggi_ebook_edu)
-             ? libraryResult.gyeonggi_ebook_edu as GyeonggiEduEbookResult
+    gwangjuPaperInfo: libraryResult.gwangjuPaper,
+    // ebookInfo: libraryResult.gyeonggiEbookEdu,
+    GyeonggiEduEbookInfo: (libraryResult.gyeonggiEbookEdu && 'bookList' in libraryResult.gyeonggiEbookEdu)
+             ? libraryResult.gyeonggiEbookEdu as GyeonggiEduEbookResult
              : null,
-    gyeonggiEbookInfo: libraryResult.gyeonggi_ebook_library,
-    siripEbookInfo: libraryResult.sirip_ebook,
+    gyeonggiEbookInfo: libraryResult.gyeonggiEbookLib,
+    siripEbookInfo: libraryResult.siripEbook,
   };
   // 3. 타입에 맞는 최종 객체 반환
   return combined;

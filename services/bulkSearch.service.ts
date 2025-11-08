@@ -26,9 +26,9 @@ export const generateSearchQuery = (title: string): string => {
  * 검색 결과가 입력된 제목과 매칭되는지 확인합니다.
  * 검색 쿼리의 모든 단어가 결과 제목에 포함되어 있는지 확인합니다.
  */
-export const isBookMatching = (searchQuery: string, bookTitle: string): boolean => {
+export const isBookMatching = (searchQuery: string, title: string): boolean => {
   const queryWords = searchQuery.toLowerCase().split(/\s+/);
-  const titleLower = bookTitle.toLowerCase();
+  const titleLower = title.toLowerCase();
 
   return queryWords.every(word => titleLower.includes(word));
 };
