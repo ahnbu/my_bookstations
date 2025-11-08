@@ -253,12 +253,12 @@ export interface SiripEbookError {
 // 광주시립도서관 종이책 추가
 export interface GwangjuPaperResult {
   library_name: string,
-  summary_total_count: number;
-  summary_available_count: number;
-  toechon_total_count: number;
-  toechon_available_count: number;
-  other_total_count: number;
-  other_available_count: number;
+  total_count_summary: number;
+  total_count_toechon: number;
+  total_count_other: number;
+  available_count_summary: number;
+  available_count_toechon: number;
+  available_count_other: number;
   book_title: string;
   book_list: PaperBookAvailability[];
 }
@@ -279,22 +279,22 @@ export interface LibraryApiResponse {
 // [추가] gyeonggi_ebook_edu의 새로운 객체 타입을 정의합니다.
 export interface GyeonggiEduEbookResult {
   library_name: string;
-  total_count: number;
-  available_count: number;
-  unavailable_count: number;
-  seongnam_count: number;
-  tonghap_count: number;
+  total_count_summary: number;
+  available_count_summary: number;
+  unavailable_count_summary: number;
+  total_count_seongnam: number;
+  total_count_tonghap: number;
   error_count: number;
   error_lib_detail?: string; // [수정] 선택적 필드로 error_lib_detail 추가
   book_list: (GyeonggiEduEbookList | GyeonggiEduEbookError)[];
 }
 
 export interface GyeonggiEduEbookSummary {
-  total_count: number;
-  available_count: number;
-  unavailable_count: number;
-  seongnam_count: number;
-  tonghap_count: number;
+  total_count_summary: number;
+  available_count_summary: number;
+  unavailable_count_summary: number;
+  total_count_seongnam: number;
+  total_count_tonghap: number;
   error_count: number;
   error_lib_detail?: string; // [수정] 선택적 필드 추가
 }

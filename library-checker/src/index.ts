@@ -458,33 +458,33 @@ function parseGwangjuPaperHTML(html: string): GwangjuPaperResult {
   
       if (bookItems.length === 0) {
         return {
-          library_name: "광주 시립도서관", summary_total_count: 0, summary_available_count: 0,
-          toechon_total_count: 0, toechon_available_count: 0, other_total_count: 0, other_available_count: 0,
+          library_name: "광주 시립도서관", total_count_summary: 0, available_count_summary: 0,
+          total_count_toechon: 0, available_count_toechon: 0, total_count_other: 0, available_count_other: 0,
           book_title: "결과 없음", book_list: []
         };
       }
       
       const parsedBooks = bookItems.map(parseGwangjuBookItem).filter((book): book is GwangjuParsedItem => book !== null);
   
-      let summary_total_count = 0;
-      let summary_available_count = 0;
-      let toechon_total_count = 0;
-      let toechon_available_count = 0;
-      let other_total_count = 0;
-      let other_available_count = 0;
+      let total_count_summary = 0;
+      let total_count_toechon = 0;
+      let total_count_other = 0;
+      let available_count_summary = 0;
+      let available_count_toechon = 0;
+      let available_count_other = 0;
       
       const book_list: GwangjuPaperBook[] = parsedBooks.map(book => {
         const isAvailable = book.status === '대출가능';
         
-        summary_total_count++;
-        if (isAvailable) summary_available_count++;
+        total_count_summary++;
+        if (isAvailable) available_count_summary++;
   
         if (book.library === '퇴촌도서관') {
-          toechon_total_count++;
-          if (isAvailable) toechon_available_count++;
+          total_count_toechon++;
+          if (isAvailable) available_count_toechon++;
         } else {
-          other_total_count++;
-          if (isAvailable) other_available_count++;
+          total_count_other++;
+          if (isAvailable) available_count_other++;
         }
         
         return {
@@ -497,8 +497,8 @@ function parseGwangjuPaperHTML(html: string): GwangjuPaperResult {
       });
   
       return {
-        library_name: "광주 시립도서관", summary_total_count, summary_available_count,
-        toechon_total_count, toechon_available_count, other_total_count, other_available_count,
+        library_name: "광주 시립도서관", total_count_summary: total_count_summary, available_count_summary: available_count_summary,
+        total_count_toechon: total_count_toechon, available_count_toechon, total_count_other, available_count_other,
         book_title: parsedBooks[0]?.title || "제목 정보없음", book_list
       };
   
@@ -1208,27 +1208,27 @@ export default {
                 errorLibs.push('통합');
               }
     
-              let total_count = 0;
-              let available_count = 0;
-              let seongnam_count = 0;
-              let tonghap_count = 0;
+              let total_count_summary = 0;
+              let available_count_summary = 0;
+              let total_count_seongnam = 0;
+              let total_count_tonghap = 0;
               let error_count = 0;
     
               const validBooks = combinedEduBooks.filter((book): book is GyeonggiEduEbook => !('error' in book));
     
-              total_count = validBooks.length;
-              available_count = validBooks.filter(b => b.대출상태 === '대출가능').length;
-              seongnam_count = validBooks.filter(b => b.소장도서관 === '성남도서관').length;
-              tonghap_count = validBooks.filter(b => b.소장도서관 === '통합도서관').length;
+              total_count_summary = validBooks.length;
+              available_count_summary = validBooks.filter(b => b.대출상태 === '대출가능').length;
+              total_count_seongnam = validBooks.filter(b => b.소장도서관 === '성남도서관').length;
+              total_count_tonghap = validBooks.filter(b => b.소장도서관 === '통합도서관').length;
               error_count = errorLibs.length;
     
               finalResult.gyeonggi_ebook_edu = {
                 library_name: "경기도교육청 전자도서관",
-                total_count,
-                available_count,
-                unavailable_count: total_count - available_count,
-                seongnam_count,
-                tonghap_count,
+                total_count_summary: total_count_summary,
+                available_count_summary: available_count_summary,
+                unavailable_count_summary: total_count_summary - available_count_summary,
+                total_count_seongnam,
+                total_count_tonghap,
                 error_count,
                 error_lib_detail: errorLibs.length > 0 ? `에러 발생: ${errorLibs.join(', ')}` : undefined,
                 book_list: validBooks

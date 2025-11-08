@@ -214,11 +214,11 @@ export async function fetchBookAvailability(
  */
 export function GyeonggiEduEbookSummarize(GyeonggiEduEbooks: (GyeonggiEduEbookList | GyeonggiEduEbookError)[]): GyeonggiEduEbookSummary {
   const summary: GyeonggiEduEbookSummary = {
-    total_count: 0,
-    available_count: 0,
-    unavailable_count: 0,
-    seongnam_count: 0,
-    tonghap_count: 0,
+    total_count_summary: 0,
+    available_count_summary: 0,
+    unavailable_count_summary: 0,
+    total_count_seongnam: 0,
+    total_count_tonghap: 0,
     error_count: 0,
   };
 
@@ -228,18 +228,18 @@ export function GyeonggiEduEbookSummarize(GyeonggiEduEbooks: (GyeonggiEduEbookLi
       return;
     }
 
-    summary.total_count++;
+    summary.total_count_summary++;
     
     if (item.대출상태 === '대출가능') {
-      summary.available_count++;
+      summary.available_count_summary++;
     } else if (item.대출상태 === '대출불가') {
-      summary.unavailable_count++;
+      summary.unavailable_count_summary++;
     }
 
     if (item.소장도서관 === '성남도서관') {
-      summary.seongnam_count++;
+      summary.total_count_seongnam++;
     } else if (item.소장도서관 === '통합도서관') {
-      summary.tonghap_count++;
+      summary.total_count_tonghap++;
     }
   });
 

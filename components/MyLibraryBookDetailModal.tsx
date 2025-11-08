@@ -239,8 +239,8 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                     // totalCount={book.toechonStock?.total_count}
                     // availableCount={book.toechonStock?.available_count}
                     // undefined를 전달하는 이유는 StockDisplay 컴포넌트가 undefined 값을 "로딩 중" 상태로 해석하도록 개선되었기 때문입니다. 이는 조회중... 무한 반복 버그를 해결한 좋은 로직
-                    totalCount={book.gwangjuPaperInfo && 'toechon_total_count' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.toechon_total_count : undefined}
-                    availableCount={book.gwangjuPaperInfo && 'toechon_available_count' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.toechon_available_count : undefined}
+                    totalCount={book.gwangjuPaperInfo && 'total_count_toechon' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.total_count_toechon : undefined}
+                    availableCount={book.gwangjuPaperInfo && 'available_count_toechon' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.available_count_toechon : undefined}
                     hasError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false}
                     // isLoading={!book.toechonStock && !book.gwangjuPaperInfo}
                 />
@@ -249,8 +249,8 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                     searchUrl={createLibraryOpenURL('기타', book.title, book.customSearchTitle)}
                     // totalCount={book.otherStock?.total_count}
                     // availableCount={book.otherStock?.available_count}
-                    totalCount={book.gwangjuPaperInfo && 'other_total_count' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.other_total_count : undefined}
-                    availableCount={book.gwangjuPaperInfo && 'other_available_count' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.other_available_count : undefined}
+                    totalCount={book.gwangjuPaperInfo && 'total_count_other' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.total_count_other : undefined}
+                    availableCount={book.gwangjuPaperInfo && 'available_count_other' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.available_count_other : undefined}
                     hasError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false}
                     // isLoading={!book.otherStock && !book.gwangjuPaperInfo}
                 />

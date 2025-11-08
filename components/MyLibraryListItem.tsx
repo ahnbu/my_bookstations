@@ -220,16 +220,16 @@ const MyLibraryListItem: React.FC<MyLibraryListItemProps> = React.memo(({
             <LibraryTag name="퇴촌" 
             // totalBooks={book.toechonStock?.total_count || 0} 
             // availableBooks={book.toechonStock?.available_count || 0} 
-            totalBooks={book.gwangjuPaperInfo && 'toechon_total_count' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.toechon_total_count : 0} 
-            availableBooks={book.gwangjuPaperInfo && 'toechon_available_count' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.toechon_available_count : 0} 
+            totalBooks={book.gwangjuPaperInfo && 'total_count_toechon' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.total_count_toechon : 0} 
+            availableBooks={book.gwangjuPaperInfo && 'available_count_toechon' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.available_count_toechon : 0} 
             searchUrl={createLibraryOpenURL("퇴촌", book.title, book.customSearchTitle)} 
             isError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false} />
             
             <LibraryTag name="기타" 
             // totalBooks={book.otherStock?.total_count || 0} 
             // availableBooks={book.otherStock?.available_count || 0} 
-            totalBooks={book.gwangjuPaperInfo && 'other_total_count' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.other_total_count : 0} 
-            availableBooks={book.gwangjuPaperInfo && 'other_available_count' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.other_available_count : 0} 
+            totalBooks={book.gwangjuPaperInfo && 'total_count_other' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.total_count_other : 0} 
+            availableBooks={book.gwangjuPaperInfo && 'available_count_other' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.available_count_other : 0} 
             searchUrl={createLibraryOpenURL("기타", book.title, book.customSearchTitle)} 
             isError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false} />
             
@@ -321,16 +321,16 @@ const MyLibraryListItem: React.FC<MyLibraryListItemProps> = React.memo(({
           <LibraryTag name="퇴촌" 
           // totalBooks={book.toechonStock?.total_count || 0} 
           // availableBooks={book.toechonStock?.available_count || 0} 
-          totalBooks={book.gwangjuPaperInfo && 'toechon_total_count' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.toechon_total_count : 0} 
-          availableBooks={book.gwangjuPaperInfo && 'toechon_available_count' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.toechon_available_count : 0} 
+          totalBooks={book.gwangjuPaperInfo && 'total_count_toechon' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.total_count_toechon : 0} 
+          availableBooks={book.gwangjuPaperInfo && 'available_count_toechon' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.available_count_toechon : 0} 
           searchUrl={createLibraryOpenURL("퇴촌", book.title, book.customSearchTitle)} 
           isError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false} />
           
           <LibraryTag name="기타" 
           // totalBooks={book.otherStock?.total_count || 0} 
           // availableBooks={book.otherStock?.available_count || 0} 
-          totalBooks={book.gwangjuPaperInfo && 'other_total_count' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.other_total_count : 0} 
-          availableBooks={book.gwangjuPaperInfo && 'other_available_count' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.other_available_count : 0} 
+          totalBooks={book.gwangjuPaperInfo && 'total_count_other' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.total_count_other : 0} 
+          availableBooks={book.gwangjuPaperInfo && 'available_count_other' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.available_count_other : 0} 
           searchUrl={createLibraryOpenURL("기타", book.title, book.customSearchTitle)} 
           isError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false} />
           
