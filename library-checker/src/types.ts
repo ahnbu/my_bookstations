@@ -92,7 +92,11 @@ export interface GyeonggiEbookResult {
   bookList: GyeonggiEbook[];
 }
 
+
 // --- 광주 시립도서관 (전자책) ---
+
+export type SiripEbookBook = SiripEbookOwned | SiripEbookSubscription;
+
 export interface SiripEbookOwned {
   type: '소장형';
   title: string;
@@ -113,41 +117,77 @@ export interface SiripEbookSubscription {
   isAvailable: true;
 }
 
-export interface SiripEbookDetails {
-  owned: {
-    libraryName: string;
-    totalCount: number;
-    availableCount: number;
-    unavailableCount: number;
-    bookList: SiripEbookOwned[];
-    error?: string;
-  };
-  subscription: {
-    libraryName: string;
-    totalCount: number;
-    availableCount: number;
-    unavailableCount: number;
-    bookList: SiripEbookSubscription[];
-    error?: string;
-  };
+
+// ✅ [추가] searchSiripEbookOwned 함수의 반환 타입을 명시하기 위해 추가
+export interface SiripEbookOwnedResult {
+  libraryName: string;
+  totalCount: number;
+  availableCount: number;
+  unavailableCount: number;
+  bookList: SiripEbookOwned[];
+  error?: string;
+}
+
+// ✅ [추가] searchSiripEbookSubs 함수의 반환 타입을 명시하기 위해 추가
+export interface SiripEbookSubsResult {
+  libraryName: string;
+  totalCount: number;
+  availableCount: number;
+  unavailableCount: number;
+  bookList: SiripEbookSubscription[];
+  error?: string;
 }
 
 export interface SiripEbookResult {
-  siripEbookSummary: {
-    libraryName: string;
-    totalCountSummary: number;
-    availableCountSummary: number;
-    unavailableCountSummary: number;
-    totalCountOwned: number;
-    totalCountSubs: number;
-    searchQuery: string;
-  };
-  details: SiripEbookDetails;
+  libraryName: string;
+  totalCountSummary: number;
+  availableCountSummary: number;
+  unavailableCountSummary: number;
+  totalCountOwned: number;
+  totalCountSubs: number;
+  searchQuery: string;
+  bookList: SiripEbookBook[];
   errors?: {
     owned?: string;
     subscription?: string;
   };
 }
+
+// export interface SiripEbookDetails {
+//   owned: {
+//     libraryName: string;
+//     totalCount: number;
+//     availableCount: number;
+//     unavailableCount: number;
+//     bookList: SiripEbookOwned[];
+//     error?: string;
+//   };
+//   subscription: {
+//     libraryName: string;
+//     totalCount: number;
+//     availableCount: number;
+//     unavailableCount: number;
+//     bookList: SiripEbookSubscription[];
+//     error?: string;
+//   };
+// }
+
+// export interface SiripEbookResult {
+//   siripEbookSummary: {
+//     libraryName: string;
+//     totalCountSummary: number;
+//     availableCountSummary: number;
+//     unavailableCountSummary: number;
+//     totalCountOwned: number;
+//     totalCountSubs: number;
+//     searchQuery: string;
+//   };
+//   details: SiripEbookDetails;
+//   errors?: {
+//     owned?: string;
+//     subscription?: string;
+//   };
+// }
 
 // ===================================================================
 // 3. 통합 API 응답 (Response Body) 타입

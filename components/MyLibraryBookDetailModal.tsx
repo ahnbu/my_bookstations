@@ -236,23 +236,16 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                 <StockDisplay
                     label="퇴촌"
                     searchUrl={createLibraryOpenURL('퇴촌', book.title, book.customSearchTitle)}
-                    // totalCount={book.toechonStock?.totalCount}
-                    // availableCount={book.toechonStock?.availableCount}
-                    // undefined를 전달하는 이유는 StockDisplay 컴포넌트가 undefined 값을 "로딩 중" 상태로 해석하도록 개선되었기 때문입니다. 이는 조회중... 무한 반복 버그를 해결한 좋은 로직
                     totalCount={book.gwangjuPaperInfo && 'totalCountToechon' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.totalCountToechon : undefined}
                     availableCount={book.gwangjuPaperInfo && 'availableCountToechon' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.availableCountToechon : undefined}
                     hasError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false}
-                    // isLoading={!book.toechonStock && !book.gwangjuPaperInfo}
                 />
                 <StockDisplay
                     label="기타"
                     searchUrl={createLibraryOpenURL('기타', book.title, book.customSearchTitle)}
-                    // totalCount={book.otherStock?.totalCount}
-                    // availableCount={book.otherStock?.availableCount}
                     totalCount={book.gwangjuPaperInfo && 'totalCountOther' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.totalCountOther : undefined}
                     availableCount={book.gwangjuPaperInfo && 'availableCountOther' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.availableCountOther : undefined}
                     hasError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false}
-                    // isLoading={!book.otherStock && !book.gwangjuPaperInfo}
                 />
                 <StockDisplay
                     label="전자책(교육)"
@@ -260,25 +253,20 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                     totalCount={book.GyeonggiEduEbookInfo?.totalCountSummary}
                     availableCount={book.GyeonggiEduEbookInfo?.availableCountSummary}
                     hasError={(book.GyeonggiEduEbookInfo?.errorCount ?? 0) > 0}
-                    // isLoading={!book.GyeonggiEduEbookInfo}
                 />
                 <StockDisplay
                     label="전자책(시립구독)"
                     searchUrl={createLibraryOpenURL('e시립구독', book.title, book.customSearchTitle)}
                     totalCount={book.siripEbookInfo?.details?.subscription?.totalCount}
                     availableCount={book.siripEbookInfo?.details?.subscription?.availableCount}
-                    // hasError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.subscription?.error) : false}
                     hasError={!!(book.siripEbookInfo && ('error' in book.siripEbookInfo || book.siripEbookInfo.details?.subscription?.error || book.siripEbookInfo.errors?.subscription))}
-                    // isLoading={!book.siripEbookInfo}
                 />
-                <StockDisplay
+                {/* <StockDisplay
                     label="전자책(시립소장)"
                     searchUrl={createLibraryOpenURL('e시립소장', book.title, book.customSearchTitle)}
                     totalCount={book.siripEbookInfo?.details?.owned?.totalCount}
                     availableCount={book.siripEbookInfo?.details?.owned?.availableCount}
-                    // hasError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.owned?.error) : false}
                     hasError={!!(book.siripEbookInfo && ('error' in book.siripEbookInfo || book.siripEbookInfo.details?.owned?.error || book.siripEbookInfo.errors?.owned))}
-                    // isLoading={!book.siripEbookInfo}
                 />
                 <StockDisplay
                     label="전자책(경기)"
@@ -286,6 +274,20 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                     totalCount={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.totalCountSummary : undefined}
                     availableCount={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.availableCountSummary : undefined}
                     hasError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
+                /> */}
+                <StockDisplay
+                    label="전자책(시립구독)"
+                    searchUrl={createLibraryOpenURL('e시립구독', book.title, book.customSearchTitle)}
+                    totalCount={book.siripEbookInfo?.totalCountSubs}
+                    availableCount={book.siripEbookInfo && !book.siripEbookInfo.errors?.subscription ? book.siripEbookInfo.bookList.filter(b => b.type === '구독형').length : undefined}
+                    hasError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.subscription}
+                />
+                <StockDisplay
+                    label="전자책(시립소장)"
+                    searchUrl={createLibraryOpenURL('e시립소장', book.title, book.customSearchTitle)}
+                    totalCount={book.siripEbookInfo?.totalCountOwned}
+                    availableCount={book.siripEbookInfo && !book.siripEbookInfo.errors?.owned ? book.siripEbookInfo.bookList.filter(b => b.type === '소장형' && b.isAvailable).length : undefined}
+                    hasError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.owned}
                 />
             </div>
 

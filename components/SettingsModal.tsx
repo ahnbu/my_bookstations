@@ -20,8 +20,6 @@ const SettingsModal: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
 
   // ✅ [수정] 일괄 갱신 관련 상태 확장
-
-
   const [selectedRefreshType, setSelectedRefreshType] = useState<RefreshType>('recent');
   const [selectedRefreshLimit, setSelectedRefreshLimit] = useState<RefreshLimit>(25);
   
@@ -297,7 +295,8 @@ const SettingsModal: React.FC = () => {
           setNotification({ message: '재고 갱신에 실패했습니다. 네트워크 연결을 확인해주세요.', type: 'error' });
         }
       },
-      shouldPause: () => refreshState.isPaused,
+      // shouldPause: () => refreshState.isPaused, // ⚠️ 클로저로 인해 오래된 상태를 참조할 수 있음
+      shouldPause: () => useBookStore.getState().bulkRefreshState.isPaused, // ✅ 스토어에서 직접 최신 상태를 가져옴
       shouldCancel: () => useBookStore.getState().bulkRefreshState.isCancelled,
     });
   };

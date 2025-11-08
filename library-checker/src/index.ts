@@ -13,8 +13,11 @@ import {
   GyeonggiEbookResult,
   SiripEbookOwned,
   SiripEbookSubscription,
+  SiripEbookOwnedResult,
+  SiripEbookSubsResult,
   SiripEbookResult,
-  SiripEbookDetails, // ✅ 이 줄을 추가하세요.
+  SiripEbookBook,
+  // SiripEbookDetails, // ✅ 이 줄을 추가하세요.
   LibraryApiResponse,
   KeywordSearchResultItem
 } from './types';
@@ -211,7 +214,7 @@ async function searchGyeonggiEbookLibrary(searchText: string): Promise<GyeonggiE
     }
 }
 
-async function searchSiripEbookOwned(searchTitle: string): Promise<SiripEbookDetails['owned']> {
+async function searchSiripEbookOwned(searchTitle: string): Promise<SiripEbookOwnedResult> {
     try {
       const encodedTitle = encodeURIComponent(searchTitle);
       const url = `https://lib.gjcity.go.kr:444/elibrary-front/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodedTitle}`;
@@ -255,7 +258,7 @@ async function searchSiripEbookOwned(searchTitle: string): Promise<SiripEbookDet
     }
 }
 
-async function searchSiripEbookSubs(searchTitle: string): Promise<SiripEbookDetails['subscription']> {
+async function searchSiripEbookSubs(searchTitle: string): Promise<SiripEbookSubsResult> {
     try {
       const encodedTitle = encodeURIComponent(searchTitle);
       const baseSearchUrl = 'https://gjcitylib.dkyobobook.co.kr/search/searchList.ink';
@@ -319,60 +322,49 @@ async function searchSiripEbookSubs(searchTitle: string): Promise<SiripEbookDeta
 
 async function searchSiripEbookIntegrated(searchTitle: string): Promise<SiripEbookResult> {
     try {
-      const [ownedResults, subscriptionResults] = await Promise.allSettled([
-        searchSiripEbookOwned(searchTitle),
-        searchSiripEbookSubs(searchTitle)
-      ]);
-      
-      let siripOwnedData: SiripEbookDetails['owned'];
-      let siripSubsData: SiripEbookDetails['subscription'];
-      
-      if (ownedResults.status === 'fulfilled') {
-        siripOwnedData = ownedResults.value;
-      } else {
-        siripOwnedData = {
-          libraryName: '광주시립중앙도서관-소장형', totalCount: 0, availableCount: 0, unavailableCount: 0, bookList: [],
-          error: ownedResults.reason?.message || 'Unknown error'
+        const [ownedResults, subscriptionResults] = await Promise.allSettled([
+            searchSiripEbookOwned(searchTitle),
+            searchSiripEbookSubs(searchTitle)
+        ]);
+        
+        const ownedData = ownedResults.status === 'fulfilled' ? ownedResults.value : null;
+        const subsData = subscriptionResults.status === 'fulfilled' ? subscriptionResults.value : null;
+
+        const ownedError = ownedResults.status === 'rejected' ? (ownedResults.reason as Error).message : ownedData?.error;
+        const subsError = subscriptionResults.status === 'rejected' ? (subscriptionResults.reason as Error).message : subsData?.error;
+
+        const combinedBookList: SiripEbookBook[] = [
+            ...(ownedData?.bookList || []),
+            ...(subsData?.bookList || [])
+        ];
+
+        const totalCountOwned = ownedData?.totalCount || 0;
+        const totalCountSubs = subsData?.totalCount || 0;
+        const totalCountSummary = totalCountOwned + totalCountSubs;
+
+        const availableCountOwned = ownedData?.availableCount || 0;
+        const availableCountSubs = subsData?.availableCount || 0;
+        const availableCountSummary = availableCountOwned + availableCountSubs;
+
+        const flatResult: SiripEbookResult = {
+            libraryName: '광주시립중앙도서관',
+            totalCountSummary: totalCountSummary,
+            availableCountSummary: availableCountSummary,
+            unavailableCountSummary: totalCountSummary - availableCountSummary,
+            totalCountOwned: totalCountOwned,
+            totalCountSubs: totalCountSubs,
+            searchQuery: searchTitle,
+            bookList: combinedBookList,
         };
-      }
-      
-      if (subscriptionResults.status === 'fulfilled') {
-        siripSubsData = subscriptionResults.value;
-      } else {
-        siripSubsData = {
-          libraryName: '광주시립중앙도서관-구독형', totalCount: 0, availableCount: 0, unavailableCount: 0, bookList: [],
-          error: subscriptionResults.reason?.message || 'Unknown error'
-        };
-      }
-      
-      const totalBooks = siripOwnedData.totalCount + siripSubsData.totalCount;
-      const totalAvailable = siripOwnedData.availableCount + siripSubsData.availableCount;
-      const totalUnavailable = siripOwnedData.unavailableCount + siripSubsData.unavailableCount;
-      
-      const integratedResult: SiripEbookResult = {
-        siripEbookSummary: {
-          libraryName: '광주시립중앙도서관-통합',
-          totalCountSummary: totalBooks,
-          availableCountSummary: totalAvailable,
-          unavailableCountSummary: totalUnavailable,
-          totalCountOwned: siripOwnedData.totalCount,
-          totalCountSubs: siripSubsData.totalCount,
-          searchQuery: searchTitle
-        },
-        details: {
-          owned: siripOwnedData,
-          subscription: siripSubsData,
+        
+        if (ownedError || subsError) {
+            flatResult.errors = {};
+            if (ownedError) flatResult.errors.owned = ownedError;
+            if (subsError) flatResult.errors.subscription = subsError;
         }
-      };
-      
-      if (siripOwnedData.error || siripSubsData.error) {
-        integratedResult.errors = {};
-        if (siripOwnedData.error) integratedResult.errors.owned = siripOwnedData.error;
-        if (siripSubsData.error) integratedResult.errors.subscription = siripSubsData.error;
-      }
-      
-      return integratedResult;
-      
+        
+        return flatResult;
+
     } catch (error) {
         if (error instanceof Error) {
             console.error('시립도서관 통합 검색 오류:', error.message);
@@ -634,7 +626,7 @@ function parseGyenggiEbookSubsResults(json_data: any, query: string): GyeonggiEb
     }
 }
   
-function parseSiripEbookOwnedHTML(html: string): SiripEbookDetails['owned'] {
+function parseSiripEbookOwnedHTML(html: string): SiripEbookOwnedResult {
     try {
       if (html.includes('검색결과가 없습니다') || html.includes('자료가 없습니다')) {
         return { libraryName: '광주시립중앙도서관-소장형', totalCount: 0, availableCount: 0, unavailableCount: 0, bookList: [] };
@@ -706,7 +698,7 @@ function parseSiripEbookOwnedHTML(html: string): SiripEbookDetails['owned'] {
     }
 }
   
-function parseSiripEbookSubsHTML(html: string): SiripEbookDetails['subscription'] {
+function parseSiripEbookSubsHTML(html: string): SiripEbookSubsResult {
     try {
       if (html.includes('검색결과가 없습니다') || html.includes('자료가 없습니다')) {
         return { libraryName: '광주시립중앙도서관-구독형', totalCount: 0, availableCount: 0, unavailableCount: 0, bookList: [] };
@@ -909,34 +901,33 @@ async function searchGyeonggiEbookKeyword(keyword: string): Promise<KeywordSearc
 }
 
 async function searchSiripEbookKeyword(keyword: string): Promise<KeywordSearchResultItem[]> {
-    const results: KeywordSearchResultItem[] = [];
     try {
         const siripResult = await searchSiripEbookIntegrated(keyword);
 
-        if (siripResult?.details?.owned?.bookList) {
-            siripResult.details.owned.bookList.forEach(book => {
-                results.push({
-                    type: '전자책',
-                    libraryName: 'e시립소장',
-                    title: book.title || '정보없음',
-                    author: book.author || '정보없음',
-                    publisher: book.publisher || '정보없음',
-                    pubDate: book.publishDate || '정보없음',
-                    isAvailable: book.isAvailable || false
-                });
-            });
-        }
-        if (siripResult?.details?.subscription?.bookList) {
-            siripResult.details.subscription.bookList.forEach(book => {
-                results.push({
-                    type: '전자책',
-                    libraryName: 'e시립구독',
-                    title: book.title || '정보없음',
-                    author: book.author || '정보없음',
-                    publisher: book.publisher || '정보없음',
-                    pubDate: book.publishDate || '정보없음',
-                    isAvailable: book.isAvailable || true
-                });
+        // ✅ 평탄화된 bookList를 직접 순회합니다.
+        if (siripResult?.bookList && Array.isArray(siripResult.bookList)) {
+            return siripResult.bookList.map((book: SiripEbookBook) => { // ✅ book 타입을 명시하여 에러 해결
+                if (book.type === '소장형') {
+                    return {
+                        type: '전자책',
+                        libraryName: 'e시립소장',
+                        title: book.title || '정보없음',
+                        author: book.author || '정보없음',
+                        publisher: book.publisher || '정보없음',
+                        pubDate: book.publishDate || '정보없음',
+                        isAvailable: book.isAvailable || false
+                    };
+                } else { // '구독형'
+                    return {
+                        type: '전자책',
+                        libraryName: 'e시립구독',
+                        title: book.title || '정보없음',
+                        author: book.author || '정보없음',
+                        publisher: book.publisher || '정보없음',
+                        pubDate: book.publishDate || '정보없음',
+                        isAvailable: book.isAvailable || true
+                    };
+                }
             });
         }
     } catch (error) {
@@ -944,8 +935,47 @@ async function searchSiripEbookKeyword(keyword: string): Promise<KeywordSearchRe
             console.error('시립도서관 전자책 키워드 검색 오류:', error.message);
         }
     }
-    return results;
+    return []; // ✅ forEach 대신 map을 사용하고, 에러 시 빈 배열을 반환하도록 로직 개선
 }
+
+// async function searchSiripEbookKeyword(keyword: string): Promise<KeywordSearchResultItem[]> {
+//     const results: KeywordSearchResultItem[] = [];
+//     try {
+//         const siripResult = await searchSiripEbookIntegrated(keyword);
+
+//         if (siripResult?.bookList) {
+//             siripResult.bookList.forEach(book => {
+//                 results.push({
+//                     type: '전자책',
+//                     libraryName: 'e시립소장',
+//                     title: book.title || '정보없음',
+//                     author: book.author || '정보없음',
+//                     publisher: book.publisher || '정보없음',
+//                     pubDate: book.publishDate || '정보없음',
+//                     isAvailable: book.isAvailable || false
+//                 });
+//             });
+//         }
+//         if (siripResult?.bookList) {
+//             siripResult.bookList.forEach(book => {
+//                 results.push({
+//                     type: '전자책',
+//                     libraryName: 'e시립구독',
+//                     title: book.title || '정보없음',
+//                     author: book.author || '정보없음',
+//                     publisher: book.publisher || '정보없음',
+//                     pubDate: book.publishDate || '정보없음',
+//                     isAvailable: book.isAvailable || true
+//                 });
+//             });
+//         }
+//     } catch (error) {
+//         if (error instanceof Error) {
+//             console.error('시립도서관 전자책 키워드 검색 오류:', error.message);
+//         }
+//     }
+//     return results;
+// }
 
 // ==============================================
 // ✅ 메인 Worker 핸들러 (export default)

@@ -1374,10 +1374,18 @@ export const useBookStore = create<BookState>(
                 bulkRefreshState: { ...state.bulkRefreshState, current, failed: [...failed] },
               }));
               callbacks.onProgress(current, total, failed.length);
+              
+              // ✅ [핵심 수정] 지연 로직을 개별 요청 바로 뒤로 이동합니다.
+              // 이렇게 하면 한 권 갱신 후 200ms를 쉽니다.
+              if (!get().bulkRefreshState.isCancelled) {
+                await new Promise(resolve => setTimeout(resolve, 200));
+              }
+
             }
           }
           if (get().bulkRefreshState.isCancelled) break;
 
+          // ⛔️ 기존의 10개마다 1초 쉬는 로직은 삭제합니다.
           if (i + batchSize < booksToRefresh.length && !get().bulkRefreshState.isCancelled) {
             await new Promise(resolve => setTimeout(resolve, 1000));
           }

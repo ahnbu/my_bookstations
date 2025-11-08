@@ -167,7 +167,7 @@ const LibraryTagsGroup: React.FC<{ book: SelectedBook }> = React.memo(({ book })
                 searchUrl={createLibraryOpenURL("e교육", book.title, book.customSearchTitle)}
                 isError={!book.GyeonggiEduEbookInfo || (book.GyeonggiEduEbookInfo.errorCount ?? 0) > 0} />
 
-            <LibraryTag name="e시립구독"
+            {/* <LibraryTag name="e시립구독"
                 totalBooks={book.siripEbookInfo?.details?.subscription?.totalCount ?? 0}
                 availableBooks={book.siripEbookInfo?.details?.subscription?.availableCount ?? 0}
                 searchUrl={createLibraryOpenURL("e시립구독", book.title, book.customSearchTitle)}
@@ -177,8 +177,20 @@ const LibraryTagsGroup: React.FC<{ book: SelectedBook }> = React.memo(({ book })
                 totalBooks={book.siripEbookInfo?.details?.owned?.totalCount ?? 0}
                 availableBooks={book.siripEbookInfo?.details?.owned?.availableCount ?? 0}
                 searchUrl={createLibraryOpenURL("e시립소장", book.title, book.customSearchTitle)}
-                isError={!book.siripEbookInfo || 'error' in book.siripEbookInfo || !!book.siripEbookInfo.errors?.owned} />
+                isError={!book.siripEbookInfo || 'error' in book.siripEbookInfo || !!book.siripEbookInfo.errors?.owned} /> */}
 
+            <LibraryTag name="e시립구독"
+                totalBooks={book.siripEbookInfo?.totalCountSubs ?? 0}
+                availableBooks={book.siripEbookInfo?.bookList?.filter(b => b.type === '구독형').length ?? 0}
+                searchUrl={createLibraryOpenURL("e시립구독", book.title, book.customSearchTitle)}
+                isError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.subscription} />
+
+            <LibraryTag name="e시립소장"
+                totalBooks={book.siripEbookInfo?.totalCountOwned ?? 0}
+                availableBooks={book.siripEbookInfo?.bookList?.filter(b => b.type === '소장형' && b.isAvailable).length ?? 0}
+                searchUrl={createLibraryOpenURL("e시립소장", book.title, book.customSearchTitle)}
+                isError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.owned} />
+                
             <LibraryTag name="e경기"
                 totalBooks={(book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.totalCountSummary : undefined) ?? 0}
                 availableBooks={(book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.availableCountSummary : undefined) ?? 0}
