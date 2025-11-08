@@ -14,6 +14,7 @@ dist
 dist-ssr
 book_list_save
 working_code
+uploads_for_ai_studio
 *.local
 .docs/git_commit_history/*
 
