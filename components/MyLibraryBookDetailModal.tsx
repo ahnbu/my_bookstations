@@ -267,7 +267,8 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                     searchUrl={createLibraryOpenURL('e시립구독', book.title, book.customSearchTitle)}
                     totalCount={book.siripEbookInfo?.details?.subscription?.totalCount}
                     availableCount={book.siripEbookInfo?.details?.subscription?.availableCount}
-                    hasError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.subscription?.error) : false}
+                    // hasError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.subscription?.error) : false}
+                    hasError={!!(book.siripEbookInfo && ('error' in book.siripEbookInfo || book.siripEbookInfo.details?.subscription?.error || book.siripEbookInfo.errors?.subscription))}
                     // isLoading={!book.siripEbookInfo}
                 />
                 <StockDisplay
@@ -275,7 +276,8 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                     searchUrl={createLibraryOpenURL('e시립소장', book.title, book.customSearchTitle)}
                     totalCount={book.siripEbookInfo?.details?.owned?.totalCount}
                     availableCount={book.siripEbookInfo?.details?.owned?.availableCount}
-                    hasError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.owned?.error) : false}
+                    // hasError={book.siripEbookInfo ? ('error' in book.siripEbookInfo || !!book.siripEbookInfo.details?.owned?.error) : false}
+                    hasError={!!(book.siripEbookInfo && ('error' in book.siripEbookInfo || book.siripEbookInfo.details?.owned?.error || book.siripEbookInfo.errors?.owned))}
                     // isLoading={!book.siripEbookInfo}
                 />
                 <StockDisplay
