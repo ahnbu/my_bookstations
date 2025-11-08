@@ -240,7 +240,7 @@ async function searchSiripEbookOwned(searchTitle: string): Promise<SiripEbookDet
       });
       
       if (!response.ok) {
-        throw new Error(`시립도서관 전자책 HTTP ${response.status}`);
+        throw new Error(`시립도서관 소장형 전자책 HTTP ${response.status}`);
       }
       
       const htmlContent = await response.text();
@@ -248,10 +248,10 @@ async function searchSiripEbookOwned(searchTitle: string): Promise<SiripEbookDet
       
     } catch (error) {
         if (error instanceof Error) {
-            console.error('시립도서관 전자책 검색 오류:', error.message);
-            throw new Error(`시립도서관 전자책 검색 실패: ${error.message}`);
+            console.error('시립도서관 소장형 전자책 검색 오류:', error.message);
+            throw new Error(`시립도서관 소장형 전자책 검색 실패: ${error.message}`);
         }
-        throw new Error('시립도서관 전자책 검색 중 알 수 없는 오류 발생');
+        throw new Error('시립도서관 소장형 전자책 검색 중 알 수 없는 오류 발생');
     }
 }
 
