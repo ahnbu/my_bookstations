@@ -78,7 +78,10 @@ export const UserActivityDataSchema = z.object({
 });
 
 // 3. 위 두 스키마를 합쳐서 새로운 BookDataSchema 정의
-export const BookDataSchema = ApiCombinedBookDataSchema.merge(UserActivityDataSchema);
+// export const BookDataSchema = ApiCombinedBookDataSchema.merge(UserActivityDataSchema);
+export const BookDataSchema = ApiCombinedBookDataSchema.merge(UserActivityDataSchema).extend({
+  schemaVersion: z.number().optional(), // 👈 [수정] 스키마 버전 속성 추가
+});
 
 // 4. DB의 id와 note를 포함한 최종 형태의 스키마 정의
 export const SelectedBookSchema = BookDataSchema.extend({

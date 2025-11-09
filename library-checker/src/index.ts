@@ -1021,6 +1021,10 @@ export default {
         // --- 👇 캐시 키 생성 로직 변경 ---
         const body: ApiRequest = await request.clone().json(); // .text() 대신 .json()으로 파싱
         // ✅ 1. 모든 필요한 변수를 try 블록 이전에 구조 분해 할당으로 선언합니다.
+
+        // ▼▼▼▼▼ [수정 시작] isDbSchemaChanged 플래그 추출 및 기본값 설정 ▼▼▼▼▼
+        const { isDbSchemaChanged = false, ...otherBodyParams } = body;
+        
         const { 
             isbn, 
             author = '', 
@@ -1064,26 +1068,48 @@ export default {
         const cacheKeyRequest = new Request(cacheUrl.toString(), {
           method: 'GET',
         });
+
+        // let response: Response | null = null;
+        let response: Response | undefined = undefined;
         
         console.log('[CACHE DEBUG] Key String:', cacheKeyString);
         console.log('[CACHE DEBUG] Cache Key URL:', cacheUrl.toString());
 
         // 3. 수정된 cacheKeyRequest 객체로 캐시를 조회합니다.
-        let response = await cache.match(cacheKeyRequest);
+        // let response = await cache.match(cacheKeyRequest);
+        // if (response) {
+        //   console.log("Cache HIT!");
+        //   const newHeaders = new Headers(response.headers);
+        //   Object.entries(corsHeaders).forEach(([key, value]) => newHeaders.set(key, value));
+        //   newHeaders.set('X-Cache-Status', 'HIT');
   
-        if (response) {
-          console.log("Cache HIT!");
-          const newHeaders = new Headers(response.headers);
-          Object.entries(corsHeaders).forEach(([key, value]) => newHeaders.set(key, value));
-          newHeaders.set('X-Cache-Status', 'HIT');
+        //   return new Response(response.body, {
+        //     status: response.status,
+        //     statusText: response.statusText,
+        //     headers: newHeaders,
+        //   });
+        // }
   
-          return new Response(response.body, {
-            status: response.status,
-            statusText: response.statusText,
-            headers: newHeaders,
-          });
+        // ▼▼▼▼▼ [수정 시작] isDbSchemaChanged 값에 따라 캐시 조회 분기 ▼▼▼▼▼
+        // isDbSchemaChanged가 false일 때만 캐시를 조회합니다. (true이면 캐시 우회)
+        if (!isDbSchemaChanged) {
+            response = await cache.match(cacheKeyRequest);
+            if (response) {
+                console.log("Cache HIT!");
+                const newHeaders = new Headers(response.headers);
+                Object.entries(corsHeaders).forEach(([key, value]) => newHeaders.set(key, value));
+                newHeaders.set('X-Cache-Status', 'HIT');
+                return new Response(response.body, {
+                  status: response.status,
+                  statusText: response.statusText,
+                  headers: newHeaders,
+                });
+            }
+        } else {
+            console.warn("[Cache Bypass] DB 스키마 변경 감지로 캐시 조회를 건너뜁니다.");
         }
-  
+        // ▲▲▲▲▲ [수정 끝] ▲▲▲▲▲
+        
         try {
             console.log(`Request received - ISBN: ${isbn}, Author: "${author}", eduTitle: "${eduTitle}", gyeonggiTitle: "${gyeonggiTitle}", SiripTitle: "${siripTitle}"`);
     

@@ -15,6 +15,7 @@ export interface ApiRequest {
   gyeonggiTitle: string;
   siripTitle: string;
   customTitle?: string;
+  isDbSchemaChanged: boolean; // db 스키마(구조) 변경여부 체크
 }
 
 export interface KeywordSearchRequest {

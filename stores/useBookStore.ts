@@ -12,6 +12,7 @@ import { useAuthStore } from './useAuthStore';
 import { useSettingsStore } from './useSettingsStore';
 import { fetchBookAvailability} from '../services/unifiedLibrary.service'; 
 import { createBookDataFromApis } from '../utils/bookDataCombiner';
+import { useAppStore } from './useAppStore'; // 👈 App 스토어 임포트
 
 /**
  * 특정 책의 데이터를 업데이트하고, 로컬 상태와 Supabase DB를 동기화하는 헬퍼 함수
@@ -572,23 +573,20 @@ export const useBookStore = create<BookState>(
       },
 
       addToLibrary: async () => {
+          
           const { selectedBook, isBookInLibrary } = get(); // ✅ isBookInLibrary 사용
-          // const { selectedBook, myLibraryBooks } = get();
           const { session } = useAuthStore.getState();
           if (!selectedBook || !session || !('isbn13' in selectedBook)) return;
-
-          // // ISBN 기준으로 중복 체크
-          // const isDuplicate = myLibraryBooks.some(book => book.isbn13 === selectedBook.isbn13);
-          // if (isDuplicate) {
-          //   useUIStore.getState().setNotification({ message: '이미 서재에 추가된 책입니다.', type: 'warning' });
-          //   return;
-          // }
           
           // ✅ isBookInLibrary 함수를 사용하여 중복 체크 (더 정확함)
           if (isBookInLibrary(selectedBook.isbn13)) {
             useUIStore.getState().setNotification({ message: '이미 서재에 추가된 책입니다.', type: 'warning' });
             return;
           }
+
+          // ▼▼▼▼▼ [수정 시작] App 스토어에서 최신 스키마 버전을 가져옵니다. ▼▼▼▼▼
+          const { currentBookDataSchemaVersion } = useAppStore.getState();
+          // ▲▲▲▲▲ [수정 끝] ▲▲▲▲▲
 
           // ✅ BookData 타입에 맞게 초기 데이터 구성
           const newBookData: BookData = {
@@ -609,6 +607,7 @@ export const useBookStore = create<BookState>(
             rating: 0,
             isFavorite: false,
             customTags: [],
+            schemaVersion: currentBookDataSchemaVersion, // 👈 [수정] 신규 책에 현재 스키마 버전 기록
           };
           
           try {
@@ -710,6 +709,8 @@ export const useBookStore = create<BookState>(
       refreshBookInfo: async (id, isbn13, title, author) => {
           set({ refreshingIsbn: isbn13, refreshingEbookId: id });
 
+          // 👇 App 스토어에서 현재 스키마 버전 가져오기
+          const { currentBookDataSchemaVersion } = useAppStore.getState();
           // getBookById를 사용하여 모든 데이터 소스에서 원본 책 정보를 가져옵니다.
           const originalBook = await get().getBookById(id);
 
@@ -719,13 +720,22 @@ export const useBookStore = create<BookState>(
             return;
           }
 
+          // ▼▼▼▼▼ [수정 시작] 스키마 버전 체크 및 캐시 우회 플래그 설정 ▼▼▼▼▼
+          const isDbSchemaChanged = originalBook.schemaVersion !== currentBookDataSchemaVersion;
+
+          if (isDbSchemaChanged) {
+              console.warn(`[Schema Mismatch] DB(v${originalBook.schemaVersion}) vs Code(v${currentBookDataSchemaVersion}). Cache will be bypassed.`);
+          }
+          // ▲▲▲▲▲ [수정 끝] ▲▲▲▲▲
+
           try {
             // 1. API 병렬 호출
             const libraryPromise = fetchBookAvailability(
               isbn13,
               title,
               author, // ✅ [수정] author 정보 전달
-              originalBook.customSearchTitle
+              originalBook.customSearchTitle,
+              isDbSchemaChanged // 👈 [수정] 결정된 플래그 전달
             );
             const aladinPromise = searchAladinBooks(isbn13, 'ISBN');
             const [libraryResult, aladinResult] = await Promise.allSettled([
@@ -748,59 +758,49 @@ export const useBookStore = create<BookState>(
             // 2. "순수 API 정보 객체" 생성 (새 함수와 타입을 사용)
             const pureApiData: ApiCombinedBookData = createBookDataFromApis(aladinBookData, libraryResult.value);
             
-            // 3. "사용자 정보"와 "순수 API 정보"를 합쳐 최종 `BookData` 생성
-            const finalBookData: BookData = {
-              ...pureApiData, // API에서 온 모든 정보
+            
+            let finalBookData: BookData;
 
-              // 사용자 정보는 originalBook에서 가져와 유지
-              addedDate: originalBook.addedDate,
-              readStatus: originalBook.readStatus,
-              rating: originalBook.rating,
-              isFavorite: originalBook.isFavorite,
-              customTags: originalBook.customTags,
-              customSearchTitle: originalBook.customSearchTitle,
+            // ▼▼▼▼▼ [수정 시작] 스키마 버전에 따른 분기 로직 적용 ▼▼▼▼▼
+            if (isDbSchemaChanged) {
+                // [스키마 다름] -> "전체 덮어쓰기"로 안전하게 마이그레이션
+                console.log(`[Migration] Migrating book data to schema v${currentBookDataSchemaVersion}.`);
+                
+                finalBookData = {
+                    ...pureApiData, // 최신 API 응답을 베이스로 함
+                    // 사용자 데이터는 기존 데이터에서 명시적으로 가져와 보존
+                    addedDate: originalBook.addedDate,
+                    readStatus: originalBook.readStatus,
+                    rating: originalBook.rating,
+                    isFavorite: originalBook.isFavorite,
+                    customTags: originalBook.customTags,
+                    customSearchTitle: originalBook.customSearchTitle,
+                };
 
-              // -- gwangjuPaperInfo --
-              gwangjuPaperInfo: (
-                // API 조회 실패했고,
-                'error' in pureApiData.gwangjuPaperInfo &&
-                // 기존 책에 유효한 데이터가 있다면 (bookList가 있는 객체라면)
-                originalBook.gwangjuPaperInfo && !('error' in originalBook.gwangjuPaperInfo)
-              )
-                ? originalBook.gwangjuPaperInfo // 기존 데이터 유지
-                : pureApiData.gwangjuPaperInfo, // 아니면 (성공했거나, 신규 책이라) API 결과 사용
+            } else {
+                // [스키마 동일] -> 효율적인 "부분 업데이트" 적용 (폴백 로직 포함)
+                finalBookData = {
+                    ...originalBook, // 기존 데이터를 베이스로 함
+                    ...pureApiData,  // 최신 API 정보로 덮어씀
 
-              // -- gyeonggiEduEbookInfo --
-              gyeonggiEduEbookInfo: (
-                // API 조회 실패했고,
-                (pureApiData.gyeonggiEduEbookInfo?.errorCount ?? 0) > 0 &&
-                // 기존 책에 유효한 데이터가 있다면
-                originalBook.gyeonggiEduEbookInfo && (originalBook.gyeonggiEduEbookInfo?.errorCount ?? 0) === 0
-              )
-                ? originalBook.gyeonggiEduEbookInfo // 기존 데이터 유지
-                : pureApiData.gyeonggiEduEbookInfo, // 아니면 API 결과 사용
+                    // 각 API 응답별로 실패 시 기존 데이터를 유지하는 폴백(fallback) 로직
+                    gwangjuPaperInfo: ('error' in pureApiData.gwangjuPaperInfo && originalBook.gwangjuPaperInfo && !('error' in originalBook.gwangjuPaperInfo))
+                        ? originalBook.gwangjuPaperInfo : pureApiData.gwangjuPaperInfo,
+                    
+                    gyeonggiEduEbookInfo: ((pureApiData.gyeonggiEduEbookInfo?.errorCount ?? 0) > 0 && originalBook.gyeonggiEduEbookInfo && (originalBook.gyeonggiEduEbookInfo?.errorCount ?? 0) === 0)
+                        ? originalBook.gyeonggiEduEbookInfo : pureApiData.gyeonggiEduEbookInfo,
 
-              // -- gyeonggiEbookInfo --
-              gyeonggiEbookInfo: (
-                // API 조회 실패했고,
-                pureApiData.gyeonggiEbookInfo && 'error' in pureApiData.gyeonggiEbookInfo &&
-                // 기존 책에 유효한 데이터가 있다면
-                originalBook.gyeonggiEbookInfo && !('error' in originalBook.gyeonggiEbookInfo)
-              )
-                ? originalBook.gyeonggiEbookInfo // 기존 데이터 유지
-                : pureApiData.gyeonggiEbookInfo, // 아니면 API 결과 사용
+                    gyeonggiEbookInfo: (pureApiData.gyeonggiEbookInfo && 'error' in pureApiData.gyeonggiEbookInfo && originalBook.gyeonggiEbookInfo && !('error' in originalBook.gyeonggiEbookInfo))
+                        ? originalBook.gyeonggiEbookInfo : pureApiData.gyeonggiEbookInfo,
+                    
+                    siripEbookInfo: ((pureApiData.siripEbookInfo === null || ('error' in (pureApiData.siripEbookInfo || {})) || pureApiData.siripEbookInfo?.errors) && originalBook.siripEbookInfo && !originalBook.siripEbookInfo.errors)
+                        ? originalBook.siripEbookInfo : pureApiData.siripEbookInfo,
+                };
+            }
 
-              // -- siripEbookInfo --
-              siripEbookInfo: (
-                // API 조회 실패했고 (API 응답 자체에 에러가 있거나, 세부 결과에 에러가 있는 경우)
-                (pureApiData.siripEbookInfo === null || pureApiData.siripEbookInfo?.errors) &&
-                // 기존 책에 유효한 데이터가 있다면
-                originalBook.siripEbookInfo && !originalBook.siripEbookInfo?.errors
-              )
-                ? originalBook.siripEbookInfo // 기존 데이터 유지
-                : pureApiData.siripEbookInfo, // 아니면 API 결과 사용 (신규 책의 경우 에러 객체가 저장됨)
-
-            };
+            // 항상 최신 스키마 버전으로 업데이트
+            finalBookData.schemaVersion = currentBookDataSchemaVersion;
+            // ▲▲▲▲▲ [수정 끝] ▲▲▲▲▲
             
             // subInfo 업데이트 로직 (새 전자책 정보가 있는데 기존엔 없었을 경우)
             const hasNewEbookInfo = aladinBookData.subInfo?.ebookList?.[0]?.isbn13;

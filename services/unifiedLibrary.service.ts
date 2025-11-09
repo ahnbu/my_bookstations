@@ -121,7 +121,9 @@ export async function fetchBookAvailability(
   isbn: string, 
   title: string,
   author: string, // ✅ [추가] author 파라미터
-  customTitle?: string // [추가] customTitle 파라미터
+  // customTitle?: string // [추가] customTitle 파라미터
+  customTitle: string | undefined, // 👈 [타입 명확화] undefined 추가
+  isDbSchemaChanged: boolean      // 👈 [수정] isDbSchemaChanged 파라미터 추가
 ): Promise<LibraryApiResponse> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), requestTimeout);
@@ -159,7 +161,8 @@ export async function fetchBookAvailability(
       customTitle: customTitle,
       eduTitle: processedTitleGyeonggiEdu,
       gyeonggiTitle: ProcessedTitleGyeonggi,
-      siripTitle: ProcessedTitleSirip
+      siripTitle: ProcessedTitleSirip,
+      isDbSchemaChanged: isDbSchemaChanged, // 👈 [수정] API 요청 본문에 포함
     });
 
     const response = await fetch(apiEndpoint, {
@@ -174,6 +177,7 @@ export async function fetchBookAvailability(
         eduTitle: processedTitleGyeonggiEdu, // 경기도 교육청 전자도서관용
         gyeonggiTitle: ProcessedTitleGyeonggi, // 경기도 전자도서관용
         siripTitle: ProcessedTitleSirip, // 시립도서관 전자책용
+        isDbSchemaChanged: isDbSchemaChanged, // 👈 [수정] API 요청 본문에 포함
       }),
       signal: controller.signal,
     });
