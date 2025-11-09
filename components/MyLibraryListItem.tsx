@@ -118,22 +118,10 @@ const LibraryTagsGroup: React.FC<{ book: SelectedBook }> = React.memo(({ book })
                 isError={!book.gwangjuPaperInfo || ('error' in book.gwangjuPaperInfo)} />
 
             <LibraryTag name="e교육"
-                totalBooks={book.GyeonggiEduEbookInfo?.totalCountSummary ?? 0}
-                availableBooks={book.GyeonggiEduEbookInfo?.availableCountSummary ?? 0}
+                totalBooks={book.gyeonggiEduEbookInfo?.totalCountSummary ?? 0}
+                availableBooks={book.gyeonggiEduEbookInfo?.availableCountSummary ?? 0}
                 searchUrl={createLibraryOpenURL("e교육", book.title, book.customSearchTitle)}
-                isError={!book.GyeonggiEduEbookInfo || (book.GyeonggiEduEbookInfo.errorCount ?? 0) > 0} />
-{/* 
-            <LibraryTag name="e시립구독"
-                totalBooks={book.siripEbookInfo?.totalCountSubs ?? 0}
-                availableBooks={book.siripEbookInfo?.bookList?.filter(b => b.type === '구독형').length ?? 0}
-                searchUrl={createLibraryOpenURL("e시립구독", book.title, book.customSearchTitle)}
-                isError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.subscription} />
-
-            <LibraryTag name="e시립소장"
-                totalBooks={book.siripEbookInfo?.totalCountOwned ?? 0}
-                availableBooks={book.siripEbookInfo?.bookList?.filter(b => b.type === '소장형' && b.isAvailable).length ?? 0}
-                searchUrl={createLibraryOpenURL("e시립소장", book.title, book.customSearchTitle)}
-                isError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.owned} /> */}
+                isError={!book.gyeonggiEduEbookInfo || (book.gyeonggiEduEbookInfo.errorCount ?? 0) > 0} />
 
             <LibraryTag name="e시립구독"
                 totalBooks={book.siripEbookInfo?.totalCountSubs ?? 0}
@@ -143,7 +131,7 @@ const LibraryTagsGroup: React.FC<{ book: SelectedBook }> = React.memo(({ book })
 
             <LibraryTag name="e시립소장"
                 totalBooks={book.siripEbookInfo?.totalCountOwned ?? 0}
-                availableBooks={book.siripEbookInfo?.bookList?.filter(b => b.type === '소장형' && b.isAvailable).length ?? 0}
+                availableBooks={book.siripEbookInfo?.bookList?.filter(b => b.type === '소장형' && b.loanStatus).length ?? 0}
                 searchUrl={createLibraryOpenURL("e시립소장", book.title, book.customSearchTitle)}
                 isError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.owned} />
                 

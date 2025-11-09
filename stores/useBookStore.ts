@@ -1,17 +1,16 @@
 
 import { create } from 'zustand';
 import { supabase } from '../lib/supabaseClient';
-import { AladdinBookItem, SortKey, ReadStatus, Json, EBookInfo, StockInfo, GwangjuPaperResult, GyeonggiEduEbookError, GyeonggiEbookResult, 
+import { AladdinBookItem, SortKey, ReadStatus, Json, EBookInfo, StockInfo, GwangjuPaperResult, gyeonggiEduEbookError, gyeonggiEbookResult, 
   ApiCombinedBookData, // ✅ 새로 추가
   BookData,            // ✅ 새로 추가 (기존 타입 대체)
   SelectedBook,        // ✅ 새로 추가 (기존 타입 대체)
 } from '../types';
 import { searchAladinBooks } from '../services/aladin.service';
-// import { filterGyeonggiEbookByIsbn } from '../utils/isbnMatcher';
 import { useUIStore } from './useUIStore';
 import { useAuthStore } from './useAuthStore';
 import { useSettingsStore } from './useSettingsStore';
-import { fetchBookAvailability} from '../services/unifiedLibrary.service'; // GyeonggiEbookLibraryResult 임포트 추가
+import { fetchBookAvailability} from '../services/unifiedLibrary.service'; 
 import { createBookDataFromApis } from '../utils/bookDataCombiner';
 
 /**
@@ -600,7 +599,7 @@ export const useBookStore = create<BookState>(
             otherStock: { totalCount: 0, availableCount: 0 },
             // gwangjuPaperInfo: { error: '아직 조회되지 않았습니다.' },
             gwangjuPaperInfo: null,
-            GyeonggiEduEbookInfo: null,
+            gyeonggiEduEbookInfo: null,
             gyeonggiEbookInfo: null,
             siripEbookInfo: null,
 
@@ -771,15 +770,15 @@ export const useBookStore = create<BookState>(
                 ? originalBook.gwangjuPaperInfo // 기존 데이터 유지
                 : pureApiData.gwangjuPaperInfo, // 아니면 (성공했거나, 신규 책이라) API 결과 사용
 
-              // -- GyeonggiEduEbookInfo --
-              GyeonggiEduEbookInfo: (
+              // -- gyeonggiEduEbookInfo --
+              gyeonggiEduEbookInfo: (
                 // API 조회 실패했고,
-                (pureApiData.GyeonggiEduEbookInfo?.errorCount ?? 0) > 0 &&
+                (pureApiData.gyeonggiEduEbookInfo?.errorCount ?? 0) > 0 &&
                 // 기존 책에 유효한 데이터가 있다면
-                originalBook.GyeonggiEduEbookInfo && (originalBook.GyeonggiEduEbookInfo?.errorCount ?? 0) === 0
+                originalBook.gyeonggiEduEbookInfo && (originalBook.gyeonggiEduEbookInfo?.errorCount ?? 0) === 0
               )
-                ? originalBook.GyeonggiEduEbookInfo // 기존 데이터 유지
-                : pureApiData.GyeonggiEduEbookInfo, // 아니면 API 결과 사용
+                ? originalBook.gyeonggiEduEbookInfo // 기존 데이터 유지
+                : pureApiData.gyeonggiEduEbookInfo, // 아니면 API 결과 사용
 
               // -- gyeonggiEbookInfo --
               gyeonggiEbookInfo: (

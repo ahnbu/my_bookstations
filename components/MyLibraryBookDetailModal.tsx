@@ -1,7 +1,7 @@
 
 // import React, { useEffect, useState, useCallback} from 'react';
 import React, { useEffect, useState, useCallback, useRef, useLayoutEffect } from 'react';
-import { ReadStatus, StockInfo, CustomTag, SelectedBook,  GwangjuPaperResult, GwangjuPaperError, GyeonggiEbookResult, TagColor
+import { ReadStatus, StockInfo, CustomTag, SelectedBook,  GwangjuPaperResult, GwangjuPaperError, gyeonggiEbookResult, TagColor
 } from '../types';
 import { useBookStore } from '../stores/useBookStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
@@ -250,24 +250,10 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                 <StockDisplay
                     label="전자책(교육)"
                     searchUrl={createLibraryOpenURL('e교육', book.title, book.customSearchTitle)}
-                    totalCount={book.GyeonggiEduEbookInfo?.totalCountSummary}
-                    availableCount={book.GyeonggiEduEbookInfo?.availableCountSummary}
-                    hasError={(book.GyeonggiEduEbookInfo?.errorCount ?? 0) > 0}
+                    totalCount={book.gyeonggiEduEbookInfo?.totalCountSummary}
+                    availableCount={book.gyeonggiEduEbookInfo?.availableCountSummary}
+                    hasError={(book.gyeonggiEduEbookInfo?.errorCount ?? 0) > 0}
                 />
-                {/* <StockDisplay
-                    label="전자책(시립구독)"
-                    searchUrl={createLibraryOpenURL('e시립구독', book.title, book.customSearchTitle)}
-                    totalCount={book.siripEbookInfo?.totalCountSubs}
-                    availableCount={book.siripEbookInfo && !book.siripEbookInfo.errors?.subscription ? book.siripEbookInfo.bookList.filter(b => b.type === '구독형').length : undefined}
-                    hasError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.subscription}
-                />
-                <StockDisplay
-                    label="전자책(시립소장)"
-                    searchUrl={createLibraryOpenURL('e시립소장', book.title, book.customSearchTitle)}
-                    totalCount={book.siripEbookInfo?.totalCountOwned}
-                    availableCount={book.siripEbookInfo && !book.siripEbookInfo.errors?.owned ? book.siripEbookInfo.bookList.filter(b => b.type === '소장형' && b.isAvailable).length : undefined}
-                    hasError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.owned}
-                /> */}
                 <StockDisplay
                     label="전자책(시립구독)"
                     searchUrl={createLibraryOpenURL('e시립구독', book.title, book.customSearchTitle)}
@@ -279,7 +265,7 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                     label="전자책(시립소장)"
                     searchUrl={createLibraryOpenURL('e시립소장', book.title, book.customSearchTitle)}
                     totalCount={book.siripEbookInfo?.totalCountOwned}
-                    availableCount={book.siripEbookInfo?.bookList?.filter(b => b.type === '소장형' && b.isAvailable).length}
+                    availableCount={book.siripEbookInfo?.bookList?.filter(b => b.type === '소장형' && b.loanStatus).length}
                     hasError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.owned}
                 />
                 <StockDisplay
@@ -346,7 +332,7 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
             'priceStandard', 'priceSales', 'description', 'subInfo', 'mallType','lastUpdated',
             'addedDate', 'readStatus', 'rating', 'isFavorite', 'customTags', 'customSearchTitle',
             'gwangjuPaperInfo', 
-            'GyeonggiEduEbookInfo', 
+            'gyeonggiEduEbookInfo', 
             'gyeonggiEbookInfo', 
             'siripEbookInfo',
           ];

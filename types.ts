@@ -48,22 +48,6 @@ export const AladdinAPIResponseSchema = z.object({
   errorMessage: z.string().optional(),
 });
 
-export const LibraryAvailabilitySchema = z.object({
-  "libraryName": z.string(),
-  "callNo": z.string(),
-  "baseCallNo": z.string(),
-  "loanStatus": z.string(),
-  "dueDate": z.string(),
-});
-
-export const LibraryStockResponseSchema = z.object({
-  title: z.string().optional(),
-  loanStatus: z.array(LibraryAvailabilitySchema).optional(),
-  error: z.string().optional(),
-  isbn: z.string().optional(),
-});
-
-
 // ✅ 런타임 검증이 가능한 Zod 스키마 정의 (신규 추가)
 // ▼▼▼▼▼▼▼▼▼▼ 여기에 아래 내용을 새로 추가합니다 ▼▼▼▼▼▼▼▼▼▼
 
@@ -74,7 +58,7 @@ export const ApiCombinedBookDataSchema = AladdinBookItemSchema.extend({
   lastUpdated: z.number().optional(), // ✅ API 업데이트 시점
   // 도서관 API 원본 정보. 타입이 복잡하므로 z.any()로 처리하고, 런타임 검증이 꼭 필요하다면 별도 스키마 정의.
   gwangjuPaperInfo: z.any().optional(),
-  GyeonggiEduEbookInfo: z.any().nullable().optional(), // 기존 EBookInfo 타입과 유사
+  gyeonggiEduEbookInfo: z.any().nullable().optional(), // 기존 EBookInfo 타입과 유사
   gyeonggiEbookInfo: z.any().nullable().optional(),
   siripEbookInfo: z.any().nullable().optional(),
 
@@ -108,8 +92,6 @@ export const SelectedBookSchema = BookDataSchema.extend({
 // 외부 API 관련 타입
 export type AladdinBookItem = z.infer<typeof AladdinBookItemSchema>;
 export type AladdinAPIResponse = z.infer<typeof AladdinAPIResponseSchema>;
-export type LibraryAvailability = z.infer<typeof LibraryAvailabilitySchema>;
-export type LibraryStockResponse = z.infer<typeof LibraryStockResponseSchema>;
 
 // 내부 핵심 데이터 타입 (새로 추가 및 대체)
 export type ApiCombinedBookData = z.infer<typeof ApiCombinedBookDataSchema>;
@@ -126,20 +108,20 @@ export interface PaperBookAvailability {
   libraryName: string;
   callNo: string;
   baseCallNo: string;
-  loanStatus: '대출가능' | '대출불가';
+  loanStatus: boolean;
   dueDate: string;
 }
 
-export interface GyeonggiEduEbookList {
+export interface gyeonggiEduEbookList {
   libraryName: string;
   title: string;
   author: string;
   publisher: string;
   pubDate: string;
-  loanStatus: '대출가능' | '대출불가';
+  loanStatus: boolean;
 }
 
-export interface GyeonggiEduEbookError {
+export interface gyeonggiEduEbookError {
   error: string;
 }
 
@@ -148,7 +130,7 @@ export interface GwangjuPaperError {
 }
 
 // 경기도 전자도서관 관련 타입 정의
-export interface GyeonggiEbookList {
+export interface gyeonggiEbookList {
   type: '소장형' | '구독형';
   title: string;
   loanStatus: boolean;
@@ -162,17 +144,17 @@ export interface GyeonggiEbookList {
   reserveCount?: number;
 }
 
-export interface GyeonggiEbookResult {
+export interface gyeonggiEbookResult {
   libraryName: string;
   totalCountSummary: number;
   availableCountSummary: number;
   unavailableCountSummary: number;
   totalCountOwned: number;
   totalCountSubs: number;
-  bookList: GyeonggiEbookList[];
+  bookList: gyeonggiEbookList[];
 }
 
-export interface GyeonggiEbookError {
+export interface gyeonggiEbookError {
   error: string;
 }
 
@@ -183,10 +165,7 @@ export interface SiripEbook {
   author: string;
   publisher: string;
   publishDate: string;
-  loanStatus: '대출가능' | '대출불가' | '알 수 없음'; // ✅ loanStatus로 통일하고 타입 명시
-  // loanStatus: string;
-  // status: '대출가능' | '대출불가';
-  // available: boolean;
+  loanStatus: boolean;
   totalCount: number;
   availableCount: number;
   libraryName: string;
@@ -252,13 +231,13 @@ export interface LibraryApiResponse {
   customTitle?: string; // ✅ 추가
   lastUpdated: number; // ✅ 추가
   gwangjuPaper: GwangjuPaperResult | GwangjuPaperError;
-  gyeonggiEbookEdu: GyeonggiEduEbookResult | GyeonggiEduEbookError; // 객체 타입으로 변경
-  gyeonggiEbookLib?: GyeonggiEbookResult | GyeonggiEbookError;
+  gyeonggiEbookEdu: gyeonggiEduEbookResult | gyeonggiEduEbookError; // 객체 타입으로 변경
+  gyeonggiEbookLib?: gyeonggiEbookResult | gyeonggiEbookError;
   siripEbook?: SiripEbookResult | SiripEbookError;
 }
 
 // [추가] gyeonggiEbookEdu의 새로운 객체 타입을 정의합니다.
-export interface GyeonggiEduEbookResult {
+export interface gyeonggiEduEbookResult {
   libraryName: string;
   totalCountSummary: number;
   availableCountSummary: number;
@@ -267,10 +246,10 @@ export interface GyeonggiEduEbookResult {
   totalCountTonghap: number;
   errorCount: number;
   errorLibDetail?: string; // [수정] 선택적 필드로 errorLibDetail 추가
-  bookList: (GyeonggiEduEbookList | GyeonggiEduEbookError)[];
+  bookList: (gyeonggiEduEbookList | gyeonggiEduEbookError)[];
 }
 
-export interface GyeonggiEduEbookSummary {
+export interface gyeonggiEduEbookSummary {
   totalCountSummary: number;
   availableCountSummary: number;
   unavailableCountSummary: number;
@@ -296,8 +275,8 @@ export type ReadStatus = '읽지 않음' | '읽는 중' | '완독';
 
 // Extended EBook information for storage
 export type EBookInfo = {
-  summary: GyeonggiEduEbookSummary;
-  details: (GyeonggiEduEbookList | GyeonggiEduEbookError)[];
+  summary: gyeonggiEduEbookSummary;
+  details: (gyeonggiEduEbookList | gyeonggiEduEbookError)[];
   lastUpdated: number;
 };
 

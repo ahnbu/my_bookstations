@@ -7,10 +7,10 @@ import {
   KeywordSearchRequest,
   GwangjuPaperResult,
   GwangjuPaperBook,
-  GyeonggiEduEbook,
-  GyeonggiEduEbookResult,
-  GyeonggiEbook,
-  GyeonggiEbookResult,
+  gyeonggiEduEbook,
+  gyeonggiEduEbookResult,
+  gyeonggiEbook,
+  gyeonggiEbookResult,
   SiripEbookOwned,
   SiripEbookSubscription,
   SiripEbookOwnedResult,
@@ -57,7 +57,7 @@ async function searchGwangjuLibrary(isbn: string): Promise<GwangjuPaperResult> {
     return parseGwangjuPaperHTML(htmlContent);
 }
 
-async function searchGyeonggiEduEbook(searchText: string, libraryCode: string): Promise<{ libraryName: string; bookList: GyeonggiEduEbook[] }> {
+async function searchGyeonggiEduEbook(searchText: string, libraryCode: string): Promise<{ libraryName: string; bookList: gyeonggiEduEbook[] }> {
     const url = new URL("https://lib.goe.go.kr/elib/module/elib/search/index.do");
     url.searchParams.set("menu_idx", "94");
     url.searchParams.set("search_text", searchText);
@@ -74,7 +74,7 @@ async function searchGyeonggiEduEbook(searchText: string, libraryCode: string): 
     return parseGyeonggiEduHTML(htmlContent, libraryCode);
 }
 
-async function searchGyeonggiEbookOwned(query: string): Promise<GyeonggiEbook[]> {
+async function searchGyeonggiEbookOwned(query: string): Promise<gyeonggiEbook[]> {
     const encodedTitle = encodeURIComponent(query);
     const timestamp = Date.now();
     const apiUrl = `https://ebook.library.kr/api/service/search-engine?contentType=EB&searchType=all&detailQuery=&sort=relevance&loanable=false&page=1&size=20&keyword=${encodedTitle}&_t=${timestamp}`;
@@ -101,7 +101,7 @@ async function searchGyeonggiEbookOwned(query: string): Promise<GyeonggiEbook[]>
     return parseGyenggiEbookOwnedResults(json_data);
 }
 
-async function searchGyeonggiEbookSubs(query: string): Promise<GyeonggiEbook[]> {
+async function searchGyeonggiEbookSubs(query: string): Promise<gyeonggiEbook[]> {
     try {
       const now = new Date(new Date().getTime() + 9 * 60 * 60 * 1000);
       const yyyy = now.getUTCFullYear();
@@ -175,7 +175,7 @@ async function searchGyeonggiEbookSubs(query: string): Promise<GyeonggiEbook[]> 
     }
 }
 
-async function searchGyeonggiEbookLibrary(searchText: string): Promise<GyeonggiEbookResult> {
+async function searchGyeonggiEbookLibrary(searchText: string): Promise<gyeonggiEbookResult> {
     try {
       const [ownedResults, subscriptionResults] = await Promise.allSettled([
         searchGyeonggiEbookOwned(searchText),
@@ -480,11 +480,11 @@ function parseGwangjuPaperHTML(html: string): GwangjuPaperResult {
         }
         
         return {
-          'libraryName': book.library,
-          'callNo': book.callNo,
-          'baseCallNo': book.baseCallNo,
-          'loanStatus': book.status,
-          'dueDate': book.dueDate,
+          libraryName: book.library,
+          callNo: book.callNo,
+          baseCallNo: book.baseCallNo,
+          loanStatus: isAvailable,
+          dueDate: book.dueDate,
         };
       });
   
@@ -503,7 +503,7 @@ function parseGwangjuPaperHTML(html: string): GwangjuPaperResult {
     }
 }
 
-function parseGyeonggiEduHTML(html: string, libraryCode: string): { libraryName: string; bookList: GyeonggiEduEbook[] } {
+function parseGyeonggiEduHTML(html: string, libraryCode: string): { libraryName: string; bookList: gyeonggiEduEbook[] } {
     try {
       const libraryNameMap: { [key: string]: '성남도서관' | '통합도서관' } = { '10000004': '성남도서관', '10000009': '통합도서관' };
       const branchName = libraryNameMap[libraryCode] || `코드(${libraryCode})`;
@@ -519,7 +519,7 @@ function parseGyeonggiEduHTML(html: string, libraryCode: string): { libraryName:
         return { libraryName: `경기도교육청-${branchName}`, bookList: [] };
       }
   
-      const loanStatus: GyeonggiEduEbook[] = bookItems.map(item => {
+      const loanStatus: gyeonggiEduEbook[] = bookItems.map(item => {
         const selectBookLink = item.querySelector('a.selectBook');
         const keyValue = selectBookLink?.getAttribute('keyValue');
   
@@ -551,15 +551,15 @@ function parseGyeonggiEduHTML(html: string, libraryCode: string): { libraryName:
         }
   
         return {
-          'libraryName': branchName, 
-          'title': title, 
-          'author': author, 
-          'publisher': publisher,
-          'pubDate': pubDate, 
-          'loanStatus': status, 
-          'isbn': isbn
+          libraryName: branchName, 
+          title: title, 
+          author: author, 
+          publisher: publisher,
+          pubDate: pubDate, 
+          loanStatus: status === '대출가능', // 👈 [수정] 반환 시 boolean으로 변환
+          isbn: isbn
         };
-      }).filter((book): book is GyeonggiEduEbook => book.title !== "정보없음");
+      }).filter((book): book is gyeonggiEduEbook => book.title !== "정보없음");
   
       return { libraryName: `경기도교육청-${branchName}`, bookList: loanStatus };
     } catch (error) {
@@ -571,14 +571,14 @@ function parseGyeonggiEduHTML(html: string, libraryCode: string): { libraryName:
     }
 }
 
-function parseGyenggiEbookOwnedResults(json_data: any): GyeonggiEbook[] {
+function parseGyenggiEbookOwnedResults(json_data: any): gyeonggiEbook[] {
     try {
       if (!json_data || json_data.httpStatus !== 'OK' || !json_data.data) return [];
       const contents = json_data.data.contents || [];
       if (contents.length === 0) return [];
   
-      return contents.map((book: any): GyeonggiEbook => {
-        const isAvailable = (parseInt(book.COPYS || 0, 10) - parseInt(book.LOAN_CNT || 0, 10)) > 0;
+      return contents.map((book: any): gyeonggiEbook => {
+        const loanStatus = (parseInt(book.COPYS || 0, 10) - parseInt(book.LOAN_CNT || 0, 10)) > 0;
         const pubDate = book.publishDate ? book.publishDate.split(' ')[0] : '정보없음';
         
         return {
@@ -588,7 +588,7 @@ function parseGyenggiEbookOwnedResults(json_data: any): GyeonggiEbook[] {
           publisher: book.PUBLISHER || book.PUBLISHER_N || '',
           isbn: book.ISBN || '',
           pubDate: pubDate,
-          loanStatus: isAvailable,
+          loanStatus: loanStatus,
         };
       });
     } catch (error) {
@@ -597,14 +597,14 @@ function parseGyenggiEbookOwnedResults(json_data: any): GyeonggiEbook[] {
     }
 }
   
-function parseGyenggiEbookSubsResults(json_data: any, query: string): GyeonggiEbook[] {
+function parseGyenggiEbookSubsResults(json_data: any, query: string): gyeonggiEbook[] {
     try {
       if (!json_data || !Array.isArray(json_data.bookSearchResponses)) return [];
       
       const GyenggiEbookSubsList = json_data.bookSearchResponses;
       if (GyenggiEbookSubsList.length === 0) return [];
   
-      return GyenggiEbookSubsList.map((book: any): GyeonggiEbook => {
+      return GyenggiEbookSubsList.map((book: any): gyeonggiEbook => {
         const pubDateRaw = book.ucm_ebook_pubdate || '';
         const pubDate = pubDateRaw ? pubDateRaw.split(' ')[0] : '정보없음';
         const title = book.ucm_title || book.title || '전자책';
@@ -655,7 +655,7 @@ function parseSiripEbookOwnedHTML(html: string): SiripEbookOwnedResult {
   
         let totalCopies = 0;
         let availableCopies = 0;
-        let isAvailable = false;
+        let loanStatus = false;
   
         const useElement = item.querySelector('p.use');
         if (useElement) {
@@ -665,20 +665,20 @@ function parseSiripEbookOwnedHTML(html: string): SiripEbookOwnedResult {
             const currentBorrowed = parseInt(loanMatch[1], 10);
             totalCopies = parseInt(loanMatch[2], 10);
             availableCopies = Math.max(0, totalCopies - currentBorrowed);
-            isAvailable = availableCopies > 0;
+            loanStatus = availableCopies > 0;
           }
         } else {
           totalCopies = 1;
           availableCopies = 1;
-          isAvailable = true;
+          loanStatus = true;
         }
         
         return {
-          type: '소장형', title, author, publisher, publishDate, isAvailable, totalCopies, availableCopies,
+          type: '소장형', title, author, publisher, publishDate, loanStatus, totalCopies, availableCopies,
         };
       });
   
-      const availableCount = SiripEbookOwnedList.filter(book => book.isAvailable).length;
+      const availableCount = SiripEbookOwnedList.filter(book => book.loanStatus).length;
       const unavailableCount = SiripEbookOwnedList.length - availableCount;
   
       return {
@@ -730,7 +730,7 @@ function parseSiripEbookSubsHTML(html: string): SiripEbookSubsResult {
           publishDate = dateNode.rawText.trim();
         }
   
-        return { type: '구독형', title, author, publisher, isAvailable: true, publishDate };
+        return { type: '구독형', title, author, publisher, loanStatus: true, publishDate };
       });
   
       return {
@@ -828,7 +828,7 @@ function parseGwangjuPaperKeywordResults(html: string): KeywordSearchResultItem[
           author: book.author,
           publisher: book.publisher,
           pubDate: book.pubDate,
-          isAvailable: book.status === '대출가능'
+          loanStatus: book.status === '대출가능'
         };
       }).filter((item): item is KeywordSearchResultItem => item !== null);
   
@@ -853,11 +853,11 @@ async function searchGyeonggiEduKeyword(keyword: string): Promise<KeywordSearchR
                       results.push({
                           type: '전자책',
                           libraryName: 'e교육',
-                          title: book['title'] || '정보없음',
-                          author: book['author'] || '정보없음',
-                          publisher: book['publisher'] || '정보없음',
-                          pubDate: book['pubDate'] || '정보없음',
-                          isAvailable: book['loanStatus'] === '대출가능'
+                          title: book.title || '정보없음',
+                          author: book.author || '정보없음',
+                          publisher: book.publisher || '정보없음',
+                          pubDate: book.pubDate || '정보없음',
+                          loanStatus: book.loanStatus
                       });
                   });
               }
@@ -888,7 +888,7 @@ async function searchGyeonggiEbookKeyword(keyword: string): Promise<KeywordSearc
           author: book.author || '정보없음',
           publisher: book.publisher || '정보없음',
           pubDate: book.pubDate || '정보없음',
-          isAvailable: book.loanStatus || false,
+          loanStatus: book.loanStatus || false,
         }));
       }
       return [];
@@ -915,7 +915,7 @@ async function searchSiripEbookKeyword(keyword: string): Promise<KeywordSearchRe
                         author: book.author || '정보없음',
                         publisher: book.publisher || '정보없음',
                         pubDate: book.publishDate || '정보없음',
-                        isAvailable: book.isAvailable || false
+                        loanStatus: book.loanStatus || false
                     };
                 } else { // '구독형'
                     return {
@@ -925,7 +925,7 @@ async function searchSiripEbookKeyword(keyword: string): Promise<KeywordSearchRe
                         author: book.author || '정보없음',
                         publisher: book.publisher || '정보없음',
                         pubDate: book.publishDate || '정보없음',
-                        isAvailable: book.isAvailable || true
+                        loanStatus: book.loanStatus || true
                     };
                 }
             });
@@ -937,45 +937,6 @@ async function searchSiripEbookKeyword(keyword: string): Promise<KeywordSearchRe
     }
     return []; // ✅ forEach 대신 map을 사용하고, 에러 시 빈 배열을 반환하도록 로직 개선
 }
-
-// async function searchSiripEbookKeyword(keyword: string): Promise<KeywordSearchResultItem[]> {
-//     const results: KeywordSearchResultItem[] = [];
-//     try {
-//         const siripResult = await searchSiripEbookIntegrated(keyword);
-
-//         if (siripResult?.bookList) {
-//             siripResult.bookList.forEach(book => {
-//                 results.push({
-//                     type: '전자책',
-//                     libraryName: 'e시립소장',
-//                     title: book.title || '정보없음',
-//                     author: book.author || '정보없음',
-//                     publisher: book.publisher || '정보없음',
-//                     pubDate: book.publishDate || '정보없음',
-//                     isAvailable: book.isAvailable || false
-//                 });
-//             });
-//         }
-//         if (siripResult?.bookList) {
-//             siripResult.bookList.forEach(book => {
-//                 results.push({
-//                     type: '전자책',
-//                     libraryName: 'e시립구독',
-//                     title: book.title || '정보없음',
-//                     author: book.author || '정보없음',
-//                     publisher: book.publisher || '정보없음',
-//                     pubDate: book.publishDate || '정보없음',
-//                     isAvailable: book.isAvailable || true
-//                 });
-//             });
-//         }
-//     } catch (error) {
-//         if (error instanceof Error) {
-//             console.error('시립도서관 전자책 키워드 검색 오류:', error.message);
-//         }
-//     }
-//     return results;
-// }
 
 // ==============================================
 // ✅ 메인 Worker 핸들러 (export default)
@@ -1124,7 +1085,7 @@ export default {
         }
   
         try {
-            console.log(`Request received - ISBN: ${isbn}, Author: "${author}", eduTitle: "${eduTitle}", GyeonggiTitle: "${gyeonggiTitle}", SiripTitle: "${siripTitle}"`);
+            console.log(`Request received - ISBN: ${isbn}, Author: "${author}", eduTitle: "${eduTitle}", gyeonggiTitle: "${gyeonggiTitle}", SiripTitle: "${siripTitle}"`);
     
             if (!isbn) {
               return new Response(JSON.stringify({ error: 'isbn 파라미터가 필요합니다.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -1141,7 +1102,7 @@ export default {
               );
             }
     
-            let gyeonggiEbookPromise: Promise<GyeonggiEbookResult> | null = null;
+            let gyeonggiEbookPromise: Promise<gyeonggiEbookResult> | null = null;
             if (gyeonggiTitle) {
               gyeonggiEbookPromise = searchGyeonggiEbookLibrary(gyeonggiTitle);
             }
@@ -1153,7 +1114,7 @@ export default {
     
             const results = await Promise.allSettled(promises);
     
-            let gyeonggiEbookResult: GyeonggiEbookResult | { error: string } | null = null;
+            let gyeonggiEbookResult: gyeonggiEbookResult | { error: string } | null = null;
             if (gyeonggiEbookPromise) {
               try {
                 gyeonggiEbookResult = await gyeonggiEbookPromise;
@@ -1192,7 +1153,7 @@ export default {
             };
     
             if (eduTitle && results.length > 1) {
-              const combinedEduBooks: (GyeonggiEduEbook | { library: string; error: string })[] = [];
+              const combinedEduBooks: (gyeonggiEduEbook | { library: string; error: string })[] = [];
               
               const res1 = results[1];
               if (res1.status === 'fulfilled' && res1.value?.bookList) {
@@ -1224,10 +1185,10 @@ export default {
               let totalCountTonghap = 0;
               let errorCount = 0;
     
-              const validBooks = combinedEduBooks.filter((book): book is GyeonggiEduEbook => !('error' in book));
+              const validBooks = combinedEduBooks.filter((book): book is gyeonggiEduEbook => !('error' in book));
     
               totalCountSummary = validBooks.length;
-              availableCountSummary = validBooks.filter(b => b.loanStatus === '대출가능').length;
+              availableCountSummary = validBooks.filter(b => b.loanStatus).length;
               totalCountSeongnam = validBooks.filter(b => b.libraryName === '성남도서관').length;
               totalCountTonghap = validBooks.filter(b => b.libraryName === '통합도서관').length;
               errorCount = errorLibs.length;

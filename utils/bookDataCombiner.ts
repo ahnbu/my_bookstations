@@ -3,7 +3,7 @@
 import {
   AladdinBookItem,
   LibraryApiResponse,
-  GyeonggiEduEbookResult,
+  gyeonggiEduEbookResult,
   ApiCombinedBookData, // ✅ 새로 정의한 명시적 타입 임포트
 } from '../types';
 
@@ -54,8 +54,8 @@ export function createBookDataFromApis(
     // 도서관 API 원본 정보 할당
     gwangjuPaperInfo: libraryResult.gwangjuPaper,
     // ebookInfo: libraryResult.gyeonggiEbookEdu,
-    GyeonggiEduEbookInfo: (libraryResult.gyeonggiEbookEdu && 'bookList' in libraryResult.gyeonggiEbookEdu)
-             ? libraryResult.gyeonggiEbookEdu as GyeonggiEduEbookResult
+    gyeonggiEduEbookInfo: (libraryResult.gyeonggiEbookEdu && 'bookList' in libraryResult.gyeonggiEbookEdu)
+             ? libraryResult.gyeonggiEbookEdu as gyeonggiEduEbookResult
              : null,
     gyeonggiEbookInfo: libraryResult.gyeonggiEbookLib,
     siripEbookInfo: libraryResult.siripEbook,

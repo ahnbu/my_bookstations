@@ -7,9 +7,9 @@
 import {
   LibraryApiResponse,
   PaperBookAvailability,
-  GyeonggiEduEbookList,
-  GyeonggiEduEbookError,
-  GyeonggiEduEbookSummary,
+  gyeonggiEduEbookList,
+  gyeonggiEduEbookError,
+  gyeonggiEduEbookSummary,
   LibraryName
 } from '../types';
 
@@ -203,11 +203,11 @@ export async function fetchBookAvailability(
 
 /**
  * 경기도 교육청 전자책 검색 결과 요약 정보 생성
- * @param GyeonggiEduEbooks - 전자책 검색 결과 배열
+ * @param gyeonggiEduEbooks - 전자책 검색 결과 배열
  * @returns EBookSummary
  */
-export function GyeonggiEduEbookSummarize(GyeonggiEduEbooks: (GyeonggiEduEbookList | GyeonggiEduEbookError)[]): GyeonggiEduEbookSummary {
-  const summary: GyeonggiEduEbookSummary = {
+export function gyeonggiEduEbookSummarize(gyeonggiEduEbooks: (gyeonggiEduEbookList | gyeonggiEduEbookError)[]): gyeonggiEduEbookSummary {
+  const summary: gyeonggiEduEbookSummary = {
     totalCountSummary: 0,
     availableCountSummary: 0,
     unavailableCountSummary: 0,
@@ -216,7 +216,7 @@ export function GyeonggiEduEbookSummarize(GyeonggiEduEbooks: (GyeonggiEduEbookLi
     errorCount: 0,
   };
 
-  GyeonggiEduEbooks.forEach(item => {
+  gyeonggiEduEbooks.forEach(item => {
     if ('error' in item) {
       summary.errorCount++;
       return;
@@ -224,9 +224,9 @@ export function GyeonggiEduEbookSummarize(GyeonggiEduEbooks: (GyeonggiEduEbookLi
 
     summary.totalCountSummary++;
     
-    if (item.loanStatus === '대출가능') {
+    if (item.loanStatus) {
       summary.availableCountSummary++;
-    } else if (item.loanStatus === '대출불가') {
+    } else {
       summary.unavailableCountSummary++;
     }
 
@@ -277,7 +277,7 @@ export function getStatusEmoji(status: string): string {
  * @param ebooks - 전자책 검색 결과 배열
  * @returns boolean
  */
-export function isEBooksEmpty(ebooks: (GyeonggiEduEbookList | GyeonggiEduEbookError)[]): boolean {
+export function isEBooksEmpty(ebooks: (gyeonggiEduEbookList | gyeonggiEduEbookError)[]): boolean {
   return ebooks.length === 0 || ebooks.every(item => 'error' in item);
 }
 
@@ -286,6 +286,6 @@ export function isEBooksEmpty(ebooks: (GyeonggiEduEbookList | GyeonggiEduEbookEr
  * @param ebooks - 전자책 검색 결과 배열
  * @returns boolean
  */
-export function hasAvailableEBooks(ebooks: (GyeonggiEduEbookList | GyeonggiEduEbookError)[]): boolean {
-  return ebooks.some(item => !('error' in item) && item.loanStatus === '대출가능');
+export function hasAvailableEBooks(ebooks: (gyeonggiEduEbookList | gyeonggiEduEbookError)[]): boolean {
+  return ebooks.some(item => !('error' in item) && item.loanStatus);
 }

@@ -182,7 +182,7 @@ my_bookstation/
       "author": "저자",
       "publisher": "출판사",
       "pubDate": "2024",
-      "isAvailable": true
+      "loanStatus": true
     },
     {
       "type": "전자책",

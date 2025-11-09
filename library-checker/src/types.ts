@@ -28,11 +28,11 @@ export interface KeywordSearchRequest {
 
 // --- 광주 시립도서관 (종이책) ---
 export interface GwangjuPaperBook {
-  'libraryName': string;
-  'callNo': string;
-  'baseCallNo': string;
-  'loanStatus': '대출가능' | '대출불가' | '알 수 없음';
-  'dueDate': string;
+  libraryName: string;
+  callNo: string;
+  baseCallNo: string;
+  loanStatus: boolean;
+  dueDate: string;
 }
 
 export interface GwangjuPaperResult {
@@ -48,17 +48,17 @@ export interface GwangjuPaperResult {
 }
 
 // --- 경기도 교육청 전자도서관 (전자책) ---
-export interface GyeonggiEduEbook {
-  'libraryName': '성남도서관' | '통합도서관';
-  'title': string;
-  'author': string;
-  'publisher': string;
-  'pubDate': string;
-  'loanStatus': '대출가능' | '대출불가' | '알 수 없음';
-  'isbn': string;
+export interface gyeonggiEduEbook {
+  libraryName: '성남도서관' | '통합도서관';
+  title: string;
+  author: string;
+  publisher: string;
+  pubDate: string;
+  loanStatus: boolean;
+  isbn: string;
 }
 
-export interface GyeonggiEduEbookResult {
+export interface gyeonggiEduEbookResult {
   libraryName: string;
   totalCountSummary: number;
   availableCountSummary: number;
@@ -67,12 +67,12 @@ export interface GyeonggiEduEbookResult {
   totalCountTonghap: number;
   errorCount: number;
   errorLibDetail?: string;
-  bookList: (GyeonggiEduEbook | { library: string; error: string })[];
+  bookList: (gyeonggiEduEbook | { library: string; error: string })[];
 }
 
 
 // --- 경기도 전자도서관 (소장형+구독형) ---
-export interface GyeonggiEbook {
+export interface gyeonggiEbook {
   type: '소장형' | '구독형';
   title: string;
   author: string;
@@ -82,14 +82,14 @@ export interface GyeonggiEbook {
   loanStatus: boolean;
 }
 
-export interface GyeonggiEbookResult {
+export interface gyeonggiEbookResult {
   libraryName: string;
   totalCountSummary: number;
   availableCountSummary: number;
   unavailableCountSummary: number;
   totalCountOwned: number;
   totalCountSubs: number;
-  bookList: GyeonggiEbook[];
+  bookList: gyeonggiEbook[];
 }
 
 
@@ -103,7 +103,7 @@ export interface SiripEbookOwned {
   author: string;
   publisher: string;
   publishDate: string;
-  isAvailable: boolean;
+  loanStatus: boolean;
   totalCopies: number;
   availableCopies: number;
 }
@@ -114,7 +114,7 @@ export interface SiripEbookSubscription {
   author: string;
   publisher: string;
   publishDate: string;
-  isAvailable: true;
+  loanStatus: boolean;
 }
 
 
@@ -153,42 +153,6 @@ export interface SiripEbookResult {
   };
 }
 
-// export interface SiripEbookDetails {
-//   owned: {
-//     libraryName: string;
-//     totalCount: number;
-//     availableCount: number;
-//     unavailableCount: number;
-//     bookList: SiripEbookOwned[];
-//     error?: string;
-//   };
-//   subscription: {
-//     libraryName: string;
-//     totalCount: number;
-//     availableCount: number;
-//     unavailableCount: number;
-//     bookList: SiripEbookSubscription[];
-//     error?: string;
-//   };
-// }
-
-// export interface SiripEbookResult {
-//   siripEbookSummary: {
-//     libraryName: string;
-//     totalCountSummary: number;
-//     availableCountSummary: number;
-//     unavailableCountSummary: number;
-//     totalCountOwned: number;
-//     totalCountSubs: number;
-//     searchQuery: string;
-//   };
-//   details: SiripEbookDetails;
-//   errors?: {
-//     owned?: string;
-//     subscription?: string;
-//   };
-// }
-
 // ===================================================================
 // 3. 통합 API 응답 (Response Body) 타입
 // ===================================================================
@@ -201,8 +165,8 @@ export interface LibraryApiResponse {
   customTitle: string;
   lastUpdated: number;
   gwangjuPaper: GwangjuPaperResult | { error: string };
-  gyeonggiEbookEdu: GyeonggiEduEbookResult | null;
-  gyeonggiEbookLib: GyeonggiEbookResult | { error: string } | null;
+  gyeonggiEbookEdu: gyeonggiEduEbookResult | null;
+  gyeonggiEbookLib: gyeonggiEbookResult | { error: string } | null;
   siripEbook: SiripEbookResult | { error: string } | null;
 }
 
@@ -214,7 +178,7 @@ export interface KeywordSearchResultItem {
   author: string;
   publisher: string;
   pubDate: string;
-  isAvailable: boolean;
+  loanStatus: boolean;
 }
 
 // 키워드 검색 API의 최종 반환 타입은 이 아이템들의 배열입니다.

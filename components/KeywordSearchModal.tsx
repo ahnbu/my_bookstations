@@ -13,13 +13,10 @@ interface SearchResult {
   author: string;
   publisher: string; // [추가]
   pubDate: string;
-  isAvailable: boolean;
+  loanStatus: boolean;
 }
 
-type SortKey = 'libraryName' | 'type' | 'title' | 'author' | 'pubDate' | 'isAvailable';
-
-// type SortKey = 'libraryName' | 'type' | 'title' | 'author' | 'publisher' | 'pubDate' | 'isAvailable';
-// type SortKey = 'libraryName' | 'type' | 'title' | 'author' | 'pubDate' | 'isAvailable';
+type SortKey = 'libraryName' | 'type' | 'title' | 'author' | 'pubDate' | 'loanStatus';
 type SortOrder = 'asc' | 'desc';
 
 const KeywordSearchModal: React.FC = () => {
@@ -99,7 +96,7 @@ const KeywordSearchModal: React.FC = () => {
     let bValue: any = b[sortKey];
 
     // 대출 가능 여부는 boolean이므로 숫자로 변환
-    if (sortKey === 'isAvailable') {
+    if (sortKey === 'loanStatus') {
       aValue = aValue ? 1 : 0;
       bValue = bValue ? 1 : 0;
     }
@@ -203,7 +200,7 @@ const KeywordSearchModal: React.FC = () => {
                     <th onClick={() => handleSort('author')} className="px-4 py-3 text-left text-sm font-semibold text-secondary cursor-pointer hover-surface w-40">저자 <SortArrow column="author" /></th>
                     {/* <th onClick={() => handleSort('publisher')} className="px-4 py-3 text-left text-sm font-semibold text-secondary cursor-pointer hover-surface w-40">출판사 <SortArrow column="publisher" /></th> */}
                     <th onClick={() => handleSort('pubDate')} className="px-4 py-3 text-left text-sm font-semibold text-secondary cursor-pointer hover-surface w-28 whitespace-nowrap">출간일 <SortArrow column="pubDate" /></th>
-                    <th onClick={() => handleSort('isAvailable')} className="px-4 py-3 text-left text-sm font-semibold text-secondary cursor-pointer hover-surface w-28 whitespace-nowrap">대출가능 <SortArrow column="isAvailable" /></th>
+                    <th onClick={() => handleSort('loanStatus')} className="px-4 py-3 text-left text-sm font-semibold text-secondary cursor-pointer hover-surface w-28 whitespace-nowrap">대출가능 <SortArrow column="loanStatus" /></th>
                   </tr>
                 </thead>
 
@@ -247,7 +244,7 @@ const KeywordSearchModal: React.FC = () => {
                         {/* 출판사 컬럼은 숨김 처리되었으므로 여기에 코드가 없습니다. */}
                         <td className="px-4 py-3 text-sm text-secondary truncate whitespace-nowrap">{displayPubDate}</td>
                         <td className="px-4 py-3 text-sm truncate whitespace-nowrap">
-                          {result.isAvailable ? (
+                          {result.loanStatus ? (
                             <span className="flex items-center text-green-600 font-medium">
                               <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
                               가능

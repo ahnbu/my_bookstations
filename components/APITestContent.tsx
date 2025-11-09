@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LibraryStockResponse, AladdinBookItem, LibraryApiResponse } from '../types';
+import { AladdinBookItem, LibraryApiResponse } from '../types';
 import { SearchIcon, AlertCircleIcon, BookIcon, CopyIcon } from './Icons';
 import Spinner from './Spinner';
 import { fetchBookAvailability, processGyeonggiEbookEduTitle  } from '../services/unifiedLibrary.service';

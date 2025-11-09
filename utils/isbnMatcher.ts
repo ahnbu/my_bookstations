@@ -4,7 +4,7 @@
  */
 
 
-import { GyeonggiEbookResult, GyeonggiEbookList, AladdinBookItem } from '../types';
+import { gyeonggiEbookResult, gyeonggiEbookList, AladdinBookItem } from '../types';
 
 // --- 내부 헬퍼 함수들 (파일 외부로 노출되지 않음) ---
 
@@ -34,12 +34,12 @@ function isIsbnMatch(isbn1: string, isbn2: string): boolean {
  * 경기도 전자도서관 검색 결과를 책의 ISBN(종이책/전자책)과 저자명으로 비교하여 필터링합니다.
  * @param book - 필터링의 기준이 될 책 객체 (Aladdin API 응답)
  * @param gyeonggiResult - 필터링할 경기도 전자도서관 API 응답 결과
- * @returns 필터링된 GyeonggiEbookResult 객체
+ * @returns 필터링된 gyeonggiEbookResult 객체
  */
 export function filterGyeonggiEbookByIsbn(
   book: AladdinBookItem,
-  gyeonggiResult: GyeonggiEbookResult
-): GyeonggiEbookResult {
+  gyeonggiResult: gyeonggiEbookResult
+): gyeonggiEbookResult {
   // API 응답이 에러거나 bookList가 없으면 그대로 반환
   if ('error' in gyeonggiResult || !gyeonggiResult.bookList) {
     return gyeonggiResult;
@@ -70,7 +70,7 @@ export function filterGyeonggiEbookByIsbn(
 
   const availableCount = matchedBooks.filter(b => b.loanStatus).length;
 
-  // 필터링된 결과를 바탕으로 새로운 GyeonggiEbookResult 객체를 생성하여 반환
+  // 필터링된 결과를 바탕으로 새로운 gyeonggiEbookResult 객체를 생성하여 반환
   return {
     ...gyeonggiResult,
     totalCountSummary: matchedBooks.length,
