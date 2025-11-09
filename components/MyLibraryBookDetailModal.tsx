@@ -254,28 +254,7 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                     availableCount={book.GyeonggiEduEbookInfo?.availableCountSummary}
                     hasError={(book.GyeonggiEduEbookInfo?.errorCount ?? 0) > 0}
                 />
-                <StockDisplay
-                    label="전자책(시립구독)"
-                    searchUrl={createLibraryOpenURL('e시립구독', book.title, book.customSearchTitle)}
-                    totalCount={book.siripEbookInfo?.details?.subscription?.totalCount}
-                    availableCount={book.siripEbookInfo?.details?.subscription?.availableCount}
-                    hasError={!!(book.siripEbookInfo && ('error' in book.siripEbookInfo || book.siripEbookInfo.details?.subscription?.error || book.siripEbookInfo.errors?.subscription))}
-                />
                 {/* <StockDisplay
-                    label="전자책(시립소장)"
-                    searchUrl={createLibraryOpenURL('e시립소장', book.title, book.customSearchTitle)}
-                    totalCount={book.siripEbookInfo?.details?.owned?.totalCount}
-                    availableCount={book.siripEbookInfo?.details?.owned?.availableCount}
-                    hasError={!!(book.siripEbookInfo && ('error' in book.siripEbookInfo || book.siripEbookInfo.details?.owned?.error || book.siripEbookInfo.errors?.owned))}
-                />
-                <StockDisplay
-                    label="전자책(경기)"
-                    searchUrl={createLibraryOpenURL('e경기', book.title, book.customSearchTitle)}
-                    totalCount={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.totalCountSummary : undefined}
-                    availableCount={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.availableCountSummary : undefined}
-                    hasError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
-                /> */}
-                <StockDisplay
                     label="전자책(시립구독)"
                     searchUrl={createLibraryOpenURL('e시립구독', book.title, book.customSearchTitle)}
                     totalCount={book.siripEbookInfo?.totalCountSubs}
@@ -288,6 +267,27 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                     totalCount={book.siripEbookInfo?.totalCountOwned}
                     availableCount={book.siripEbookInfo && !book.siripEbookInfo.errors?.owned ? book.siripEbookInfo.bookList.filter(b => b.type === '소장형' && b.isAvailable).length : undefined}
                     hasError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.owned}
+                /> */}
+                <StockDisplay
+                    label="전자책(시립구독)"
+                    searchUrl={createLibraryOpenURL('e시립구독', book.title, book.customSearchTitle)}
+                    totalCount={book.siripEbookInfo?.totalCountSubs}
+                    availableCount={book.siripEbookInfo?.bookList?.filter(b => b.type === '구독형').length}
+                    hasError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.subscription}
+                />
+                <StockDisplay
+                    label="전자책(시립소장)"
+                    searchUrl={createLibraryOpenURL('e시립소장', book.title, book.customSearchTitle)}
+                    totalCount={book.siripEbookInfo?.totalCountOwned}
+                    availableCount={book.siripEbookInfo?.bookList?.filter(b => b.type === '소장형' && b.isAvailable).length}
+                    hasError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.owned}
+                />
+                <StockDisplay
+                    label="전자책(경기)"
+                    searchUrl={createLibraryOpenURL('e경기', book.title, book.customSearchTitle)}
+                    totalCount={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.totalCountSummary : undefined}
+                    availableCount={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.availableCountSummary : undefined}
+                    hasError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
                 />
             </div>
 

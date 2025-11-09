@@ -347,7 +347,7 @@ async function searchSiripEbookIntegrated(searchTitle: string): Promise<SiripEbo
         const availableCountSummary = availableCountOwned + availableCountSubs;
 
         const flatResult: SiripEbookResult = {
-            libraryName: '광주시립중앙도서관',
+            libraryName: '시립도서관 전자책',
             totalCountSummary: totalCountSummary,
             availableCountSummary: availableCountSummary,
             unavailableCountSummary: totalCountSummary - availableCountSummary,
@@ -629,14 +629,14 @@ function parseGyenggiEbookSubsResults(json_data: any, query: string): GyeonggiEb
 function parseSiripEbookOwnedHTML(html: string): SiripEbookOwnedResult {
     try {
       if (html.includes('검색결과가 없습니다') || html.includes('자료가 없습니다')) {
-        return { libraryName: '광주시립중앙도서관-소장형', totalCount: 0, availableCount: 0, unavailableCount: 0, bookList: [] };
+        return { libraryName: '시립도서관 전자책-소장형', totalCount: 0, availableCount: 0, unavailableCount: 0, bookList: [] };
       }
   
       const root = parse(html);
       const bookItems = root.querySelectorAll('.book_resultList > li');
   
       if (bookItems.length === 0) {
-        return { libraryName: '광주시립중앙도서관-소장형', totalCount: 0, availableCount: 0, unavailableCount: 0, bookList: [] };
+        return { libraryName: '시립도서관 전자책-소장형', totalCount: 0, availableCount: 0, unavailableCount: 0, bookList: [] };
       }
   
       const SiripEbookOwnedList: SiripEbookOwned[] = bookItems.map(item => {
@@ -682,7 +682,7 @@ function parseSiripEbookOwnedHTML(html: string): SiripEbookOwnedResult {
       const unavailableCount = SiripEbookOwnedList.length - availableCount;
   
       return {
-        libraryName: '광주시립중앙도서관-소장형',
+        libraryName: '시립도서관 전자책-소장형',
         totalCount: SiripEbookOwnedList.length,
         availableCount: availableCount,
         unavailableCount: unavailableCount,
@@ -701,14 +701,14 @@ function parseSiripEbookOwnedHTML(html: string): SiripEbookOwnedResult {
 function parseSiripEbookSubsHTML(html: string): SiripEbookSubsResult {
     try {
       if (html.includes('검색결과가 없습니다') || html.includes('자료가 없습니다')) {
-        return { libraryName: '광주시립중앙도서관-구독형', totalCount: 0, availableCount: 0, unavailableCount: 0, bookList: [] };
+        return { libraryName: '시립도서관 전자책-구독형', totalCount: 0, availableCount: 0, unavailableCount: 0, bookList: [] };
       }
   
       const root = parse(html);
       const bookItems = root.querySelectorAll('.book_resultList > li');
       
       if (bookItems.length === 0) {
-        return { libraryName: '광주시립중앙도서관-구독형', totalCount: 0, availableCount: 0, unavailableCount: 0, bookList: [] };
+        return { libraryName: '시립도서관 전자책-구독형', totalCount: 0, availableCount: 0, unavailableCount: 0, bookList: [] };
       }
       
       const SiripEbookSubsList: SiripEbookSubscription[] = bookItems.map(item => {
@@ -734,7 +734,7 @@ function parseSiripEbookSubsHTML(html: string): SiripEbookSubsResult {
       });
   
       return {
-        libraryName: '광주시립중앙도서관-구독형',
+        libraryName: '시립도서관 전자책-구독형',
         totalCount: SiripEbookSubsList.length,
         availableCount: SiripEbookSubsList.length,
         unavailableCount: 0,
@@ -746,13 +746,13 @@ function parseSiripEbookSubsHTML(html: string): SiripEbookSubsResult {
         console.error(`시립도서관 구독형 전자책 파싱 오류: ${error.stack}`);
         // ✅ 반환 타입에 맞게 error 속성을 추가하여 반환
         return { 
-          libraryName: '광주시립중앙도서관-구독형', totalCount: 0, availableCount: 0, unavailableCount: 0, 
+          libraryName: '시립도서관 전자책-구독형', totalCount: 0, availableCount: 0, unavailableCount: 0, 
           bookList: [], error: error.message 
         };
       }
       // ✅ 알 수 없는 오류 발생 시에도 타입에 맞는 객체 반환
       return { 
-        libraryName: '광주시립중앙도서관-구독형', totalCount: 0, availableCount: 0, unavailableCount: 0, 
+        libraryName: '시립도서관 전자책-구독형', totalCount: 0, availableCount: 0, unavailableCount: 0, 
         bookList: [], error: 'An unknown error occurred'
       };
     }
