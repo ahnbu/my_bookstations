@@ -87,6 +87,18 @@ export const BookDataSchema = ApiCombinedBookDataSchema.merge(UserActivityDataSc
 export const SelectedBookSchema = BookDataSchema.extend({
   id: z.number(),
   note: z.string().nullable().optional(), // note는 별도 컬럼이므로 optional
+  stock_gwangju_toechon_total: z.number().nullable().optional(),
+  stock_gwangju_toechon_available: z.number().nullable().optional(),
+  stock_gwangju_other_total: z.number().nullable().optional(),
+  stock_gwangju_other_available: z.number().nullable().optional(),
+  stock_gyeonggi_edu_total: z.number().nullable().optional(),
+  stock_gyeonggi_edu_available: z.number().nullable().optional(),
+  stock_sirip_subs_total: z.number().nullable().optional(),
+  stock_sirip_subs_available: z.number().nullable().optional(),
+  stock_sirip_owned_total: z.number().nullable().optional(),
+  stock_sirip_owned_available: z.number().nullable().optional(),
+  stock_gyeonggi_total: z.number().nullable().optional(),
+  stock_gyeonggi_available: z.number().nullable().optional(),
 });
 
 // ▼▼▼▼▼▼▼▼▼▼ 모든 타입 추론을 여기에 모읍니다 ▼▼▼▼▼▼▼▼▼▼
@@ -162,57 +174,93 @@ export interface gyeonggiEbookError {
 }
 
 // 시립도서관 전자책 관련 타입 정의
-export interface SiripEbook {
-  type: '전자책';
-  title: string;
-  author: string;
-  publisher: string;
-  publishDate: string;
-  loanStatus: boolean;
-  totalCount: number;
-  availableCount: number;
-  libraryName: string;
-}
+// export interface SiripEbook {
+//   type: '전자책';
+//   title: string;
+//   author: string;
+//   publisher: string;
+//   publishDate: string;
+//   loanStatus: boolean;
+//   totalCount: number;
+//   availableCount: number;
+//   libraryName: string;
+// }
 
-export interface SiripEbookResult {
-  libraryName: string;
-  totalCountSummary: number;
-  availableCountSummary: number;
-  unavailableCountSummary: number;
-  bookList: SiripEbook[];
-  details?: {
-    owned: {
-      libraryName: string;
-      totalCount: number;
-      availableCount: number;
-      unavailableCount: number;
-      bookList: SiripEbook[];
-      error?: string;
-    };
-    subscription: {
-      libraryName: string;
-      totalCount: number;
-      availableCount: number;
-      unavailableCount: number;
-      bookList: SiripEbook[];
-      error?: string;
-    };
-  };
-  // 통합 결과 정보
-  siripEbookSummary?: {
-    libraryName: string;
-    totalCountSummary: number;
-    availableCountSummary: number;
-    unavailableCountSummary: number;
-    totalCountOwned: number;
-    totalCountSubs: number;
-    searchQuery: string;
-  };
-}
+// export interface SiripEbookResult {
+//   libraryName: string;
+//   totalCountSummary: number;
+//   availableCountSummary: number;
+//   unavailableCountSummary: number;
+//   bookList: SiripEbook[];
+//   details?: {
+//     owned: {
+//       libraryName: string;
+//       totalCount: number;
+//       availableCount: number;
+//       unavailableCount: number;
+//       bookList: SiripEbook[];
+//       error?: string;
+//     };
+//     subscription: {
+//       libraryName: string;
+//       totalCount: number;
+//       availableCount: number;
+//       unavailableCount: number;
+//       bookList: SiripEbook[];
+//       error?: string;
+//     };
+//   };
+//   // 통합 결과 정보
+//   siripEbookSummary?: {
+//     libraryName: string;
+//     totalCountSummary: number;
+//     availableCountSummary: number;
+//     unavailableCountSummary: number;
+//     totalCountOwned: number;
+//     totalCountSubs: number;
+//     searchQuery: string;
+//   };
+// }
 
 export interface SiripEbookError {
   error: string;
 }
+
+// types.ts
+
+// SiripEbookResult 타입을 Zod 스키마로 정의하고 추론하는 방식으로 변경
+export const SiripEbookSchema = z.object({
+    type: z.enum(['소장형', '구독형']),
+    title: z.string(),
+    author: z.string(),
+    publisher: z.string(),
+    publishDate: z.string(),
+    loanStatus: z.boolean(),
+    // 소장형에만 있는 필드는 optional로 처리
+    totalCopies: z.number().optional(),
+    availableCopies: z.number().optional(),
+});
+export type SiripEbookBook = z.infer<typeof SiripEbookSchema>;
+
+export const SiripEbookResultSchema = z.object({
+  libraryName: z.string(),
+  totalCountSummary: z.number(),
+  availableCountSummary: z.number(),
+  unavailableCountSummary: z.number(),
+  totalCountOwned: z.number(),
+  totalCountSubs: z.number(),
+  availableCountOwned: z.number(),
+  availableCountSubs: z.number(),
+  searchQuery: z.string(),
+  bookList: z.array(SiripEbookSchema),
+  errors: z.object({
+    owned: z.string().optional(),
+    subscription: z.string().optional(),
+  }).optional(),
+});
+export type SiripEbookResult = z.infer<typeof SiripEbookResultSchema>;
+
+// 기존 interface SiripEbookResult, SiripEbook 등은 삭제하거나 주석 처리합니다.
 
 // 광주시립도서관 종이책 추가
 export interface GwangjuPaperResult {

@@ -236,44 +236,44 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
                 <StockDisplay
                     label="퇴촌"
                     searchUrl={createLibraryOpenURL('퇴촌', book.title, book.customSearchTitle)}
-                    totalCount={book.gwangjuPaperInfo && 'totalCountToechon' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.totalCountToechon : undefined}
-                    availableCount={book.gwangjuPaperInfo && 'availableCountToechon' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.availableCountToechon : undefined}
+                    totalCount={book.stock_gwangju_toechon_total ?? undefined}
+                    availableCount={book.stock_gwangju_toechon_available ?? undefined}
                     hasError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false}
                 />
                 <StockDisplay
                     label="기타"
                     searchUrl={createLibraryOpenURL('기타', book.title, book.customSearchTitle)}
-                    totalCount={book.gwangjuPaperInfo && 'totalCountOther' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.totalCountOther : undefined}
-                    availableCount={book.gwangjuPaperInfo && 'availableCountOther' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.availableCountOther : undefined}
+                    totalCount={book.stock_gwangju_other_total ?? undefined}
+                    availableCount={book.stock_gwangju_other_available ?? undefined}
                     hasError={book.gwangjuPaperInfo ? 'error' in book.gwangjuPaperInfo : false}
-                />
-                <StockDisplay
-                    label="전자책(교육)"
-                    searchUrl={createLibraryOpenURL('e교육', book.title, book.customSearchTitle)}
-                    totalCount={book.gyeonggiEduEbookInfo?.totalCountSummary}
-                    availableCount={book.gyeonggiEduEbookInfo?.availableCountSummary}
-                    hasError={(book.gyeonggiEduEbookInfo?.errorCount ?? 0) > 0}
                 />
                 <StockDisplay
                     label="전자책(시립구독)"
                     searchUrl={createLibraryOpenURL('e시립구독', book.title, book.customSearchTitle)}
-                    totalCount={book.siripEbookInfo?.totalCountSubs}
-                    availableCount={book.siripEbookInfo?.bookList?.filter(b => b.type === '구독형').length}
+                    totalCount={book.stock_sirip_subs_total ?? undefined}
+                    availableCount={book.stock_sirip_subs_available ?? undefined}
                     hasError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.subscription}
                 />
                 <StockDisplay
                     label="전자책(시립소장)"
                     searchUrl={createLibraryOpenURL('e시립소장', book.title, book.customSearchTitle)}
-                    totalCount={book.siripEbookInfo?.totalCountOwned}
-                    availableCount={book.siripEbookInfo?.bookList?.filter(b => b.type === '소장형' && b.loanStatus).length}
+                    totalCount={book.stock_sirip_owned_total ?? undefined}
+                    availableCount={book.stock_sirip_owned_available ?? undefined}
                     hasError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.owned}
                 />
                 <StockDisplay
                     label="전자책(경기)"
                     searchUrl={createLibraryOpenURL('e경기', book.title, book.customSearchTitle)}
-                    totalCount={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.totalCountSummary : undefined}
-                    availableCount={book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.availableCountSummary : undefined}
+                    totalCount={book.stock_gyeonggi_total ?? undefined}
+                    availableCount={book.stock_gyeonggi_available ?? undefined}
                     hasError={book.gyeonggiEbookInfo ? 'error' in book.gyeonggiEbookInfo : false}
+                />
+                <StockDisplay
+                    label="전자책(교육)"
+                    searchUrl={createLibraryOpenURL('e교육', book.title, book.customSearchTitle)}
+                    totalCount={book.stock_gyeonggi_edu_total ?? undefined}
+                    availableCount={book.stock_gyeonggi_edu_available ?? undefined}
+                    hasError={(book.gyeonggiEduEbookInfo?.errorCount ?? 0) > 0}
                 />
             </div>
 

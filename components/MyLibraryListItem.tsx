@@ -106,40 +106,41 @@ const LibraryTagsGroup: React.FC<{ book: SelectedBook }> = React.memo(({ book })
     return (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             <LibraryTag name="퇴촌"
-                totalBooks={book.gwangjuPaperInfo && 'totalCountToechon' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.totalCountToechon : 0}
-                availableBooks={book.gwangjuPaperInfo && 'availableCountToechon' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.availableCountToechon : 0}
+                totalBooks={book.stock_gwangju_toechon_total ?? 0}
+                availableBooks={book.stock_gwangju_toechon_available ?? 0}
                 searchUrl={createLibraryOpenURL("퇴촌", book.title, book.customSearchTitle)}
                 isError={!book.gwangjuPaperInfo || ('error' in book.gwangjuPaperInfo)} />
 
             <LibraryTag name="기타"
-                totalBooks={book.gwangjuPaperInfo && 'totalCountOther' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.totalCountOther : 0}
-                availableBooks={book.gwangjuPaperInfo && 'availableCountOther' in book.gwangjuPaperInfo ? book.gwangjuPaperInfo.availableCountOther : 0}
+                totalBooks={book.stock_gwangju_other_total ?? 0}
+                availableBooks={book.stock_gwangju_other_available ?? 0}
                 searchUrl={createLibraryOpenURL("기타", book.title, book.customSearchTitle)}
                 isError={!book.gwangjuPaperInfo || ('error' in book.gwangjuPaperInfo)} />
 
-            <LibraryTag name="e교육"
-                totalBooks={book.gyeonggiEduEbookInfo?.totalCountSummary ?? 0}
-                availableBooks={book.gyeonggiEduEbookInfo?.availableCountSummary ?? 0}
-                searchUrl={createLibraryOpenURL("e교육", book.title, book.customSearchTitle)}
-                isError={!book.gyeonggiEduEbookInfo || (book.gyeonggiEduEbookInfo.errorCount ?? 0) > 0} />
-
             <LibraryTag name="e시립구독"
-                totalBooks={book.siripEbookInfo?.totalCountSubs ?? 0}
-                availableBooks={book.siripEbookInfo?.bookList?.filter(b => b.type === '구독형').length ?? 0}
+                totalBooks={book.stock_sirip_subs_total ?? 0}
+                availableBooks={book.stock_sirip_subs_available ?? 0}
                 searchUrl={createLibraryOpenURL("e시립구독", book.title, book.customSearchTitle)}
                 isError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.subscription} />
 
             <LibraryTag name="e시립소장"
-                totalBooks={book.siripEbookInfo?.totalCountOwned ?? 0}
-                availableBooks={book.siripEbookInfo?.bookList?.filter(b => b.type === '소장형' && b.loanStatus).length ?? 0}
+                totalBooks={book.stock_sirip_owned_total ?? 0}
+                availableBooks={book.stock_sirip_owned_available ?? 0}
                 searchUrl={createLibraryOpenURL("e시립소장", book.title, book.customSearchTitle)}
                 isError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.owned} />
                 
             <LibraryTag name="e경기"
-                totalBooks={(book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.totalCountSummary : undefined) ?? 0}
-                availableBooks={(book.gyeonggiEbookInfo && !('error' in book.gyeonggiEbookInfo) ? book.gyeonggiEbookInfo.availableCountSummary : undefined) ?? 0}
+                totalBooks={book.stock_gyeonggi_total ?? 0}
+                availableBooks={book.stock_gyeonggi_available ?? 0}
                 searchUrl={createLibraryOpenURL("e경기", book.title, book.customSearchTitle)}
                 isError={!book.gyeonggiEbookInfo || ('error' in book.gyeonggiEbookInfo)} />
+            
+            <LibraryTag name="e교육"
+                totalBooks={book.stock_gyeonggi_edu_total ?? 0}
+                availableBooks={book.stock_gyeonggi_edu_available ?? 0}
+                searchUrl={createLibraryOpenURL("e교육", book.title, book.customSearchTitle)}
+                isError={!book.gyeonggiEduEbookInfo || (book.gyeonggiEduEbookInfo.errorCount ?? 0) > 0} />
+
         </div>
     );
 });

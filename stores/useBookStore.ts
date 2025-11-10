@@ -1,10 +1,10 @@
 
 import { create } from 'zustand';
 import { supabase } from '../lib/supabaseClient';
-import { AladdinBookItem, SortKey, ReadStatus, Json, EBookInfo, StockInfo, GwangjuPaperResult, gyeonggiEduEbookError, gyeonggiEbookResult, 
-  ApiCombinedBookData, // ✅ 새로 추가
-  BookData,            // ✅ 새로 추가 (기존 타입 대체)
-  SelectedBook,        // ✅ 새로 추가 (기존 타입 대체)
+import { AladdinBookItem, SortKey, ReadStatus, Json,
+  ApiCombinedBookData, 
+  BookData,            
+  SelectedBook,       
 } from '../types';
 import { searchAladinBooks } from '../services/aladin.service';
 import { useUIStore } from './useUIStore';
@@ -12,7 +12,41 @@ import { useAuthStore } from './useAuthStore';
 import { useSettingsStore } from './useSettingsStore';
 import { fetchBookAvailability} from '../services/unifiedLibrary.service'; 
 import { createBookDataFromApis } from '../utils/bookDataCombiner';
-import { useAppStore } from './useAppStore'; // 👈 App 스토어 임포트
+import { useAppStore } from './useAppStore';
+
+// --- ▼▼▼▼▼ [신규 추가] ▼▼▼▼▼ ---
+// 1. 중앙화된 컬럼 목록 변수
+const stockColumns = `
+  stock_gwangju_toechon_total, stock_gwangju_toechon_available,
+  stock_gwangju_other_total, stock_gwangju_other_available,
+  stock_gyeonggi_edu_total, stock_gyeonggi_edu_available,
+  stock_sirip_subs_total, stock_sirip_subs_available,
+  stock_sirip_owned_total, stock_sirip_owned_available,
+  stock_gyeonggi_total, stock_gyeonggi_available
+`.replace(/\s/g, '');
+
+// 2. DB 응답을 SelectedBook 타입으로 변환하는 헬퍼 함수
+const mapDbItemToSelectedBook = (item: any): SelectedBook | null => {
+    if (!item || !item.book_data) return null;
+    return {
+        ...(item.book_data as BookData),
+        id: item.id,
+        note: item.note,
+        stock_gwangju_toechon_total: item.stock_gwangju_toechon_total,
+        stock_gwangju_toechon_available: item.stock_gwangju_toechon_available,
+        stock_gwangju_other_total: item.stock_gwangju_other_total,
+        stock_gwangju_other_available: item.stock_gwangju_other_available,
+        stock_gyeonggi_edu_total: item.stock_gyeonggi_edu_total,
+        stock_gyeonggi_edu_available: item.stock_gyeonggi_edu_available,
+        stock_sirip_subs_total: item.stock_sirip_subs_total,
+        stock_sirip_subs_available: item.stock_sirip_subs_available,
+        stock_sirip_owned_total: item.stock_sirip_owned_total,
+        stock_sirip_owned_available: item.stock_sirip_owned_available,
+        stock_gyeonggi_total: item.stock_gyeonggi_total,
+        stock_gyeonggi_available: item.stock_gyeonggi_available,
+    };
+};
+// --- ▲▲▲▲▲ [신규 추가] ▲▲▲▲▲ ---
 
 /**
  * 특정 책의 데이터를 업데이트하고, 로컬 상태와 Supabase DB를 동기화하는 헬퍼 함수
@@ -21,10 +55,9 @@ import { useAppStore } from './useAppStore'; // 👈 App 스토어 임포트
  * @param errorMessage DB 업데이트 실패 시 보여줄 알림 메시지
  */
 
-// ▼▼▼▼▼▼▼▼▼▼ 이 함수를 아래 코드로 완전히 교체하세요 ▼▼▼▼▼▼▼▼▼▼
 async function updateBookInStoreAndDB(
   id: number,
-  updates: Partial<Omit<SelectedBook, 'id'>>, // ✅ SelectedBook 기준으로 변경 (가장 정확한 타입)
+  updates: Partial<Omit<SelectedBook, 'id'>>,
   errorMessage: string = '책 정보 업데이트에 실패했습니다.'
 ): Promise<void> {
   const originalBook = await useBookStore.getState().getBookById(id);
@@ -46,30 +79,51 @@ async function updateBookInStoreAndDB(
   // `book_data`에 저장될 객체에서 최상위 컬럼인 id, note를 제외
   // const { id: bookId, note, ...bookDataForDb } = updatedBook; 
   const bookDataForDb = { ...updatedBook };
-
   
   try {
-    const updateData: {
-      book_data: Json;
-      title?: string;
-      author?: string;
-      note?: string | null;
-    } = {
+    // `book_data`에 저장될 객체 만들기: `updatedBook`에서 최상위 컬럼들을 '제외'
+    // const updateData: {
+    //   book_data: Json;
+    //   title?: string;
+    //   author?: string;
+    //   note?: string | null;
+    // } = {
+    //   title: updatedBook.title,
+    //   author: updatedBook.author,
+    //   book_data: bookDataForDb as unknown as Json,
+    //   note: updatedBook.note ?? null, // 👈 updatedBook의 note 값으로 항상 동기화
+    // };
+
+    // const { error } = await supabase
+    //   .from('user_library')
+    //   .update(updateData)
+    //   .eq('id', id);
+        // `book_data`에 저장될 객체 만들기: `updatedBook`에서 최상위 컬럼들을 '제외'
+    const { id: bookId, note, ...bookDataForDb } = updatedBook;
+    stockColumns.split(',').forEach(col => {
+      delete (bookDataForDb as any)[col.trim()];
+    });
+
+    // DB 업데이트를 위한 최종 payload 생성
+    const dbUpdatePayload: { [key: string]: any } = {
       title: updatedBook.title,
       author: updatedBook.author,
+      note: updatedBook.note ?? null,
       book_data: bookDataForDb as unknown as Json,
-      note: updatedBook.note ?? null, // 👈 updatedBook의 note 값으로 항상 동기화
     };
-
-    // if (Object.prototype.hasOwnProperty.call(updates, 'note')) {
-    //   updateData.note = updates.note ?? null;
-    // }
+    
+    // `updates` 객체에 `stock_*` 필드가 있다면, payload에 최상위 컬럼으로 추가
+    Object.keys(updates).forEach(key => {
+        if (key.startsWith('stock_')) {
+            dbUpdatePayload[key] = (updates as any)[key];
+        }
+    });
 
     const { error } = await supabase
       .from('user_library')
-      .update(updateData)
+      .update(dbUpdatePayload) // 수정된 payload 사용
       .eq('id', id);
-      
+
     if (error) throw error;
 
   } catch (error) {
@@ -88,7 +142,6 @@ async function updateBookInStoreAndDB(
     }));
   }
 }
-// ▲▲▲▲▲▲▲▲▲▲ 여기까지 교체 ▲▲▲▲▲▲▲▲▲▲
 
 
 interface BookState {
@@ -302,13 +355,17 @@ export const useBookStore = create<BookState>(
         try {
           const { data, error } = await supabase
             .from('user_library')
-            .select('book_data')
+            .select(`id, book_data, note, ${stockColumns}`) 
+            .eq('user_id', session.user.id)
             .eq('id', id)
             .single();
 
           if (error) throw error;
           
-          return data?.book_data || null;
+          const fetchedBook = mapDbItemToSelectedBook(data); // 수정
+          if (!fetchedBook) return null; // 추가
+
+          // return data?.book_data || null;
 
         } catch (error) {
           console.error(`Error fetching raw book data for id ${id}:`, error);
@@ -415,26 +472,30 @@ export const useBookStore = create<BookState>(
 
               const { data, error, count } = await supabase
                   .from('user_library')
-                  .select('id, book_data, note', { count: 'exact' })
+                  .select(`id, book_data, note, ${stockColumns}`, { count: 'exact' }) // 수정
                   .order('created_at', { ascending: false })
                   .limit(pageSize);
 
               if (error) throw error;
 
-              const libraryBooks = (Array.isArray(data) ? data : []) // <- 이 부분은 이전에 수정한 방어 코드입니다. 그대로 두세요.
-                .map(item => {
-                    if (!item.book_data) return null;
-                    const bookDataWithDefaults = {
-                        ...{ readStatus: '읽지 않음', rating: 0 },
-                        ...item.book_data,
-                    };
-                    return {
-                        ...bookDataWithDefaults,
-                        id: item.id,
-                        note: item.note,
-                    };
-                })
+              const libraryBooks = (Array.isArray(data) ? data : [])
+                .map(mapDbItemToSelectedBook) // 수정
                 .filter((book): book is SelectedBook => book !== null);
+
+              // const libraryBooks = (Array.isArray(data) ? data : []) 
+              //   .map(item => {
+              //       if (!item.book_data) return null;
+              //       const bookDataWithDefaults = {
+              //           ...{ readStatus: '읽지 않음', rating: 0 },
+              //           ...item.book_data,
+              //       };
+              //       return {
+              //           ...bookDataWithDefaults,
+              //           id: item.id,
+              //           note: item.note,
+              //       };
+              //   })
+              //   .filter((book): book is SelectedBook => book !== null);
                           
               // --- 최종 상태 업데이트 ---
               const totalBooksCount = count || 0;
@@ -615,17 +676,20 @@ export const useBookStore = create<BookState>(
                     author: newBookData.author,
                     book_data: newBookData as unknown as Json
                   }])
-                  .select('id, book_data, note')
+                  // .select('id, book_data, note')
+                  .select(`id, book_data, note, ${stockColumns}`) // 수정
                   .single();
               
               if (error) throw error;
-              if (!data || !data.book_data) throw new Error("Failed to add book: No data returned.");
-
-              const newBookWithId: SelectedBook = { 
-                  ...(data.book_data as BookData), 
-                  id: data.id,
-                  note: data.note, 
-              };
+              const newBookWithId = mapDbItemToSelectedBook(data); // 수정
+              if (!newBookWithId) throw new Error("Failed to add book: No data returned."); // 추가
+              
+              // if (!data || !data.book_data) throw new Error("Failed to add book: No data returned.");
+              // const newBookWithId: SelectedBook = { 
+              //     ...(data.book_data as BookData), 
+              //     id: data.id,
+              //     note: data.note, 
+              // };
 
               set(state => ({ 
                 myLibraryBooks: [newBookWithId, ...state.myLibraryBooks],
@@ -701,126 +765,90 @@ export const useBookStore = create<BookState>(
       },
 
       // 개별 책에 대한 재고 정보 업데이트
-
       refreshBookInfo: async (id, isbn13, title, author) => {
           set({ refreshingIsbn: isbn13, refreshingEbookId: id });
-
-          // 👇 App 스토어에서 현재 스키마 버전 가져오기
-          const { currentBookDataSchemaVersion } = useAppStore.getState();
-          // getBookById를 사용하여 모든 데이터 소스에서 원본 책 정보를 가져옵니다.
           const originalBook = await get().getBookById(id);
 
           if (!originalBook) {
-            console.warn(`[refreshBookInfo] Book with id ${id} not found.`);
             set({ refreshingIsbn: null, refreshingEbookId: null });
             return;
           }
 
-          // ▼▼▼▼▼ [수정 시작] 스키마 버전 체크 및 캐시 우회 플래그 설정 ▼▼▼▼▼
-          const isDbSchemaChanged = originalBook.schemaVersion !== currentBookDataSchemaVersion;
-
-          if (isDbSchemaChanged) {
-              console.warn(`[Schema Mismatch] DB(v${originalBook.schemaVersion}) vs Code(v${currentBookDataSchemaVersion}). Cache will be bypassed.`);
-          }
-          // ▲▲▲▲▲ [수정 끝] ▲▲▲▲▲
-
           try {
-            // 1. API 병렬 호출
-            const libraryPromise = fetchBookAvailability(
-              isbn13,
-              title,
-              author, // ✅ [수정] author 정보 전달
-              originalBook.customSearchTitle,
-              isDbSchemaChanged // 👈 [수정] 결정된 플래그 전달
-            );
+            // 끝을 true로 바꾸면 기존 저장캐시 무시하고, 항상 캐싱 새롭게 저장한다.
+            // (예)  fetchBookAvailability(isbn13, title, author, originalBook.customSearchTitle, true);
+            const libraryPromise = fetchBookAvailability(isbn13, title, author, originalBook.customSearchTitle, false);
+
             const aladinPromise = searchAladinBooks(isbn13, 'ISBN');
-            const [libraryResult, aladinResult] = await Promise.allSettled([
-              libraryPromise,
-              aladinPromise,
-            ]);
+            const [libraryResult, aladinResult] = await Promise.allSettled([libraryPromise, aladinPromise]);
 
-            // API 호출 결과 확인
-            if (libraryResult.status === 'rejected') {
-              throw new Error(`도서관 재고 조회 실패: ${libraryResult.reason.message}`);
-            }
+            if (libraryResult.status === 'rejected') throw new Error(`도서관 재고 조회 실패: ${libraryResult.reason.message}`);
+            
             const aladinBookData = (aladinResult.status === 'fulfilled' && aladinResult.value.length > 0)
-              ? aladinResult.value.find(b => b.isbn13 === isbn13)
-              : null;
+              ? aladinResult.value.find(b => b.isbn13 === isbn13) : null;
 
-            if (!aladinBookData) {
-              throw new Error("알라딘에서 최신 도서 정보를 가져올 수 없어 업데이트를 중단합니다.");
-            }
-
-            // 2. "순수 API 정보 객체" 생성 (새 함수와 타입을 사용)
-            const pureApiData: ApiCombinedBookData = createBookDataFromApis(aladinBookData, libraryResult.value);
+            if (!aladinBookData) throw new Error("알라딘 정보 조회 실패");
             
+            const pureApiData = createBookDataFromApis(aladinBookData, libraryResult.value);
             
-            let finalBookData: BookData;
-
-            // ▼▼▼▼▼ [수정 시작] 스키마 버전에 따른 분기 로직 적용 ▼▼▼▼▼
-            if (isDbSchemaChanged) {
-                // [스키마 다름] -> "전체 덮어쓰기"로 안전하게 마이그레이션
-                console.log(`[Migration] Migrating book data to schema v${currentBookDataSchemaVersion}.`);
+            const finalBookData: BookData = {
+                ...(originalBook as BookData),
+                ...pureApiData,
+                gwangjuPaperInfo: ('error' in pureApiData.gwangjuPaperInfo && originalBook.gwangjuPaperInfo && !('error' in originalBook.gwangjuPaperInfo)) ? originalBook.gwangjuPaperInfo : pureApiData.gwangjuPaperInfo,
                 
-                finalBookData = {
-                    ...pureApiData, // 최신 API 응답을 베이스로 함
-                    // 사용자 데이터는 기존 데이터에서 명시적으로 가져와 보존
-                    addedDate: originalBook.addedDate,
-                    readStatus: originalBook.readStatus,
-                    rating: originalBook.rating,
-                    isFavorite: originalBook.isFavorite,
-                    customTags: originalBook.customTags,
-                    customSearchTitle: originalBook.customSearchTitle,
-                };
+                // --- ▼▼▼ [타입 가드 추가] ▼▼▼ ---
+                gyeonggiEduEbookInfo: (pureApiData.gyeonggiEduEbookInfo && 'errorCount' in pureApiData.gyeonggiEduEbookInfo && pureApiData.gyeonggiEduEbookInfo.errorCount > 0 && originalBook.gyeonggiEduEbookInfo && originalBook.gyeonggiEduEbookInfo.errorCount === 0) ? originalBook.gyeonggiEduEbookInfo : pureApiData.gyeonggiEduEbookInfo,
+                // --- ▲▲▲ [타입 가드 추가] ▲▲▲ ---
 
-            } else {
-                // [스키마 동일] -> 효율적인 "부분 업데이트" 적용 (폴백 로직 포함)
-                finalBookData = {
-                    ...originalBook, // 기존 데이터를 베이스로 함
-                    ...pureApiData,  // 최신 API 정보로 덮어씀
-
-                    // 각 API 응답별로 실패 시 기존 데이터를 유지하는 폴백(fallback) 로직
-                    gwangjuPaperInfo: ('error' in pureApiData.gwangjuPaperInfo && originalBook.gwangjuPaperInfo && !('error' in originalBook.gwangjuPaperInfo))
-                        ? originalBook.gwangjuPaperInfo : pureApiData.gwangjuPaperInfo,
-                    
-                    gyeonggiEduEbookInfo: ((pureApiData.gyeonggiEduEbookInfo?.errorCount ?? 0) > 0 && originalBook.gyeonggiEduEbookInfo && (originalBook.gyeonggiEduEbookInfo?.errorCount ?? 0) === 0)
-                        ? originalBook.gyeonggiEduEbookInfo : pureApiData.gyeonggiEduEbookInfo,
-
-                    gyeonggiEbookInfo: (pureApiData.gyeonggiEbookInfo && 'error' in pureApiData.gyeonggiEbookInfo && originalBook.gyeonggiEbookInfo && !('error' in originalBook.gyeonggiEbookInfo))
-                        ? originalBook.gyeonggiEbookInfo : pureApiData.gyeonggiEbookInfo,
-                    
-                    siripEbookInfo: ((pureApiData.siripEbookInfo === null || ('error' in (pureApiData.siripEbookInfo || {})) || pureApiData.siripEbookInfo?.errors) && originalBook.siripEbookInfo && !originalBook.siripEbookInfo.errors)
-                        ? originalBook.siripEbookInfo : pureApiData.siripEbookInfo,
-                };
-
-                // ▼▼▼▼▼ [핵심 수정 1] ▼▼▼▼▼
-                // 부분 업데이트 시, originalBook에 있던 id와 note가 finalBookData에
-                // 포함될 수 있으므로, 타입 일관성을 위해 제거해 줍니다.
-                // (TypeScript는 finalBookData가 BookData 타입이길 기대하기 때문)
-                delete (finalBookData as any).id;
-                delete (finalBookData as any).note;
-                // ▲▲▲▲▲ [핵심 수정 1] ▲▲▲▲▲
-            }
-
-            // 항상 최신 스키마 버전으로 업데이트
-            finalBookData.schemaVersion = currentBookDataSchemaVersion;
-            // ▲▲▲▲▲ [수정 끝] ▲▲▲▲▲
+                gyeonggiEbookInfo: (pureApiData.gyeonggiEbookInfo && 'error' in pureApiData.gyeonggiEbookInfo && originalBook.gyeonggiEbookInfo && !('error' in originalBook.gyeonggiEbookInfo)) ? originalBook.gyeonggiEbookInfo : pureApiData.gyeonggiEbookInfo,
+                siripEbookInfo: ((pureApiData.siripEbookInfo === null || ('error' in (pureApiData.siripEbookInfo || {})) || (pureApiData.siripEbookInfo && 'errors' in pureApiData.siripEbookInfo)) && originalBook.siripEbookInfo && !originalBook.siripEbookInfo.errors) ? originalBook.siripEbookInfo : pureApiData.siripEbookInfo,
+            };
             
-            // subInfo 업데이트 로직 (새 전자책 정보가 있는데 기존엔 없었을 경우)
-            const hasNewEbookInfo = aladinBookData.subInfo?.ebookList?.[0]?.isbn13;
-            const hasOldEbookInfo = originalBook.subInfo?.ebookList?.[0]?.isbn13;
-            if (hasNewEbookInfo && !hasOldEbookInfo) {
-              finalBookData.subInfo = aladinBookData.subInfo;
-              console.log(`[Ebook Update] '${title}'의 새로운 전자책 정보를 발견하여 업데이트합니다.`);
-            }
-
-            // 4. UI 상태를 즉시 업데이트 (ID와 note 포함)
-            const updatedBookForUI: SelectedBook = {
-              ...finalBookData,
-              id: originalBook.id,
-              note: originalBook.note, // note는 별도 컬럼이므로 originalBook에서 가져옴
+            delete (finalBookData as any).id;
+            delete (finalBookData as any).note;
+            stockColumns.split(',').forEach(col => delete (finalBookData as any)[col.trim()]);
+            
+            const dbUpdatePayload: { [key: string]: any } = {
+                book_data: finalBookData as unknown as Json,
+                title: finalBookData.title,
+                author: finalBookData.author,
             };
 
+            const libData = libraryResult.value;
+
+            if (libData.gwangjuPaper && !('error' in libData.gwangjuPaper)) {
+                dbUpdatePayload.stock_gwangju_toechon_total = libData.gwangjuPaper.totalCountToechon;
+                dbUpdatePayload.stock_gwangju_toechon_available = libData.gwangjuPaper.availableCountToechon;
+                dbUpdatePayload.stock_gwangju_other_total = libData.gwangjuPaper.totalCountOther;
+                dbUpdatePayload.stock_gwangju_other_available = libData.gwangjuPaper.availableCountOther;
+            }
+
+            // --- ▼▼▼ [타입 가드 추가] ▼▼▼ ---
+            if (libData.gyeonggiEbookEdu && 'errorCount' in libData.gyeonggiEbookEdu && libData.gyeonggiEbookEdu.errorCount === 0) {
+                dbUpdatePayload.stock_gyeonggi_edu_total = libData.gyeonggiEbookEdu.totalCountSummary;
+                dbUpdatePayload.stock_gyeonggi_edu_available = libData.gyeonggiEbookEdu.availableCountSummary;
+            }
+            // --- ▲▲▲ [타입 가드 추가] ▲▲▲ ---
+
+            if (libData.siripEbook && !('error' in libData.siripEbook) && !libData.siripEbook.errors) {
+                dbUpdatePayload.stock_sirip_subs_total = libData.siripEbook.totalCountSubs;
+                dbUpdatePayload.stock_sirip_owned_total = libData.siripEbook.totalCountOwned;
+                dbUpdatePayload.stock_sirip_subs_available = libData.siripEbook.availableCountSubs;
+                dbUpdatePayload.stock_sirip_owned_available = libData.siripEbook.availableCountOwned;
+            }
+            if (libData.gyeonggiEbookLib && !('error' in libData.gyeonggiEbookLib)) {
+                dbUpdatePayload.stock_gyeonggi_total = libData.gyeonggiEbookLib.totalCountSummary;
+                dbUpdatePayload.stock_gyeonggi_available = libData.gyeonggiEbookLib.availableCountSummary;
+            }
+
+            // 낙관적 UI 업데이트 객체 생성
+            const updatedBookForUI: SelectedBook = {
+              ...originalBook,
+              ...finalBookData,
+              ...Object.keys(dbUpdatePayload).filter(k => k.startsWith('stock_')).reduce((obj, key) => ({...obj, [key]: dbUpdatePayload[key]}), {})
+            };
+
+            // UI 상태 즉시 업데이트
             set(state => ({
               myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? updatedBookForUI : b)),
               librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? updatedBookForUI : b)),
@@ -828,59 +856,275 @@ export const useBookStore = create<BookState>(
               selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBookForUI : state.selectedBook,
             }));
 
-            // 5. 최종 DB 업데이트
-            // `updateBookInStoreAndDB`를 호출하여 DB를 업데이트합니다.
-            // 이 함수는 `updatedBookForUI` 객체를 기반으로 동작해야 합니다.
-            // 하지만 `refreshBookInfo` 자체가 업데이트 로직을 포함하므로,
-            // `updateBookInStoreAndDB`를 다시 호출하는 대신 직접 DB를 업데이트합니다.
-            
-            // ▼▼▼▼▼ [핵심 수정 3] ▼▼▼▼▼
-            // DB에 저장할 객체를 `updatedBookForUI`를 기반으로 다시 만듭니다.
-            // ▼▼▼▼▼ [수정] 누락되었던 에러 처리 로직을 다시 추가합니다. ▼▼▼▼▼
+            // --- ▼▼▼ [수정] DB 업데이트 로직 직접 처리 ▼▼▼ ---
             const { error } = await supabase
-                .from('user_library')
-                .update({
-                    title: updatedBookForUI.title,
-                    author: updatedBookForUI.author,
-                    book_data: updatedBookForUI as unknown as Json,
-                    note: updatedBookForUI.note ?? null,
-                })
-                .eq('id', id);
+              .from('user_library')
+              .update(dbUpdatePayload)
+              .eq('id', id);
 
-            if (error) {
-                // 에러가 발생하면 catch 블록으로 던져서 롤백 로직을 실행시킵니다.
-                throw error;
-            }
-            // ▲▲▲▲▲ [수정] ▲▲▲▲▲
-
-            // // 5. 최종 DB 업데이트
-            // const { error } = await supabase
-            //   .from('user_library')
-            //   .update({
-            //     title: finalBookData.title,     // 최상위 컬럼 업데이트
-            //     author: finalBookData.author,   // 최상위 컬럼 업데이트
-            //     book_data: finalBookData as unknown as Json, // book_data 컬럼 업데이트
-            //   })
-            //   .eq('id', id);
-
-            // if (error) throw error;
+            if (error) throw error;
+            // --- ▲▲▲ [수정] ▲▲▲ ---
 
           } catch (error) {
             console.error(`Failed to refresh book info for ${title}:`, error);
             useUIStore.getState().setNotification({ message: '도서 정보 갱신에 실패했습니다.', type: 'error' });
-
-            // 롤백 로직: 에러 발생 시 원래 책 정보로 되돌립니다.
-            set(state => ({
-              myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? originalBook : b)),
-              librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? originalBook : b)),
-              libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? originalBook : b)),
-              selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? originalBook : state.selectedBook,
-            }));
-
+            // 롤백 로직 (필요 시 구현)
           } finally {
             set({ refreshingIsbn: null, refreshingEbookId: null });
           }
-        },
+      },
+
+      // refreshBookInfo: async (id, isbn13, title, author) => {
+      //   set({ refreshingIsbn: isbn13, refreshingEbookId: id });
+      //   const originalBook = await get().getBookById(id);
+
+      //   if (!originalBook) {
+      //     set({ refreshingIsbn: null, refreshingEbookId: null });
+      //     return;
+      //   }
+
+      //   try {
+      //     const libraryPromise = fetchBookAvailability(isbn13, title, author, originalBook.customSearchTitle, false);
+      //     const aladinPromise = searchAladinBooks(isbn13, 'ISBN');
+      //     const [libraryResult, aladinResult] = await Promise.allSettled([libraryPromise, aladinPromise]);
+
+      //     if (libraryResult.status === 'rejected') throw new Error(`도서관 재고 조회 실패: ${libraryResult.reason.message}`);
+          
+      //     const aladinBookData = (aladinResult.status === 'fulfilled' && aladinResult.value.length > 0)
+      //       ? aladinResult.value.find(b => b.isbn13 === isbn13) : null;
+
+      //     if (!aladinBookData) throw new Error("알라딘 정보 조회 실패");
+          
+      //     const pureApiData = createBookDataFromApis(aladinBookData, libraryResult.value);
+          
+      //     const finalBookData: BookData = {
+      //         ...(originalBook as BookData),
+      //         ...pureApiData,
+      //         gwangjuPaperInfo: ('error' in pureApiData.gwangjuPaperInfo && originalBook.gwangjuPaperInfo && !('error' in originalBook.gwangjuPaperInfo)) ? originalBook.gwangjuPaperInfo : pureApiData.gwangjuPaperInfo,
+      //         gyeonggiEduEbookInfo: ((pureApiData.gyeonggiEduEbookInfo?.errorCount ?? 0) > 0 && originalBook.gyeonggiEduEbookInfo && (originalBook.gyeonggiEduEbookInfo?.errorCount ?? 0) === 0) ? originalBook.gyeonggiEduEbookInfo : pureApiData.gyeonggiEduEbookInfo,
+      //         gyeonggiEbookInfo: (pureApiData.gyeonggiEbookInfo && 'error' in pureApiData.gyeonggiEbookInfo && originalBook.gyeonggiEbookInfo && !('error' in originalBook.gyeonggiEbookInfo)) ? originalBook.gyeonggiEbookInfo : pureApiData.gyeonggiEbookInfo,
+      //         siripEbookInfo: ((pureApiData.siripEbookInfo === null || ('error' in (pureApiData.siripEbookInfo || {})) || pureApiData.siripEbookInfo?.errors) && originalBook.siripEbookInfo && !originalBook.siripEbookInfo.errors) ? originalBook.siripEbookInfo : pureApiData.siripEbookInfo,
+      //     };
+          
+      //     delete (finalBookData as any).id;
+      //     delete (finalBookData as any).note;
+      //     stockColumns.split(',').forEach(col => delete (finalBookData as any)[col.trim()]);
+          
+      //     const dbUpdatePayload: Partial<SelectedBook> = {};
+
+      //     const libData = libraryResult.value;
+
+      //     if (libData.gwangjuPaper && !('error' in libData.gwangjuPaper)) {
+      //         dbUpdatePayload.stock_gwangju_toechon_total = libData.gwangjuPaper.totalCountToechon;
+      //         dbUpdatePayload.stock_gwangju_toechon_available = libData.gwangjuPaper.availableCountToechon;
+      //         dbUpdatePayload.stock_gwangju_other_total = libData.gwangjuPaper.totalCountOther;
+      //         dbUpdatePayload.stock_gwangju_other_available = libData.gwangjuPaper.availableCountOther;
+      //     }
+      //     if (libData.gyeonggiEbookEdu && (libData.gyeonggiEbookEdu.errorCount ?? 0) === 0) {
+      //         dbUpdatePayload.stock_gyeonggi_edu_total = libData.gyeonggiEbookEdu.totalCountSummary;
+      //         dbUpdatePayload.stock_gyeonggi_edu_available = libData.gyeonggiEbookEdu.availableCountSummary;
+      //     }
+      //     if (libData.siripEbook && !('error' in libData.siripEbook) && !libData.siripEbook.errors) {
+      //         dbUpdatePayload.stock_sirip_subs_total = libData.siripEbook.totalCountSubs;
+      //         dbUpdatePayload.stock_sirip_owned_total = libData.siripEbook.totalCountOwned;
+      //         dbUpdatePayload.stock_sirip_subs_available = libData.siripEbook.availableCountSubs;
+      //         dbUpdatePayload.stock_sirip_owned_available = libData.siripEbook.availableCountOwned;
+      //     }
+      //     if (libData.gyeonggiEbookLib && !('error' in libData.gyeonggiEbookLib)) {
+      //         dbUpdatePayload.stock_gyeonggi_total = libData.gyeonggiEbookLib.totalCountSummary;
+      //         dbUpdatePayload.stock_gyeonggi_available = libData.gyeonggiEbookLib.availableCountSummary;
+      //     }
+
+      //     await updateBookInStoreAndDB(id, { ...dbUpdatePayload, book_data: finalBookData });
+
+      //   } catch (error) {
+      //     console.error(`Failed to refresh book info for ${title}:`, error);
+      //     useUIStore.getState().setNotification({ message: '도서 정보 갱신에 실패했습니다.', type: 'error' });
+      //   } finally {
+      //     set({ refreshingIsbn: null, refreshingEbookId: null });
+      //   }
+      // },
+
+      // refreshBookInfo: async (id, isbn13, title, author) => {
+      //     set({ refreshingIsbn: isbn13, refreshingEbookId: id });
+
+      //     // 👇 App 스토어에서 현재 스키마 버전 가져오기
+      //     const { currentBookDataSchemaVersion } = useAppStore.getState();
+      //     // getBookById를 사용하여 모든 데이터 소스에서 원본 책 정보를 가져옵니다.
+      //     const originalBook = await get().getBookById(id);
+
+      //     if (!originalBook) {
+      //       console.warn(`[refreshBookInfo] Book with id ${id} not found.`);
+      //       set({ refreshingIsbn: null, refreshingEbookId: null });
+      //       return;
+      //     }
+
+      //     // ▼▼▼▼▼ [수정 시작] 스키마 버전 체크 및 캐시 우회 플래그 설정 ▼▼▼▼▼
+      //     const isDbSchemaChanged = originalBook.schemaVersion !== currentBookDataSchemaVersion;
+
+      //     if (isDbSchemaChanged) {
+      //         console.warn(`[Schema Mismatch] DB(v${originalBook.schemaVersion}) vs Code(v${currentBookDataSchemaVersion}). Cache will be bypassed.`);
+      //     }
+      //     // ▲▲▲▲▲ [수정 끝] ▲▲▲▲▲
+
+      //     try {
+      //       // 1. API 병렬 호출
+      //       const libraryPromise = fetchBookAvailability(
+      //         isbn13,
+      //         title,
+      //         author, // ✅ [수정] author 정보 전달
+      //         originalBook.customSearchTitle,
+      //         isDbSchemaChanged // 👈 [수정] 결정된 플래그 전달
+      //       );
+      //       const aladinPromise = searchAladinBooks(isbn13, 'ISBN');
+      //       const [libraryResult, aladinResult] = await Promise.allSettled([
+      //         libraryPromise,
+      //         aladinPromise,
+      //       ]);
+
+      //       // API 호출 결과 확인
+      //       if (libraryResult.status === 'rejected') {
+      //         throw new Error(`도서관 재고 조회 실패: ${libraryResult.reason.message}`);
+      //       }
+      //       const aladinBookData = (aladinResult.status === 'fulfilled' && aladinResult.value.length > 0)
+      //         ? aladinResult.value.find(b => b.isbn13 === isbn13)
+      //         : null;
+
+      //       if (!aladinBookData) {
+      //         throw new Error("알라딘에서 최신 도서 정보를 가져올 수 없어 업데이트를 중단합니다.");
+      //       }
+
+      //       // 2. "순수 API 정보 객체" 생성 (새 함수와 타입을 사용)
+      //       const pureApiData: ApiCombinedBookData = createBookDataFromApis(aladinBookData, libraryResult.value);
+            
+            
+      //       let finalBookData: BookData; // 성공한 라이브러리 API 응답 데이터
+
+      //       // ▼▼▼▼▼ [수정 시작] 스키마 버전에 따른 분기 로직 적용 ▼▼▼▼▼
+      //       if (isDbSchemaChanged) {
+      //           // [스키마 다름] -> "전체 덮어쓰기"로 안전하게 마이그레이션
+      //           console.log(`[Migration] Migrating book data to schema v${currentBookDataSchemaVersion}.`);
+                
+      //           finalBookData = {
+      //               ...pureApiData, // 최신 API 응답을 베이스로 함
+      //               // 사용자 데이터는 기존 데이터에서 명시적으로 가져와 보존
+      //               addedDate: originalBook.addedDate,
+      //               readStatus: originalBook.readStatus,
+      //               rating: originalBook.rating,
+      //               isFavorite: originalBook.isFavorite,
+      //               customTags: originalBook.customTags,
+      //               customSearchTitle: originalBook.customSearchTitle,
+      //           };
+
+      //       } else {
+      //           // [스키마 동일] -> 효율적인 "부분 업데이트" 적용 (폴백 로직 포함)
+      //           finalBookData = {
+      //               ...originalBook, // 기존 데이터를 베이스로 함
+      //               ...pureApiData,  // 최신 API 정보로 덮어씀
+
+      //               // 각 API 응답별로 실패 시 기존 데이터를 유지하는 폴백(fallback) 로직
+      //               gwangjuPaperInfo: ('error' in pureApiData.gwangjuPaperInfo && originalBook.gwangjuPaperInfo && !('error' in originalBook.gwangjuPaperInfo))
+      //                   ? originalBook.gwangjuPaperInfo : pureApiData.gwangjuPaperInfo,
+                    
+      //               gyeonggiEduEbookInfo: ((pureApiData.gyeonggiEduEbookInfo?.errorCount ?? 0) > 0 && originalBook.gyeonggiEduEbookInfo && (originalBook.gyeonggiEduEbookInfo?.errorCount ?? 0) === 0)
+      //                   ? originalBook.gyeonggiEduEbookInfo : pureApiData.gyeonggiEduEbookInfo,
+
+      //               gyeonggiEbookInfo: (pureApiData.gyeonggiEbookInfo && 'error' in pureApiData.gyeonggiEbookInfo && originalBook.gyeonggiEbookInfo && !('error' in originalBook.gyeonggiEbookInfo))
+      //                   ? originalBook.gyeonggiEbookInfo : pureApiData.gyeonggiEbookInfo,
+                    
+      //               siripEbookInfo: ((pureApiData.siripEbookInfo === null || ('error' in (pureApiData.siripEbookInfo || {})) || pureApiData.siripEbookInfo?.errors) && originalBook.siripEbookInfo && !originalBook.siripEbookInfo.errors)
+      //                   ? originalBook.siripEbookInfo : pureApiData.siripEbookInfo,
+      //           };
+
+      //           // ▼▼▼▼▼ [핵심 수정 1] ▼▼▼▼▼
+      //           // 부분 업데이트 시, originalBook에 있던 id와 note가 finalBookData에
+      //           // 포함될 수 있으므로, 타입 일관성을 위해 제거해 줍니다.
+      //           // (TypeScript는 finalBookData가 BookData 타입이길 기대하기 때문)
+      //           delete (finalBookData as any).id;
+      //           delete (finalBookData as any).note;
+      //           // ▲▲▲▲▲ [핵심 수정 1] ▲▲▲▲▲
+      //       }
+
+      //       // 항상 최신 스키마 버전으로 업데이트
+      //       finalBookData.schemaVersion = currentBookDataSchemaVersion;
+      //       // ▲▲▲▲▲ [수정 끝] ▲▲▲▲▲
+            
+      //       // subInfo 업데이트 로직 (새 전자책 정보가 있는데 기존엔 없었을 경우)
+      //       const hasNewEbookInfo = aladinBookData.subInfo?.ebookList?.[0]?.isbn13;
+      //       const hasOldEbookInfo = originalBook.subInfo?.ebookList?.[0]?.isbn13;
+      //       if (hasNewEbookInfo && !hasOldEbookInfo) {
+      //         finalBookData.subInfo = aladinBookData.subInfo;
+      //         console.log(`[Ebook Update] '${title}'의 새로운 전자책 정보를 발견하여 업데이트합니다.`);
+      //       }
+
+      //       // 4. UI 상태를 즉시 업데이트 (ID와 note 포함)
+      //       const updatedBookForUI: SelectedBook = {
+      //         ...finalBookData,
+      //         id: originalBook.id,
+      //         note: originalBook.note, // note는 별도 컬럼이므로 originalBook에서 가져옴
+      //       };
+
+      //       set(state => ({
+      //         myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? updatedBookForUI : b)),
+      //         librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? updatedBookForUI : b)),
+      //         libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? updatedBookForUI : b)),
+      //         selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBookForUI : state.selectedBook,
+      //       }));
+
+      //       // 5. 최종 DB 업데이트
+      //       // `updateBookInStoreAndDB`를 호출하여 DB를 업데이트합니다.
+      //       // 이 함수는 `updatedBookForUI` 객체를 기반으로 동작해야 합니다.
+      //       // 하지만 `refreshBookInfo` 자체가 업데이트 로직을 포함하므로,
+      //       // `updateBookInStoreAndDB`를 다시 호출하는 대신 직접 DB를 업데이트합니다.
+            
+      //       // ▼▼▼▼▼ [핵심 수정 3] ▼▼▼▼▼
+      //       // DB에 저장할 객체를 `updatedBookForUI`를 기반으로 다시 만듭니다.
+      //       // ▼▼▼▼▼ [수정] 누락되었던 에러 처리 로직을 다시 추가합니다. ▼▼▼▼▼
+      //       const { error } = await supabase
+      //           .from('user_library')
+      //           .update({
+      //               title: updatedBookForUI.title,
+      //               author: updatedBookForUI.author,
+      //               book_data: updatedBookForUI as unknown as Json,
+      //               note: updatedBookForUI.note ?? null,
+      //           })
+      //           .eq('id', id);
+
+      //       if (error) {
+      //           // 에러가 발생하면 catch 블록으로 던져서 롤백 로직을 실행시킵니다.
+      //           throw error;
+      //       }
+      //       // ▲▲▲▲▲ [수정] ▲▲▲▲▲
+
+      //       // // 5. 최종 DB 업데이트
+      //       // const { error } = await supabase
+      //       //   .from('user_library')
+      //       //   .update({
+      //       //     title: finalBookData.title,     // 최상위 컬럼 업데이트
+      //       //     author: finalBookData.author,   // 최상위 컬럼 업데이트
+      //       //     book_data: finalBookData as unknown as Json, // book_data 컬럼 업데이트
+      //       //   })
+      //       //   .eq('id', id);
+
+      //       // if (error) throw error;
+
+      //     } catch (error) {
+      //       console.error(`Failed to refresh book info for ${title}:`, error);
+      //       useUIStore.getState().setNotification({ message: '도서 정보 갱신에 실패했습니다.', type: 'error' });
+
+      //       // 롤백 로직: 에러 발생 시 원래 책 정보로 되돌립니다.
+      //       set(state => ({
+      //         myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? originalBook : b)),
+      //         librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? originalBook : b)),
+      //         libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? originalBook : b)),
+      //         selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? originalBook : state.selectedBook,
+      //       }));
+
+      //     } finally {
+      //       set({ refreshingIsbn: null, refreshingEbookId: null });
+      //     }
+      //   },
+
 
       updateReadStatus: async (id, status) => {
         await updateBookInStoreAndDB(id, { readStatus: status }, '읽음 상태 변경에 실패했습니다.');

@@ -146,6 +146,8 @@ export interface SiripEbookResult {
   unavailableCountSummary: number;
   totalCountOwned: number;
   totalCountSubs: number;
+  availableCountOwned: number; 
+  availableCountSubs: number;
   searchQuery: string;
   bookList: SiripEbookBook[];
   errors?: {

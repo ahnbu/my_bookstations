@@ -43,6 +43,7 @@ function hasCacheBlockingError(finalResult: Partial<LibraryApiResponse>): boolea
 // ==============================================
 
 async function searchGwangjuLibrary(isbn: string): Promise<GwangjuPaperResult> {
+    // throw new Error("광주 도서관 테스트 에러"); // 크롤링 에러 테스트용
     const url = "https://lib.gjcity.go.kr:8443/kolaseek/plus/search/plusSearchResultList.do";
     const payload = new URLSearchParams({'searchType': 'DETAIL','searchKey5': 'ISBN','searchKeyword5': isbn,'searchLibrary': 'ALL','searchSort': 'SIMILAR','searchRecordCount': '30'});
     const headers = {'User-Agent': 'Mozilla/5.0','Content-Type': 'application/x-www-form-urlencoded','Referer': 'https://lib.gjcity.go.kr:8443/kolaseek/plus/search/plusSearchDetail.do'};
@@ -353,6 +354,8 @@ async function searchSiripEbookIntegrated(searchTitle: string): Promise<SiripEbo
             unavailableCountSummary: totalCountSummary - availableCountSummary,
             totalCountOwned: totalCountOwned,
             totalCountSubs: totalCountSubs,
+            availableCountOwned: availableCountOwned,
+            availableCountSubs: availableCountSubs,
             searchQuery: searchTitle,
             bookList: combinedBookList,
         };
@@ -1074,21 +1077,6 @@ export default {
         
         console.log('[CACHE DEBUG] Key String:', cacheKeyString);
         console.log('[CACHE DEBUG] Cache Key URL:', cacheUrl.toString());
-
-        // 3. 수정된 cacheKeyRequest 객체로 캐시를 조회합니다.
-        // let response = await cache.match(cacheKeyRequest);
-        // if (response) {
-        //   console.log("Cache HIT!");
-        //   const newHeaders = new Headers(response.headers);
-        //   Object.entries(corsHeaders).forEach(([key, value]) => newHeaders.set(key, value));
-        //   newHeaders.set('X-Cache-Status', 'HIT');
-  
-        //   return new Response(response.body, {
-        //     status: response.status,
-        //     statusText: response.statusText,
-        //     headers: newHeaders,
-        //   });
-        // }
   
         // ▼▼▼▼▼ [수정 시작] isDbSchemaChanged 값에 따라 캐시 조회 분기 ▼▼▼▼▼
         // isDbSchemaChanged가 false일 때만 캐시를 조회합니다. (true이면 캐시 우회)
