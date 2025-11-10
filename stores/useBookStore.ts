@@ -40,18 +40,13 @@ async function updateBookInStoreAndDB(
     myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? updatedBook : b)),
     librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? updatedBook : b)),
     libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? updatedBook : b)),
-    // libraryFavoritesFilterResults: state.libraryFavoritesFilterResults
-    //   .map(b => (b.id === id ? updatedBook : b)) // 우선 업데이트하고
-    //   .filter(b => b.isFavorite !== false), // isFavorite가 false로 변경된 책은 목록에서 제거
-    // selectedBook:
-    //   state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id
-    //     ? updatedBook
-    //     : state.selectedBook,
   }));
 
   // 2. DB 업데이트
   // `book_data`에 저장될 객체에서 최상위 컬럼인 id, note를 제외
-  const { id: bookId, note, ...bookDataForDb } = updatedBook; 
+  // const { id: bookId, note, ...bookDataForDb } = updatedBook; 
+  const bookDataForDb = { ...updatedBook };
+
   
   try {
     const updateData: {
@@ -63,11 +58,12 @@ async function updateBookInStoreAndDB(
       title: updatedBook.title,
       author: updatedBook.author,
       book_data: bookDataForDb as unknown as Json,
+      note: updatedBook.note ?? null, // 👈 updatedBook의 note 값으로 항상 동기화
     };
 
-    if (Object.prototype.hasOwnProperty.call(updates, 'note')) {
-      updateData.note = updates.note ?? null;
-    }
+    // if (Object.prototype.hasOwnProperty.call(updates, 'note')) {
+    //   updateData.note = updates.note ?? null;
+    // }
 
     const { error } = await supabase
       .from('user_library')
@@ -796,6 +792,14 @@ export const useBookStore = create<BookState>(
                     siripEbookInfo: ((pureApiData.siripEbookInfo === null || ('error' in (pureApiData.siripEbookInfo || {})) || pureApiData.siripEbookInfo?.errors) && originalBook.siripEbookInfo && !originalBook.siripEbookInfo.errors)
                         ? originalBook.siripEbookInfo : pureApiData.siripEbookInfo,
                 };
+
+                // ▼▼▼▼▼ [핵심 수정 1] ▼▼▼▼▼
+                // 부분 업데이트 시, originalBook에 있던 id와 note가 finalBookData에
+                // 포함될 수 있으므로, 타입 일관성을 위해 제거해 줍니다.
+                // (TypeScript는 finalBookData가 BookData 타입이길 기대하기 때문)
+                delete (finalBookData as any).id;
+                delete (finalBookData as any).note;
+                // ▲▲▲▲▲ [핵심 수정 1] ▲▲▲▲▲
             }
 
             // 항상 최신 스키마 버전으로 업데이트
@@ -825,16 +829,41 @@ export const useBookStore = create<BookState>(
             }));
 
             // 5. 최종 DB 업데이트
+            // `updateBookInStoreAndDB`를 호출하여 DB를 업데이트합니다.
+            // 이 함수는 `updatedBookForUI` 객체를 기반으로 동작해야 합니다.
+            // 하지만 `refreshBookInfo` 자체가 업데이트 로직을 포함하므로,
+            // `updateBookInStoreAndDB`를 다시 호출하는 대신 직접 DB를 업데이트합니다.
+            
+            // ▼▼▼▼▼ [핵심 수정 3] ▼▼▼▼▼
+            // DB에 저장할 객체를 `updatedBookForUI`를 기반으로 다시 만듭니다.
+            // ▼▼▼▼▼ [수정] 누락되었던 에러 처리 로직을 다시 추가합니다. ▼▼▼▼▼
             const { error } = await supabase
-              .from('user_library')
-              .update({
-                title: finalBookData.title,     // 최상위 컬럼 업데이트
-                author: finalBookData.author,   // 최상위 컬럼 업데이트
-                book_data: finalBookData as unknown as Json, // book_data 컬럼 업데이트
-              })
-              .eq('id', id);
+                .from('user_library')
+                .update({
+                    title: updatedBookForUI.title,
+                    author: updatedBookForUI.author,
+                    book_data: updatedBookForUI as unknown as Json,
+                    note: updatedBookForUI.note ?? null,
+                })
+                .eq('id', id);
 
-            if (error) throw error;
+            if (error) {
+                // 에러가 발생하면 catch 블록으로 던져서 롤백 로직을 실행시킵니다.
+                throw error;
+            }
+            // ▲▲▲▲▲ [수정] ▲▲▲▲▲
+
+            // // 5. 최종 DB 업데이트
+            // const { error } = await supabase
+            //   .from('user_library')
+            //   .update({
+            //     title: finalBookData.title,     // 최상위 컬럼 업데이트
+            //     author: finalBookData.author,   // 최상위 컬럼 업데이트
+            //     book_data: finalBookData as unknown as Json, // book_data 컬럼 업데이트
+            //   })
+            //   .eq('id', id);
+
+            // if (error) throw error;
 
           } catch (error) {
             console.error(`Failed to refresh book info for ${title}:`, error);
