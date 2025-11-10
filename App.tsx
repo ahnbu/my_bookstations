@@ -1,6 +1,5 @@
 
 import React, { useEffect } from 'react';
-import { useAppStore } from './stores/useAppStore';
 import BookSearchListModal from './components/BookSearchListModal';
 import BookDetails from './components/BookDetails';
 import MyLibrary from './components/MyLibrary';
@@ -37,15 +36,6 @@ const App: React.FC = () => {
   const fetchUserSettings = useSettingsStore(state => state.fetchUserSettings);
   const applyTheme = useSettingsStore(state => state.applyTheme);
   const settings = useSettingsStore(state => state.settings);
-
-  // ▼▼▼▼▼ [추가 시작] ▼▼▼▼▼
-  const { initializeApp, isInitialized } = useAppStore();
-
-  useEffect(() => {
-    // 앱이 처음 로드될 때 스키마 버전 등 전역 설정을 초기화합니다.
-    initializeApp();
-  }, [initializeApp]);
-  // ▲▲▲▲▲ [추가 끝] ▲▲▲▲▲
 
   useEffect(() => {
     const unsubscribe = initializeAuthListener();
@@ -103,19 +93,6 @@ const App: React.FC = () => {
 
     return cleanup;
   }, []); // 빈 의존성 배열로 이벤트 리스너 재등록 방지
-
-  // ▼▼▼▼▼ [추가 시작] ▼▼▼▼▼
-  // 앱 초기화(스키마 버전 로딩 등)가 완료될 때까지 로딩 화면을 표시합니다.
-  // 이렇게 하면 하위 컴포넌트들이 최신 스키마 버전을 안전하게 참조할 수 있습니다.
-  if (!isInitialized) {
-    return (
-      <div className="min-h-screen bg-primary flex items-center justify-center">
-        {/* 간단한 로딩 인디케이터. 필요하다면 Spinner 컴포넌트로 교체 가능 */}
-        <p className="text-secondary">앱을 초기화하는 중...</p>
-      </div>
-    );
-  }
-  // ▲▲▲▲▲ [추가 끝] ▲▲▲▲▲
 
   return (
     <div className="min-h-screen bg-primary text-primary font-sans">
