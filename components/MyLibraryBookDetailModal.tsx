@@ -64,10 +64,15 @@ const StockDisplay: React.FC<StockDisplayProps> = ({
   // 1. 상태 이름 결정 (로직 중앙화)
   type StockStatus = 'available' | 'unavailable' | 'none';
   
+  // const getStatus = (): StockStatus => {
+  //   if (hasError) return 'unavailable';     // 에러 상태 (빨간색)
+  //   if (availableCount > 0) return 'available'; // 재고 있음 상태 (녹색)
+  //   return 'none';                          // 재고 없음 상태 (회색)
+  // };
   const getStatus = (): StockStatus => {
-    if (hasError) return 'unavailable';     // 에러 상태 (빨간색)
-    if (availableCount > 0) return 'available'; // 재고 있음 상태 (녹색)
-    return 'none';                          // 재고 없음 상태 (회색)
+    if (hasError) return 'unavailable';     // 에러 상태: 빨간색
+    if (finalAvailableCount > 0) return 'available'; // 대출 가능: 녹색/파란색
+    return 'none';                          // 재고 0 또는 없음: 회색
   };
   
   const status: StockStatus = getStatus();
@@ -80,13 +85,13 @@ const StockDisplay: React.FC<StockDisplayProps> = ({
   };
   const textColorClass = statusColorClassMap[status];
 
-  // const titleText = `총 ${totalCount}권, 대출가능 ${availableCount}권${hasError ? ' - 현재 정보 갱신 실패' : ''}`;
   const titleText = `총 ${finalTotalCount}권, 대출가능 ${finalAvailableCount}권${hasError ? ' - 현재 정보 갱신 실패' : ''}`;
 
   return (
     <div className="flex justify-between items-center">
       <span>{label}:</span>
       <div className="flex items-center gap-2">
+        {hasError && <span className="font-medium text-red-400" title="정보 갱신 실패">(에러)</span>}
         <a
           href={searchUrl}
           target="_blank"
@@ -97,7 +102,6 @@ const StockDisplay: React.FC<StockDisplayProps> = ({
         >
           {totalCount} / {availableCount}
         </a>
-        {hasError && <span className="font-medium text-red-400" title="정보 갱신 실패">(에러)</span>}
       </div>
     </div>
   );

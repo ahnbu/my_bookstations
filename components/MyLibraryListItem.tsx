@@ -82,16 +82,25 @@ interface LibraryTagProps {
   isError?: boolean;
 }
 const LibraryTag: React.FC<LibraryTagProps> = ({ name, totalBooks, availableBooks, searchUrl, size = 'md', isError = false }) => {
-  // ... MyLibrary.tsx에 있던 LibraryTag 코드 전체를 여기에 붙여넣기 ...
+  // const getStatus = () => {
+  //   if (isError) return 'unavailable';
+  //   if (totalBooks > 0) return 'available';
+  //   return 'none';
+  // };
+
+  // const status = getStatus();
+  // const titleText = isError 
+  //   ? `${name} - 정보 조회 실패 (표시된 정보는 과거 데이터일 수 있음)` 
+  //   : `${name} - 총 ${totalBooks}권 (availableCount: ${availableBooks}권)`;
+  // const displayText = `${name} (${totalBooks}/${availableBooks})`;
+
+  // isError를 무시하고 오직 재고 수량으로만 상태 결정
   const getStatus = () => {
-    if (isError) return 'unavailable';
     if (totalBooks > 0) return 'available';
     return 'none';
   };
   const status = getStatus();
-  const titleText = isError 
-    ? `${name} - 정보 조회 실패 (표시된 정보는 과거 데이터일 수 있음)` 
-    : `${name} - 총 ${totalBooks}권 (availableCount: ${availableBooks}권)`;
+  const titleText = `${name} - 총 ${totalBooks}권 (대출가능: ${availableBooks}권)`;
   const displayText = `${name} (${totalBooks}/${availableBooks})`;
 
   return (
@@ -100,6 +109,13 @@ const LibraryTag: React.FC<LibraryTagProps> = ({ name, totalBooks, availableBook
       <span>{displayText}</span>
     </a>
   );
+
+  // return (
+  //   <a href={searchUrl} target="_blank" rel="noopener noreferrer" className={`library-tag ${size === 'sm' ? 'library-tag-sm' : ''} status-${status} truncate`} title={titleText}>
+  //     <div className={`status-indicator ${status}`}></div>
+  //     <span>{displayText}</span>
+  //   </a>
+  // );
 };
 
 const LibraryTagsGroup: React.FC<{ book: SelectedBook }> = React.memo(({ book }) => {
@@ -109,37 +125,43 @@ const LibraryTagsGroup: React.FC<{ book: SelectedBook }> = React.memo(({ book })
                 totalBooks={book.stock_gwangju_toechon_total ?? 0}
                 availableBooks={book.stock_gwangju_toechon_available ?? 0}
                 searchUrl={createLibraryOpenURL("퇴촌", book.title, book.customSearchTitle)}
-                isError={!book.gwangjuPaperInfo || ('error' in book.gwangjuPaperInfo)} />
+                // isError={!book.gwangjuPaperInfo || ('error' in book.gwangjuPaperInfo)} />
+                isError={!!book.gwangjuPaperInfo && 'error' in book.gwangjuPaperInfo} />
 
             <LibraryTag name="기타"
                 totalBooks={book.stock_gwangju_other_total ?? 0}
                 availableBooks={book.stock_gwangju_other_available ?? 0}
                 searchUrl={createLibraryOpenURL("기타", book.title, book.customSearchTitle)}
-                isError={!book.gwangjuPaperInfo || ('error' in book.gwangjuPaperInfo)} />
+                // isError={!book.gwangjuPaperInfo || ('error' in book.gwangjuPaperInfo)} />
+                isError={!!book.gwangjuPaperInfo && 'error' in book.gwangjuPaperInfo} />
 
             <LibraryTag name="e시립구독"
                 totalBooks={book.stock_sirip_subs_total ?? 0}
                 availableBooks={book.stock_sirip_subs_available ?? 0}
                 searchUrl={createLibraryOpenURL("e시립구독", book.title, book.customSearchTitle)}
-                isError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.subscription} />
+                // isError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.subscription} />
+                isError={!!book.siripEbookInfo && !!book.siripEbookInfo.errors?.subscription} />
 
             <LibraryTag name="e시립소장"
                 totalBooks={book.stock_sirip_owned_total ?? 0}
                 availableBooks={book.stock_sirip_owned_available ?? 0}
                 searchUrl={createLibraryOpenURL("e시립소장", book.title, book.customSearchTitle)}
-                isError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.owned} />
+                // isError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.owned} />
+                isError={!!book.siripEbookInfo && !!book.siripEbookInfo.errors?.owned} />
                 
             <LibraryTag name="e경기"
                 totalBooks={book.stock_gyeonggi_total ?? 0}
                 availableBooks={book.stock_gyeonggi_available ?? 0}
                 searchUrl={createLibraryOpenURL("e경기", book.title, book.customSearchTitle)}
-                isError={!book.gyeonggiEbookInfo || ('error' in book.gyeonggiEbookInfo)} />
+                // isError={!book.gyeonggiEbookInfo || ('error' in book.gyeonggiEbookInfo)} />
+                isError={!!book.gyeonggiEbookInfo && 'error' in book.gyeonggiEbookInfo} />
             
             <LibraryTag name="e교육"
                 totalBooks={book.stock_gyeonggi_edu_total ?? 0}
                 availableBooks={book.stock_gyeonggi_edu_available ?? 0}
                 searchUrl={createLibraryOpenURL("e교육", book.title, book.customSearchTitle)}
-                isError={!book.gyeonggiEduEbookInfo || (book.gyeonggiEduEbookInfo.errorCount ?? 0) > 0} />
+                // isError={!book.gyeonggiEduEbookInfo || (book.gyeonggiEduEbookInfo.errorCount ?? 0) > 0} />
+                isError={!!book.gyeonggiEduEbookInfo && (book.gyeonggiEduEbookInfo.errorCount ?? 0) > 0} />
 
         </div>
     );
