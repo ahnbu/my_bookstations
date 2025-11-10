@@ -1,14 +1,3 @@
-네, 알겠습니다. 마지막 **3단계: `DEVELOPMENT.md` 업데이트** 작업을 시작하겠습니다.
-
-이 문서는 프로젝트의 내부 설계도와 같으므로, 실제 코드와의 정합성을 맞추는 것이 매우 중요합니다. 최신 커밋 히스토리와 현재 코드 구조를 바탕으로 `DEVELOPMENT.md`의 각 섹션을 정밀하게 수정했습니다. 특히 API 명세, 데이터 흐름, 트러블슈팅 가이드 부분을 대대적으로 개선했습니다.
-
----
-
-### `DEVELOPMENT.md` 수정 제안
-
-기존 `DEVELOPMENT.md` 파일의 내용 전체를 아래 내용으로 교체하시면 됩니다.
-
-```markdown
 # 개발 가이드 (Development Guide)
 
 마이북스테이션 프로젝트의 개발자를 위한 기술 문서입니다.
@@ -45,17 +34,17 @@ graph TD
 ```
 
 ### 프론트엔드 아키텍처
-- **컴포넌트**: UI를 구성하는 재사용 가능한 블록 (`/components`)
-- **상태 관리 (Zustand)**: 전역 상태를 관리하는 훅 기반 스토어 (`/stores`)
+- **컴포넌트**: UI를 구성하는 재사용 가능한 블록 (`/components`). `MyLibrary`와 같은 거대 컴포넌트는 `MyLibraryListItem`, `MyLibraryToolbar` 등으로 세분화하여 관리. **[수정]**
+- **상태 관리 (Zustand)**: 전역 상태를 관리하는 훅 기반 스토어 (`/stores`).
   - `useAuthStore`: 사용자 인증 및 세션 관리
   - `useUIStore`: 모달, 알림 등 UI 상태 관리
   - `useBookStore`: 도서 데이터, 내 서재, API 연동 등 핵심 비즈니스 로직
   - `useSettingsStore`: 사용자 맞춤 설정 관리
-- **서비스 계층**: 외부 API와의 통신을 담당하는 모듈 (`/services`)
+- **서비스 계층**: 외부 API와의 통신을 담당하는 모듈 (`/services`).
   - `aladin.service.ts`: Vercel 프록시를 통해 알라딘 API 호출
   - `unifiedLibrary.service.ts`: Cloudflare Worker로 통합된 도서관 재고 API 호출, 도서관 링크 생성 담당
   - `feedback.service.ts`: Supabase Edge Function으로 피드백 전송
-- **유틸리티**: 특정 도메인에 종속되지 않는 순수 함수 모음 (`/utils`)
+- **유틸리티**: 특정 도메인에 종속되지 않는 순수 함수 모음 (`/utils`).
   - `bookDataCombiner.ts`: API 응답을 내부 데이터 구조로 조합
   - `isbnMatcher.ts`: ISBN 기반으로 도서를 매칭하는 로직
 
@@ -67,19 +56,14 @@ my_bookstation/
 ├── components/              # React 컴포넌트
 │   ├── layout/              # Header, Footer 등 레이아웃
 │   ├── DevToolsFloat.tsx    # 관리자 전용 기능 모달 (구 AdminPanel.tsx)
-│   ├── MyLibrary.tsx        # 개인 서재 (핵심 기능)
-│   ├── MyLibraryBookDetailModal.tsx # 내 서재 상세 정보 모달
+│   ├── MyLibrary.tsx        # 컨테이너: 서재의 상태 및 비즈니스 로직 담당
+│   ├── MyLibraryListItem.tsx # 프레젠테이셔널: 개별 책 아이템 UI
+│   ├── MyLibraryToolbar.tsx  # 프레젠테이셔널: 서재 상단 툴바 UI
 │   └── ... (기타 UI 컴포넌트)
 ├── library-checker/         # Cloudflare Workers (재고 확인 API)
-│   └── src/index.js
+│   └── src/index.ts         # TypeScript로 마이그레이션됨
 ├── services/                # API 서비스 계층
-│   ├── aladin.service.ts
-│   └── unifiedLibrary.service.ts
 ├── stores/                  # Zustand 상태 관리 스토어
-│   ├── useAuthStore.ts
-│   ├── useBookStore.ts
-│   ├── useSettingsStore.ts
-│   └── useUIStore.ts
 ├── supabase/                # Supabase 설정 및 Functions
 │   └── functions/
 │       └── send-feedback-email/ # 피드백 처리 Edge Function
@@ -92,17 +76,18 @@ my_bookstation/
 ├── types.ts                 # 전역 TypeScript 타입 정의 (Zod 기반)
 └── ... (설정 파일)
 ```
+**[수정]** 컴포넌트 분리 및 Worker의 TypeScript 전환을 반영하여 구조 설명을 업데이트했습니다.
 
 ## 🔧 기술 스택 상세
 
-- **React 19 & TypeScript**: 최신 React 기능 활용 및 정적 타입 체킹
-- **Zustand**: 경량화된 전역 상태 관리
-- **Supabase**: PostgreSQL 데이터베이스, 인증, Row Level Security(RLS)
-- **Cloudflare Workers**: 도서관 재고 크롤링 및 키워드 통합 검색 API 서버. **Cache API**를 활용한 응답 캐싱.
-- **Vercel Serverless Functions**: Aladin API 키 보호를 위한 프록시 서버
-- **Supabase Edge Functions**: 보안이 필요한 서버 사이드 로직 (피드백 이메일 전송)
-- **Tailwind CSS**: 유틸리티 우선 CSS 프레임워크
-- **Zod**: 런타임 데이터 검증
+- **React 19 & TypeScript**: 최신 React 기능 활용 및 정적 타입 체킹.
+- **Zustand**: 경량화된 전역 상태 관리.
+- **Supabase**: PostgreSQL 데이터베이스, 인증, Row Level Security(RLS).
+- **Cloudflare Workers**: 도서관 재고 크롤링 및 키워드 통합 검색 API 서버. **TypeScript** 기반이며 **Cache API**를 활용한 응답 캐싱. **[수정]**
+- **Vercel Serverless Functions**: Aladin API 키 보호를 위한 프록시 서버.
+- **Supabase Edge Functions**: 보안이 필요한 서버 사이드 로직 (피드백 이메일 전송).
+- **Tailwind CSS**: 유틸리티 우선 CSS 프레임워크.
+- **Zod**: 런타임 데이터 검증.
 
 ## 🚀 개발 환경 설정
 
@@ -131,6 +116,7 @@ my_bookstation/
     npm run dev
     ```
 
+
 ## 📊 API 명세
 
 ### 1. Aladin API 프록시 (Vercel Serverless)
@@ -142,31 +128,31 @@ my_bookstation/
   - 로컬: `http://127.0.0.1:8787`
   - 프로덕션: `https://library-checker.byungwook-an.workers.dev`
 - **메서드**: `POST`
-- **요청 본문**:
+- **[수정] 요청 본문**:
   ```json
   {
     "isbn": "9791190538534",
-    "eduTitle": "12가지 인생의 법칙",
-    "gyeonggiTitle": "12가지 인생의 법칙",
-    "siripTitle": "12가지 인생의 법칙",
-    "customTitle": "" // (Optional) 지정 시 위 3개 title 대신 사용
+    "author": "저자명",
+    "eduTitle": "검색용 제목",
+    "gyeonggiTitle": "검색용 제목",
+    "siripTitle": "검색용 제목",
+    "customTitle": "" // (Optional)
   }
   ```
-- **응답 본문 (성공 예시)**:
+- **[수정] 응답 본문 (성공 예시, 평탄화 및 camelCase로 표준화됨)**:
   ```json
   {
-    "title": "12가지 인생의 법칙",
-    "isbn": "9791190538534",
+    "title": "...",
+    "isbn": "...",
     "author": "...",
     "customTitle": "",
     "lastUpdated": 1761380372099,
-    "gwangjuPaper": { /* ... */ },
-    "gyeonggiEbookEdu": { /* ... */ },
-    "gyeonggiEbookLib": { /* ... */ },
-    "siripEbook": { /* ... */ }
+    "gwangjuPaper": { "totalCountSummary": 10, ... },
+    "gyeonggiEbookEdu": { "totalCountSummary": 1, ... },
+    "gyeonggiEbookLib": { "totalCountSummary": 2, ... },
+    "siripEbook": { "totalCountSummary": 3, "availableCountOwned": 1, ... }
   }
   ```
-
 
 ### 3. 키워드 통합 검색 API (Cloudflare Workers)
 - **엔드포인트**: `/keyword-search`
@@ -197,7 +183,6 @@ my_bookstation/
 - **엔드포인트**: `https://<project>.supabase.co/functions/v1/send-feedback-email`
 - **메서드**: `POST`
 - **인증**: `Authorization: Bearer <User JWT>` (Supabase Auth)
-
 
 ---
 
@@ -233,20 +218,27 @@ const searchUrl = createLibraryOpenURL("e경기", book.title, book.customSearchT
 
 ## 💾 데이터 흐름 및 처리 (Data Flow & Processing)
 
-`useBookStore`가 API 응답을 받아 DB에 저장하는 과정은 단순한 데이터 저장을 넘어, 화면 표시에 최적화된 형태로 데이터를 가공하고 안정성을 보장하는 중요한 파이프라인을 포함합니다.
+**[수정]** 이 섹션은 DB 컬럼 분리 아키텍처를 반영하여 전면 개정합니다.
 
-### 데이터 조합 함수의 역할 분리
+본 프로젝트의 데이터 관리는 **"단일 진실 공급원(Single Source of Truth)"** 원칙과 **"데이터 안정성"**을 최우선으로 고려하여 설계되었습니다.
 
-1.  **`combineRawApiResults` (데이터 확인용)**:
-    -   **역할**: 알라딘과 도서관 API 응답을 **가공 없이 그대로 병합**합니다.
-    -   **목적**: 상세 모달의 'API' 버튼 클릭 시, DB에 저장된 원본 `book_data`를 확인하는 용도입니다.
+### 데이터 저장 아키텍처: 컬럼 분리와 JSON 저장소의 역할 분담
 
-2.  **`createBookDataFromApis` (DB 저장 및 화면 표시용)**:
-    -   **역할**: 두 API 응답을 조합하여, UI에서 사용하기 좋은 **"순수 API 데이터 객체(`ApiCombinedBookData`)"를 생성**합니다.
-    -   **주요 로직**:
-        -   **안전한 초기화**: `ApiCombinedBookData` 타입에 맞게 모든 도서관 관련 필드를 `null`로 초기화합니다.
-        -   **성공 중심 할당**: 각 API 응답이 유효할 경우에만 해당 필드에 값을 할당합니다. 응답이 실패하거나(`undefined`, `null`), 비정상적(`{}`)이면 초기값 `null`이 유지됩니다.
-        -   **파생 데이터 생성**: `toechonStock`, `filteredGyeonggiEbookInfo` 등 요약/파생 데이터를 생성합니다.
+`user_library` 테이블은 두 가지 종류의 데이터를 저장하여 각자의 장점을 극대화합니다.
+
+1.  **최상위 개별 컬럼 (`stock_*`, `note` 등):**
+    -   **역할**: UI 표시에 직접 사용되는 핵심 데이터, 자주 조회/필터링되는 데이터를 저장합니다.
+    -   **대상**: 도서관별 총 재고(`stock_*_total`), 대출 가능 수(`stock_*_available`), 사용자 메모(`note`) 등.
+    -   **장점**:
+        -   **성능**: 인덱싱을 통해 매우 빠른 조회 및 필터링이 가능합니다.
+        -   **안정성**: `UPDATE` 시 특정 컬럼만 수정할 수 있어, 다른 데이터에 영향을 주지 않고 안전하게 업데이트할 수 있습니다.
+
+2.  **`book_data` (JSONB 컬럼):**
+    -   **역할**: API로부터 받은 원본 데이터, 서지 정보, 그리고 자주 변경되지 않는 기타 메타데이터의 "저장소(Repository)" 역할을 합니다.
+    -   **대상**: 알라딘 API 응답 전문, 각 도서관 API의 상세 응답 객체(`gwangjuPaperInfo` 등).
+    -   **장점**:
+        -   **유연성**: 향후 API 응답에 새로운 필드가 추가되더라도 DB 스키마 변경 없이 유연하게 저장할 수 있습니다.
+        -   **데이터 보존**: API 실패 시 데이터 복원(폴백)을 위한 원본 데이터를 보존합니다.
 
 ### 데이터 처리 파이프라인 요약
 
@@ -257,25 +249,31 @@ graph TD
         L[Library API via Cloudflare]
     end
 
-    subgraph "Data Combiner (utils/bookDataCombiner.ts)"
-        CP[createBookDataFromApis]
+    subgraph "Data Processor (useBookStore)"
+        P[refreshBookInfo]
     end
 
-    subgraph "Application"
-        STORE[useBookStore <br>(refreshBookInfo)]
-        DB[(Supabase DB <br> book_data)]
+    subgraph "Database (Supabase)"
+        C1[stock_* Columns]
+        C2[book_data JSON]
     end
 
-    A --> CP
-    L --> CP
-    CP -- "Processed Data (pureApiData)" --> STORE
+    A -- "API Response" --> P
+    L -- "API Response" --> P
 
-    STORE -- "Merge with User Data & Fallback" --> DB
+    P -- "1. 폴백 로직 적용하여 JSON 생성" --> C2
+    P -- "2. 성공한 API 결과만 추출하여 컬럼 업데이트" --> C1
 ```
-- **데이터 복원 로직**: `refreshBookInfo` 함수는 `pureApiData`의 필드가 `undefined` 또는 `null`일 경우, 이를 API 실패로 간주하고 기존 DB에 저장된 `originalBook`의 값으로 복원하여 데이터 유실을 방지합니다.
 
+- **핵심 로직 (`refreshBookInfo`):**
+    1.  **데이터 복원 (폴백):** API 호출이 실패한 정보에 대해서는, 기존 DB의 `book_data`에 저장된 과거 성공 데이터를 사용하여 `book_data`를 재구성합니다. **(데이터 유실 방지)**
+    2.  **선택적 업데이트:** **성공한 API 응답에 대해서만** `stock_*` 컬럼을 업데이트합니다. 실패한 API에 해당하는 컬럼은 건드리지 않고 기존 값을 유지합니다. **(데이터 안정성)**
+
+---
 
 ## 🎨 재고 정보 UI/UX 가이드라인
+
+**[추가]** 이 섹션을 새로 추가합니다.
 
 내 서재의 재고 정보 표시는 사용자에게 안정적이고 일관된 경험을 제공하기 위해 **"점진적 정보 공개(Progressive Disclosure)"** 원칙을 따릅니다. 목록 뷰에서는 안정적인 핵심 정보를 간결하게, 상세 뷰에서는 현재 상태를 포함한 상세 정보를 제공합니다.
 
@@ -289,9 +287,8 @@ graph TD
 | **⬜ 회색** | `status-none` | **정보 없음 또는 재고 없음:** DB에 저장된 총 재고(`_total`)가 `0`이거나 `NULL`(아직 조회 전)인 경우. |
 | **🟥 빨간색** | `status-unavailable` | **조회 실패:** **상세 모달**에서만 표시되며, 현재 API 정보 갱신에 실패했음을 의미. |
 
----
-
 ### 동작 시나리오 비교
+
 
 아래 표는 리팩토링 전후의 동작 방식을 비교하여, 새로운 UX 원칙이 어떻게 적용되는지 보여줍니다.
 
@@ -330,8 +327,9 @@ graph TD
 
 **✨ 개선점:** 과거에 조회 실패했던 책이 목록에서 계속 빨간색으로 표시되어 사용자에게 스트레스를 주던 문제를 해결했습니다. 이제 **회색(정보 없음)으로 차분하게 표시**하여, 사용자가 필요할 때 다시 조회하도록 유도합니다.
 
+---
 
-## 🗃️ 데이터베이스 유지보수 및 최적화 로그 (Database Maintenance & Optimization Log)
+## 🗃️ 데이터베이스 유지보수 및 최적화 로그
 
 이 섹션은 Supabase의 'Database Linter'를 통해 발견된 경고들을 해결하고, 프로젝트의 성능, 보안, 안정성을 향상시킨 내역을 기록합니다.
 
@@ -415,9 +413,14 @@ Supabase 대시보드에서 보고된 성능 및 보안 관련 경고들에 대�
     ```
 -   **OTP 만료 시간 단축 (`auth_otp_long_expiry`)**: 이메일 인증 코드의 유효 시간을 24시간(`86400`초)에서 10분(`600`초)으로 대폭 단축하여 인증 보안을 강화했습니다.
     -   **수정 경로**: `Authentication` > `Sign In / Providers` > `Email` > `Email OTP Expiration`
-    
+  
+
+---
 
 ## 🐛 트러블슈팅 가이드
+
+*(기존 내용에 아래 내용을 추가 및 업데이트합니다.)*
+
 
 이 섹션은 프로젝트 개발 중 발생했던 주요 문제들과 그 해결 과정을 기록하여, 유사 문제 발생 시 빠르고 효과적으로 대응하기 위한 가이드입니다.
 
@@ -484,79 +487,29 @@ Supabase 대시보드에서 보고된 성능 및 보안 관련 경고들에 대�
     ```
 -   **교훈**: 두 사례는 크롤링 시 마주치는 대표적인 인증 패턴입니다. `40x` 계열 오류 발생 시, 단순 헤더 변경 외에 **다단계 인증(세션 쿠키) 또는 동적 토큰** 요구 여부를 반드시 확인해야 합니다.
 
----
 
 ### **[유형 3] 캐싱 실패: 동일한 요청에도 계속 Cache MISS가 발생하는 경우**
+*(기존 내용을 최신 정보로 업데이트)*
+-   **원인 분석**: `POST` 요청은 기본적으로 캐싱되지 않으며, `Response` 객체에 `Cache-Control` 헤더가 없어 캐시가 저장되지 않았음.
+-   **해결 전략**:
+    1.  **안정적인 캐시 키 생성**: `POST` 요청 본문을 해싱하여 고유 경로를 가진 `GET` 메서드의 `Request` 객체를 캐시 키로 사용.
+    2.  **`Cache-Control` 헤더 명시**: `Response` 객체에 `'Cache-Control': 'public, max-age=43200'` (12시간) 헤더를 명시적으로 추가하여 캐시 저장을 강제.
+    3.  **에러 응답 캐싱 방지**: 오류가 포함된 응답에는 `'Cache-Control': 'no-store'`를 설정하여 캐시 오염 방지.
 
--   **대상 시스템**: Cloudflare Workers Cache API
--   **증상**: 동일한 `POST` 요청을 반복적으로 보내도 Worker 로그에 계속 `Cache MISS`가 기록되고, 응답 시간도 줄어들지 않는다. `cache.put()`이 호출되는 로그는 확인되지만, `cache.match()`는 항상 실패한다.
--   **원인 분석**: Cloudflare Cache API는 HTTP 표준을 엄격하게 준수한다. 캐시에 응답을 성공적으로 저장하고 조회하려면 다음 두 가지 조건이 충족되어야 하지만, 초기 코드에서는 이를 간과했다.
-    1.  **캐시 가능한 응답 헤더 부재**: `cache.put()`으로 저장하는 `Response` 객체에 `Cache-Control`과 같은 캐싱 지시 헤더가 없으면, Cloudflare는 이 응답을 "캐시할 가치가 없는" 일회성 데이터로 간주하고 실제로 저장하지 않을 수 있다.
-    2.  **불안정한 캐시 키**: `POST` 요청 자체를 캐시 키(`cache.match(request)`)로 사용하면, `Content-Type` 등 미묘한 헤더 차이로 인해 동일한 요청으로 인식되지 않을 수 있다.
--   **해결 전략**: 캐싱 로직을 HTTP 표준에 맞게 명시적으로 수정한다.
-    1.  **안정적인 캐시 키 생성**: 원본 `POST` 요청 본문에서 캐싱에 영향을 주는 데이터(ISBN, 제목 등)를 추출하여 정렬하고, 이를 해싱하여 고유한 식별자를 만든다. 이 식별자를 경로로 사용하는 **새로운 `GET` 메서드의 `Request` 객체**(`new Request('https://.../cache/<hash>')`)를 생성하여 캐시 키로 사용한다. 이렇게 하면 원본 요청의 헤더와 무관하게 일관된 키를 보장할 수 있다.
-    2.  **`Cache-Control` 헤더 명시**: 캐시 MISS가 발생하여 새로운 응답을 생성할 때, 해당 `Response` 객체의 헤더에 **`'Cache-Control': 'public, max-age=43200'`** (12시간)을 명시적으로 추가한다. 이 헤더는 "이 응답은 공개적으로 캐시해도 좋으며, 12시간 동안 유효하다"는 명확한 지시를 캐시 시스템에 전달한다.
-    3.  **에러 응답 캐싱 방지**: 크롤링 중 일부 도서관에서 오류가 발생한 응답은 캐싱하지 않도록, 해당 `Response` 객체에는 `'Cache-Control': 'no-store'` 헤더를 설정하여 잘못된 데이터가 캐시에 저장되는 것을 방지한다.
+### **[유형 5] [신규 추가] 초기 로딩 데이터에만 기능이 작동하는 경우**
+-   **증상:** '내 서재' 검색 또는 태그 필터링 후 나타난 책에 대해 특정 기능(예: 상세 모달 열기, 재고 새로고침, 태그/메모 CRUD)이 작동하지 않음.
+-   **원인 분석: 제한된 데이터 소스 참조**: 특정 기능을 수행하는 함수가 업데이트할 객체를 오직 `myLibraryBooks` 배열에서만 찾으려고 시도하기 때문에 발생.
+-   **해결 방안: 중앙화된 데이터 조회 함수 사용**:
+    1.  **`getBookById` 함수 활용**: 모든 잠재적인 데이터 소스( `myLibraryBooks`, `librarySearchResults` 등)를 검색하고, 없으면 DB에 직접 요청하는 `getBookById` 함수를 사용하도록 수정.
+    2.  **UI 상태 동시 업데이트**: 데이터 업데이트 시, 모든 관련 상태 배열(`myLibraryBooks`, `librarySearchResults` 등)을 동시에 업데이트하여 UI 일관성 유지.
 
-    **핵심 코드 (`library-checker/src/index.ts`):**
-    ```typescript
-    // 1. 안정적인 GET 요청 객체를 캐시 키로 생성
-    const cacheUrl = new URL(request.url);
-    cacheUrl.pathname = '/cache/' + hashHex;
-    const cacheKeyRequest = new Request(cacheUrl.toString(), { method: 'GET' });
+### **[유형 6] [신규 추가] 일괄 재고 갱신 시 `socket hang up` 에러 발생**
+-   **증상**: '일괄 재고 갱신' 실행 시, API 요청이 서버의 Rate Limiting에 의해 강제 종료됨.
+-   **원인 분석**: 배치(batch) 단위로만 지연을 적용하여, 배치 내의 개별 요청들은 동시에 전송되었음.
+-   **해결 전략**: `bulkRefreshAllBooks` 함수 내 `setTimeout` 지연 로직을 **개별 책(book) 요청 사이로 이동**. 각 책 갱신 후 200ms의 지연 시간을 두어 API 서버 부하를 분산.
 
-    // 캐시 조회
-    let response = await cache.match(cacheKeyRequest);
 
-    if (response) {
-      console.log("Cache HIT!");
-      // ...
-    } else {
-      // ... 크롤링 로직 수행 ...
-      
-      // 2. 캐시할 응답에 Cache-Control 헤더 추가
-      const responseHeaders = {
-        // ... 기타 헤더
-        'Cache-Control': 'public, max-age=43200' 
-      };
-      
-      const newResponse = new Response(JSON.stringify(payload), { headers: responseHeaders });
-
-      // 캐시에 저장
-      if (!hasError) {
-        ctx.waitUntil(cache.put(cacheKeyRequest, newResponse.clone()));
-      }
-      
-      return newResponse;
-    }
-    ```
--   **교훈**: 서버리스 환경의 캐시 API를 사용할 때는 내부 동작을 추측하기보다, **HTTP 캐싱 표준(특히 `Cache-Control` 헤더)을 명확히 준수**하는 것이 가장 확실하고 안정적인 방법이다. 캐시 키는 항상 일관성과 유일성이 보장되도록 신중하게 설계해야 한다.
-
-### [유형 4] 기술 결정: 경기도 전자도서관 공식 API를 사용하지 않는 이유
-> 핵심 기능(재고 정보) 유지를 위한 의사 결정 기록
-
--   **상황**: 최근 경기도 전자도서관에서 소장형 전자책에 대한 **공식 OpenAPI** (`/api/open-search/ebook`)를 제공하기 시작한 것을 발견. 기존에 사용하던 **비공식 API** (`/api/service/search-engine`)를 공식 API로 교체할지 여부를 검토함.
-
--   **분석 및 비교**: 두 API는 반환하는 데이터의 성격에 결정적인 차이가 있습니다.
-
-| 구분 | ✅ 현재 사용하는 비공식 API | ⚠️ 신규 발견한 공식 API |
-| :--- | :--- | :--- |
-| **엔드포인트** | `/api/service/search-engine` | `/api/open-search/ebook` |
-| **제공 데이터**| 서지 정보 + **재고 정보 (총 보유/대출 수량)** | 서지 정보 **ONLY** |
-| **핵심 기능** | **대출 가능 여부 표시 (✅ 가능)** | **대출 가능 여부 표시 (❌ 불가능)** |
-| **안정성** | 비공식 (언제든 변경/중단 가능) | 공식 (비교적 안정적) |
-| **적용 시 영향**| **기능 유지** | **핵심 기능(재고 확인) 저하** |
-
--   **결론**: 사용자 경험의 핵심인 **"대출 가능 여부" 정보를 상실**하는 것은 심각한 기능적 다운그레이드에 해당합니다. 따라서, 비공식 API의 잠재적 불안정성을 감수하더라도 **현재 구현을 유지**하는 것이 프로젝트의 가치를 보존하는 데 더 유리하다고 판단합니다.
-
--   **장기적 대책 (Fallback 전략)**:
-    1.  현재 사용하는 비공식 API가 중단될 경우를 대비한 **"점진적 기능 저하 (Graceful Degradation)"** 전략을 수립합니다.
-    2.  **구현 아이디어**: Cloudflare Worker에서 비공식 API 호출(`searchGyeonggiEbookOwned`)이 실패(`catch` 블록)하면, 차선책으로 공식 API를 호출합니다.
-    3.  **UI 처리**: 이 경우, 반환된 데이터에 `availabilityUnknown: true` 와 같은 플래그를 추가합니다. 프론트엔드는 이 플래그를 감지하여 재고 정보를 `(?/?)` 또는 `(확인 불가)`와 같이 표시하여, 책의 존재는 알리되 재고 정보는 불확실함을 명확히 전달합니다.
-
----
-
-### 초기 로딩된 데이터에만 기능이 작동하는 경우
+### [유형 7] 초기 로딩된 데이터에만 기능이 작동하는 경우
 
 **증상:**
 -   '내 서재' 검색 또는 태그 필터링 후 나타난 책에 대해 특정 기능(예: 상세 모달 열기, 재고 새로고침, 태그/메모 CRUD)이 작동하지 않는다.
@@ -620,49 +573,86 @@ Supabase 대시보드에서 보고된 성능 및 보안 관련 경고들에 대�
 **핵심 원칙**: 사용자 인터랙션의 대상이 되는 객체를 찾거나 수정할 때는, 현재 화면에 보이는 데이터의 출처(`myLibraryBooks`, `librarySearchResults` 등)와 관계없이, **존재하는 모든 데이터 소스를 포괄하는 단일 통로(`getBookById`)**를 통해 접근해야 합니다.
 
 
-### API 조회 실패 시 "조회중..."이 무한 반복되는 경우
+### [유형 8] API 조회 실패 시 "조회중..."이 무한 반복되는 경우
 
 -   **증상**: 상세 정보 모달에서 특정 재고 정보가 "조회중..."으로 계속 표시되고 멈춥니다.
 -   **원인**: API 조회 실패 시 DB에 해당 필드가 `null`로 저장됩니다. UI 컴포넌트가 `!book.someInfo` 와 같이 `null`을 `false`로 해석하여 로딩 상태로 오판하기 때문입니다.
 -   **해결**: `MyLibraryBookDetailModal`의 `StockDisplay` 컴포넌트에서 로딩 상태 판단 조건을 `!book.someInfo`에서 `book.someInfo === undefined`로 수정했습니다. 이를 통해 `undefined`(아직 로드 전)와 `null`(API 조회 실패 또는 데이터 없음)을 명확히 구분하여 처리합니다.
 
 
-### 경기도 광주시 퇴촌도서관 상세페이지 웹 방화벽 차단
+### [유형 9] 경기도 광주시 퇴촌도서관 상세페이지 웹 방화벽 차단
 - **증상**: 크롤링 데이터에 포함된 상세페이지 URL(`resourcedetail/detail.do?...`)로 직접 접근 시 "Web firewall security policies have been blocked" 에러 페이지가 표시됨.
 - **원인**: 도서관 시스템의 보안 정책 강화로 외부에서의 상세페이지 직접 링크가 차단됨.
 - **해결**: `createLibraryOpenURL` 함수에서 '퇴촌' 케이스 처리 시, 상세페이지 URL 대신 **제목 기반 검색 결과 페이지 URL**을 생성합니다. 사용자는 검색 결과 목록에서 해당 도서를 클릭하여 상세 정보를 확인할 수 있습니다.
 
-### API 요청 타임아웃 (전체 응답 지연)
+### [유형 10] API 요청 타임아웃 (전체 응답 지연)
 - **증상**: 하나의 도서관 서버 응답이 지연되면 전체 재고 조회(`Promise.allSettled`)가 늦어짐.
 - **해결**: Cloudflare Worker(`library-checker/src/index.js`)에서 각 도서관 `fetch` 요청에 `AbortSignal.timeout(15000)` (15초)을 설정했습니다. 특정 서버가 15초 내에 응답하지 않으면 해당 요청만 실패 처리하고 나머지 결과를 반환합니다.
 
-### 경기도 전자도서관 검색 결과 0건 (특수문자 문제)
+### [유형 11] 경기도 전자도서관 검색 결과 0건 (특수문자 문제)
 - **증상**: 책 제목에 특수문자가 포함된 경우 검색 결과가 0건으로 나옴.
 - **해결**: API 호출 방식을 복잡한 `detailQuery` 파라미터 대신, 실제 웹사이트 검색창과 동일하게 동작하는 `keyword` 파라미터 방식으로 변경하여 검색 정확도를 높였습니다.
 
----
 
-### 주요 변경점 요약
-
-1.  **아키텍처 & 프로젝트 구조:**
-    -   `bookDataCombiner.ts`의 역할을 명확히 하여 프로젝트 구조도에 추가했습니다.
-    -   `AdminPanel.tsx`의 이름이 `DevToolsFloat.tsx`로 변경된 것을 반영했습니다.
-
-2.  **기술 스택:**
-    -   Cloudflare Workers 설명에 **"Cache API를 활용한 응답 캐싱"**을 명시하여 프로젝트의 중요한 성능 개선 포인트를 강조했습니다.
-
-3.  **API 명세:**
-    -   통합 도서관 재고 API의 요청 본문에서 `author` 필드를 제거하여, 최근 커밋(`6a4656d`)에서 해당 기능이 제거되었음을 반영했습니다.
-    -   응답 본문 예시에도 `author`를 추가하여, 디버깅 목적으로 값이 그대로 반환됨을 명시했습니다.
-
-4.  **데이터 흐름 및 처리:**
-    -   `combineApiResults`를 `createBookDataFromApis`로 수정하여 실제 함수명과 일치시켰습니다.
-    -   `createBookDataFromApis`의 핵심 로직인 **"안전한 초기화"**와 **"성공 중심 할당"**을 명확히 설명했습니다.
-    -   Mermaid 다이어그램을 단순화하고, `useBookStore`의 **"데이터 복원 로직"**을 텍스트로 명시하여 데이터 유실 방지 매커니즘을 설명했습니다.
-
-5.  **트러블슈팅 가이드:**
-    -   가장 최근에 해결된 **"'조회중...' 무한 반복 버그"**에 대한 원인과 해결 방안을 신규 항목으로 추가했습니다.
+네, 알겠습니다. 구 버전과 신 버전 `DEVELOPMENT.md`의 핵심적인 차이점을 명확하게 비교하고 정리해 드리겠습니다. 이 비교는 최근 진행된 대규모 리팩토링의 기술적 깊이와 의사결정 과정을 이해하는 데 큰 도움이 될 것입니다.
 
 ---
-**문서 최종 수정일**: 2025-10-25
+
+## **`DEVELOPMENT.md` 구 버전 vs. 신 버전 핵심 차이점 비교 - 2025-11-10**
+
+한마디로 요약하면, **구 버전**이 "프로젝트가 어떻게 동작하는가"를 설명하는 **단순 설명서**였다면, **신 버전**은 "왜 이렇게 설계되었고, 어떤 문제를 해결했으며, 어떻게 안정성을 유지하는가"를 설명하는 **체계적인 기술 아키텍처 문서**로 진화했습니다.
+
+아래는 섹션별 상세 비교입니다.
+
+#### **1. 데이터 아키텍처 및 흐름 (`Data Flow & Processing` 섹션)**
+
+*   **[구 버전]**
+    *   모든 도서 정보를 단일 `book_data` JSON에 저장하는 단순한 흐름만 설명했습니다.
+    *   데이터 유실 가능성이나 API 실패 시의 대응(폴백 로직)에 대한 언급이 부족했습니다.
+    *   `schemaVersion`을 이용한 동적 마이그레이션이라는, 현재는 폐기된 복잡한 아키텍처를 설명하고 있었습니다.
+
+*   **[신 버전] 💎 핵심 차이점: 안정성 중심의 아키텍처 명문화**
+    *   **"컬럼 분리 아키텍처"**를 명확히 정의합니다. 즉, UI 표시용 핵심 데이터(`stock_*`)와 원본 데이터 저장소(`book_data`)의 역할을 분담하는 현재의 견고한 구조를 설명합니다.
+    *   `refreshBookInfo`의 핵심 동작인 **"선택적 폴백(Fallback)"**과 **"선택적 업데이트"** 전략을 명시하여, API 실패 시에도 데이터 안정성을 어떻게 확보하는지 기술적인 근거를 제시합니다.
+    *   Mermaid 다이어그램을 수정하여, 데이터가 DB에 저장될 때 두 경로(`stock_*` 컬럼, `book_data` JSON)로 나뉘어 저장되는 현재의 흐름을 정확하게 시각화합니다.
+
+#### **2. UI/UX 가이드라인 (`재고 정보 UI/UX 가이드라인` 섹션)**
+
+*   **[구 버전]**
+    *   해당 내용이 **존재하지 않았습니다.** UI가 어떻게 동작하는지에 대한 규칙이 문서화되지 않았습니다.
+
+*   **[신 버전] 💎 핵심 차이점: 디자인 원칙과 동작 시나리오의 구체화**
+    *   **"점진적 정보 공개"**라는 UX 디자인 원칙을 도입하여, 목록 뷰와 상세 뷰의 역할이 다름을 명시합니다.
+    *   재고 정보의 **색상 표시 기준(녹색/회색/빨간색)을 명확한 표로 정의**하여, 개발자가 UI 동작을 쉽게 이해하고 일관성을 유지할 수 있도록 합니다.
+    *   **3가지 주요 시나리오**(신규 추가, 과거 성공, 과거 실패)에 대한 **변경 전/후 비교표**를 통해, 최근 UX 개선 작업의 목표와 성과를 구체적으로 보여줍니다.
+
+#### **3. 트러블슈팅 가이드 (`Troubleshooting Guide` 섹션)**
+
+*   **[구 버전]**
+    *   과거에 해결했던 일부 문제들에 대한 해결책만 기록되어 있었습니다.
+    *   최근 발생하고 해결된 복잡한 문제들에 대한 내용이 누락되어 있었습니다.
+
+*   **[신 버전] 💎 핵심 차이점: 살아있는 기술 지식 베이스로의 진화**
+    *   **최신 문제 해결 경험 추가:**
+        *   **캐싱 실패:** `Cache-Control` 헤더와 `GET` 요청 키를 사용한 근본적인 해결책을 상세히 기록.
+        *   **`socket hang up` 에러:** 일괄 갱신 시 개별 요청 딜레이를 적용한 해결책 기록.
+        *   **초기 로딩 데이터 문제:** `getBookById`를 통한 중앙화된 데이터 조회 해결책 기록.
+    *   **기술적 의사결정 기록:** 왜 `schemaVersion` 시스템을 폐기했는지, 왜 특정 크롤링 방식을 채택했는지 등 **"왜 그렇게 결정했는가"**에 대한 배경을 기록하여, 향후 동일한 실수를 방지하고 프로젝트의 기술적 맥락을 공유합니다.
+
+#### **4. 전반적인 최신성 및 정확성**
+
+*   **[구 버전]**
+    *   Cloudflare Worker가 JavaScript(`index.js`)로 작성되어 있고, 컴포넌트 구조가 분리되기 전의 상태를 설명했습니다.
+    *   API 명세가 `snake_case`와 중첩 구조를 가진 옛날 버전을 기준으로 작성되어 있었습니다.
+
+*   **[신 버전] 💎 핵심 차이점: 현재 코드베이스와의 완벽한 동기화**
+    *   **기술 스택:** Worker가 **TypeScript** 기반임을 명시하고, **Cache API** 활용을 강조합니다.
+    *   **프로젝트 구조:** `MyLibrary` 컴포넌트 분리(`MyLibraryListItem` 등)를 반영합니다.
+    *   **API 명세:** 모든 필드명이 `camelCase`로 표준화되고, `siripEbook` 구조가 평탄화된 최신 API 응답 구조를 정확히 반영합니다.
+
+---
+**총평:** 신규 `DEVELOPMENT.md`는 단순한 코드 설명서를 넘어, 프로젝트의 **설계 철학, 핵심 아키텍처, 문제 해결의 역사, 그리고 디자인 원칙**까지 담아낸 포괄적인 **"기술 백서"**의 역할을 수행합니다. 이는 프로젝트의 안정성과 유지보수성을 한 단계 끌어올리는 매우 중요한 자산입니다.
+
+---
+**문서 최종 수정일**: 2025-11-10
 ```
