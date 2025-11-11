@@ -2,13 +2,16 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useBookStore } from '../stores/useBookStore';
-import type { CustomTag, TagColor, Theme, RefreshType, RefreshLimit, ViewType} from '../types';
+import type { CustomTag, TagColor, Theme, RefreshType, RefreshLimit, ViewType, SelectedBook } from '../types';
 import CustomTagComponent from './CustomTag';
 
 const SettingsModal: React.FC = () => {
   const { isSettingsModalOpen, closeSettingsModal, setNotification } = useUIStore();
   const { settings, loading, updateUserSettings, createTag, updateTag, deleteTag, getTagUsageCount, exportToCSV, setTheme } = useSettingsStore();
-  const { myLibraryBooks, totalBooksCount, isAllBooksLoaded, tagCounts, bulkRefreshState, fetchRemainingLibrary, bulkRefreshAllBooks, pauseBulkRefresh, resumeBulkRefresh, cancelBulkRefresh } = useBookStore();
+  const { myLibraryBooks, totalBooksCount, isAllBooksLoaded, tagCounts, bulkRefreshState, 
+    fetchRemainingLibrary, bulkRefreshAllBooks, pauseBulkRefresh, resumeBulkRefresh, cancelBulkRefresh,
+    errorBooks, errorBooksCount
+   } = useBookStore();
   const [localSettings, setLocalSettings] = useState(settings);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'display' | 'initial' | 'tags' | 'data'>('display');
@@ -27,13 +30,13 @@ const SettingsModal: React.FC = () => {
   const [rangeStart, setRangeStart] = useState('');
   const [rangeEnd, setRangeEnd] = useState('');
 
-  const [refreshState, setRefreshState] = useState({
-    isRunning: false,
-    isPaused: false,
-    current: 0,
-    total: 0,
-    failed: 0,
-  });
+  // const [refreshState, setRefreshState] = useState({
+  //   isRunning: false,
+  //   isPaused: false,
+  //   current: 0,
+  //   total: 0,
+  //   failed: 0,
+  // });
 
   // ================================================================
   // ✅ [CREATE] 이 줄을 여기에 추가합니다.
@@ -68,7 +71,7 @@ const SettingsModal: React.FC = () => {
 
   const handleClose = () => {
     // 갱신 중일 때 경고
-    if (refreshState.isRunning) {
+    if (bulkRefreshState.isRunning) {
       const confirmed = window.confirm(
         '재고 갱신이 진행 중입니다.\n갱신을 취소하고 닫으시겠습니까?'
       );
@@ -76,13 +79,13 @@ const SettingsModal: React.FC = () => {
 
       // 갱신 취소
       cancelBulkRefresh();
-      setRefreshState({
-        isRunning: false,
-        isPaused: false,
-        current: 0,
-        total: 0,
-        failed: 0,
-      });
+      // setRefreshState({
+      //   isRunning: false,
+      //   isPaused: false,
+      //   current: 0,
+      //   total: 0,
+      //   failed: 0,
+      // });
     }
 
     setLocalSettings(settings); // Reset to original settings
@@ -184,7 +187,7 @@ const SettingsModal: React.FC = () => {
     }
   };
 
-  // ✅ [수정] 일괄 갱신 범위 선택지 생성 함수 (개선된 버전)
+  // 일괄 갱신 범위 선택지 생성
   const getRefreshOptions = () => {
     const totalBooks = totalBooksCount;
     const halfCount = Math.floor(totalBooks / 2);
@@ -193,12 +196,19 @@ const SettingsModal: React.FC = () => {
     const allPossibleOptions = [
       { value: 'recent-25', label: '최근 25권', count: 25 },
       { value: 'recent-50', label: '최근 50권', count: 50 },
-      { value: 'recent-100', label: '최근 100권', count: 100 },
+      // { value: 'recent-100', label: '최근 100권', count: 100 },
       // halfCount가 100 이하일 경우, 위 옵션과 중복되므로 추가하지 않습니다.
       // 또한 halfCount가 의미 있는 숫자일 때만 (예: 10 이상) 추가합니다.
       halfCount > 100 ? { value: `recent-${halfCount}`, label: `최근 ${halfCount}권`, count: halfCount } : null,
       halfCount > 100 ? { value: `old-${halfCount}`, label: `오래된 ${halfCount}권`, count: halfCount } : null,
       { value: 'all-all', label: `전체 (${totalBooks}권)`, count: totalBooks },
+      // ✅ 에러 보유 책 Only 옵션
+      errorBooksCount > 0 ? { 
+          value: 'error-only', 
+          label: `에러 보유 책 Only (${errorBooksCount}권)`, 
+          count: errorBooksCount, 
+          type: 'error' 
+      } : null,
       { value: 'range-custom', label: '범위 지정', count: Infinity }, // 범위 지정은 항상 표시
     ];
 
@@ -230,85 +240,98 @@ const SettingsModal: React.FC = () => {
   };
 
   const handleStartBulkRefresh = async () => {
-    // 1. 옵션 객체 생성 및 갱신할 책의 수 계산
-    const options: any = { type: selectedRefreshType };
-    let bookCount = 0;
+      // 1. 옵션 객체와 갱신할 책의 수를 초기화합니다.
+      let options: any = { type: selectedRefreshType };
+      let bookCount = 0;
+      let targetBooks: SelectedBook[] | undefined = undefined;
 
-    if (selectedRefreshType === 'recent' || selectedRefreshType === 'old') {
-      options.limit = selectedRefreshLimit as number;
-      bookCount = Math.min(options.limit, totalBooksCount);
-    } else if (selectedRefreshType === 'range') {
-      const start = parseInt(rangeStart) || 1;
-      const end = parseInt(rangeEnd) || totalBooksCount;
-      if (start > end || start < 1 || end > totalBooksCount) {
-        setNotification({ message: '범위가 올바르지 않습니다.', type: 'error' });
-        return;
+      // 2. 선택된 갱신 타입(selectedRefreshType)에 따라 분기하여 처리합니다.
+      switch (selectedRefreshType) {
+          case 'recent':
+          case 'old':
+              options.limit = selectedRefreshLimit as number;
+              bookCount = Math.min(options.limit, totalBooksCount);
+              break;
+
+          case 'error':
+              // 에러 책 처리는 이미 잘 동작하므로 그대로 유지합니다.
+              targetBooks = errorBooks;
+              bookCount = errorBooksCount;
+              if (bookCount === 0) {
+                  setNotification({ message: '갱신할 에러 보유 책이 없습니다.', type: 'warning' });
+                  return;
+              }
+              if (!isAllBooksLoaded) {
+                  setNotification({ message: '정확한 대상 선정을 위해 전체 서재를 로드합니다. 잠시만 기다려주세요.', type: 'info' });
+                  await fetchRemainingLibrary();
+                  const currentErrorBooks = useBookStore.getState().errorBooks;
+                  targetBooks = currentErrorBooks;
+                  bookCount = currentErrorBooks.length;
+              }
+              // bulkRefreshAllBooks에 targetBooks를 전달하기 위해 options에 추가합니다.
+              options.targetBooks = targetBooks; 
+              break;
+
+          case 'range':
+              const start = parseInt(rangeStart) || 1;
+              const end = parseInt(rangeEnd) || totalBooksCount;
+              if (start > end || start < 1 || end > totalBooksCount) {
+                  setNotification({ message: '범위가 올바르지 않습니다.', type: 'error' });
+                  return;
+              }
+              options.start = start;
+              options.end = end;
+              bookCount = end - start + 1;
+              break;
+
+          case 'all':
+              bookCount = totalBooksCount;
+              break;
+
+          default:
+              setNotification({ message: '알 수 없는 갱신 타입입니다.', type: 'error' });
+              return;
       }
-      options.start = start;
-      options.end = end;
-      bookCount = end - start + 1;
-    } else { // 'all'
-      bookCount = totalBooksCount;
-    }
 
-    // 2. 확인창 표시
-    const estimatedTime = estimateRefreshTime(bookCount);
-    const confirmed = window.confirm(
-      `${bookCount}권의 재고를 갱신하시겠습니까?\n\n예상 소요 시간: 약 ${estimatedTime}초`
-    );
-    if (!confirmed) return;
+      // 3. 확인창 표시 (기존과 동일)
+      const estimatedTime = estimateRefreshTime(bookCount);
+      const confirmed = window.confirm(
+        `${bookCount}권의 재고를 갱신하시겠습니까?\n\n예상 소요 시간: 약 ${estimatedTime}초`
+      );
+      if (!confirmed) return;
 
-    // 3. UI 상태 초기화 (여기서 설정된 total 값이 최종적으로 사용됩니다)
-    setRefreshState({
-      isRunning: true,
-      isPaused: false,
-      current: 0,
-      total: bookCount, // ✅ 여기서 UI에 표시될 최종 total 값을 설정
-      failed: 0,
-    });
+      // 4. UI 상태 초기화 (기존과 동일)
+      // setRefreshState({
+      //     isRunning: true,
+      //     isPaused: false,
+      //     current: 0,
+      //     total: bookCount,
+      //     failed: 0,
+      // });
 
-    // 4. bulkRefreshAllBooks 호출
-    bulkRefreshAllBooks(options, {
-      // ✅ [핵심 수정] onProgress 콜백을 올바르게 구현
-      onProgress: (current, totalFromCallback, failed) => {
-        // totalFromCallback은 무시하고, current와 failed 값만 업데이트
-        setRefreshState(prev => ({
-          ...prev,
-          current: current,
-          failed: failed,
-        }));
-      },
-      onComplete: (success, failedIds) => {
-        setRefreshState({
-          isRunning: false,
-          isPaused: false,
-          current: 0,
-          total: 0,
-          failed: 0,
-        });
-
-        if (failedIds.length === 0) {
-          setNotification({ message: `${success}권의 재고 갱신이 완료되었습니다.`, type: 'success' });
-        } else if (success > 0) {
-          setNotification({ message: `${success}권 갱신 완료, ${failedIds.length}권 실패했습니다.`, type: 'warning' });
-        } else {
-          setNotification({ message: '재고 갱신에 실패했습니다. 네트워크 연결을 확인해주세요.', type: 'error' });
-        }
-      },
-      // shouldPause: () => refreshState.isPaused, // ⚠️ 클로저로 인해 오래된 상태를 참조할 수 있음
-      shouldPause: () => useBookStore.getState().bulkRefreshState.isPaused, // ✅ 스토어에서 직접 최신 상태를 가져옴
-      shouldCancel: () => useBookStore.getState().bulkRefreshState.isCancelled,
-    });
+      // 5. bulkRefreshAllBooks 호출 (기존과 동일)
+      bulkRefreshAllBooks(options, {
+          onProgress: () => {},
+          onComplete: (success, failedIds) => {
+              if (failedIds.length === 0) {
+                  setNotification({ message: `${success}권의 재고 갱신이 완료되었습니다.`, type: 'success' });
+              } else if (success > 0) {
+                  setNotification({ message: `${success}권 갱신 완료, ${failedIds.length}권 실패했습니다.`, type: 'warning' });
+              } else {
+                  setNotification({ message: '재고 갱신에 실패했습니다. 네트워크 연결을 확인해주세요.', type: 'error' });
+              }
+          },
+          shouldPause: () => useBookStore.getState().bulkRefreshState.isPaused,
+          shouldCancel: () => useBookStore.getState().bulkRefreshState.isCancelled,
+      });
   };
 
   // 일시정지/재개 토글
   const handleTogglePause = () => {
-    if (refreshState.isPaused) {
+    if (bulkRefreshState.isPaused) {
       resumeBulkRefresh();
-      setRefreshState(prev => ({ ...prev, isPaused: false }));
     } else {
       pauseBulkRefresh();
-      setRefreshState(prev => ({ ...prev, isPaused: true }));
     }
   };
 
@@ -318,16 +341,9 @@ const SettingsModal: React.FC = () => {
     if (!confirmed) return;
 
     cancelBulkRefresh();
-    setRefreshState({
-      isRunning: false,
-      isPaused: false,
-      current: 0,
-      total: 0,
-      failed: 0,
-    });
 
     setNotification({
-      message: `재고 갱신이 취소되었습니다. (${refreshState.current}/${refreshState.total}권 완료)`,
+      message: `재고 갱신이 취소되었습니다. (${bulkRefreshState.current}/${bulkRefreshState.total}권 완료)`,
       type: 'warning',
     });
   };
@@ -350,8 +366,6 @@ const SettingsModal: React.FC = () => {
       if (colorDiff !== 0) return colorDiff;
 
       // 2차 정렬: 사용량별 (많이 사용 > 적게 사용)
-      // const aUsage = getTagUsageCount(a.id, myLibraryBooks);
-      // const bUsage = getTagUsageCount(b.id, myLibraryBooks);
       // ✅ [수정] getTagUsageCount 대신 tagCounts 객체를 사용합니다.
       const aUsage = tagCounts[a.id] || 0;
       const bUsage = tagCounts[b.id] || 0;
@@ -938,19 +952,25 @@ const SettingsModal: React.FC = () => {
                       </div>
 
                       {/* 갱신 범위 선택 */}
-                      {!refreshState.isRunning && (
+                      {!bulkRefreshState.isRunning && (
                         <div className="space-y-3">
                           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                             <label className="text-xs text-secondary whitespace-nowrap">
                               갱신 범위:
                             </label>
-                            {/* ✅ [수정] 새로운 옵션을 위한 select */}
                             <select
-                              value={`${selectedRefreshType}-${selectedRefreshLimit}`}
+                              // ✅ [수정] value를 selectedRefreshType으로 직접 관리
+                              value={selectedRefreshType === 'error' ? 'error-only' : `${selectedRefreshType}-${selectedRefreshLimit}`} 
                               onChange={(e) => {
-                                const [type, limit] = e.target.value.split('-');
-                                setSelectedRefreshType(type as RefreshType);
-                                setSelectedRefreshLimit(limit === 'all' || limit === 'custom' ? limit : parseInt(limit));
+                                const value = e.target.value;
+                                if (value === 'error-only') {
+                                  setSelectedRefreshType('error');
+                                  setSelectedRefreshLimit('all'); // limit는 'all'로 설정
+                                } else {
+                                  const [type, limit] = value.split('-');
+                                  setSelectedRefreshType(type as RefreshType);
+                                  setSelectedRefreshLimit(limit === 'all' || limit === 'custom' ? limit : parseInt(limit));
+                                }
                               }}
                               className="input-base flex-1 text-sm"
                             >
@@ -960,6 +980,7 @@ const SettingsModal: React.FC = () => {
                                 </option>
                               ))}
                             </select>
+                            
                           </div>
                           
                           {/* ✅ [추가] 범위 지정 입력 필드 */}
@@ -993,7 +1014,7 @@ const SettingsModal: React.FC = () => {
                       )}
 
                       {/* 시작 버튼 (갱신 전) */}
-                      {!refreshState.isRunning && (
+                      {!bulkRefreshState.isRunning && (
                         <button
                           onClick={handleStartBulkRefresh}
                           disabled={myLibraryBooks.length === 0}
@@ -1004,34 +1025,50 @@ const SettingsModal: React.FC = () => {
                       )}
 
                       {/* Progress 영역 (갱신 중) */}
-                      {refreshState.isRunning && (
+                      {bulkRefreshState.isRunning && (
+                      // {refreshState.isRunning && (
                         <div className="space-y-3">
                           {/* Progress Bar */}
                           <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
                             <div
                               className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
                               style={{
-                                width: `${(refreshState.current / refreshState.total) * 100}%`,
+                                width: `${(bulkRefreshState.current / bulkRefreshState.total) * 100}%`,
                               }}
                             ></div>
                           </div>
 
                           {/* 진행률 텍스트 */}
                           <div className="flex justify-between items-center text-xs">
-                            <span className="text-secondary">
-                              {refreshState.isPaused
-                                ? `${refreshState.current} / ${refreshState.total}권 (일시정지됨)`
-                                : `${refreshState.current} / ${refreshState.total}권 갱신 중...`}
-                            </span>
-                            <span className="text-blue-600 font-medium">
-                              {Math.round((refreshState.current / refreshState.total) * 100)}%
+                          <span className="text-secondary truncate">
+                            {bulkRefreshState.isPaused
+                              ? `${bulkRefreshState.current} / ${bulkRefreshState.total}권 (일시정지됨)`
+                              : `${bulkRefreshState.current} / ${bulkRefreshState.total}권 갱신 중...`}
+                            {bulkRefreshState.currentBookTitle && !bulkRefreshState.isPaused && (
+                                <span className="text-tertiary ml-2">
+                                    ({bulkRefreshState.currentBookTitle.length > 10
+                                        ? bulkRefreshState.currentBookTitle.substring(0, 10) + '…'
+                                        : bulkRefreshState.currentBookTitle
+                                    })
+                                </span>
+                            )}
+                          </span>
+                            {/* <span className="text-blue-600 font-medium">
+                              {Math.round((bulkRefreshState.current / bulkRefreshState.total) * 100)}%
+                            </span> */}
+                            <span className="text-blue-600 font-medium whitespace-nowrap">
+                              {/* ✅ 수정: bulkRefreshState 사용 (total이 0일 경우 NaN 방지) */}
+                              {bulkRefreshState.total > 0
+                                ? `${Math.round((bulkRefreshState.current / bulkRefreshState.total) * 100)}%`
+                                : '0%'
+                              }
                             </span>
                           </div>
 
                           {/* 실패 건수 */}
-                          {refreshState.failed > 0 && (
+                          {bulkRefreshState.failed.length > 0 && (
                             <div className="text-xs text-red-600">
-                              실패: {refreshState.failed}권
+                              실패: {bulkRefreshState.failed}권
                             </div>
                           )}
 
@@ -1041,7 +1078,7 @@ const SettingsModal: React.FC = () => {
                               onClick={handleTogglePause}
                               className="btn-base btn-secondary flex-1 flex items-center justify-center gap-2"
                             >
-                              {refreshState.isPaused ? (
+                              {bulkRefreshState.isPaused ? (
                                 <>
                                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />

@@ -13,7 +13,6 @@ import { useSettingsStore } from './useSettingsStore';
 import { fetchBookAvailability} from '../services/unifiedLibrary.service'; 
 import { createBookDataFromApis } from '../utils/bookDataCombiner';
 
-// --- ▼▼▼▼▼ [신규 추가] ▼▼▼▼▼ ---
 // 1. 중앙화된 컬럼 목록 변수
 const stockColumns = `
   stock_gwangju_toechon_total, stock_gwangju_toechon_available,
@@ -45,7 +44,29 @@ const mapDbItemToSelectedBook = (item: any): SelectedBook | null => {
         stock_gyeonggi_available: item.stock_gyeonggi_available,
     };
 };
-// --- ▲▲▲▲▲ [신규 추가] ▲▲▲▲▲ ---
+
+// 재고 컬럼에 NULL/undefined가 포함되어 있으면 '에러 보유 책'으로 간주
+function isBookInError(book: SelectedBook): boolean {
+    // stock_* 컬럼 목록을 정의 (types.ts의 LibraryApiResponse 구조와 매칭되도록)
+    const stockColumns: Array<keyof SelectedBook> = [
+        'stock_gwangju_toechon_total', 'stock_gwangju_other_total',
+        'stock_gyeonggi_edu_total', 'stock_gyeonggi_total',
+        'stock_sirip_subs_total', 'stock_sirip_owned_total'
+    ];
+
+    // 하나라도 null 또는 undefined인 컬럼이 있으면 true 반환
+    return stockColumns.some(col => book[col] === null || book[col] === undefined);
+}
+
+// 주어진 책 목록에서 에러 책을 찾아 반환
+function calculateErrorBooks(books: SelectedBook[]): SelectedBook[] {
+    // 이미 전체 로드된 경우에만 정확한 계산을 시도
+    if (useBookStore.getState().isAllBooksLoaded) {
+        return books.filter(isBookInError);
+    }
+    // 전체 로드되지 않은 경우, 현재 로드된 책 목록만 계산
+    return books.filter(isBookInError);
+}
 
 /**
  * 특정 책의 데이터를 업데이트하고, 로컬 상태와 Supabase DB를 동기화하는 헬퍼 함수
@@ -142,13 +163,6 @@ async function updateBookInStoreAndDB(
   }
 }
 
-// BookData에서 사용자 정보를 제외한 순수 DB 조회 결과 타입을 정의합니다.
-// type RawBookDataResult = {
-//     book_data: BookData | null;
-// } & {
-//     [K in keyof SelectedBook as K extends `stock_${string}` ? K : never]: SelectedBook[K];
-// };
-
 interface BookState {
   getBookById: (id: number) => Promise<SelectedBook | null>; // [추가]
   searchResults: AladdinBookItem[];
@@ -161,7 +175,6 @@ interface BookState {
   librarySearchQuery: string;
   authorFilter: string;
   resetLibraryFilters?: () => void;
-  // isAllLoaded: boolean; // ✅ 이 라인을 추가하세요.
   isAllBooksLoaded: boolean;
   totalBooksCount: number;
   tagCounts: Record<string, number>;
@@ -174,6 +187,10 @@ interface BookState {
   libraryTagFilterResults: SelectedBook[];
   isFilteringByTag: boolean;
 
+  // ✅ [추가] 에러 보유 책 관련 상태
+  errorBooks: SelectedBook[]; 
+  errorBooksCount: number;
+
   // Pagination state
   currentPage: number;
   hasMoreResults: boolean;
@@ -182,7 +199,6 @@ interface BookState {
   lastSearchType: string;
 
   fetchRawBookData: (id: number) => Promise<BookData | null>; // 책상세>API book_data 조회
-  // fetchRawBookData: (id: number) => Promise<RawBookDataResult | null>; // 반환 타입 명시
 
   // Bulk refresh state
   bulkRefreshState: {
@@ -192,6 +208,7 @@ interface BookState {
     current: number;
     total: number;
     failed: number[];
+    currentBookTitle: string | null; // ✅ [추가]
   };
 
   // Actions
@@ -266,7 +283,7 @@ export const useBookStore = create<BookState>(
       searchResults: [],
       selectedBook: null,
       myLibraryBooks: [],
-      myLibraryIsbnSet: new Set(), // ✅ Set 초기화
+      myLibraryIsbnSet: new Set(),
       sortConfig: { key: 'addedDate', order: 'desc' },
       refreshingIsbn: null,
       refreshingEbookId: null,
@@ -281,9 +298,9 @@ export const useBookStore = create<BookState>(
       libraryTagFilterResults: [],
       isFilteringByTag: false,
 
-      // 좋아요 필터링
-      // libraryFavoritesFilterResults: [],
-      // isFilteringByFavorites: false,
+      // ✅ [해결] 여기에 초기 상태를 추가합니다.
+      errorBooks: [],
+      errorBooksCount: 0,
 
       // Pagination state
       currentPage: 1,
@@ -300,124 +317,15 @@ export const useBookStore = create<BookState>(
         current: 0,
         total: 0,
         failed: [],
+        currentBookTitle: null, // ✅ [추가]
       },
-      
-      // ✅ [신규 추가] '좋아요' 필터링 액션
-      // filterLibraryByFavorites: async () => {
-      //   const { session } = useAuthStore.getState();
-      //   if (!session?.user) return;
-
-      //   set({ isFilteringByFavorites: true });
-      //   try {
-      //     const { data, error } = await supabase
-      //       .from('user_library')
-      //       .select('id, book_data, note')
-      //       .eq('user_id', session.user.id)
-      //       // JSONB 타입에 최적화된 'contains' 연산자로 정확하게 조회합니다.
-      //       .contains('book_data', { isFavorite: true })
-      //       .order('created_at', { ascending: false });
-
-      //     if (error) throw error;
-
-      //     const results = (data || []).map(item => {
-      //       const bookDataWithDefaults = {
-      //         ...{ readStatus: '읽지 않음', rating: 0 },
-      //         ...item.book_data,
-      //       };
-      //       return {
-      //         ...bookDataWithDefaults,
-      //         id: item.id,
-      //         note: item.note,
-      //       };
-      //     });
-      //     set({ libraryFavoritesFilterResults: results, isFilteringByFavorites: false });
-      //   } catch (error) {
-      //     console.error('Error filtering by favorites:', error);
-      //     set({ libraryFavoritesFilterResults: [], isFilteringByFavorites: false });
-      //   }
-      // },
-      
-      // // ✅ [신규 추가] '좋아요' 필터 해제 액션
-      // clearLibraryFavoritesFilter: () => {
-      //   set({ libraryFavoritesFilterResults: [] });
-      // },
 
       isBookInLibrary: (isbn13: string) => {
         // ✅ 함수 구현: Set에서 확인
         return get().myLibraryIsbnSet.has(isbn13);
       },
 
-      // [추가] 책상세>API book_data 조회
-      // fetchRawBookData: async (id: number) => {
-      //   const { session } = useAuthStore.getState();
-      //   if (!session) return null;
-
-      //   try {
-      //     const { data, error } = await supabase
-      //       .from('user_library')
-      //       .select(`id, book_data, note, ${stockColumns}`) 
-      //       .eq('user_id', session.user.id)
-      //       .eq('id', id)
-      //       .single();
-
-      //     if (error) throw error;
-          
-      //     const fetchedBook = mapDbItemToSelectedBook(data); // 수정
-      //     if (!fetchedBook) return null; // 추가
-
-
-      //   } catch (error) {
-      //     console.error(`Error fetching raw book data for id ${id}:`, error);
-      //     useUIStore.getState().setNotification({ message: 'API 원본 데이터를 불러오는 데 실패했습니다.', type: 'error' });
-      //     return null;
-      //   }
-      // },
-
-      // fetchRawBookData: async (id: number) => {
-      //   const { session } = useAuthStore.getState();
-      //   if (!session) return null;
-
-      //   try {
-      //     const { data, error } = await supabase
-      //       .from('user_library')
-      //       .select(`book_data, ${stockColumns}`) // note와 id는 book_data 내에 중복될 수 있으므로 제외하고, 순수 데이터만 조회
-      //       .eq('id', id) // user_id 체크는 RLS 정책이 담당하므로 생략 가능 (더 간결함)
-      //       .single();
-
-      //     if (error) throw error;
-          
-      //     // mapDbItemToSelectedBook을 사용하지 않고, DB에서 온 원본 data를 그대로 반환
-      //     return data || null; 
-
-      //   } catch (error) {
-      //     console.error(`Error fetching raw book data for id ${id}:`, error);
-      //     useUIStore.getState().setNotification({ message: 'API 원본 데이터를 불러오는 데 실패했습니다.', type: 'error' });
-      //     return null;
-      //   }
-      // },
-      
-      // fetchRawBookData: async (id: number): Promise<RawBookDataResult | null> => { // 반환 타입 명시
-      //   const { session } = useAuthStore.getState();
-      //   if (!session) return null;
-
-      //   try {
-      //     const { data, error } = await supabase
-      //       .from('user_library')
-      //       .select(`book_data, ${stockColumns}`)
-      //       .eq('id', id)
-      //       .single();
-
-      //     if (error) throw error;
-          
-      //     // DB 응답이 null일 수도 있으므로, null 체크 후 반환
-      //     return data ? (data as RawBookDataResult) : null;
-
-      //   } catch (error) {
-      //     console.error(`Error fetching raw book data for id ${id}:`, error);
-      //     useUIStore.getState().setNotification({ message: 'API 원본 데이터를 불러오는 데 실패했습니다.', type: 'error' });
-      //     return null;
-      //   }
-      // },
+      // 책상세>API book_data 조회
 
       fetchRawBookData: async (id: number): Promise<BookData | null> => { // 반환 타입을 BookData로 수정
         const { session } = useAuthStore.getState();
@@ -574,11 +482,17 @@ export const useBookStore = create<BookState>(
               const totalBooksCount = count || 0;
               const isAllBooksLoaded = libraryBooks.length >= totalBooksCount;
 
+              // ✅ [추가] 에러 책 계산 및 업데이트
+              const errorBooks = calculateErrorBooks(libraryBooks);
+
               set({
                 myLibraryBooks: libraryBooks,
                 myLibraryIsbnSet: new Set(Array.isArray(isbnList) ? isbnList : []),
                 totalBooksCount: totalBooksCount,
                 isAllBooksLoaded: isAllBooksLoaded,
+                // ✅ [추가] 상태 업데이트
+                errorBooks: errorBooks,
+                errorBooksCount: errorBooks.length,
               });
 
               get().fetchTagCounts();
@@ -634,10 +548,24 @@ export const useBookStore = create<BookState>(
             //   .filter((book): book is SelectedBook => book !== null);
 
             // 기존 책 + 새로 로드한 책 병합
+            const combinedBooks = [...myLibraryBooks, ...remainingBooks];
+
+            // ✅ [추가] 에러 책 계산 및 업데이트
+            const errorBooks = calculateErrorBooks(combinedBooks);
+
             set({
-              myLibraryBooks: [...myLibraryBooks, ...remainingBooks],
-              isAllBooksLoaded: true
+              myLibraryBooks: combinedBooks,
+              isAllBooksLoaded: true,
+              // ✅ [추가] 상태 업데이트
+              errorBooks: errorBooks,
+              errorBooksCount: errorBooks.length,
             });
+
+            // set({
+            //   myLibraryBooks: [...myLibraryBooks, ...remainingBooks],
+            //   isAllBooksLoaded: true
+            // });
+
             // 태그 카운트 갱신
             get().fetchTagCounts();
         } catch (error) {
@@ -804,14 +732,21 @@ export const useBookStore = create<BookState>(
             if (bookToRemove) {
               newIsbnSet.delete(bookToRemove.isbn13);
             }
-            
+
+            // ✅ [추가] 에러 책 재계산
+            const newMyLibraryBooks = state.myLibraryBooks.filter(b => b.id !== id);
+            const errorBooks = calculateErrorBooks(newMyLibraryBooks); 
+
             return {
               // 모든 관련 배열에서 삭제된 아이템 필터링
               myLibraryBooks: state.myLibraryBooks.filter(b => b.id !== id),
               librarySearchResults: state.librarySearchResults.filter(b => b.id !== id),
               libraryTagFilterResults: state.libraryTagFilterResults.filter(b => b.id !== id),
-              myLibraryIsbnSet: newIsbnSet, // ✅ 업데이트된 Set 적용
+              myLibraryIsbnSet: newIsbnSet,
               totalBooksCount: Math.max(0, state.totalBooksCount - 1), // 전체 책 개수 1 감소
+              // ✅ [추가] 상태 업데이트
+              errorBooks: errorBooks,
+              errorBooksCount: errorBooks.length,
             };
           });
 
@@ -921,12 +856,22 @@ export const useBookStore = create<BookState>(
             };
 
             // UI 상태 즉시 업데이트
-            set(state => ({
-              myLibraryBooks: state.myLibraryBooks.map(b => (b.id === id ? updatedBookForUI : b)),
-              librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? updatedBookForUI : b)),
-              libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? updatedBookForUI : b)),
-              selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBookForUI : state.selectedBook,
-            }));
+            set(state => {
+              const newMyLibraryBooks = state.myLibraryBooks.map(b => (b.id === id ? updatedBookForUI : b));
+              
+              // ✅ [추가] 에러 책 재계산
+              const errorBooks = calculateErrorBooks(newMyLibraryBooks);
+
+              return {
+                myLibraryBooks: newMyLibraryBooks,
+                librarySearchResults: state.librarySearchResults.map(b => (b.id === id ? updatedBookForUI : b)),
+                libraryTagFilterResults: state.libraryTagFilterResults.map(b => (b.id === id ? updatedBookForUI : b)),
+                selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? updatedBookForUI : state.selectedBook,
+                // ✅ [추가] 상태 업데이트
+                errorBooks: errorBooks,
+                errorBooksCount: errorBooks.length,
+              };
+            });
 
             // --- ▼▼▼ [수정] DB 업데이트 로직 직접 처리 ▼▼▼ ---
             const { error } = await supabase
@@ -1401,105 +1346,129 @@ export const useBookStore = create<BookState>(
         set({ libraryTagFilterResults: [] });
       },
 
-      bulkRefreshAllBooks: async (options, callbacks) => {
-        const { isAllBooksLoaded, fetchRemainingLibrary } = get();
-
-        // 1. 필요한 경우 전체 라이브러리를 먼저 로드
-        if (!isAllBooksLoaded) {
-          await fetchRemainingLibrary();
-        }
-        
-        // 2. 최신 책 목록을 가져와서 옵션에 따라 대상 책을 선정
-        const booksToRefresh = ((): SelectedBook[] => {
-          const allBooks = [...get().myLibraryBooks];
-          
-          switch (options.type) {
-            case 'recent':
-              // 최근 추가된 순서대로 정렬
-              return allBooks.sort((a, b) => b.addedDate - a.addedDate).slice(0, options.limit);
-            case 'old':
-              // 오래된 순서대로 정렬 (addedDate가 작은 순)
-              return allBooks.sort((a, b) => a.addedDate - b.addedDate).slice(0, options.limit);
-            case 'range':
-              // 최근 추가된 순서를 기준으로 범위 지정 (1부터 시작)
-              const start = (options.start || 1) - 1;
-              const end = options.end || allBooks.length;
-              return allBooks.sort((a, b) => b.addedDate - a.addedDate).slice(start, end);
-            case 'all':
-            default:
-              return allBooks;
-          }
-        })();
-
-        const total = booksToRefresh.length;
-
-        // 3. 초기 상태 설정
-        set({
-          bulkRefreshState: {
-            isRunning: true,
-            isPaused: false,
-            isCancelled: false,
-            current: 0,
-            total,
-            failed: [],
+      bulkRefreshAllBooks: async (
+          options: {
+            type: 'recent' | 'old' | 'all' | 'range' | 'error'; // ✅ [수정] 'error' 타입 추가
+            limit?: number;
+            start?: number;
+            end?: number;
+            targetBooks?: SelectedBook[]; // ✅ [추가] 타겟 책 목록을 직접 받음
           },
-        });
+          callbacks
+        ) => {
+          const { isAllBooksLoaded, fetchRemainingLibrary, myLibraryBooks, errorBooks } = get(); // ✅ [추가] errorBooks 가져옴
 
-        const failed: number[] = [];
-        let current = 0;
-        const batchSize = 10;
-        
-        // 4. for 루프를 돌며 비동기 작업 실행
-        for (let i = 0; i < booksToRefresh.length; i += batchSize) {
-          // 취소/일시정지 상태 확인
-          if (get().bulkRefreshState.isCancelled) { break; }
-          while (get().bulkRefreshState.isPaused) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            if (get().bulkRefreshState.isCancelled) break;
+          // 1. 필요한 경우 전체 라이브러리를 먼저 로드
+          if (!isAllBooksLoaded) {
+            await fetchRemainingLibrary();
           }
-          if (get().bulkRefreshState.isCancelled) break;
+          
+          // 2. 최신 책 목록을 가져와서 옵션에 따라 대상 책을 선정
+          const booksToRefresh = ((): SelectedBook[] => {
+            // ✅ [핵심 수정] targetBooks가 있으면 그것을 최우선으로 사용
+            if (options.targetBooks && options.targetBooks.length > 0) {
+                // targetBooks가 전달된 경우, 해당 목록을 사용 (예: errorBooks)
+                return options.targetBooks;
+            }
+            
+            const allBooks = [...myLibraryBooks];
+            
+            switch (options.type) {
+              case 'recent':
+                // 최근 추가된 순서대로 정렬
+                return allBooks.sort((a, b) => b.addedDate - a.addedDate).slice(0, options.limit);
+              case 'old':
+                // 오래된 순서대로 정렬 (addedDate가 작은 순)
+                return allBooks.sort((a, b) => a.addedDate - b.addedDate).slice(0, options.limit);
+              case 'range':
+                // 최근 추가된 순서를 기준으로 범위 지정 (1부터 시작)
+                const start = (options.start || 1) - 1;
+                const end = options.end || allBooks.length;
+                return allBooks.sort((a, b) => b.addedDate - a.addedDate).slice(start, end);
+              case 'all':
+              default:
+                return allBooks;
+            }
+          })();
+          
+          // ... (3. 초기 상태 설정부터 끝까지 로직은 동일)
+          const total = booksToRefresh.length;
 
-          const batch = booksToRefresh.slice(i, i + batchSize);
+          // 3. 초기 상태 설정
+          set({
+            bulkRefreshState: {
+              isRunning: true,
+              isPaused: false,
+              isCancelled: false,
+              current: 0,
+              total,
+              failed: [],
+              currentBookTitle: null, // ✅ [해결] 여기에 초기값을 추가합니다.
+            },
+          });
 
-          for (const book of batch) {
+          // ... (for 루프 및 로직은 동일하게 진행)
+
+          const failed: number[] = [];
+          let current = 0;
+          const batchSize = 10;
+          
+          for (let i = 0; i < booksToRefresh.length; i += batchSize) {
+            // ... (취소/일시정지 확인 로직)
+            if (get().bulkRefreshState.isCancelled) { break; }
+            while (get().bulkRefreshState.isPaused) {
+              await new Promise(resolve => setTimeout(resolve, 100));
+              if (get().bulkRefreshState.isCancelled) break;
+            }
             if (get().bulkRefreshState.isCancelled) break;
 
-            try {
-              await get().refreshBookInfo(book.id, book.isbn13, book.title, book.author);
-            } catch (error) {
-              console.error(`Failed to refresh book ${book.id}:`, error);
-              failed.push(book.id);
-            } finally {
-              current++;
-              set(state => ({
-                bulkRefreshState: { ...state.bulkRefreshState, current, failed: [...failed] },
-              }));
-              callbacks.onProgress(current, total, failed.length);
-              
-              // ✅ [핵심 수정] 지연 로직을 개별 요청 바로 뒤로 이동합니다.
-              // 이렇게 하면 한 권 갱신 후 200ms를 쉽니다.
-              if (!get().bulkRefreshState.isCancelled) {
-                await new Promise(resolve => setTimeout(resolve, 200));
-              }
+            const batch = booksToRefresh.slice(i, i + batchSize);
 
+            for (const book of batch) {
+              if (get().bulkRefreshState.isCancelled) break;
+
+              // ✅ [핵심 추가] 재고 조회 시작 직전에 현재 책 제목으로 상태 업데이트
+              set(state => ({
+                bulkRefreshState: {
+                  ...state.bulkRefreshState,
+                  currentBookTitle: book.title,
+                },
+              }));
+
+              try {
+                await get().refreshBookInfo(book.id, book.isbn13, book.title, book.author);
+              } catch (error) {
+                console.error(`Failed to refresh book ${book.id}:`, error);
+                failed.push(book.id);
+              } finally {
+                current++;
+                set(state => ({
+                  bulkRefreshState: { ...state.bulkRefreshState, current, failed: [...failed] },
+                }));
+                callbacks.onProgress(current, total, failed.length);
+            
+                // 1개마다 0.2초 쉰다
+                if (!get().bulkRefreshState.isCancelled) {
+                  await new Promise(resolve => setTimeout(resolve, 200));
+                }
+              }
+            }
+            if (get().bulkRefreshState.isCancelled) break;
+
+            // 10개마다 1초 쉰다
+            if (i + batchSize < booksToRefresh.length && !get().bulkRefreshState.isCancelled) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
             }
           }
-          if (get().bulkRefreshState.isCancelled) break;
 
-          // ⛔️ 기존의 10개마다 1초 쉬는 로직은 삭제합니다.
-          if (i + batchSize < booksToRefresh.length && !get().bulkRefreshState.isCancelled) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-        }
+          // 5. 최종 완료 상태 설정
+          set(state => ({
+            bulkRefreshState: { ...state.bulkRefreshState, isRunning: false, isPaused: false },
+          }));
 
-        // 5. 최종 완료 상태 설정
-        set(state => ({
-          bulkRefreshState: { ...state.bulkRefreshState, isRunning: false, isPaused: false },
-        }));
-
-        callbacks.onComplete(current - failed.length, failed);
-      },
-
+          callbacks.onComplete(current - failed.length, failed);
+        },
+        
       pauseBulkRefresh: () => {
         set(state => ({
           bulkRefreshState: {
