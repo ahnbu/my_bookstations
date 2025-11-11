@@ -1,5 +1,3 @@
-// 2025-10-11 - 네이밍, 크롤링 로직 전반적인 정리
-// ... (기존 주석) ...
 
 import {
   Env,
@@ -17,13 +15,45 @@ import {
   SiripEbookSubsResult,
   SiripEbookResult,
   SiripEbookBook,
-  // SiripEbookDetails, // ✅ 이 줄을 추가하세요.
   LibraryApiResponse,
   KeywordSearchResultItem
 } from './types';
-import { parse, HTMLElement } from 'node-html-parser';
 
+import { parse, HTMLElement } from 'node-html-parser';
+import { createClient } from '@supabase/supabase-js'; // ✅ Supabase 클라이언트 import
+
+// API 최대 대기 시간 15초
 const DEFAULT_TIMEOUT = 15000;
+
+// ✅ 에러책 자동 업데이트 위한 함수
+// ==============================================
+function createOptimalSearchTitle(title: string): string {
+  if (typeof title !== 'string' || !title) {
+    return '';
+  }
+  const subtitleMarkers = /:|-|\(|\)|\[|\]|\{|\}/;
+  let coreTitle = title;
+  const markerIndex = title.search(subtitleMarkers);
+  if (markerIndex !== -1) {
+    coreTitle = title.substring(0, markerIndex).trim();
+  }
+  const words = coreTitle.split(' ').filter(word => word.trim() !== '');
+  return words.slice(0, 3).join(' ');
+}
+
+function processGyeonggiEbookEduTitle(title: string): string {
+  return createOptimalSearchTitle(title);
+}
+
+function processGyeonggiEbookTitle(title: string): string {
+  return createOptimalSearchTitle(title);
+}
+
+function processSiripEbookTitle(title: string): string {
+  return createOptimalSearchTitle(title);
+}
+// ✅ [추가 끝]
+
 
 // ==============================================
 // 헬퍼 함수들 (Helper Functions)
@@ -941,6 +971,184 @@ async function searchSiripEbookKeyword(keyword: string): Promise<KeywordSearchRe
     return []; // ✅ forEach 대신 map을 사용하고, 에러 시 빈 배열을 반환하도록 로직 개선
 }
 
+
+
+
+// =======================================================
+// ✅ [신규] 단일 책 재고 조회 및 DB 업데이트 페이로드 생성 함수
+// (이 함수는 재고 조회 로직을 재사용하기 위해 추가됩니다)
+// =======================================================
+
+async function getStockUpdatePayload(
+    book: { id: number; isbn13: string; title: string; author: string; customSearchTitle?: string | null },
+    env: Env
+): Promise<{[key: string]: any} | null> {
+    try {
+        const { isbn13, title, author, customSearchTitle } = book;
+
+        // 경기도교육청, 경기도, 시립 도서관용 검색 제목 생성
+        const eduTitle = customSearchTitle  || processGyeonggiEbookEduTitle(title);
+        const gyeonggiTitle = customSearchTitle  || processGyeonggiEbookTitle(title);
+        const siripTitle = customSearchTitle  || processSiripEbookTitle(title);
+        
+        // 병렬로 모든 도서관 재고 조회
+        const [
+            gwangjuPaperResult,
+            gyeonggiEbookEduResult,
+            gyeonggiEbookLibResult,
+            siripEbookResult
+        ] = await Promise.allSettled([
+            searchGwangjuLibrary(isbn13),
+            // eduTitle이 있을 때만 경기도교육청 전자도서관 조회
+            eduTitle ? Promise.all([
+                searchGyeonggiEduEbook(eduTitle, '10000004'),
+                searchGyeonggiEduEbook(eduTitle, '10000009')
+            ]) : Promise.resolve(null),
+            gyeonggiTitle ? searchGyeonggiEbookLibrary(gyeonggiTitle) : Promise.resolve(null),
+            siripTitle ? searchSiripEbookIntegrated(siripTitle) : Promise.resolve(null)
+        ]);
+        
+        const dbUpdatePayload: { [key: string]: any } = {};
+
+        // 광주 시립도서관 (종이책)
+        if (gwangjuPaperResult.status === 'fulfilled') {
+            const data = gwangjuPaperResult.value;
+            dbUpdatePayload.stock_gwangju_toechon_total = data.totalCountToechon;
+            dbUpdatePayload.stock_gwangju_toechon_available = data.availableCountToechon;
+            dbUpdatePayload.stock_gwangju_other_total = data.totalCountOther;
+            dbUpdatePayload.stock_gwangju_other_available = data.availableCountOther;
+        }
+
+        // 경기도 교육청 전자도서관
+        if (gyeonggiEbookEduResult.status === 'fulfilled' && gyeonggiEbookEduResult.value) {
+            const [seongnam, tonghap] = gyeonggiEbookEduResult.value;
+            const total = (seongnam?.bookList.length || 0) + (tonghap?.bookList.length || 0);
+            const available = (seongnam?.bookList.filter(b => b.loanStatus).length || 0) + (tonghap?.bookList.filter(b => b.loanStatus).length || 0);
+            dbUpdatePayload.stock_gyeonggi_edu_total = total;
+            dbUpdatePayload.stock_gyeonggi_edu_available = available;
+        }
+
+        // 경기도 전자도서관
+        if (gyeonggiEbookLibResult.status === 'fulfilled' && gyeonggiEbookLibResult.value) {
+            const data = gyeonggiEbookLibResult.value;
+            dbUpdatePayload.stock_gyeonggi_total = data.totalCountSummary;
+            dbUpdatePayload.stock_gyeonggi_available = data.availableCountSummary;
+        }
+
+        // 시립도서관 전자책
+        if (siripEbookResult.status === 'fulfilled' && siripEbookResult.value) {
+            const data = siripEbookResult.value;
+            dbUpdatePayload.stock_sirip_subs_total = data.totalCountSubs;
+            dbUpdatePayload.stock_sirip_owned_total = data.totalCountOwned;
+            dbUpdatePayload.stock_sirip_subs_available = data.availableCountSubs;
+            dbUpdatePayload.stock_sirip_owned_available = data.availableCountOwned;
+        }
+        
+        // 업데이트할 내용이 있을 때만 payload 반환
+        return Object.keys(dbUpdatePayload).length > 0 ? dbUpdatePayload : null;
+
+    } catch (error) {
+        console.error(`[Auto-Refresh] Failed to get stock for Book ID ${book.id}:`, error);
+        return null;
+    }
+}
+
+
+// ================================================
+// ✅ [신규] 스케줄된 작업을 위한 헬퍼 함수들
+// ================================================
+
+async function handleStockRefresh(env: Env): Promise<void> {
+    try {
+        // Supabase 클라이언트 초기화 (service_role 키 사용)
+        const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY);
+
+        // 1. DB 함수를 호출하여 갱신 대상 책 목록 가져오기
+        const { data: booksToRefresh, error: rpcError } = await supabase.rpc('get_books_to_refresh');
+
+        if (rpcError) {
+            console.error('[CRON ERROR] Failed to fetch books from Supabase:', rpcError);
+            return;
+        }
+
+        if (!booksToRefresh || booksToRefresh.length === 0) {
+            console.log('[CRON INFO] No books with stock errors found. Task finished.');
+            return;
+        }
+
+        console.log(`[CRON INFO] Found ${booksToRefresh.length} books to refresh.`);
+        let successCount = 0;
+        let failureCount = 0;
+
+        // 2. 각 책을 순회하며 재고 조회 및 DB 업데이트
+        for (const book of booksToRefresh) {
+            console.log(`[CRON PROCESS] Refreshing stock for book ID: ${book.id}, Title: ${book.title}`);
+
+            // 재고 조회 로직 호출
+            const updatePayload = await getStockUpdatePayload(book, env);
+
+            if (updatePayload) {
+                // 3. 조회 성공 시 Supabase DB 업데이트
+                const { error: updateError } = await supabase
+                    .from('user_library')
+                    .update(updatePayload)
+                    .eq('id', book.id);
+
+                if (updateError) {
+                    console.error(`[CRON ERROR] Failed to update book ID ${book.id}:`, updateError);
+                    failureCount++;
+                } else {
+                    console.log(`[CRON SUCCESS] Successfully updated book ID ${book.id}`);
+                    successCount++;
+                }
+            } else {
+                console.warn(`[CRON WARN] No stock data found for book ID ${book.id}, skipping update.`);
+                failureCount++;
+            }
+
+            // 4. Rate Limiting 방지를 위해 각 요청 사이에 2초 지연
+            await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+
+        console.log(`[CRON END] Task finished. Success: ${successCount}, Failure: ${failureCount}`);
+
+    } catch (error) {
+        console.error('[CRON CRITICAL] An unexpected error occurred during stock refresh:', error);
+    }
+}
+
+async function handleKeepAlive(env: Env): Promise<void> {
+    try {
+        console.log('=== Supabase Keep-Alive Start ===');
+        console.log('Triggered at:', new Date().toISOString());
+
+        const response = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/keep_alive`, {
+            method: 'POST',
+            headers: {
+                'apikey': env.SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${env.SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({}),
+            signal: AbortSignal.timeout(DEFAULT_TIMEOUT)
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            console.log('✅ Supabase keep-alive SUCCESS:', result);
+        } else {
+            console.error('❌ Supabase keep-alive FAILED:', response.status);
+        }
+    } catch (error) {
+        if (error instanceof Error) {
+            console.error('💥 Supabase keep-alive ERROR:', error.message);
+        } else {
+            console.error('An unknown error occurred:', error);
+        }
+    }
+}
+
+
 // ==============================================
 // ✅ 메인 Worker 핸들러 (export default)
 // ==============================================
@@ -951,6 +1159,19 @@ export default {
     env: Env,
     ctx: ExecutionContext
   ): Promise<Response> {
+
+
+    // ✅ [추가 시작] 로컬 테스트를 위한 /__scheduled 엔드포인트 처리
+    const url = new URL(request.url);
+    if (url.pathname === '/__scheduled') {
+      console.log(`[DEV ONLY] Detected manual trigger for scheduled event via ${request.method} /__scheduled`);
+      // waitUntil을 사용하여 백그라운드에서 scheduled 핸들러가 완전히 실행되도록 보장
+      ctx.waitUntil(this.scheduled({ cron: '' } as ScheduledEvent, env, ctx));
+      // 클라이언트에게는 즉시 성공 응답을 보냄
+      return new Response('Scheduled event triggered for testing.', { status: 200 });
+    }
+    // ✅ [추가 끝]
+
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -961,7 +1182,7 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
-    const url = new URL(request.url);
+    // const url = new URL(request.url);
     const pathname = url.pathname;
 
     if (request.method === 'GET') {
@@ -1268,38 +1489,39 @@ export default {
     return new Response('Method not allowed', { status: 405 });
   },
 
+  
+  // ----------------------------------------------
+  // 2. 신규/수정 scheduled 핸들러 (자동화 로직)
+  // ----------------------------------------------
   async scheduled(
     event: ScheduledEvent,
     env: Env,
     ctx: ExecutionContext
   ): Promise<void> {
-    try {
-      console.log('=== Supabase Keep-Alive Start ===');
-      console.log('Triggered at:', new Date().toISOString());
+    
+    // event.cron 속성을 사용하여 어떤 스케줄이 실행되었는지 확인
+    switch (event.cron) {
+      case "0 17 * * *": // 재고 자동 갱신 스케줄
+        console.log(`[CRON START] Starting scheduled stock refresh at ${new Date().toISOString()}`);
+        // ctx.waitUntil()을 사용하여 스케줄된 이벤트가 완료될 때까지 실행을 보장
+        ctx.waitUntil(handleStockRefresh(env));
+        break;
 
-      const response = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/keep_alive`, {
-        method: 'POST',
-        headers: {
-          'apikey': env.SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({}),
-        signal: AbortSignal.timeout(DEFAULT_TIMEOUT)
-      });
+      case "0 12 */3 * *": // Supabase Keep-Alive 스케줄
+        console.log(`[CRON START] Starting Supabase Keep-Alive at ${new Date().toISOString()}`);
+        ctx.waitUntil(handleKeepAlive(env));
+        break;
 
-      if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Supabase keep-alive SUCCESS:', result);
-      } else {
-        console.error('❌ Supabase keep-alive FAILED:', response.status);
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error('💥 Supabase keep-alive ERROR:', error.message);
-      } else {
-        console.error('An unknown error occurred:', error);
-      }
+      default:
+        // wrangler dev로 테스트 시 event.cron은 빈 문자열("")
+        if (event.cron === '') {
+            console.log(`[MANUAL TRIGGER] Manually running stock refresh for testing.`);
+            ctx.waitUntil(handleStockRefresh(env));
+        } else {
+            console.warn(`[CRON WARN] Unknown cron schedule: ${event.cron}`);
+        }
+        break;
     }
   }
 };
+

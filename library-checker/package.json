@@ -15,6 +15,7 @@
 	"description": "(참고 - 20250916 : 자동 배포 테스트용 1줄 입력)",
 	"main": "index.js",
 	"dependencies": {
+		"@supabase/supabase-js": "^2.81.0",
 		"acorn": "^8.14.0",
 		"acorn-walk": "^8.3.2",
 		"blake3-wasm": "^2.1.5",
