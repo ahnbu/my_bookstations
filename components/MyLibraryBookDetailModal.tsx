@@ -261,14 +261,14 @@ const LibraryStockSection: React.FC<LibraryStockSectionProps> = ({ book, onApiBu
           searchUrl={createLibraryOpenURL('e시립구독', book.title, book.customSearchTitle)}
           totalCount={book.stock_sirip_subs_total ?? undefined}
           availableCount={book.stock_sirip_subs_available ?? undefined}
-          hasError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.subscription}
+          hasError={book.siripEbookInfo ? !!book.siripEbookInfo.errors?.subscription : false}
         />
         <StockDisplay
           label="전자책(시립소장)"
           searchUrl={createLibraryOpenURL('e시립소장', book.title, book.customSearchTitle)}
           totalCount={book.stock_sirip_owned_total ?? undefined}
           availableCount={book.stock_sirip_owned_available ?? undefined}
-          hasError={!book.siripEbookInfo || !!book.siripEbookInfo.errors?.owned}
+          hasError={book.siripEbookInfo ? !!book.siripEbookInfo.errors?.owned : false}
         />
         <StockDisplay
           label="전자책(경기)"
