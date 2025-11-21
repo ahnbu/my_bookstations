@@ -1038,10 +1038,21 @@ async function getStockUpdatePayload(
         // 시립도서관 전자책
         if (siripEbookResult.status === 'fulfilled' && siripEbookResult.value) {
             const data = siripEbookResult.value;
-            dbUpdatePayload.stock_sirip_subs_total = data.totalCountSubs;
-            dbUpdatePayload.stock_sirip_owned_total = data.totalCountOwned;
-            dbUpdatePayload.stock_sirip_subs_available = data.availableCountSubs;
-            dbUpdatePayload.stock_sirip_owned_available = data.availableCountOwned;
+            
+            // ✅ [수정] 에러가 없는 경우에만 해당 카테고리의 재고 정보를 업데이트합니다.
+            // 에러가 있으면 기존 DB 값을 유지하기 위해 payload에 포함하지 않습니다.
+            const hasSubsError = data.errors && 'subscription' in data.errors;
+            const hasOwnedError = data.errors && 'owned' in data.errors;
+
+            if (!hasSubsError) {
+                dbUpdatePayload.stock_sirip_subs_total = data.totalCountSubs;
+                dbUpdatePayload.stock_sirip_subs_available = data.availableCountSubs;
+            }
+            
+            if (!hasOwnedError) {
+                dbUpdatePayload.stock_sirip_owned_total = data.totalCountOwned;
+                dbUpdatePayload.stock_sirip_owned_available = data.availableCountOwned;
+            }
         }
         
         // 업데이트할 내용이 있을 때만 payload 반환
