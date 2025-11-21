@@ -982,7 +982,7 @@ async function searchSiripEbookKeyword(keyword: string): Promise<KeywordSearchRe
 async function getStockUpdatePayload(
     book: { id: number; isbn13: string; title: string; author: string; customSearchTitle?: string | null },
     env: Env
-): Promise<{[key: string]: any} | null> {
+): Promise<{ payload: {[key: string]: any} | null, errors: string[] }> {
     try {
         const { isbn13, title, author, customSearchTitle } = book;
 
@@ -1009,6 +1009,7 @@ async function getStockUpdatePayload(
         ]);
         
         const dbUpdatePayload: { [key: string]: any } = {};
+        const errors: string[] = [];
 
         // 광주 시립도서관 (종이책)
         if (gwangjuPaperResult.status === 'fulfilled') {
@@ -1047,20 +1048,27 @@ async function getStockUpdatePayload(
             if (!hasSubsError) {
                 dbUpdatePayload.stock_sirip_subs_total = data.totalCountSubs;
                 dbUpdatePayload.stock_sirip_subs_available = data.availableCountSubs;
+            } else {
+                errors.push(`Sirip Subscription Error: ${data.errors?.subscription}`);
             }
             
             if (!hasOwnedError) {
                 dbUpdatePayload.stock_sirip_owned_total = data.totalCountOwned;
                 dbUpdatePayload.stock_sirip_owned_available = data.availableCountOwned;
+            } else {
+                errors.push(`Sirip Owned Error: ${data.errors?.owned}`);
             }
         }
         
         // 업데이트할 내용이 있을 때만 payload 반환
-        return Object.keys(dbUpdatePayload).length > 0 ? dbUpdatePayload : null;
+        return { 
+            payload: Object.keys(dbUpdatePayload).length > 0 ? dbUpdatePayload : null,
+            errors 
+        };
 
     } catch (error) {
         console.error(`[Auto-Refresh] Failed to get stock for Book ID ${book.id}:`, error);
-        return null;
+        return { payload: null, errors: [error instanceof Error ? error.message : String(error)] };
     }
 }
 
@@ -1096,7 +1104,7 @@ async function handleStockRefresh(env: Env): Promise<void> {
             console.log(`[CRON PROCESS] Refreshing stock for book ID: ${book.id}, Title: ${book.title}`);
 
             // 재고 조회 로직 호출
-            const updatePayload = await getStockUpdatePayload(book, env);
+            const { payload: updatePayload, errors } = await getStockUpdatePayload(book, env);
 
             if (updatePayload) {
                 // 3. 조회 성공 시 Supabase DB 업데이트
@@ -1109,11 +1117,13 @@ async function handleStockRefresh(env: Env): Promise<void> {
                     console.error(`[CRON ERROR] Failed to update book ID ${book.id}:`, updateError);
                     failureCount++;
                 } else {
-                    console.log(`[CRON SUCCESS] Successfully updated book ID ${book.id}`);
+                    const warningMsg = errors.length > 0 ? ` (Warnings: ${errors.join(', ')})` : '';
+                    console.log(`[CRON SUCCESS] Successfully updated book ID ${book.id}${warningMsg}`);
                     successCount++;
                 }
             } else {
-                console.warn(`[CRON WARN] No stock data found for book ID ${book.id}, skipping update.`);
+                const errorMsg = errors.length > 0 ? ` (Errors: ${errors.join(', ')})` : '';
+                console.warn(`[CRON WARN] No stock data found for book ID ${book.id}, skipping update.${errorMsg}`);
                 failureCount++;
             }
 
