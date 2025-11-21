@@ -661,6 +661,9 @@ function parseGyenggiEbookSubsResults(json_data: any, query: string): gyeonggiEb
   
 function parseSiripEbookOwnedHTML(html: string): SiripEbookOwnedResult {
     try {
+      // ✅ 강제 테스트 코드 (아래 주석 해제)
+      // throw new Error("Test Error: Forced failure for Sirip Subscription parsing");
+
       if (html.includes('검색결과가 없습니다') || html.includes('자료가 없습니다')) {
         return { libraryName: '시립도서관 전자책-소장형', totalCount: 0, availableCount: 0, unavailableCount: 0, bookList: [] };
       }
@@ -733,6 +736,9 @@ function parseSiripEbookOwnedHTML(html: string): SiripEbookOwnedResult {
   
 function parseSiripEbookSubsHTML(html: string): SiripEbookSubsResult {
     try {
+      // ✅ 강제 테스트 코드 (아래 주석 해제)
+      // throw new Error("Test Error: Forced failure for Sirip Subscription parsing");
+
       if (html.includes('검색결과가 없습니다') || html.includes('자료가 없습니다')) {
         return { libraryName: '시립도서관 전자책-구독형', totalCount: 0, availableCount: 0, unavailableCount: 0, bookList: [] };
       }

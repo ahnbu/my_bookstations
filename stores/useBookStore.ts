@@ -837,11 +837,20 @@ export const useBookStore = create<BookState>(
             }
             // --- ▲▲▲ [타입 가드 추가] ▲▲▲ ---
 
-            if (libData.siripEbook && !('error' in libData.siripEbook) && !libData.siripEbook.errors) {
-                dbUpdatePayload.stock_sirip_subs_total = libData.siripEbook.totalCountSubs;
-                dbUpdatePayload.stock_sirip_owned_total = libData.siripEbook.totalCountOwned;
-                dbUpdatePayload.stock_sirip_subs_available = libData.siripEbook.availableCountSubs;
-                dbUpdatePayload.stock_sirip_owned_available = libData.siripEbook.availableCountOwned;
+            if (libData.siripEbook && !('error' in libData.siripEbook)) {
+                const siripData = libData.siripEbook;
+                const hasSubsError = siripData.errors && 'subscription' in siripData.errors;
+                const hasOwnedError = siripData.errors && 'owned' in siripData.errors;
+
+                if (!hasSubsError) {
+                    dbUpdatePayload.stock_sirip_subs_total = siripData.totalCountSubs;
+                    dbUpdatePayload.stock_sirip_subs_available = siripData.availableCountSubs;
+                }
+                
+                if (!hasOwnedError) {
+                    dbUpdatePayload.stock_sirip_owned_total = siripData.totalCountOwned;
+                    dbUpdatePayload.stock_sirip_owned_available = siripData.availableCountOwned;
+                }
             }
             if (libData.gyeonggiEbookLib && !('error' in libData.gyeonggiEbookLib)) {
                 dbUpdatePayload.stock_gyeonggi_total = libData.gyeonggiEbookLib.totalCountSummary;
