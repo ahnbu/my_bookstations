@@ -35,3 +35,7 @@ uploads_for_ai_studio
 .claude/settings.local.json
 .claude/*
 
+
+_handoff/
+.agent/
+
