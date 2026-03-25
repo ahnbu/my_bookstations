@@ -36,6 +36,16 @@ uploads_for_ai_studio
 .claude/*
 
 
-_handoff/
 .agent/
 
+.playwright-cli/
+.bkit/
+.pdca-status
+.pdca-status.json
+.bkit-memory
+.bkit-memory.json
+.pdca-snapshots
+.current-session-id
+.env
+temp/
+.temp/
