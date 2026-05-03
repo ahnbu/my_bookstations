@@ -1,4 +1,4 @@
-import { AladdinAPIResponseSchema, AladdinAPIResponse, AladdinBookItem } from '../types';
+import { AladdinAPIResponseEnvelopeSchema, AladdinBookItemSchema, AladdinBookItem } from '../types';
 
 const TTB_KEY = import.meta.env.VITE_ALADIN_TTB_KEY;
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
@@ -57,13 +57,13 @@ export const searchAladinBooks = async (
     const jsonString = jsonpText.substring(jsonStartIndex, jsonEndIndex + 1);
     const rawData = JSON.parse(jsonString);
 
-    const validationResult = AladdinAPIResponseSchema.safeParse(rawData);
+    const validationResult = AladdinAPIResponseEnvelopeSchema.safeParse(rawData);
 
     if (!validationResult.success) {
       console.error("Aladdin API response validation failed:", validationResult.error.flatten());
       throw new Error('알라딘 API로부터 받은 데이터 형식이 올바르지 않습니다.');
     }
-    const data: AladdinAPIResponse = validationResult.data;
+    const data = validationResult.data;
 
     if (data.errorCode) {
       if (data.errorCode === 4) { // "검색 결과 없음" 코드
@@ -74,7 +74,22 @@ export const searchAladinBooks = async (
     }
     
     if (data.item) {
-      return data.item.filter(book =>
+      return data.item.flatMap((rawBook, index) => {
+        const bookValidationResult = AladdinBookItemSchema.safeParse(rawBook);
+
+        if (!bookValidationResult.success) {
+          console.warn("Invalid Aladdin API item skipped:", {
+            index,
+            issues: bookValidationResult.error.issues.map(issue => ({
+              path: issue.path,
+              message: issue.message,
+            })),
+          });
+          return [];
+        }
+
+        return [bookValidationResult.data];
+      }).filter(book =>
         !book.title.startsWith('[큰글자도서]') &&
         !book.title.startsWith('[큰글자책]') &&
         !book.title.startsWith('[세트]')

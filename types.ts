@@ -48,6 +48,12 @@ export const AladdinAPIResponseSchema = z.object({
   errorMessage: z.string().optional(),
 });
 
+export const AladdinAPIResponseEnvelopeSchema = z.object({
+  item: z.array(z.unknown()).optional(),
+  errorCode: z.number().optional(),
+  errorMessage: z.string().optional(),
+});
+
 // ✅ 런타임 검증이 가능한 Zod 스키마 정의 (신규 추가)
 // ▼▼▼▼▼▼▼▼▼▼ 여기에 아래 내용을 새로 추가합니다 ▼▼▼▼▼▼▼▼▼▼
 
@@ -104,6 +110,7 @@ export const SelectedBookSchema = BookDataSchema.extend({
 // 외부 API 관련 타입
 export type AladdinBookItem = z.infer<typeof AladdinBookItemSchema>;
 export type AladdinAPIResponse = z.infer<typeof AladdinAPIResponseSchema>;
+export type AladdinAPIResponseEnvelope = z.infer<typeof AladdinAPIResponseEnvelopeSchema>;
 
 // 내부 핵심 데이터 타입 (새로 추가 및 대체)
 export type ApiCombinedBookData = z.infer<typeof ApiCombinedBookDataSchema>;
