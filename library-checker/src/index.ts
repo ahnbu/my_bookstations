@@ -305,28 +305,11 @@ async function searchSiripEbookSubs(searchTitle: string): Promise<SiripEbookSubs
         'Upgrade-Insecure-Requests': '1',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
       };
-  
-      const initialResponse = await fetch(baseSearchUrl, {
-        method: 'GET',
-        headers: initialHeaders,
-        signal: AbortSignal.timeout(DEFAULT_TIMEOUT)
-      });
-  
-      if (!initialResponse.ok) {
-        throw new Error(`세션 획득 실패: HTTP ${initialResponse.status}`);
-      }
-  
-      const sessionCookie = initialResponse.headers.get('set-cookie');
-      if (!sessionCookie) {
-        throw new Error('세션 쿠키를 획득하지 못했습니다.');
-      }
-      
+
       const searchUrl = `${baseSearchUrl}?schTxt=${encodedTitle}`;
       const searchHeaders = {
         ...initialHeaders,
-        'Cookie': sessionCookie,
         'Referer': baseSearchUrl,
-        'Sec-Fetch-Site': 'same-origin',
       };
   
       const response = await fetch(searchUrl, { 
