@@ -78,7 +78,7 @@
 ### Frontend
 - **React 19** & **TypeScript**
 - **Vite**: 빠른 개발 서버 및 빌드
-- **Tailwind CSS**: 유틸리티 우선 CSS 프레임워크
+- **Tailwind CSS Play CDN + 커스텀 CSS**: `index.html`의 Tailwind CDN과 `index.css`의 디자인 토큰·공통 클래스를 함께 사용
 - **Lucide React**: 일관성 있는 아이콘 시스템
 
 ### State Management
@@ -97,6 +97,7 @@
 
 ### 필수 조건
 - Node.js 18 이상
+- pnpm
 - Git
 
 ### 설치 및 실행
@@ -107,7 +108,7 @@
     ```
 2.  **의존성 설치**
     ```bash
-    npm install
+    pnpm install
     ```
 3.  **환경 변수 설정** (`.env.local` 파일 생성)
     ```bash
@@ -117,7 +118,7 @@
     ```
 4.  **개발 서버 실행**
     ```bash
-    npm run dev
+    pnpm dev
     ```
 5.  **브라우저에서 확인**: `http://localhost:5173`
 
