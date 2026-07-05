@@ -8,9 +8,29 @@ import { AladdinBookItem } from '../types'; // [추가] 명확한 타입을 위�
 
 const BookSearchListModal: React.FC = () => {
   const { isBookSearchListModalOpen, closeBookSearchListModal, openMyLibraryBookDetailModal } = useUIStore();
-  const { searchResults, selectBook, myLibraryBooks, hasMoreResults, isLoadingMore, loadMoreSearchResults, isBookInLibrary, addToLibrary } = useBookStore();
+  const {
+    searchResults,
+    selectBook,
+    myLibraryBooks,
+    hasMoreResults,
+    isLoadingMore,
+    loadMoreSearchResults,
+    isBookInLibrary,
+    addToLibrary,
+    removeFromLibrary,
+  } = useBookStore();
   const { session } = useAuthStore();
   const [addingIsbnSet, setAddingIsbnSet] = React.useState<Set<string>>(new Set());
+  const [quickAddedBookMap, setQuickAddedBookMap] = React.useState<Map<string, number>>(new Map());
+  const [removingIsbnSet, setRemovingIsbnSet] = React.useState<Set<string>>(new Set());
+
+  React.useEffect(() => {
+    if (!isBookSearchListModalOpen) {
+      setAddingIsbnSet(new Set());
+      setQuickAddedBookMap(new Map());
+      setRemovingIsbnSet(new Set());
+    }
+  }, [isBookSearchListModalOpen]);
 
   const handleBookClick = (book: AladdinBookItem) => { // [수정] any 대신 AladdinBookItem 타입 사용
 
@@ -40,11 +60,40 @@ const BookSearchListModal: React.FC = () => {
     event.stopPropagation();
 
     const normalizedIsbn = (book.isbn13 || '').toString().trim();
-    if (!session || !normalizedIsbn || isBookInLibrary(normalizedIsbn) || addingIsbnSet.has(normalizedIsbn)) return;
+    if (!session || !normalizedIsbn || addingIsbnSet.has(normalizedIsbn) || removingIsbnSet.has(normalizedIsbn)) return;
+
+    const quickAddedBookId = quickAddedBookMap.get(normalizedIsbn);
+
+    if (quickAddedBookId) {
+      setRemovingIsbnSet(prev => new Set(prev).add(normalizedIsbn));
+      try {
+        await removeFromLibrary(quickAddedBookId);
+        const isStillInLibrary = useBookStore.getState().isBookInLibrary(normalizedIsbn);
+        if (!isStillInLibrary) {
+          setQuickAddedBookMap(prev => {
+            const next = new Map(prev);
+            next.delete(normalizedIsbn);
+            return next;
+          });
+        }
+      } finally {
+        setRemovingIsbnSet(prev => {
+          const next = new Set(prev);
+          next.delete(normalizedIsbn);
+          return next;
+        });
+      }
+      return;
+    }
+
+    if (isBookInLibrary(normalizedIsbn)) return;
 
     setAddingIsbnSet(prev => new Set(prev).add(normalizedIsbn));
     try {
-      await addToLibrary({ ...book, isbn13: normalizedIsbn });
+      const addedBook = await addToLibrary({ ...book, isbn13: normalizedIsbn });
+      if (addedBook) {
+        setQuickAddedBookMap(prev => new Map(prev).set(normalizedIsbn, addedBook.id));
+      }
     } finally {
       setAddingIsbnSet(prev => {
         const next = new Set(prev);
@@ -74,6 +123,9 @@ const BookSearchListModal: React.FC = () => {
                   // const isDuplicate = myLibraryBooks.some(libraryBook => libraryBook.isbn13 === book.isbn13);
                   const normalizedIsbn = (book.isbn13 || '').toString().trim();
                   const isDuplicate = isBookInLibrary(normalizedIsbn);
+                  const isQuickAdded = quickAddedBookMap.has(normalizedIsbn);
+                  const isExistingDuplicate = isDuplicate && !isQuickAdded;
+                  const isProcessing = addingIsbnSet.has(normalizedIsbn) || removingIsbnSet.has(normalizedIsbn);
 
                   // // ▼▼▼▼▼▼▼▼▼▼ [디버깅 로그 #4] - 각 책에 대한 중복 검사 추적 ▼▼▼▼▼▼▼▼▼▼
                   // console.log(`[MODAL-DEBUG-4] Checking duplication for ISBN: ${book.isbn13}, Title: ${book.title}`);
@@ -101,21 +153,39 @@ const BookSearchListModal: React.FC = () => {
                       <button
                         type="button"
                         onClick={(event) => handleQuickAddClick(event, book)}
-                        disabled={!session || isDuplicate || addingIsbnSet.has(normalizedIsbn)}
-                        aria-label={!session ? `${book.title} 로그인 후 추가` : isDuplicate ? `${book.title} 추가 완료` : `${book.title} 내 서재 추가`}
-                        title={!session ? '로그인 후 추가' : isDuplicate ? '추가 완료' : '내 서재 추가'}
-                        className={`absolute top-0.5 right-0.5 w-11 h-11 flex items-center justify-center transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${
+                        disabled={!session || isExistingDuplicate || isProcessing}
+                        aria-label={
+                          !session
+                            ? `${book.title} 로그인 후 추가`
+                            : isExistingDuplicate
+                              ? `${book.title} 기존 추가됨`
+                              : isQuickAdded
+                                ? `${book.title} 추가 취소`
+                                : `${book.title} 내 서재 추가`
+                        }
+                        title={
+                          !session
+                            ? '로그인 후 추가'
+                            : isExistingDuplicate
+                              ? '기존 추가됨'
+                              : isQuickAdded
+                                ? '추가 취소'
+                                : '내 서재 추가'
+                        }
+                        className={`absolute top-2 right-2 w-11 h-11 rounded-full bg-slate-950/90 shadow-lg backdrop-blur flex items-center justify-center transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${
                           isDuplicate
-                            ? 'text-green-400 cursor-default'
+                            ? isQuickAdded
+                              ? 'text-green-400'
+                              : 'text-green-400 cursor-default'
                             : !session
                               ? 'text-white/40 cursor-not-allowed'
                               : 'text-white'
                         }`}
                       >
                         {isDuplicate ? (
-                          <CheckIcon className="w-5 h-5 drop-shadow-md" />
+                          <CheckIcon className="w-6 h-6" />
                         ) : (
-                          <PlusIcon className="w-5 h-5 drop-shadow-md" />
+                          <PlusIcon className="w-6 h-6" />
                         )}
                       </button>
                     </div>

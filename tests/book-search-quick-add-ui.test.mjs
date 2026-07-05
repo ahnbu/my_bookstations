@@ -31,6 +31,13 @@ const sampleBook = {
   subInfo: {},
 };
 
+const existingBook = {
+  ...sampleBook,
+  title: '이미 추가된 안티그래비티 도서',
+  isbn13: '9791190000002',
+  id: 8001,
+};
+
 async function waitForServer(serverProcess) {
   const startedAt = Date.now();
   let lastError;
@@ -91,7 +98,7 @@ test('cover quick-add keeps search modal open and turns the book into a duplicat
     const page = await context.newPage();
     await page.goto(BASE_URL);
 
-    await page.evaluate(async (book) => {
+    await page.evaluate(async ({ sampleBook, existingBook }) => {
       const [{ useBookStore }, { useUIStore }, { useAuthStore }, { useSettingsStore }] = await Promise.all([
         import('/stores/useBookStore.ts'),
         import('/stores/useUIStore.ts'),
@@ -103,10 +110,12 @@ test('cover quick-add keeps search modal open and turns the book into a duplicat
         fetchUserSettings: async () => undefined,
       });
 
+      let removeCallCount = 0;
+
       useBookStore.setState({
-        searchResults: [book],
-        myLibraryBooks: [],
-        myLibraryIsbnSet: new Set(),
+        searchResults: [sampleBook, existingBook],
+        myLibraryBooks: [existingBook],
+        myLibraryIsbnSet: new Set([existingBook.isbn13]),
         fetchUserLibrary: async () => undefined,
         clearLibrary: () => undefined,
         addToLibrary: async (bookToAdd) => {
@@ -127,6 +136,20 @@ test('cover quick-add keeps search modal open and turns the book into a duplicat
 
           return addedBook;
         },
+        removeFromLibrary: async (id) => {
+          removeCallCount += 1;
+          useBookStore.setState((state) => {
+            const target = state.myLibraryBooks.find(book => book.id === id);
+            const nextIsbnSet = new Set(state.myLibraryIsbnSet);
+            if (target) nextIsbnSet.delete(target.isbn13);
+
+            return {
+              myLibraryBooks: state.myLibraryBooks.filter(book => book.id !== id),
+              myLibraryIsbnSet: nextIsbnSet,
+              removeCallCount,
+            };
+          });
+        },
       });
 
       useAuthStore.setState({
@@ -142,7 +165,7 @@ test('cover quick-add keeps search modal open and turns the book into a duplicat
         isBookSearchListModalOpen: true,
         selectedBookIdForDetail: null,
       });
-    }, sampleBook);
+    }, { sampleBook, existingBook });
 
     await assert.doesNotReject(async () => {
       await page.getByRole('heading', { name: '도서 검색 결과' }).waitFor();
@@ -150,6 +173,9 @@ test('cover quick-add keeps search modal open and turns the book into a duplicat
 
     await assert.doesNotReject(async () => {
       await page.getByText(sampleBook.title).waitFor();
+    });
+    await assert.doesNotReject(async () => {
+      await page.getByText(existingBook.title).waitFor();
     });
 
     await page.evaluate(async () => {
@@ -168,16 +194,27 @@ test('cover quick-add keeps search modal open and turns the book into a duplicat
       });
     });
 
+    await assert.doesNotReject(async () => {
+      await page.getByRole('button', { name: /기존 추가됨/ }).waitFor();
+    });
+    assert.equal(await page.getByRole('button', { name: /기존 추가됨/ }).isDisabled(), true);
+
     await page.getByRole('button', { name: /내 서재 추가/ }).click();
 
     await assert.doesNotReject(async () => {
       await page.getByRole('heading', { name: '도서 검색 결과' }).waitFor();
     });
     await assert.doesNotReject(async () => {
-      await page.getByRole('button', { name: /추가 완료/ }).waitFor();
+      await page.getByRole('button', { name: /추가 취소/ }).waitFor();
     });
 
-    await page.locator('li').filter({ hasText: sampleBook.title }).locator('h3').click();
+    await page.getByRole('button', { name: /추가 취소/ }).click();
+
+    await assert.doesNotReject(async () => {
+      await page.getByRole('button', { name: /내 서재 추가/ }).waitFor();
+    });
+
+    await page.locator('li').filter({ hasText: existingBook.title }).locator('h3').click();
 
     await assert.doesNotReject(async () => {
       await page.getByRole('heading', { name: '도서 검색 결과' }).waitFor({ state: 'detached' });

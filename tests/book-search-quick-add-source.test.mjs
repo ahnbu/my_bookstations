@@ -17,16 +17,28 @@ test('book store exposes direct addToLibrary(book) without breaking existing cal
   assert.match(storeSource, /return null;/);
 });
 
-test('book search modal separates card detail click from transparent cover quick-add button', () => {
+test('book search modal uses a borderless circular quick-add button with reversible quick-added state', () => {
   assert.match(modalSource, /import \{ CloseIcon, PlusIcon, CheckIcon \} from '\.\/Icons';/);
   assert.match(modalSource, /import \{ useAuthStore \} from '\.\.\/stores\/useAuthStore';/);
   assert.match(modalSource, /const \{ session \} = useAuthStore\(\);/);
   assert.match(modalSource, /handleQuickAddClick/);
   assert.match(modalSource, /event\.stopPropagation\(\);/);
+  assert.match(modalSource, /removeFromLibrary/);
+  assert.match(modalSource, /quickAddedBookMap/);
+  assert.match(modalSource, /removingIsbnSet/);
   assert.match(modalSource, /await addToLibrary\(\{ \.\.\.book, isbn13: normalizedIsbn \}\);/);
+  assert.match(modalSource, /await removeFromLibrary\(quickAddedBookId\);/);
+  assert.match(modalSource, /const isStillInLibrary = useBookStore\.getState\(\)\.isBookInLibrary\(normalizedIsbn\);/);
+  assert.match(modalSource, /setQuickAddedBookMap/);
+  assert.match(modalSource, /isQuickAdded/);
+  assert.match(modalSource, /isExistingDuplicate/);
   assert.match(modalSource, /w-11 h-11/);
-  assert.match(modalSource, /<CheckIcon className="w-5 h-5 drop-shadow-md" \/>/);
-  assert.match(modalSource, /<PlusIcon className="w-5 h-5 drop-shadow-md" \/>/);
+  assert.match(modalSource, /rounded-full/);
+  assert.match(modalSource, /bg-slate-950\/90/);
+  assert.match(modalSource, /backdrop-blur/);
+  assert.match(modalSource, /<CheckIcon className="w-6 h-6" \/>/);
+  assert.match(modalSource, /<PlusIcon className="w-6 h-6" \/>/);
+  assert.doesNotMatch(modalSource, /className=\{`absolute top-2 right-2[^`]*border/s);
   assert.doesNotMatch(modalSource, /bg-yellow-500 text-black text-xs px-2 py-1 rounded-full/);
 });
 
