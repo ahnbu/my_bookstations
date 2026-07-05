@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>안티그래비티 검색 결과 추가 버튼 미리보기</title>
+  <style>
+    :root {
+      --background: oklch(0.2077 0.0398 265.7549);
+      --foreground: oklch(0.9288 0.0126 255.5078);
+      --card: oklch(0.2795 0.0368 260.0310);
+      --muted: oklch(0.2795 0.0368 260.0310);
+      --secondary: oklch(0.3351 0.0331 260.9120);
+      --muted-foreground: oklch(0.7137 0.0192 261.3246);
+      --border: oklch(0.4461 0.0263 256.8018);
+      --accent: oklch(0.3729 0.0306 259.7328);
+      --primary: oklch(0.6801 0.1583 276.9349);
+      --shadow-sm: 0 4px 8px -1px oklch(0 0 0 / 0.10), 0 1px 2px -2px oklch(0 0 0 / 0.10);
+      --shadow-md: 0 4px 8px -1px oklch(0 0 0 / 0.10), 0 2px 4px -2px oklch(0 0 0 / 0.10);
+      --shadow-2xl: 0 4px 8px -1px oklch(0 0 0 / 0.25);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--background);
+      color: var(--foreground);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .page {
+      min-height: 100vh;
+      padding: 32px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(circle at top, oklch(0.2795 0.0368 260.0310 / 0.55), transparent 36rem),
+        var(--background);
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: oklch(0 0 0 / 0.75);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .modal {
+      width: min(100%, 960px);
+      max-height: 90vh;
+      background: var(--card);
+      border-radius: 8px;
+      box-shadow: var(--shadow-2xl);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid oklch(1 0 0 / 0.04);
+    }
+
+    .modal-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .title-group {
+      min-width: 0;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      margin: 6px 0 0;
+      color: var(--muted-foreground);
+      font-size: 13px;
+    }
+
+    .close-button {
+      width: 36px;
+      height: 36px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted-foreground);
+      font-size: 24px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .close-button:hover {
+      background: var(--accent);
+      color: var(--foreground);
+    }
+
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    .search-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding: 12px 14px;
+      background: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .search-keyword {
+      color: var(--foreground);
+      font-weight: 700;
+    }
+
+    .result-count {
+      color: var(--muted-foreground);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 24px;
+    }
+
+    .book-card {
+      position: relative;
+      min-width: 0;
+      padding: 16px;
+      background: var(--muted);
+      border: 1px solid transparent;
+      border-radius: 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .book-card:hover {
+      transform: translateY(-4px);
+      background: var(--secondary);
+      box-shadow: var(--shadow-md);
+      border-color: oklch(0.6801 0.1583 276.9349 / 0.24);
+    }
+
+    .book-card.is-added {
+      opacity: 0.82;
+    }
+
+    .badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #eab308;
+      color: #111827;
+      font-size: 12px;
+      line-height: 1;
+      padding: 5px 8px;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+
+    .cover {
+      width: 128px;
+      height: 192px;
+      margin: 0 auto 16px;
+      border-radius: 6px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 14px 12px;
+      overflow: hidden;
+      background: linear-gradient(145deg, #1e293b 0%, #4338ca 52%, #0f172a 100%);
+      color: white;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-align: left;
+    }
+
+    .cover span {
+      width: 100%;
+      font-size: 17px;
+      line-height: 1.18;
+      text-shadow: 0 2px 8px rgb(0 0 0 / 0.35);
+    }
+
+    .cover.green {
+      background: linear-gradient(145deg, #052e2b 0%, #0f766e 50%, #111827 100%);
+    }
+
+    .cover.blue {
+      background: linear-gradient(145deg, #172554 0%, #2563eb 58%, #111827 100%);
+    }
+
+    .cover.red {
+      background: linear-gradient(145deg, #450a0a 0%, #b91c1c 55%, #111827 100%);
+    }
+
+    .link-row {
+      display: flex;
+      width: 128px;
+      gap: 4px;
+      margin: 0 auto 12px;
+    }
+
+    .format-link {
+      flex: 1;
+      padding: 6px 4px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--card);
+      color: var(--muted-foreground);
+      font-size: 12px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .format-link:hover {
+      background: var(--secondary);
+      color: var(--foreground);
+    }
+
+    .book-title {
+      margin: 0 0 6px;
+      min-height: 38px;
+      color: var(--foreground);
+      font-size: 14px;
+      line-height: 1.35;
+      font-weight: 700;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .meta {
+      margin: 0;
+      color: var(--muted-foreground);
+      font-size: 12px;
+      line-height: 1.45;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .pub-date {
+      margin-top: 5px;
+      display: block;
+      color: oklch(0.6137 0.0292 261.3246);
+    }
+
+    .add-button {
+      width: 100%;
+      margin-top: 14px;
+      min-height: 38px;
+      border: 0;
+      border-radius: 8px;
+      background: #4f46e5;
+      color: white;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .add-button:hover:not(:disabled) {
+      background: #4338ca;
+      transform: translateY(-1px);
+    }
+
+    .add-button:disabled {
+      background: #4b5563;
+      cursor: default;
+      opacity: 0.9;
+    }
+
+    .status-bar {
+      margin-top: 20px;
+      padding: 12px 14px;
+      min-height: 44px;
+      border-radius: 8px;
+      background: oklch(0.2795 0.0368 260.0310 / 0.85);
+      border: 1px solid var(--border);
+      color: var(--muted-foreground);
+      font-size: 13px;
+    }
+
+    .status-bar strong {
+      color: var(--foreground);
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 680px) {
+      .modal-body {
+        padding: 16px;
+      }
+
+      .search-strip {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .book-card {
+        padding: 12px;
+      }
+
+      .cover,
+      .link-row {
+        width: 112px;
+      }
+
+      .cover {
+        height: 168px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="overlay" aria-label="도서 검색 결과 팝업 미리보기">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <header class="modal-header">
+          <div class="title-group">
+            <h1 id="modal-title">도서 검색 결과</h1>
+            <p class="subtitle">카드 본문은 상세 보기, 버튼은 즉시 추가 흐름으로 분리한 미리보기입니다.</p>
+          </div>
+          <button class="close-button" type="button" aria-label="닫기">×</button>
+        </header>
+
+        <div class="modal-body">
+          <div class="search-strip">
+            <div>검색어: <span class="search-keyword">안티그래비티</span></div>
+            <div class="result-count">검색 결과 6권 · 이미 추가됨 1권</div>
+          </div>
+
+          <div class="grid" id="book-grid">
+            <article class="book-card" data-title="안티그래비티">
+              <div class="cover"><span>안티<br>그래비티</span></div>
+              <div class="link-row">
+                <button class="format-link" type="button">종이책</button>
+                <button class="format-link" type="button">전자책</button>
+              </div>
+              <h2 class="book-title">안티그래비티</h2>
+              <p class="meta">윤지훈 지음<span class="pub-date">2026-06-12</span></p>
+              <button class="add-button" type="button">+ 내 서재 추가</button>
+            </article>
+
+            <article class="book-card" data-title="안티그래비티 사고법">
+              <div class="cover green"><span>안티그래비티<br>사고법</span></div>
+              <div class="link-row">
+                <button class="format-link" type="button">종이책</button>
+                <button class="format-link" type="button">전자책</button>
+              </div>
+              <h2 class="book-title">안티그래비티 사고법</h2>
+              <p class="meta">김하린 지음<span class="pub-date">2025-11-03</span></p>
+              <button class="add-button" type="button">+ 내 서재 추가</button>
+            </article>
+
+            <article class="book-card is-added" data-title="AI 시대의 안티그래비티">
+              <span class="badge">추가됨</span>
+              <div class="cover blue"><span>AI 시대의<br>안티그래비티</span></div>
+              <div class="link-row">
+                <button class="format-link" type="button">종이책</button>
+                <button class="format-link" type="button">전자책</button>
+              </div>
+              <h2 class="book-title">AI 시대의 안티그래비티</h2>
+              <p class="meta">박서윤 지음<span class="pub-date">2025-03-19</span></p>
+              <button class="add-button" type="button" disabled>✓ 추가 완료</button>
+            </article>
+
+            <article class="book-card" data-title="안티그래비티 프로젝트">
+              <div class="cover red"><span>안티그래비티<br>프로젝트</span></div>
+              <div class="link-row">
+                <button class="format-link" type="button">종이책</button>
+              </div>
+              <h2 class="book-title">안티그래비티 프로젝트</h2>
+              <p class="meta">이도현 지음<span class="pub-date">2024-08-27</span></p>
+              <button class="add-button" type="button">+ 내 서재 추가</button>
+            </article>
+
+            <article class="book-card" data-title="안티그래비티 노트">
+              <div class="cover"><span>안티그래비티<br>노트</span></div>
+              <div class="link-row">
+                <button class="format-link" type="button">전자책</button>
+              </div>
+              <h2 class="book-title">안티그래비티 노트</h2>
+              <p class="meta">정민재 지음<span class="pub-date">2023-12-05</span></p>
+              <button class="add-button" type="button">+ 내 서재 추가</button>
+            </article>
+
+            <article class="book-card" data-title="무중력 기획과 안티그래비티">
+              <div class="cover green"><span>무중력 기획과<br>안티그래비티</span></div>
+              <div class="link-row">
+                <button class="format-link" type="button">종이책</button>
+                <button class="format-link" type="button">전자책</button>
+              </div>
+              <h2 class="book-title">무중력 기획과 안티그래비티</h2>
+              <p class="meta">한유나 지음<span class="pub-date">2022-09-15</span></p>
+              <button class="add-button" type="button">+ 내 서재 추가</button>
+            </article>
+          </div>
+
+          <div class="status-bar" id="status">카드 본문을 누르면 상세 보기, <strong>+ 내 서재 추가</strong>를 누르면 이 팝업이 유지된 채 해당 카드만 추가 완료 상태로 바뀝니다.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const statusBar = document.getElementById('status');
+
+    document.querySelectorAll('.book-card').forEach((card) => {
+      card.addEventListener('click', () => {
+        const title = card.dataset.title;
+        statusBar.innerHTML = `<strong>${title}</strong> 상세 보기로 이동하는 동작입니다. 실제 구현에서는 현재처럼 상세 영역을 엽니다.`;
+      });
+    });
+
+    document.querySelectorAll('.format-link').forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        statusBar.textContent = `${button.textContent} 링크는 카드 클릭과 분리되어 있습니다.`;
+      });
+    });
+
+    document.querySelectorAll('.add-button').forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (button.disabled) return;
+
+        const card = button.closest('.book-card');
+        const title = card.dataset.title;
+        card.classList.add('is-added');
+        button.textContent = '✓ 추가 완료';
+        button.disabled = true;
+
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.textContent = '추가됨';
+        card.appendChild(badge);
+
+        statusBar.innerHTML = `<strong>${title}</strong> 도서를 추가했습니다. 검색 결과 팝업은 닫히지 않습니다.`;
+      });
+    });
+  </script>
+</body>
+</html>

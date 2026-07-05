@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>자동 태그 설정 미리보기</title>
+  <style>
+    :root {
+      --bg: #f7f8fb;
+      --panel: #ffffff;
+      --text: #283143;
+      --muted: #667085;
+      --line: #d9dee8;
+      --soft: #eef1f7;
+      --primary: #6f5bd6;
+      --primary-dark: #5b48ba;
+      --danger: #d44333;
+      --success: #16846c;
+      --shadow: 0 18px 45px rgba(27, 37, 63, 0.16);
+      font-family: Inter, "Pretendard", "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 22px;
+      padding: 32px 16px;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    .modal {
+      width: min(980px, 100%);
+      height: min(760px, calc(100vh - 64px));
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 22px 24px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .title {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.2;
+      font-weight: 750;
+    }
+
+    .close {
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--muted);
+      cursor: default;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--line);
+      overflow-x: auto;
+    }
+
+    .tab {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 9px 13px;
+      white-space: nowrap;
+    }
+
+    .tab.active {
+      border-color: var(--primary);
+      background: #f0edff;
+      color: var(--primary-dark);
+      font-weight: 700;
+    }
+
+    .content {
+      padding: 20px 24px;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 20px;
+      overflow: auto;
+    }
+
+    .tag-area,
+    .side-area {
+      min-height: 0;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .section-header h2,
+    .panel h2 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.4;
+      font-weight: 750;
+    }
+
+    .count {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .tag-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 476px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .tag-row,
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .tag-row {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .tag-row-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .tag-main {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex-wrap: wrap;
+    }
+
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      max-width: 100%;
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+
+    .tag-primary {
+      color: #fff;
+      background: var(--primary);
+    }
+
+    .tag-secondary {
+      color: #334155;
+      background: #e8edf5;
+      border-color: #cfd7e6;
+    }
+
+    .tag-tertiary {
+      color: #166067;
+      background: #dff3f0;
+      border-color: #b8dfd8;
+    }
+
+    .usage {
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .keyword-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .keyword-list {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      min-height: 32px;
+    }
+
+    .keyword {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      max-width: 180px;
+      border: 1px solid var(--line);
+      background: #f9fafc;
+      color: #344054;
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 12px;
+      line-height: 1.2;
+    }
+
+    .keyword span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .empty-keyword {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .keyword-summary {
+      color: #536078;
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 9px;
+      white-space: nowrap;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .remove {
+      width: 16px;
+      height: 16px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 0;
+      line-height: 16px;
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .text-button {
+      border: 0;
+      background: transparent;
+      color: var(--primary-dark);
+      padding: 4px 0;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .text-button.danger {
+      color: var(--danger);
+    }
+
+    .add-form {
+      border-top: 1px solid var(--line);
+      margin-top: 16px;
+      padding-top: 16px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+    }
+
+    .input,
+    .textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 10px 12px;
+      outline: none;
+    }
+
+    .textarea {
+      min-height: 92px;
+      resize: none;
+      line-height: 1.5;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      min-height: 40px;
+      font-weight: 750;
+      color: #fff;
+      background: var(--primary);
+      white-space: nowrap;
+    }
+
+    .btn.secondary {
+      color: #344054;
+      background: var(--soft);
+      border: 1px solid var(--line);
+    }
+
+    .panel {
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .panel p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .match-preview {
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      background: #fbfcfe;
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .book-title {
+      margin: 0 0 6px;
+      font-weight: 750;
+      line-height: 1.35;
+    }
+
+    .book-meta {
+      margin: 0 0 12px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .preview-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .switch-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+
+    .switch {
+      width: 46px;
+      height: 26px;
+      border-radius: 999px;
+      background: var(--primary);
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .switch::after {
+      content: "";
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      top: 3px;
+      right: 3px;
+      border-radius: 50%;
+      background: #fff;
+    }
+
+    .footer {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      padding: 16px 24px;
+      border-top: 1px solid var(--line);
+      background: #fbfcfe;
+    }
+
+    .edit-popover {
+      width: min(980px, 100%);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: var(--shadow);
+      padding: 20px 24px;
+    }
+
+    .edit-popover h2 {
+      margin: 0 0 14px;
+      font-size: 17px;
+    }
+
+    .preview-note {
+      margin: -6px 0 16px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .form-stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .helper {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .color-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .sample-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 8px;
+      color: var(--success);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    @media (max-width: 860px) {
+      body {
+        padding: 0;
+        align-items: stretch;
+        gap: 0;
+      }
+
+      .modal {
+        width: 100%;
+        height: 100vh;
+        border-radius: 0;
+        border: 0;
+      }
+
+      .content {
+        grid-template-columns: 1fr;
+        padding: 16px;
+      }
+
+      .modal-header,
+      .tabs,
+      .footer {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .row-actions {
+        justify-content: flex-end;
+      }
+
+      .edit-popover {
+        width: 100%;
+        border-left: 0;
+        border-right: 0;
+        border-radius: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="modal" aria-label="설정 모달 자동 태그 미리보기">
+    <header class="modal-header">
+      <h1 class="title">설정</h1>
+      <button class="close" aria-label="닫기">×</button>
+    </header>
+
+    <nav class="tabs" aria-label="설정 탭">
+      <button class="tab">표시 옵션</button>
+      <button class="tab active">태그관리</button>
+      <button class="tab">초기 화면</button>
+      <button class="tab">데이터</button>
+    </nav>
+
+    <section class="content">
+      <div class="tag-area">
+        <div class="section-header">
+          <h2>사용 중 태그 개수 : 6개</h2>
+          <span class="count">자동 키워드 14개</span>
+        </div>
+
+        <div class="tag-list">
+          <article class="tag-row">
+            <div class="tag-row-header">
+              <div class="tag-main">
+                <span class="tag-chip tag-primary">기획</span>
+                <span class="usage">(18권)</span>
+              </div>
+              <div class="row-actions">
+                <button class="text-button">수정</button>
+                <button class="text-button danger">삭제</button>
+              </div>
+            </div>
+            <div class="keyword-line">
+              <div class="keyword-list">
+                <span class="keyword"><span>서비스기획</span><button class="remove" aria-label="삭제">×</button></span>
+                <span class="keyword"><span>프로덕트</span><button class="remove" aria-label="삭제">×</button></span>
+                <span class="keyword"><span>PM</span><button class="remove" aria-label="삭제">×</button></span>
+              </div>
+              <span class="keyword-summary">3개</span>
+            </div>
+          </article>
+
+          <article class="tag-row">
+            <div class="tag-row-header">
+              <div class="tag-main">
+                <span class="tag-chip tag-secondary">AI</span>
+                <span class="usage">(24권)</span>
+              </div>
+              <div class="row-actions">
+                <button class="text-button">수정</button>
+                <button class="text-button danger">삭제</button>
+              </div>
+            </div>
+            <div class="keyword-line">
+              <div class="keyword-list">
+                <span class="keyword"><span>인공지능</span><button class="remove" aria-label="삭제">×</button></span>
+                <span class="keyword"><span>생성형 AI</span><button class="remove" aria-label="삭제">×</button></span>
+                <span class="keyword"><span>ChatGPT</span><button class="remove" aria-label="삭제">×</button></span>
+                <span class="keyword"><span>LLM</span><button class="remove" aria-label="삭제">×</button></span>
+              </div>
+              <span class="keyword-summary">4개</span>
+            </div>
+          </article>
+
+          <article class="tag-row">
+            <div class="tag-row-header">
+              <div class="tag-main">
+                <span class="tag-chip tag-tertiary">글쓰기</span>
+                <span class="usage">(9권)</span>
+              </div>
+              <div class="row-actions">
+                <button class="text-button">수정</button>
+                <button class="text-button danger">삭제</button>
+              </div>
+            </div>
+            <div class="keyword-line">
+              <div class="keyword-list">
+                <span class="keyword"><span>라이팅</span><button class="remove" aria-label="삭제">×</button></span>
+                <span class="keyword"><span>콘텐츠</span><button class="remove" aria-label="삭제">×</button></span>
+                <span class="keyword"><span>카피라이팅</span><button class="remove" aria-label="삭제">×</button></span>
+              </div>
+              <span class="keyword-summary">3개</span>
+            </div>
+          </article>
+
+          <article class="tag-row">
+            <div class="tag-row-header">
+              <div class="tag-main">
+                <span class="tag-chip tag-secondary">개인</span>
+                <span class="usage">(5권)</span>
+              </div>
+              <div class="row-actions">
+                <button class="text-button">수정</button>
+                <button class="text-button danger">삭제</button>
+              </div>
+            </div>
+            <div class="keyword-line">
+              <div class="keyword-list">
+                <span class="empty-keyword">키워드 없음</span>
+              </div>
+              <span class="keyword-summary">0개</span>
+            </div>
+          </article>
+        </div>
+
+        <div class="add-form">
+          <input class="input" value="" placeholder="새 태그 이름">
+          <button class="btn">추가</button>
+        </div>
+      </div>
+
+      <aside class="side-area">
+        <section class="panel">
+          <h2>자동 태그 적용</h2>
+          <p>새 책을 서재에 넣을 때 태그 이름과 자동 적용 키워드가 도서 정보와 일치하면 태그가 함께 저장됩니다.</p>
+          <div class="switch-row">
+            <span class="count">새 책 추가 시 자동 적용</span>
+            <span class="switch" aria-label="켜짐"></span>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>기존 책 재적용</h2>
+          <p>수동으로 붙인 태그는 유지하고, 규칙에 맞는 태그만 추가합니다.</p>
+          <button class="btn secondary" style="width: 100%; margin-top: 14px;">기존 책에 자동 태그 적용</button>
+        </section>
+
+        <section class="panel">
+          <h2>매칭 미리보기</h2>
+          <div class="match-preview">
+            <p class="book-title">프로덕트 매니지먼트</p>
+            <p class="book-meta">김영준 · 한빛미디어 · 서비스기획과 PM 실무</p>
+            <div class="preview-tags">
+              <span class="tag-chip tag-primary">기획</span>
+              <span class="tag-chip tag-secondary">AI</span>
+            </div>
+          </div>
+          <div class="sample-row">
+            <span>2개 태그 자동 매칭</span>
+            <span>저장 전</span>
+          </div>
+        </section>
+      </aside>
+    </section>
+
+    <footer class="footer">
+      <button class="btn secondary">취소</button>
+      <button class="btn">저장</button>
+    </footer>
+  </main>
+
+  <section class="edit-popover" aria-label="태그 수정 예시">
+    <h2>태그 수정 팝업 예시</h2>
+    <p class="preview-note">설정 화면을 가리지 않도록 별도 섹션으로 분리한 미리보기입니다.</p>
+    <div class="form-stack">
+      <label>
+        <span class="label">태그 이름</span>
+        <input class="input" value="기획">
+      </label>
+
+      <div>
+        <span class="label">색상</span>
+        <div class="color-row">
+          <button class="tag-chip tag-primary">기본</button>
+          <button class="tag-chip tag-secondary">보조</button>
+          <button class="tag-chip tag-tertiary">강조</button>
+        </div>
+      </div>
+
+      <label>
+        <span class="label">자동 적용 키워드</span>
+        <textarea class="textarea">서비스기획, 프로덕트, PM, product management</textarea>
+        <span class="helper">쉼표로 구분해 저장합니다.</span>
+      </label>
+    </div>
+
+    <div class="footer" style="padding: 16px 0 0; border-top: 0;">
+      <button class="btn secondary">취소</button>
+      <button class="btn">저장</button>
+    </div>
+  </section>
+</body>
+</html>
