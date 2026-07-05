@@ -107,8 +107,8 @@ my_bookstation/
 3.  **Cloudflare Workers 로컬 실행** (별도 터미널)
     ```bash
     cd library-checker
-    pnpm install
-    pnpm dev
+    npm install
+    npm run dev
     ```
     - Worker는 기본적으로 `http://127.0.0.1:8787`에서 실행됩니다.
 4.  **프론트엔드 개발 서버 실행**
