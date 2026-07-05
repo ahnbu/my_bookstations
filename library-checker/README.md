@@ -116,7 +116,7 @@ curl -X POST "http://127.0.0.1:8787" \
 ```
 library-checker/
 ├── src/
-│   └── index.js          # 메인 Workers 스크립트
+│   └── index.ts          # 메인 Workers 스크립트
 ├── wrangler.jsonc        # Workers 설정
 ├── package.json          # 의존성 및 스크립트
 ├── .dev.vars            # 로컬 개발용 환경 변수
@@ -128,7 +128,7 @@ library-checker/
 
 - **CORS 지원**: 모든 도메인에서 접근 가능
 - **에러 처리**: 각 도서관별 개별 에러 처리
-- **타임아웃**: 20-25초 타임아웃으로 안정성 확보
+- **타임아웃**: 15초 타임아웃으로 안정성 확보
 - **스케줄된 작업**: Supabase Keep-Alive (3일마다 실행)
 
 ### 배포
@@ -155,4 +155,4 @@ wrangler tail
 
 ---
 
-*마지막 업데이트: 2025-08-09*
+*마지막 업데이트: 2026-07-05*
