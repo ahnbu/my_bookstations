@@ -1,13 +1,17 @@
 import React from 'react';
-import { CloseIcon } from './Icons';
+import { CloseIcon, PlusIcon, CheckIcon } from './Icons';
 import Spinner from './Spinner';
 import { useBookStore } from '../stores/useBookStore';
 import { useUIStore } from '../stores/useUIStore';
+import { useAuthStore } from '../stores/useAuthStore';
 import { AladdinBookItem } from '../types'; // [추가] 명확한 타입을 위해 import
 
 const BookSearchListModal: React.FC = () => {
-  const { isBookSearchListModalOpen, closeBookSearchListModal, setNotification, openMyLibraryBookDetailModal } = useUIStore();
-  const { searchResults, selectBook, myLibraryBooks, hasMoreResults, isLoadingMore, loadMoreSearchResults, myLibraryIsbnSet, isBookInLibrary } = useBookStore();
+  const { isBookSearchListModalOpen, closeBookSearchListModal, openMyLibraryBookDetailModal } = useUIStore();
+  const { searchResults, selectBook, myLibraryBooks, hasMoreResults, isLoadingMore, loadMoreSearchResults, isBookInLibrary, addToLibrary } = useBookStore();
+  const { session } = useAuthStore();
+  const [addingIsbnSet, setAddingIsbnSet] = React.useState<Set<string>>(new Set());
+
   const handleBookClick = (book: AladdinBookItem) => { // [수정] any 대신 AladdinBookItem 타입 사용
 
     // 중복 책 체크
@@ -27,6 +31,27 @@ const BookSearchListModal: React.FC = () => {
 
     // 중복이 아닌 경우에만 책 선택
     selectBook(book);
+  };
+
+  const handleQuickAddClick = async (
+    event: React.MouseEvent<HTMLButtonElement>,
+    book: AladdinBookItem,
+  ) => {
+    event.stopPropagation();
+
+    const normalizedIsbn = (book.isbn13 || '').toString().trim();
+    if (!session || !normalizedIsbn || isBookInLibrary(normalizedIsbn) || addingIsbnSet.has(normalizedIsbn)) return;
+
+    setAddingIsbnSet(prev => new Set(prev).add(normalizedIsbn));
+    try {
+      await addToLibrary({ ...book, isbn13: normalizedIsbn });
+    } finally {
+      setAddingIsbnSet(prev => {
+        const next = new Set(prev);
+        next.delete(normalizedIsbn);
+        return next;
+      });
+    }
   };
 
   if (!isBookSearchListModalOpen) return null;
@@ -65,14 +90,35 @@ const BookSearchListModal: React.FC = () => {
                         ? 'opacity-80 hover:bg-tertiary hover:shadow-lg transform hover:-translate-y-1'
                         : 'hover:bg-tertiary hover:shadow-lg transform hover:-translate-y-1'
                     }`}
-                    title={isDuplicate ? '이미 서재에 추가된 책입니다. 클릭하면 상세 정보를 볼 수 있습니다.' : '클릭하여 서재에 추가'}
+                    title={isDuplicate ? '이미 서재에 추가된 책입니다. 클릭하면 상세 정보를 볼 수 있습니다.' : '클릭하여 상세 정보 보기'}
                   >
-                    {isDuplicate && (
-                      <div className="absolute top-2 right-2 bg-yellow-500 text-black text-xs px-2 py-1 rounded-full font-semibold">
-                        추가됨
-                      </div>
-                    )}
-                    <img src={book.cover.replace('coversum', 'cover')} alt={book.title} className="w-32 h-48 object-cover rounded shadow-md mb-4" />
+                    <div className="relative w-32 h-48 mb-4">
+                      <img
+                        src={book.cover.replace('coversum', 'cover')}
+                        alt={book.title}
+                        className="w-32 h-48 object-cover rounded shadow-md"
+                      />
+                      <button
+                        type="button"
+                        onClick={(event) => handleQuickAddClick(event, book)}
+                        disabled={!session || isDuplicate || addingIsbnSet.has(normalizedIsbn)}
+                        aria-label={!session ? `${book.title} 로그인 후 추가` : isDuplicate ? `${book.title} 추가 완료` : `${book.title} 내 서재 추가`}
+                        title={!session ? '로그인 후 추가' : isDuplicate ? '추가 완료' : '내 서재 추가'}
+                        className={`absolute top-0.5 right-0.5 w-11 h-11 flex items-center justify-center transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${
+                          isDuplicate
+                            ? 'text-green-400 cursor-default'
+                            : !session
+                              ? 'text-white/40 cursor-not-allowed'
+                              : 'text-white'
+                        }`}
+                      >
+                        {isDuplicate ? (
+                          <CheckIcon className="w-5 h-5 drop-shadow-md" />
+                        ) : (
+                          <PlusIcon className="w-5 h-5 drop-shadow-md" />
+                        )}
+                      </button>
+                    </div>
                     
                     {/* [종이책][전자책] */}                  
                     <div className="flex gap-1 w-32 mb-3">

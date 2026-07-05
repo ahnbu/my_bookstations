@@ -96,17 +96,13 @@ const BulkBookSearchContent: React.FC = () => {
     if (!searchResult.selectedBook) return;
 
     try {
-      // 임시로 selectedBook을 전역 상태에 설정한 후 addToLibrary 호출
-      const originalSelectedBook = useBookStore.getState().selectedBook;
-      useBookStore.getState().selectBook(searchResult.selectedBook, { scroll: false });
-
-      await addToLibrary();
-
-      // 원래 선택된 책 복원
-      if (originalSelectedBook) {
-        useBookStore.getState().selectBook(originalSelectedBook, { scroll: false });
-      } else {
-        useBookStore.getState().unselectBook();
+      const addedBook = await addToLibrary(searchResult.selectedBook);
+      if (!addedBook) {
+        setNotification({
+          message: '이미 추가되었거나 추가할 수 없는 책입니다.',
+          type: 'warning'
+        });
+        return;
       }
 
       setNotification({
@@ -132,22 +128,16 @@ const BulkBookSearchContent: React.FC = () => {
     }
 
     let successCount = 0;
+    let skippedCount = 0;
     let failureCount = 0;
 
     for (const searchResult of selectedBooks) {
       try {
-        // 임시로 selectedBook을 전역 상태에 설정한 후 addToLibrary 호출
-        const originalSelectedBook = useBookStore.getState().selectedBook;
-        useBookStore.getState().selectBook(searchResult.selectedBook!, { scroll: false });
-
-        await addToLibrary();
-        successCount++;
-
-        // 원래 선택된 책 복원
-        if (originalSelectedBook) {
-          useBookStore.getState().selectBook(originalSelectedBook, { scroll: false });
+        const addedBook = await addToLibrary(searchResult.selectedBook!);
+        if (addedBook) {
+          successCount++;
         } else {
-          useBookStore.getState().unselectBook();
+          skippedCount++;
         }
       } catch (error) {
         console.error('Failed to add book to library:', error);
@@ -155,14 +145,19 @@ const BulkBookSearchContent: React.FC = () => {
       }
     }
 
-    if (failureCount === 0) {
+    if (failureCount === 0 && skippedCount === 0) {
       setNotification({
         message: `총 ${successCount}권의 책이 서재에 추가되었습니다.`,
         type: 'success'
       });
+    } else if (failureCount === 0) {
+      setNotification({
+        message: `${successCount}권 추가, ${skippedCount}권은 이미 추가되었거나 건너뛰었습니다.`,
+        type: 'warning'
+      });
     } else {
       setNotification({
-        message: `${successCount}권 성공, ${failureCount}권 실패했습니다.`,
+        message: `${successCount}권 추가, ${skippedCount}권 건너뜀, ${failureCount}권 실패했습니다.`,
         type: 'warning'
       });
     }

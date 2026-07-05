@@ -216,7 +216,7 @@ interface BookState {
   loadMoreSearchResults: () => Promise<void>;
   selectBook: (book: AladdinBookItem | SelectedBook, options?: { scroll?: boolean }) => void;
   unselectBook: () => void;
-  addToLibrary: () => Promise<void>;
+  addToLibrary: (bookToAdd?: AladdinBookItem | SelectedBook) => Promise<SelectedBook | null>;
   removeFromLibrary: (id: number) => Promise<void>;
   refreshBookInfo: (id: number, isbn13: string, title: string, author: string) => Promise<void>;
   sortLibrary: (key: SortKey) => void;
@@ -634,21 +634,29 @@ export const useBookStore = create<BookState>(
         set({ selectedBook: null });
       },
 
-      addToLibrary: async () => {
+      addToLibrary: async (bookToAdd) => {
           
           const { selectedBook, isBookInLibrary } = get(); // ✅ isBookInLibrary 사용
           const { session } = useAuthStore.getState();
-          if (!selectedBook || !session || !('isbn13' in selectedBook)) return;
+          const targetBook = bookToAdd ?? selectedBook;
+          if (!targetBook || !session || !('isbn13' in targetBook)) return null;
+
+          const normalizedIsbn = (targetBook.isbn13 || '').toString().trim();
+          if (!normalizedIsbn) {
+            useUIStore.getState().setNotification({ message: 'ISBN 정보가 없어 서재에 추가할 수 없습니다.', type: 'error' });
+            return null;
+          }
           
           // ✅ isBookInLibrary 함수를 사용하여 중복 체크 (더 정확함)
-          if (isBookInLibrary(selectedBook.isbn13)) {
+          if (isBookInLibrary(normalizedIsbn)) {
             useUIStore.getState().setNotification({ message: '이미 서재에 추가된 책입니다.', type: 'warning' });
-            return;
+            return null;
           }
 
           // ✅ BookData 타입에 맞게 초기 데이터 구성
           const newBookData: BookData = {
-            ...(selectedBook as AladdinBookItem), // selectedBook은 AladdinBookItem 타입
+            ...(targetBook as AladdinBookItem), // targetBook은 AladdinBookItem 타입
+            isbn13: normalizedIsbn,
             
             // 도서관/재고 정보 초기화
             toechonStock: { totalCount: 0, availableCount: 0 },
@@ -697,7 +705,9 @@ export const useBookStore = create<BookState>(
                 myLibraryIsbnSet: new Set(state.myLibraryIsbnSet).add(newBookWithId.isbn13),
                 totalBooksCount: state.totalBooksCount + 1, // ✅ 전체 책 개수 1 증가
               }));
-              set({ selectedBook: null });
+              if (!bookToAdd) {
+                set({ selectedBook: null });
+              }
 
               // 내 서재 필터 리셋
               const { resetLibraryFilters } = get();
@@ -709,9 +719,12 @@ export const useBookStore = create<BookState>(
               const delay = window.location.hostname === 'localhost' ? 100 : 800;
               setTimeout(() => { get().refreshBookInfo(newBookWithId.id, newBookWithId.isbn13, newBookWithId.title, newBookWithId.author); }, delay);
 
+              return newBookWithId;
+
           } catch(error) {
               console.error("Error adding book to library:", error);
               useUIStore.getState().setNotification({ message: '서재에 책을 추가하는 데 실패했습니다.', type: 'error'});
+              return null;
           }
       },
 
