@@ -10,7 +10,7 @@
 ## 프로젝트 정보
 - **프로젝트명**: My Bookstation (마이 북스테이션)
 - **설명**: 경기도 광주시 지역 도서관 재고 검색 서비스
-- **기술 스택**: Next.js, TypeScript, Tailwind CSS, Supabase
+- **기술 스택**: Vite, React, TypeScript, Tailwind CSS, Supabase
 
 ## 개발 규칙
 - 컴포넌트명과 파일명은 PascalCase 사용
@@ -18,3 +18,5 @@
 - 반응형 디자인 우선 (모바일 퍼스트)
 - 접근성 고려한 UI/UX 구현
 - SQL 명령어 제공시 코드 블록으로 감싸지 않고 바로 복사하여 사용할 수 있도록 제공
+- 주요 기능, DB 구조, Supabase RPC, 저장 데이터 의미가 변경되면 관련 문서를 함께 업데이트
+- 데이터 저장 위치나 탐색 기준이 바뀌면 `README.md`의 빠른 참조와 `docs/DEVELOPMENT.md`의 상세 설명을 함께 최신화
