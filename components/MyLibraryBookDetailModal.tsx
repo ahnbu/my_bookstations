@@ -15,6 +15,7 @@ import AuthorButtons from './AuthorButtons';
 import { createOptimalSearchTitle, createLibraryOpenURL, fetchBookAvailability } from '../services/unifiedLibrary.service';
 import { searchAladinBooks } from '../services/aladin.service';
 import { combineRawApiResults } from '../utils/bookDataCombiner';
+import { getMergedTagIds } from '../utils/autoTagRules';
 
 // 제목 가공 함수 (3단어, 괄호 등 제거 후)
 const createSearchSubject = createOptimalSearchTitle;
@@ -571,6 +572,8 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
     return null;
   }
 
+  const displayTagIds = getMergedTagIds(book);
+
   // [수정] ✅ mallType을 기준으로 종이책/전자책 링크를 정확히 할당
   const isEbookResult = book.mallType === 'EBOOK';
 
@@ -707,8 +710,8 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                       {/* ✅ [수정 시작] 현재 등록된 태그 (Delete 기능) */}
                       {/* ================================================================ */}
                       <div className="flex flex-wrap gap-2">
-                        {book.customTags && book.customTags.length > 0 ? (
-                          book.customTags
+                        {displayTagIds.length > 0 ? (
+                          displayTagIds
                             // 1. tagId 배열을 tag 객체 배열로 변환
                             .map(tagId => settings.tagSettings.tags.find(t => t.id === tagId))
                             // 2. 혹시 모를 null 값 제거
@@ -724,14 +727,15 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                             })
                             // 4. 정렬된 배열을 기반으로 렌더링
                             .map(tag => {
-                              const isProcessing = processingTags.has(tag.id);
+                              const isManualTag = book.customTags?.includes(tag.id) ?? false;
+                              const isProcessing = isManualTag && processingTags.has(tag.id);
                               return (
                                 <CustomTagComponent
                                   key={tag.id}
                                   tag={tag}
-                                  showClose={true}
+                                  showClose={isManualTag}
                                   size="sm"
-                                  onClose={() => handleRemoveTag(tag.id)}
+                                  onClose={isManualTag ? () => handleRemoveTag(tag.id) : undefined}
                                   className={isProcessing ? 'opacity-50 cursor-wait' : ''}
                                 />
                               );

@@ -79,6 +79,7 @@ export const UserActivityDataSchema = z.object({
   readStatus: z.enum(['읽지 않음', '읽는 중', '완독']),
   rating: z.number().min(0).max(5),
   customTags: z.array(z.string()).optional(),
+  autoTags: z.array(z.string()).optional(),
   isFavorite: z.boolean(),
   customSearchTitle: z.string().optional(),
 });
@@ -371,9 +372,18 @@ export type CustomTag = {
   updatedAt: number;
 };
 
+export type AutoTagRule = {
+  tagId: string;
+  enabled: boolean;
+  keywords: string[];
+  matchFields: ['title'];
+  updatedAt: number;
+};
+
 export type UserTagSettings = {
   tags: CustomTag[];
   maxTags: number;
+  autoTagRules?: AutoTagRule[];
 };
 
 // Theme Types

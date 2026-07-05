@@ -8,6 +8,7 @@ import Spinner from './Spinner';
 import StarRating from './StarRating';
 import CustomTagComponent from './CustomTag';
 import { createLibraryOpenURL } from '../services/unifiedLibrary.service';
+import { getMergedTagIds } from '../utils/autoTagRules';
 
 // MyLibrary.tsx에 있던 로컬 컴포넌트들을 여기로 이동
 // 1. ReadStatusDropdown
@@ -211,6 +212,7 @@ const MyLibraryListItem: React.FC<MyLibraryListItemProps> = React.memo(({
   onNoteKeyDown,
 }) => {
   const { settings } = useSettingsStore();
+  const displayTagIds = getMergedTagIds(book);
   const gridColumns = 4; // 그리드 컬럼 수는 MyLibrary에서 관리하므로, 여기서는 임의의 값을 사용하거나 props로 받아야 합니다.
                          // 이 컴포넌트에서는 gridColumns 값이 레이아웃에 직접 영향을 주지 않으므로 상수로 두어도 괜찮습니다.
 
@@ -272,9 +274,9 @@ const MyLibraryListItem: React.FC<MyLibraryListItemProps> = React.memo(({
               {settings.showReadStatus && <ReadStatusDropdown value={book.readStatus} onChange={(newStatus) => onUpdateReadStatus(book.id, newStatus)} size="sm" />}
               {settings.showRating && <StarRating rating={book.rating} onRatingChange={(newRating) => onUpdateRating(book.id, newRating)} size="md" />}
             </div>
-            {settings.showTags && book.customTags && book.customTags.length > 0 && (
+            {settings.showTags && displayTagIds.length > 0 && (
               <div className="flex flex-wrap gap-1">
-                {book.customTags.map(tagId => settings.tagSettings.tags.find(t => t.id === tagId)).filter((tag): tag is CustomTag => !!tag).sort((a, b) => { const colorOrder: Record<TagColor, number> = { 'primary': 0, 'secondary': 1, 'tertiary': 2 }; const colorDifference = (colorOrder[a.color] ?? 99) - (colorOrder[b.color] ?? 99); if (colorDifference !== 0) return colorDifference; const countA = tagCounts[a.id] || 0; const countB = tagCounts[b.id] || 0; const countDifference = countB - countA; if (countDifference !== 0) return countDifference; return a.name.localeCompare(b.name, 'ko-KR'); }).map(tag => <CustomTagComponent key={tag.id} tag={tag} isActive={false} onClick={() => {}} size="sm" />)}
+                {displayTagIds.map(tagId => settings.tagSettings.tags.find(t => t.id === tagId)).filter((tag): tag is CustomTag => !!tag).sort((a, b) => { const colorOrder: Record<TagColor, number> = { 'primary': 0, 'secondary': 1, 'tertiary': 2 }; const colorDifference = (colorOrder[a.color] ?? 99) - (colorOrder[b.color] ?? 99); if (colorDifference !== 0) return colorDifference; const countA = tagCounts[a.id] || 0; const countB = tagCounts[b.id] || 0; const countDifference = countB - countA; if (countDifference !== 0) return countDifference; return a.name.localeCompare(b.name, 'ko-KR'); }).map(tag => <CustomTagComponent key={tag.id} tag={tag} isActive={false} onClick={() => {}} size="sm" />)}
               </div>
             )}
           </div>
@@ -348,9 +350,9 @@ const MyLibraryListItem: React.FC<MyLibraryListItemProps> = React.memo(({
         <p className="text-xs text-secondary">{book.pubDate.substring(0, 7).replace('-', '년 ')}월</p>
         {settings.showRating && (<div className="flex justify-start"><StarRating rating={book.rating} onRatingChange={(newRating) => onUpdateRating(book.id, newRating)} size="md" /></div>)}
         {settings.showReadStatus && (<ReadStatusDropdown value={book.readStatus} onChange={(newStatus) => onUpdateReadStatus(book.id, newStatus)} size="sm" />)}
-        {settings.showTags && book.customTags && book.customTags.length > 0 && (
+        {settings.showTags && displayTagIds.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {book.customTags.map(tagId => settings.tagSettings.tags.find(t => t.id === tagId)).filter((tag): tag is CustomTag => !!tag).sort((a, b) => { const colorOrder: Record<TagColor, number> = { 'primary': 0, 'secondary': 1, 'tertiary': 2 }; const colorDifference = (colorOrder[a.color] ?? 99) - (colorOrder[b.color] ?? 99); if (colorDifference !== 0) return colorDifference; const countA = tagCounts[a.id] || 0; const countB = tagCounts[b.id] || 0; const countDifference = countB - countA; if (countDifference !== 0) return countDifference; return a.name.localeCompare(b.name, 'ko-KR'); }).map(tag => <CustomTagComponent key={tag.id} tag={tag} isActive={false} onClick={() => {}} size="sm" />)}
+            {displayTagIds.map(tagId => settings.tagSettings.tags.find(t => t.id === tagId)).filter((tag): tag is CustomTag => !!tag).sort((a, b) => { const colorOrder: Record<TagColor, number> = { 'primary': 0, 'secondary': 1, 'tertiary': 2 }; const colorDifference = (colorOrder[a.color] ?? 99) - (colorOrder[b.color] ?? 99); if (colorDifference !== 0) return colorDifference; const countA = tagCounts[a.id] || 0; const countB = tagCounts[b.id] || 0; const countDifference = countB - countA; if (countDifference !== 0) return countDifference; return a.name.localeCompare(b.name, 'ko-KR'); }).map(tag => <CustomTagComponent key={tag.id} tag={tag} isActive={false} onClick={() => {}} size="sm" />)}
           </div>
         )}
         {/* 도서관 재고 정보 */}

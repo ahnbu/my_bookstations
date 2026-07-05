@@ -7,15 +7,18 @@ import CustomTagComponent from './CustomTag';
 
 const SettingsModal: React.FC = () => {
   const { isSettingsModalOpen, closeSettingsModal, setNotification } = useUIStore();
-  const { settings, loading, updateUserSettings, createTag, updateTag, deleteTag, getTagUsageCount, exportToCSV, setTheme } = useSettingsStore();
+  const { settings, loading, updateUserSettings, createTag, updateTag, deleteTag, getTagUsageCount, exportToCSV, setTheme, updateAutoTagRule } = useSettingsStore();
   const { myLibraryBooks, totalBooksCount, isAllBooksLoaded, tagCounts, bulkRefreshState, 
-    fetchRemainingLibrary, bulkRefreshAllBooks, pauseBulkRefresh, resumeBulkRefresh, cancelBulkRefresh,
+    fetchRemainingLibrary, recalculateAutoTagsForAllBooks, bulkRefreshAllBooks, pauseBulkRefresh, resumeBulkRefresh, cancelBulkRefresh,
     errorBooks, errorBooksCount
    } = useBookStore();
   const [localSettings, setLocalSettings] = useState(settings);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'display' | 'initial' | 'tags' | 'data'>('display');
   const [editingTag, setEditingTag] = useState<CustomTag | null>(null);
+  const [editingAutoRuleTagId, setEditingAutoRuleTagId] = useState<string | null>(null);
+  const [autoKeywordInput, setAutoKeywordInput] = useState('');
+  const [autoRuleEnabled, setAutoRuleEnabled] = useState(true);
   const [newTagName, setNewTagName] = useState('');
   const [newTagColor, setNewTagColor] = useState<TagColor>('primary');
 
@@ -829,38 +832,113 @@ const SettingsModal: React.FC = () => {
                   <h3 className="text-sm font-medium text-primary mb-3">
                     사용 중 태그 개수 : {sortedTags.length}개
                   </h3>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const result = await recalculateAutoTagsForAllBooks();
+                        setNotification({ message: `자동태그를 적용했습니다. (${result.changed}권 변경)`, type: 'success' });
+                      } catch (error) {
+                        setNotification({ message: '자동태그 적용에 실패했습니다.', type: 'error' });
+                      }
+                    }}
+                    disabled={saving || myLibraryBooks.length === 0}
+                    className="btn-base btn-secondary w-full mb-3 disabled:opacity-50"
+                  >
+                    기존 책에 자동태그 적용
+                  </button>
                 </div>
 
                 {/* Tag List - 스크롤 가능 영역 */}
                 <div className="flex-1 min-h-0">
                   <div className="max-h-[300px] overflow-y-auto space-y-2 mb-6">
-                    {sortedTags.map((tag) => (
-                      <div key={tag.id} className="flex items-center justify-between p-3 border border-secondary rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <CustomTagComponent tag={tag} size="sm" />
-                          <span className="text-sm text-secondary">
-                            {/* ✅ [수정] getTagUsageCount 대신 tagCounts 객체를 직접 사용합니다. */}
-                            ({tagCounts[tag.id] || 0}권)
-                            {/* ({getTagUsageCount(tag.id, myLibraryBooks)}권) */}
-                          </span>
+                    {sortedTags.map((tag) => {
+                      const autoRule = settings.tagSettings.autoTagRules?.find(rule => rule.tagId === tag.id);
+                      const keywordCount = autoRule?.keywords.length ?? 0;
+
+                      return (
+                        <div key={tag.id} className="flex items-center justify-between p-3 border border-secondary rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <CustomTagComponent tag={tag} size="sm" />
+                            <span className="text-sm text-secondary">
+                              {/* ✅ [수정] getTagUsageCount 대신 tagCounts 객체를 직접 사용합니다. */}
+                              ({tagCounts[tag.id] || 0}권)
+                              {/* ({getTagUsageCount(tag.id, myLibraryBooks)}권) */}
+                            </span>
+                            <span className="text-xs text-tertiary">
+                              자동 {autoRule?.enabled === false ? '꺼짐' : `${keywordCount}개`}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                setEditingAutoRuleTagId(tag.id);
+                                setAutoKeywordInput((autoRule?.keywords ?? [tag.name]).join(', '));
+                                setAutoRuleEnabled(autoRule?.enabled ?? true);
+                              }}
+                              className="text-xs text-blue-600 hover:text-blue-700 underline"
+                            >
+                              자동
+                            </button>
+                            <button
+                              onClick={() => setEditingTag(tag)}
+                              className="text-xs text-blue-600 hover:text-blue-700 underline"
+                            >
+                              수정
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTag(tag)}
+                              className="text-xs text-red-600 hover:text-red-700 underline"
+                            >
+                              삭제
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                      );
+                    })}
+                  </div>
+
+                  {editingAutoRuleTagId && (
+                    <div className="border-t border-secondary pt-4 mb-6">
+                      <h4 className="text-sm font-medium text-primary mb-3">자동태그 키워드</h4>
+                      <textarea
+                        value={autoKeywordInput}
+                        onChange={(event) => setAutoKeywordInput(event.target.value)}
+                        className="input-base w-full min-h-[96px]"
+                        placeholder="쉼표로 구분해 입력"
+                      />
+                      <p className="text-xs text-secondary mt-2">도서명에 포함되면 해당 태그가 자동으로 붙습니다.</p>
+                      <div className="flex justify-between items-center mt-3">
+                        <label className="flex items-center gap-2 text-sm text-secondary">
+                          <input
+                            type="checkbox"
+                            checked={autoRuleEnabled}
+                            onChange={(event) => setAutoRuleEnabled(event.target.checked)}
+                          />
+                          자동 적용
+                        </label>
+                        <div className="flex gap-2">
                           <button
-                            onClick={() => setEditingTag(tag)}
-                            className="text-xs text-blue-600 hover:text-blue-700 underline"
+                            className="btn-base btn-secondary"
+                            onClick={() => setEditingAutoRuleTagId(null)}
                           >
-                            수정
+                            취소
                           </button>
                           <button
-                            onClick={() => handleDeleteTag(tag)}
-                            className="text-xs text-red-600 hover:text-red-700 underline"
+                            className="btn-base btn-primary"
+                            onClick={async () => {
+                              await updateAutoTagRule(editingAutoRuleTagId, {
+                                enabled: autoRuleEnabled,
+                                keywords: autoKeywordInput.split(',').map(keyword => keyword.trim()).filter(Boolean),
+                              });
+                              setEditingAutoRuleTagId(null);
+                            }}
                           >
-                            삭제
+                            저장
                           </button>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  )}
 
                   {/* Add New Tag - 항상 하단 고정 */}
                   <div className="flex-shrink-0 pt-4">

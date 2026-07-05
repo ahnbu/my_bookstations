@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabaseClient';
-import type { UserSettings, CustomTag, TagColor, SelectedBook, Theme } from '../types';
+import { getMergedTagIds, normalizeAutoTagRules, parseKeywordInput } from '../utils/autoTagRules';
+import type { UserSettings, CustomTag, TagColor, SelectedBook, Theme, AutoTagRule } from '../types';
 
 interface SettingsState {
   settings: UserSettings;
@@ -16,6 +17,7 @@ interface SettingsState {
   createTag: (name: string, color: TagColor) => Promise<CustomTag>;
   updateTag: (tagId: string, updates: Partial<Pick<CustomTag, 'name' | 'color'>>) => Promise<void>;
   deleteTag: (tagId: string) => Promise<void>;
+  updateAutoTagRule: (tagId: string, updates: Partial<Pick<AutoTagRule, 'enabled' | 'keywords'>>) => Promise<void>;
   getTagUsageCount: (tagId: string, allBooks: SelectedBook[]) => number;
   exportToCSV: (books: SelectedBook[]) => void;
 
@@ -28,19 +30,30 @@ interface SettingsState {
   createDefaultSettingsForUser: (userId: string) => Promise<void>;
 }
 
+const hydrateAutoTagSettings = (settings: UserSettings): UserSettings => ({
+  ...settings,
+  tagSettings: {
+    ...settings.tagSettings,
+    autoTagRules: normalizeAutoTagRules(
+      settings.tagSettings.tags,
+      settings.tagSettings.autoTagRules,
+    ),
+  },
+});
+
 const getDefaultSettings = (): UserSettings => {
   // 관리자가 설정한 기본값 확인
   const adminDefaults = localStorage.getItem('adminDefaultSettings');
   if (adminDefaults) {
     try {
-      return JSON.parse(adminDefaults);
+      return hydrateAutoTagSettings(JSON.parse(adminDefaults));
     } catch (error) {
       console.error('관리자 기본값 파싱 실패:', error);
     }
   }
 
   // 기본값 (fallback)
-  return {
+  return hydrateAutoTagSettings({
     showReadStatus: true,
     showRating: true,
     showTags: true,
@@ -59,12 +72,13 @@ const getDefaultSettings = (): UserSettings => {
         }
       ],
       maxTags: 5,
+      autoTagRules: [],
     },
     theme: 'system',
     defaultViewType: 'card', // ✅ 이 줄을 추가하세요. (기본값 'card')
     defaultFilterFavorites: false, // ✅ 이 줄을 추가하세요.
     defaultFilterTagIds: [],     // ✅ 이 줄을 추가하세요.
-  };
+  });
 };
 
 const defaultSettings: UserSettings = getDefaultSettings();
@@ -119,7 +133,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       }
 
       set({
-        settings: data?.settings || getDefaultSettings(),
+        settings: hydrateAutoTagSettings(data?.settings || getDefaultSettings()),
         loading: false
       });
     } catch (error) {
@@ -239,6 +253,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       tagSettings: {
         ...currentSettings.tagSettings,
         tags: updatedTags,
+        autoTagRules: normalizeAutoTagRules(updatedTags, currentSettings.tagSettings.autoTagRules),
       },
     };
 
@@ -262,12 +277,22 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         ? { ...tag, ...updates, updatedAt: Date.now() }
         : tag
     );
+    const updatedRules = normalizeAutoTagRules(updatedTags, currentSettings.tagSettings.autoTagRules).map(rule => {
+      if (rule.tagId !== tagId || !updates.name) return rule;
+
+      const oldTag = currentSettings.tagSettings.tags.find(tag => tag.id === tagId);
+      if (!oldTag) return rule;
+
+      const wasDefaultKeyword = rule.keywords.length === 1 && rule.keywords[0] === oldTag.name;
+      return wasDefaultKeyword ? { ...rule, keywords: [updates.name], updatedAt: Date.now() } : rule;
+    });
 
     const updatedSettings = {
       ...currentSettings,
       tagSettings: {
         ...currentSettings.tagSettings,
         tags: updatedTags,
+        autoTagRules: updatedRules,
       },
     };
 
@@ -292,6 +317,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       tagSettings: {
         ...currentSettings.tagSettings,
         tags: updatedTags,
+        autoTagRules: normalizeAutoTagRules(updatedTags, currentSettings.tagSettings.autoTagRules),
       },
     };
 
@@ -307,8 +333,34 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
   },
 
+  updateAutoTagRule: async (tagId, updates) => {
+    const currentSettings = get().settings;
+    const currentRules = normalizeAutoTagRules(
+      currentSettings.tagSettings.tags,
+      currentSettings.tagSettings.autoTagRules,
+    );
+
+    const updatedRules = currentRules.map(rule =>
+      rule.tagId === tagId
+        ? {
+            ...rule,
+            ...updates,
+            keywords: updates.keywords ? parseKeywordInput(updates.keywords.join(',')) : rule.keywords,
+            updatedAt: Date.now(),
+          }
+        : rule
+    );
+
+    const updatedTagSettings = {
+      ...currentSettings.tagSettings,
+      autoTagRules: updatedRules,
+    };
+
+    await get().updateUserSettings({ tagSettings: updatedTagSettings });
+  },
+
   getTagUsageCount: (tagId: string, allBooks: SelectedBook[]) => {
-    return allBooks.filter(book => book.customTags?.includes(tagId)).length;
+    return allBooks.filter(book => getMergedTagIds(book).includes(tagId)).length;
   },
 
   exportToCSV: (books: SelectedBook[]) => {
@@ -320,9 +372,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       ['제목', '저자', '출간일', 'ISBN13', '별점', '읽음상태', '태그', '추가일'].join(','),
       // CSV Data
       ...books.map(book => {
-        const bookTags = book.customTags?.map(tagId =>
+        const bookTags = getMergedTagIds(book).map(tagId =>
           tags.find(tag => tag.id === tagId)?.name || tagId
-        ).join(' | ') || '';
+        ).join(' | ');
 
         return [
           `"${book.title.replace(/"/g, '""')}"`,

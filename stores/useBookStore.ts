@@ -12,6 +12,7 @@ import { useAuthStore } from './useAuthStore';
 import { useSettingsStore } from './useSettingsStore';
 import { fetchBookAvailability} from '../services/unifiedLibrary.service'; 
 import { createBookDataFromApis } from '../utils/bookDataCombiner';
+import { calculateAutoTagIds, getMergedTagIds } from '../utils/autoTagRules';
 
 // 1. 중앙화된 컬럼 목록 변수
 const stockColumns = `
@@ -242,6 +243,7 @@ interface BookState {
   searchUserLibrary: (query: string) => Promise<void>;
   clearLibrarySearch: () => void;
   fetchTagCounts: () => Promise<void>;
+  recalculateAutoTagsForAllBooks: () => Promise<{ updated: number; changed: number }>;
   // filterLibraryByTags: (tagIds: string[]) => Promise<void>;
   filterLibraryByTags: (tagIds: string[], filterByFavorites: boolean) => Promise<void>;
   clearLibraryTagFilter: () => void;
@@ -653,6 +655,9 @@ export const useBookStore = create<BookState>(
             return null;
           }
 
+          const { settings } = useSettingsStore.getState();
+          const autoTags = calculateAutoTagIds(targetBook, settings.tagSettings.autoTagRules ?? []);
+
           // ✅ BookData 타입에 맞게 초기 데이터 구성
           const newBookData: BookData = {
             ...(targetBook as AladdinBookItem), // targetBook은 AladdinBookItem 타입
@@ -673,6 +678,7 @@ export const useBookStore = create<BookState>(
             rating: 0,
             isFavorite: false,
             customTags: [],
+            autoTags,
           };
           
           try {
@@ -943,14 +949,18 @@ export const useBookStore = create<BookState>(
         if (currentTags.includes(tagId)) return;
         // [핵심 수정] 스프레드 연산자(...)를 사용해 항상 새로운 배열 생성
         const newTags = [...currentTags, tagId];
+        const hadTagBefore = getMergedTagIds(book).includes(tagId);
+        const hasTagAfter = getMergedTagIds({ ...book, customTags: newTags }).includes(tagId);
 
         // ✅ [추가] 태그 카운트 즉시 업데이트 (+1)
-        set(state => ({
-          tagCounts: {
-            ...state.tagCounts,
-            [tagId]: (state.tagCounts[tagId] || 0) + 1,
-          }
-        }));
+        if (!hadTagBefore && hasTagAfter) {
+          set(state => ({
+            tagCounts: {
+              ...state.tagCounts,
+              [tagId]: (state.tagCounts[tagId] || 0) + 1,
+            }
+          }));
+        }
 
         await updateBookInStoreAndDB(id, { customTags: newTags }, '태그 추가에 실패했습니다.');
       },
@@ -959,14 +969,18 @@ export const useBookStore = create<BookState>(
         const book = await get().getBookById(id); // [개선] getBookById 사용
         if (!book) return;
         const updatedTags = (book.customTags || []).filter(t => t !== tagId);
+        const hadTagBefore = getMergedTagIds(book).includes(tagId);
+        const hasTagAfter = getMergedTagIds({ ...book, customTags: updatedTags }).includes(tagId);
 
         // ✅ [추가] removeTagFromBook에 대한 올바른 카운트 업데이트
-        set(state => ({
-          tagCounts: {
-            ...state.tagCounts,
-            [tagId]: Math.max(0, (state.tagCounts[tagId] || 1) - 1),
-          }
-        }));
+        if (hadTagBefore && !hasTagAfter) {
+          set(state => ({
+            tagCounts: {
+              ...state.tagCounts,
+              [tagId]: Math.max(0, (state.tagCounts[tagId] || 1) - 1),
+            }
+          }));
+        }
 
         await updateBookInStoreAndDB(id, { customTags: updatedTags }, '태그 제거에 실패했습니다.');
       },
@@ -977,8 +991,8 @@ export const useBookStore = create<BookState>(
         if (!book) return;
 
         // --- 카운트 업데이트 로직 시작 ---
-        const oldTags = new Set(book.customTags || []);
-        const newTags = new Set(tagIds);
+        const oldTags = new Set(getMergedTagIds(book));
+        const newTags = new Set(getMergedTagIds({ ...book, customTags: tagIds }));
         const tagCountChanges: Record<string, number> = {};
 
         // 새로 추가된 태그 계산
@@ -1024,8 +1038,8 @@ export const useBookStore = create<BookState>(
               const originalBook = originalBooks[index];
               if (!originalBook) return;
 
-              const oldTags = new Set(originalBook.customTags || []);
-              const newTags = new Set(update.tagIds); // 'tagIds'가 올바른 변수명입니다.
+              const oldTags = new Set(getMergedTagIds(originalBook));
+              const newTags = new Set(getMergedTagIds({ ...originalBook, customTags: update.tagIds }));
 
               // 추가된 태그 찾기
               newTags.forEach(tagId => {
@@ -1261,6 +1275,55 @@ export const useBookStore = create<BookState>(
         set({ librarySearchResults: [] });
       },
 
+      recalculateAutoTagsForAllBooks: async () => {
+        const { settings } = useSettingsStore.getState();
+        const rules = settings.tagSettings.autoTagRules ?? [];
+        const { isAllBooksLoaded, fetchRemainingLibrary } = get();
+
+        if (!isAllBooksLoaded) {
+          await fetchRemainingLibrary();
+        }
+
+        const books = get().myLibraryBooks;
+        let changed = 0;
+
+        const updates = books.map(async (book) => {
+          const nextAutoTags = calculateAutoTagIds(book, rules);
+          const current = JSON.stringify([...(book.autoTags ?? [])].sort());
+          const next = JSON.stringify([...nextAutoTags].sort());
+          if (current === next) return null;
+
+          changed += 1;
+          const updatedBook = { ...book, autoTags: nextAutoTags };
+          const { id, ...bookDataForDb } = updatedBook;
+
+          const { error } = await supabase
+            .from('user_library')
+            .update({
+              title: updatedBook.title,
+              author: updatedBook.author,
+              book_data: bookDataForDb as unknown as Json,
+            })
+            .eq('id', id);
+
+          if (error) throw error;
+          return updatedBook;
+        });
+
+        const results = (await Promise.all(updates)).filter((book): book is SelectedBook => Boolean(book));
+        const updatedMap = new Map(results.map(book => [book.id, book]));
+
+        set(state => ({
+          myLibraryBooks: state.myLibraryBooks.map(book => updatedMap.get(book.id) ?? book),
+          librarySearchResults: state.librarySearchResults.map(book => updatedMap.get(book.id) ?? book),
+          libraryTagFilterResults: state.libraryTagFilterResults.map(book => updatedMap.get(book.id) ?? book),
+        }));
+
+        await get().fetchTagCounts();
+
+        return { updated: books.length, changed };
+      },
+
       fetchTagCounts: async () => {
         const session = useAuthStore.getState().session;
         if (!session?.user) return;
@@ -1272,8 +1335,8 @@ export const useBookStore = create<BookState>(
 
           // DB에서 받은 배열 [{ tag_id: 'abc', book_count: 10 }, ...]을
           // { abc: 10, ... } 형태의 객체로 변환
-          const counts = (data || []).reduce((acc, { tag_id, book_count }) => {
-            acc[tag_id] = Number(book_count);
+          const counts = (data || []).reduce((acc, { tag_id, book_count, count }) => {
+            acc[tag_id] = Number(book_count ?? count);
             return acc;
           }, {} as Record<string, number>);
 
