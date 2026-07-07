@@ -1,3 +1,6 @@
+# 규칙 동기화
+- 이 프로젝트 규칙은 `AGENTS.md`와 `CLAUDE.md`를 동기화하여 운영한다. 한쪽을 변경할 때는 다른 한쪽도 같은 의미로 함께 변경한다.
+
 # My Bookstation 프로젝트 - Claude 설정
 
 ## 기본 언어 설정
@@ -20,3 +23,4 @@
 - SQL 명령어 제공시 코드 블록으로 감싸지 않고 바로 복사하여 사용할 수 있도록 제공
 - 주요 기능, DB 구조, Supabase RPC, 저장 데이터 의미가 변경되면 관련 문서를 함께 업데이트
 - 데이터 저장 위치나 탐색 기준이 바뀌면 `README.md`의 빠른 참조와 `docs/DEVELOPMENT.md`의 상세 설명을 함께 최신화
+- 완료 보고 시 `커밋`, `푸쉬`, `Worker 운영배포`는 각각 별도 상태로 분리해 보고한다. 특히 `git push`는 Cloudflare Worker 운영배포가 아니므로, Worker 변경이 있으면 `wrangler deploy` 실행 여부와 배포 URL/Version ID를 명시한다.
