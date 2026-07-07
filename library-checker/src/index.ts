@@ -21,6 +21,13 @@ import {
 
 import { parse, HTMLElement } from 'node-html-parser';
 import { createClient } from '@supabase/supabase-js'; // ✅ Supabase 클라이언트 import
+import {
+  GWANGJU_ENDPOINT_TIMEOUT_MS,
+  getEndpointTimeoutMs,
+  getRemainingBudgetMs,
+  shouldAttemptOwnedLookup,
+  createSiripOwnedSkippedResult
+} from './gwangjuBudget';
 
 // API 최대 대기 시간 15초
 const DEFAULT_TIMEOUT = 15000;
@@ -72,7 +79,14 @@ function hasCacheBlockingError(finalResult: Partial<LibraryApiResponse>): boolea
 // 크롤링 함수들 (Crawling Functions)
 // ==============================================
 
-async function searchGwangjuLibrary(isbn: string): Promise<GwangjuPaperResult> {
+function settle<T>(promise: Promise<T>): Promise<PromiseSettledResult<T>> {
+    return promise.then(
+        value => ({ status: 'fulfilled', value }),
+        reason => ({ status: 'rejected', reason })
+    );
+}
+
+async function searchGwangjuLibrary(isbn: string, timeoutMs = DEFAULT_TIMEOUT): Promise<GwangjuPaperResult> {
     // throw new Error("광주 도서관 테스트 에러"); // 크롤링 에러 테스트용
     const url = "https://lib.gjcity.go.kr:8443/kolaseek/plus/search/plusSearchResultList.do";
     const payload = new URLSearchParams({'searchType': 'DETAIL','searchKey5': 'ISBN','searchKeyword5': isbn,'searchLibrary': 'ALL','searchSort': 'SIMILAR','searchRecordCount': '30'});
@@ -81,7 +95,7 @@ async function searchGwangjuLibrary(isbn: string): Promise<GwangjuPaperResult> {
       method: 'POST', 
       headers: headers, 
       body: payload.toString(), 
-      signal: AbortSignal.timeout(DEFAULT_TIMEOUT)
+      signal: AbortSignal.timeout(timeoutMs)
     });
     if (!response.ok) throw new Error(`경기광주 HTTP ${response.status}`);
     const htmlContent = await response.text();
@@ -245,7 +259,7 @@ async function searchGyeonggiEbookLibrary(searchText: string): Promise<gyeonggiE
     }
 }
 
-async function searchSiripEbookOwned(searchTitle: string): Promise<SiripEbookOwnedResult> {
+async function searchSiripEbookOwned(searchTitle: string, timeoutMs = DEFAULT_TIMEOUT): Promise<SiripEbookOwnedResult> {
     try {
       const encodedTitle = encodeURIComponent(searchTitle);
       const url = `https://lib.gjcity.go.kr:444/elibrary-front/search/searchList.ink?schClst=all&schDvsn=000&orderByKey=&schTxt=${encodedTitle}`;
@@ -270,7 +284,7 @@ async function searchSiripEbookOwned(searchTitle: string): Promise<SiripEbookOwn
       const response = await fetch(url, { 
         method: 'GET', 
         headers: headers, 
-        signal: AbortSignal.timeout(DEFAULT_TIMEOUT) 
+        signal: AbortSignal.timeout(timeoutMs)
       });
       
       if (!response.ok) {
@@ -334,6 +348,52 @@ async function searchSiripEbookSubs(searchTitle: string): Promise<SiripEbookSubs
     }
 }
 
+function buildSiripEbookResult(
+    searchTitle: string,
+    ownedResults: PromiseSettledResult<SiripEbookOwnedResult>,
+    subscriptionResults: PromiseSettledResult<SiripEbookSubsResult>
+): SiripEbookResult {
+    const ownedData = ownedResults.status === 'fulfilled' ? ownedResults.value : null;
+    const subsData = subscriptionResults.status === 'fulfilled' ? subscriptionResults.value : null;
+
+    const ownedError = ownedResults.status === 'rejected' ? (ownedResults.reason as Error).message : ownedData?.error;
+    const subsError = subscriptionResults.status === 'rejected' ? (subscriptionResults.reason as Error).message : subsData?.error;
+
+    const combinedBookList: SiripEbookBook[] = [
+        ...(ownedData?.bookList || []),
+        ...(subsData?.bookList || [])
+    ];
+
+    const totalCountOwned = ownedData?.totalCount || 0;
+    const totalCountSubs = subsData?.totalCount || 0;
+    const totalCountSummary = totalCountOwned + totalCountSubs;
+
+    const availableCountOwned = ownedData?.availableCount || 0;
+    const availableCountSubs = subsData?.availableCount || 0;
+    const availableCountSummary = availableCountOwned + availableCountSubs;
+
+    const flatResult: SiripEbookResult = {
+        libraryName: '시립도서관 전자책',
+        totalCountSummary: totalCountSummary,
+        availableCountSummary: availableCountSummary,
+        unavailableCountSummary: totalCountSummary - availableCountSummary,
+        totalCountOwned: totalCountOwned,
+        totalCountSubs: totalCountSubs,
+        availableCountOwned: availableCountOwned,
+        availableCountSubs: availableCountSubs,
+        searchQuery: searchTitle,
+        bookList: combinedBookList,
+    };
+    
+    if (ownedError || subsError) {
+        flatResult.errors = {};
+        if (ownedError) flatResult.errors.owned = ownedError;
+        if (subsError) flatResult.errors.subscription = subsError;
+    }
+
+    return flatResult;
+}
+
 async function searchSiripEbookIntegrated(searchTitle: string): Promise<SiripEbookResult> {
     try {
         const [ownedResults, subscriptionResults] = await Promise.allSettled([
@@ -341,45 +401,7 @@ async function searchSiripEbookIntegrated(searchTitle: string): Promise<SiripEbo
             searchSiripEbookSubs(searchTitle)
         ]);
         
-        const ownedData = ownedResults.status === 'fulfilled' ? ownedResults.value : null;
-        const subsData = subscriptionResults.status === 'fulfilled' ? subscriptionResults.value : null;
-
-        const ownedError = ownedResults.status === 'rejected' ? (ownedResults.reason as Error).message : ownedData?.error;
-        const subsError = subscriptionResults.status === 'rejected' ? (subscriptionResults.reason as Error).message : subsData?.error;
-
-        const combinedBookList: SiripEbookBook[] = [
-            ...(ownedData?.bookList || []),
-            ...(subsData?.bookList || [])
-        ];
-
-        const totalCountOwned = ownedData?.totalCount || 0;
-        const totalCountSubs = subsData?.totalCount || 0;
-        const totalCountSummary = totalCountOwned + totalCountSubs;
-
-        const availableCountOwned = ownedData?.availableCount || 0;
-        const availableCountSubs = subsData?.availableCount || 0;
-        const availableCountSummary = availableCountOwned + availableCountSubs;
-
-        const flatResult: SiripEbookResult = {
-            libraryName: '시립도서관 전자책',
-            totalCountSummary: totalCountSummary,
-            availableCountSummary: availableCountSummary,
-            unavailableCountSummary: totalCountSummary - availableCountSummary,
-            totalCountOwned: totalCountOwned,
-            totalCountSubs: totalCountSubs,
-            availableCountOwned: availableCountOwned,
-            availableCountSubs: availableCountSubs,
-            searchQuery: searchTitle,
-            bookList: combinedBookList,
-        };
-        
-        if (ownedError || subsError) {
-            flatResult.errors = {};
-            if (ownedError) flatResult.errors.owned = ownedError;
-            if (subsError) flatResult.errors.subscription = subsError;
-        }
-        
-        return flatResult;
+        return buildSiripEbookResult(searchTitle, ownedResults, subscriptionResults);
 
     } catch (error) {
         if (error instanceof Error) {
@@ -388,6 +410,20 @@ async function searchSiripEbookIntegrated(searchTitle: string): Promise<SiripEbo
         }
         throw new Error('시립도서관 통합 검색 중 알 수 없는 오류 발생');
     }
+}
+
+async function searchSiripEbookIntegratedAfterGwangju(
+    searchTitle: string,
+    groupStartedAtMs: number,
+    subscriptionResultPromise: Promise<PromiseSettledResult<SiripEbookSubsResult>>
+): Promise<SiripEbookResult> {
+    const remainingBudgetMs = getRemainingBudgetMs(groupStartedAtMs);
+    const ownedResult = shouldAttemptOwnedLookup(remainingBudgetMs)
+        ? await settle(searchSiripEbookOwned(searchTitle, getEndpointTimeoutMs(remainingBudgetMs)))
+        : { status: 'fulfilled', value: createSiripOwnedSkippedResult(searchTitle) } as PromiseFulfilledResult<SiripEbookOwnedResult>;
+    const subscriptionResult = await subscriptionResultPromise;
+
+    return buildSiripEbookResult(searchTitle, ownedResult, subscriptionResult);
 }
 
 // ===========================================
@@ -980,21 +1016,28 @@ async function getStockUpdatePayload(
         const gyeonggiTitle = customSearchTitle  || processGyeonggiEbookTitle(title);
         const siripTitle = customSearchTitle  || processSiripEbookTitle(title);
         
-        // 병렬로 모든 도서관 재고 조회
-        const [
-            gwangjuPaperResult,
-            gyeonggiEbookEduResult,
-            gyeonggiEbookLibResult,
-            siripEbookResult
-        ] = await Promise.allSettled([
-            searchGwangjuLibrary(isbn13),
-            // eduTitle이 있을 때만 경기도교육청 전자도서관 조회
+        const groupStartedAtMs = Date.now();
+        const gwangjuPaperResultPromise = settle(searchGwangjuLibrary(isbn13, GWANGJU_ENDPOINT_TIMEOUT_MS));
+        const gyeonggiEbookEduResultPromise = settle(
             eduTitle ? Promise.all([
                 searchGyeonggiEduEbook(eduTitle, '10000004'),
                 searchGyeonggiEduEbook(eduTitle, '10000009')
-            ]) : Promise.resolve(null),
-            gyeonggiTitle ? searchGyeonggiEbookLibrary(gyeonggiTitle) : Promise.resolve(null),
-            siripTitle ? searchSiripEbookIntegrated(siripTitle) : Promise.resolve(null)
+            ]) : Promise.resolve(null)
+        );
+        const gyeonggiEbookLibResultPromise = settle(
+            gyeonggiTitle ? searchGyeonggiEbookLibrary(gyeonggiTitle) : Promise.resolve(null)
+        );
+        const siripSubscriptionResultPromise = siripTitle
+            ? settle(searchSiripEbookSubs(siripTitle))
+            : null;
+
+        const gwangjuPaperResult = await gwangjuPaperResultPromise;
+        const siripEbookResult = siripTitle && siripSubscriptionResultPromise
+            ? await settle(searchSiripEbookIntegratedAfterGwangju(siripTitle, groupStartedAtMs, siripSubscriptionResultPromise))
+            : { status: 'fulfilled', value: null } as PromiseFulfilledResult<SiripEbookResult | null>;
+        const [gyeonggiEbookEduResult, gyeonggiEbookLibResult] = await Promise.all([
+            gyeonggiEbookEduResultPromise,
+            gyeonggiEbookLibResultPromise
         ]);
         
         const dbUpdatePayload: { [key: string]: any } = {};
@@ -1336,49 +1379,42 @@ export default {
               return new Response(JSON.stringify({ error: 'isbn 파라미터가 필요합니다.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
             }
     
-            const promises: Promise<any>[] = [
-              searchGwangjuLibrary(isbn),
-            ];
+            const groupStartedAtMs = Date.now();
+            const gwangjuPaperResultPromise = settle(searchGwangjuLibrary(isbn, GWANGJU_ENDPOINT_TIMEOUT_MS));
+            const eduResultPromises: Promise<PromiseSettledResult<{ libraryName: string; bookList: gyeonggiEduEbook[] }>>[] = [];
     
             if (eduTitle) {
-              promises.push(
-                searchGyeonggiEduEbook(eduTitle, '10000004'),
-                searchGyeonggiEduEbook(eduTitle, '10000009')
+              eduResultPromises.push(
+                settle(searchGyeonggiEduEbook(eduTitle, '10000004')),
+                settle(searchGyeonggiEduEbook(eduTitle, '10000009'))
               );
             }
     
-            let gyeonggiEbookPromise: Promise<gyeonggiEbookResult> | null = null;
-            if (gyeonggiTitle) {
-              gyeonggiEbookPromise = searchGyeonggiEbookLibrary(gyeonggiTitle);
-            }
+            const gyeonggiEbookResultPromise = gyeonggiTitle
+              ? settle(searchGyeonggiEbookLibrary(gyeonggiTitle))
+              : null;
+            const siripSubscriptionResultPromise = siripTitle
+              ? settle(searchSiripEbookSubs(siripTitle))
+              : null;
     
-            let siripEbookPromise: Promise<SiripEbookResult> | null = null;
-            if (siripTitle) {
-              siripEbookPromise = searchSiripEbookIntegrated(siripTitle);
-            }
-    
-            const results = await Promise.allSettled(promises);
+            const gwangjuPaperResult = await gwangjuPaperResultPromise;
     
             let gyeonggiEbookResult: gyeonggiEbookResult | { error: string } | null = null;
-            if (gyeonggiEbookPromise) {
-              try {
-                gyeonggiEbookResult = await gyeonggiEbookPromise;
-              }
-              catch (error) {
-                if (error instanceof Error) {
-                  console.error('경기도 전자도서관 검색 오류:', error.message);
-                  gyeonggiEbookResult = { error: error.message };
-                } else {
-                  console.error('An unknown error occurred:', error);
-                  gyeonggiEbookResult = { error: 'An unknown error occurred' };
-                }
+            if (gyeonggiEbookResultPromise) {
+              const gyeonggiResult = await gyeonggiEbookResultPromise;
+              if (gyeonggiResult.status === 'fulfilled') {
+                gyeonggiEbookResult = gyeonggiResult.value;
+              } else {
+                const errorMessage = gyeonggiResult.reason instanceof Error ? gyeonggiResult.reason.message : 'An unknown error occurred';
+                console.error('경기도 전자도서관 검색 오류:', errorMessage);
+                gyeonggiEbookResult = { error: errorMessage };
               }
             }
     
             let siripEbookResult: SiripEbookResult | { error: string } | null = null;
-            if (siripEbookPromise) {
+            if (siripTitle && siripSubscriptionResultPromise) {
               try {
-                siripEbookResult = await siripEbookPromise;
+                siripEbookResult = await searchSiripEbookIntegratedAfterGwangju(siripTitle, groupStartedAtMs, siripSubscriptionResultPromise);
               } catch (error) {
                 if (error instanceof Error) {
                   console.error('시립도서관 통합 전자책 검색 오류:', error.message);
@@ -1389,36 +1425,38 @@ export default {
                 }
               }
             }
+
+            const eduResults = await Promise.all(eduResultPromises);
     
             const finalResult: Partial<LibraryApiResponse> = {
-              gwangjuPaper: results[0].status === 'fulfilled' ? results[0].value : { error: results[0].reason.message },
+              gwangjuPaper: gwangjuPaperResult.status === 'fulfilled' ? gwangjuPaperResult.value : { error: gwangjuPaperResult.reason.message },
               gyeonggiEbookEdu: null,
               gyeonggiEbookLib: gyeonggiEbookResult,
               siripEbook: siripEbookResult || null
             };
     
-            if (eduTitle && results.length > 1) {
+            if (eduTitle && eduResults.length > 0) {
               const combinedEduBooks: (gyeonggiEduEbook | { library: string; error: string })[] = [];
               
-              const res1 = results[1];
+              const res1 = eduResults[0];
               if (res1.status === 'fulfilled' && res1.value?.bookList) {
                 combinedEduBooks.push(...res1.value.bookList);
               }
-              const res2 = results[2];
+              const res2 = eduResults[1];
               if (res2.status === 'fulfilled' && res2.value?.bookList) {
                 combinedEduBooks.push(...res2.value.bookList);
               }
     
               const errorLibs: string[] = [];
     
-              if (results[1].status === 'rejected') {
-                const errorMessage = `검색 실패: ${results[1].reason.message}`;
+              if (res1.status === 'rejected') {
+                const errorMessage = `검색 실패: ${res1.reason.message}`;
                 console.error(`[API ERROR] 성남교육도서관(${eduTitle}):`, errorMessage);
                 combinedEduBooks.push({ library: '성남도서관', error: errorMessage });
                 errorLibs.push('성남');
               }
-              if (results[2].status === 'rejected') {
-                const errorMessage = `검색 실패: ${results[2].reason.message}`;
+              if (res2.status === 'rejected') {
+                const errorMessage = `검색 실패: ${res2.reason.message}`;
                 console.error(`[API ERROR] 통합교육도서관(${eduTitle}):`, errorMessage);
                 combinedEduBooks.push({ library: '통합도서관', error: errorMessage });
                 errorLibs.push('통합');
