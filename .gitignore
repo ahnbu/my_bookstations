@@ -40,6 +40,7 @@ previews/
 .agent/
 
 .playwright-cli/
+.codegraph/
 .bkit/
 .pdca-status
 .pdca-status.json
