@@ -394,7 +394,7 @@ const SettingsModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 bg-overlay flex items-center justify-center z-50" style={{ backgroundColor: 'var(--color-bg-overlay)' }}>
-      <div className="bg-elevated shadow-2xl rounded-lg p-6 w-[600px] max-w-[90vw] max-h-[85vh] overflow-hidden flex flex-col">
+      <div className="bg-elevated shadow-2xl rounded-lg p-4 sm:p-6 w-[600px] max-w-[90vw] max-h-[85vh] overflow-hidden flex flex-col">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-primary">맞춤 설정</h2>
           <button
@@ -406,10 +406,10 @@ const SettingsModal: React.FC = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-secondary mb-6">
+        <div className="flex overflow-x-auto border-b border-secondary mb-6">
           <button
             onClick={() => setActiveTab('display')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 ${
+            className={`px-2 sm:px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap ${
               activeTab === 'display'
                 ? 'border-focus text-blue-600'
                 : 'border-transparent text-secondary hover:text-primary'
@@ -420,7 +420,7 @@ const SettingsModal: React.FC = () => {
           {/* ✅ [신규] '초기화면' 탭 버튼을 여기에 추가합니다. */}
           <button
             onClick={() => setActiveTab('initial')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 ${
+            className={`px-2 sm:px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap ${
               activeTab === 'initial'
                 ? 'border-focus text-blue-600'
                 : 'border-transparent text-secondary hover:text-primary'
@@ -430,7 +430,7 @@ const SettingsModal: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('tags')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 ${
+            className={`px-2 sm:px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap ${
               activeTab === 'tags'
                 ? 'border-focus text-blue-600'
                 : 'border-transparent text-secondary hover:text-primary'
@@ -440,7 +440,7 @@ const SettingsModal: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('data')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 ${
+            className={`px-2 sm:px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap ${
               activeTab === 'data'
                 ? 'border-focus text-blue-600'
                 : 'border-transparent text-secondary hover:text-primary'
