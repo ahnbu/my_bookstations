@@ -15,6 +15,32 @@
 - **설명**: 경기도 광주시 지역 도서관 재고 검색 서비스
 - **기술 스택**: Vite, React, TypeScript, Tailwind CSS, Supabase
 
+## 작업별 정본 위치
+- 앱 진입점과 전역 모달 배치: `App.tsx`, `components/`
+- 내 서재 상태와 Supabase 저장: `stores/useBookStore.ts`
+- 사용자 설정, 커스텀 태그, 자동 태그 규칙: `stores/useSettingsStore.ts`, `utils/autoTagRules.ts`
+- 도서관 URL 생성과 재고 통합: `services/unifiedLibrary.service.ts`
+- Cloudflare Worker 기반 도서관 조회: `library-checker/src/index.ts`, `library-checker/src/types.ts`
+- 광주시 조회 예산·순차화 규칙: `library-checker/src/gwangjuBudget.ts`
+- Supabase RPC·스키마 변경: `supabase/`, `docs/DEVELOPMENT.md`
+- 회귀 테스트: `tests/*.test.mjs`
+
+## 저장 데이터 규칙
+- `book_data`는 풍부한 도서 원본 JSON이고, `stock_*` 컬럼은 조회·갱신 가능한 최상위 저장값이다.
+- `stock_*` 의미를 바꾸면 `types.ts`, `stores/useBookStore.ts`, Supabase SQL, `README.md`, `docs/DEVELOPMENT.md`를 함께 확인한다.
+- 자동 태그는 설정 저장과 표시 병합이 분리되어 있으므로 `utils/autoTagRules.ts`, `stores/useSettingsStore.ts`, `stores/useBookStore.ts`를 함께 본다.
+- 루트 `.env.local`과 `library-checker/.dev.vars`는 런타임 시크릿 표면이다. 값은 문서·로그·커밋에 포함하지 않는다.
+
+## 검증 기준
+- UI·컴포넌트 변경은 타입 확인만으로 완료하지 않고 실제 화면 또는 Playwright로 동작을 확인한다.
+- 저장 로직 변경은 Supabase payload 형태와 로컬 store 상태 전이를 함께 확인한다.
+- Worker 변경은 `git push`와 운영 배포를 구분한다. 필요 시 `wrangler deploy` 여부와 배포 URL/Version ID를 별도로 보고한다.
+- 도서관 크롤링 변경은 대상 도서관 응답 구조와 사용자에게 보이는 재고 결과가 함께 맞는지 확인한다.
+
+## 탐색 제외 경로
+- `uploads_for_ai_studio/`는 AI Studio 업로드용 복제본이며 정본 코드로 보지 않는다.
+- `temp/`, `docs/temp/`, `library-checker/temp/`, `library-checker/.wrangler/`, `dist/`, `node_modules/`는 구조 판단과 규칙 생성 대상에서 제외한다.
+
 ## 개발 규칙
 - 컴포넌트명과 파일명은 PascalCase 사용
 - 한국어 UI 텍스트는 명확하고 친숙한 표현 사용
