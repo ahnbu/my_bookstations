@@ -51,3 +51,13 @@ previews/
 .env
 temp/
 .temp/
+
+# OMO Temp & Evidences (Git 추적 제외)
+.omo/drafts/
+.omo/evidence/
+.omo/boulder.json
+wave-*
+claim-*
+expansion-log.md
+NOTEPAD.md
+verify-*
