@@ -167,9 +167,10 @@
 ### 태그 데이터 위치
 
 - 태그 정의(이름, 색상, 목록)는 계정별 `user_settings.settings.tagSettings.tags[]`에 저장됩니다.
-- 책별 태그 적용 내역은 `user_library.book_data.customTags[]`에 저장됩니다.
-- 태그 사용 권수는 Supabase RPC `get_tag_counts_for_user`를 사용합니다.
-- 태그 필터링은 Supabase RPC `get_books_by_tags`를 사용합니다.
+- 책별 수동·레거시 태그는 `user_library.book_data.customTags[]`, 자동 규칙 결과는 `user_library.book_data.autoTags[]`에 저장됩니다.
+- 화면 표시와 Supabase RPC의 태그 집계·필터는 두 배열을 병합해 사용합니다.
+- 태그 사용 권수는 `get_tag_counts_for_user`, 태그 필터링은 `get_books_by_tags` RPC를 사용합니다.
+- 두 RPC의 병합 SQL 정본은 `supabase/20260705_auto_tags_rpc.sql`이며, 운영 적용은 별도 승인과 검증이 필요합니다.
 - 상세 구조와 관련 코드는 [개발 가이드](docs/DEVELOPMENT.md)의 `태그 데이터 모델` 섹션을 확인합니다.
 
 ## 🔗 관련 문서

@@ -19,11 +19,12 @@ $$;
 
 create or replace function public.get_books_by_tags(
   tags_to_filter text[],
-  filter_by_favorites boolean default false
+  filter_by_favorites boolean
 )
 returns setof public.user_library
 language sql
-security definer
+stable
+security invoker
 set search_path = public
 as $$
   select ul.*

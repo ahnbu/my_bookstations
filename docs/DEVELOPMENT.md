@@ -257,14 +257,18 @@ const searchUrl = createLibraryOpenURL("e경기", book.title, book.customSearchT
 | 확인 대상 | 저장 위치 |
 | --- | --- |
 | 태그 이름, 색상, 전체 목록 | `user_settings.settings.tagSettings.tags[]` |
-| 책에 붙은 태그 ID 목록 | `user_library.book_data.customTags[]` |
-| 태그별 사용 권수 | Supabase RPC `get_tag_counts_for_user` |
-| 태그 조건으로 책 목록 조회 | Supabase RPC `get_books_by_tags` |
+| 계정별 자동 태그 규칙 | `user_settings.settings.tagSettings.autoTagRules[]` |
+| 책에 수동·레거시로 붙은 태그 ID | `user_library.book_data.customTags[]` |
+| 자동 규칙으로 붙은 태그 ID | `user_library.book_data.autoTags[]` |
+| 병합 태그별 사용 권수 | Supabase RPC `get_tag_counts_for_user()` |
+| 병합 태그 조건으로 책 목록 조회 | Supabase RPC `get_books_by_tags(text[], boolean)` |
 
 - `user_settings`와 `user_library`는 모두 `user_id` 기준으로 계정별 데이터를 분리합니다.
-- `customTags[]`에는 태그 이름이 아니라 `tagSettings.tags[].id` 값이 저장됩니다.
-- 태그 이름이나 색상을 바꾸면 `user_settings.settings.tagSettings.tags[]`만 바뀌고, 책별 `customTags[]`는 같은 태그 ID를 계속 참조합니다.
-- 현재 로컬 `supabase/` 폴더에는 `get_tag_counts_for_user`, `get_books_by_tags`의 SQL 정의가 포함되어 있지 않습니다. RPC 동작은 Supabase 대시보드의 Database Functions와 프론트엔드 호출부를 함께 확인해야 합니다.
+- `customTags[]`와 `autoTags[]`에는 태그 이름이 아니라 `tagSettings.tags[].id` 값이 저장됩니다.
+- 태그 이름이나 색상을 바꾸면 `user_settings.settings.tagSettings.tags[]`만 바뀌고, 책별 태그 배열은 같은 태그 ID를 계속 참조합니다.
+- `get_tag_counts_for_user()`는 책별 두 배열을 병합하고 중복 태그 ID를 제거해 집계합니다.
+- `get_books_by_tags(text[], boolean)`는 병합 태그 기준 AND 조건과 좋아요 조건으로 책을 조회합니다.
+- 두 RPC의 저장소 SQL은 `supabase/20260705_auto_tags_rpc.sql`에 있습니다. 파일이 존재하는 것과 운영 DB 적용은 별개이므로, 운영 반영에는 별도 승인과 적용 후 검증이 필요합니다.
 
 #### 관련 코드
 
@@ -283,7 +287,7 @@ const searchUrl = createLibraryOpenURL("e경기", book.title, book.customSearchT
 #### 탐색 기준
 
 - 태그 이름, 색상, 목록을 찾을 때는 `user_settings.settings.tagSettings.tags[]`를 확인합니다.
-- 어떤 책에 어떤 태그가 붙었는지 찾을 때는 `user_library.book_data.customTags[]`를 확인합니다.
+- 어떤 책에 어떤 태그가 붙었는지 찾을 때는 수동·레거시 태그인 `customTags[]`와 자동 규칙 결과인 `autoTags[]`를 함께 확인합니다.
 - 화면의 태그 옆 권수처럼 집계값을 찾을 때는 `get_tag_counts_for_user` 호출과 RPC 결과를 확인합니다.
 - 태그 필터 결과가 이상할 때는 `get_books_by_tags` 호출 파라미터(`tags_to_filter`, `filter_by_favorites`)와 반환된 `user_library` 행 매핑을 확인합니다.
 - 사용자별 차이를 확인할 때는 두 테이블 모두 `user_id` 조건이 같은지 먼저 확인합니다.
