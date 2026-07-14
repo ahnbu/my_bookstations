@@ -24,6 +24,7 @@
 - 광주시 조회 예산·순차화 규칙: `library-checker/src/gwangjuBudget.ts`
 - Supabase RPC·스키마 변경: `supabase/`, `docs/DEVELOPMENT.md`
 - 회귀 테스트: `tests/*.test.mjs`
+- 계획서·실행결과·검수보고서 등 문서 산출물: `docs/` (계획 검수는 `docs/plan-check/`, 완료 검수는 `docs/done-check/`). 전역 규칙의 `_docs/` 기본값 대신 이 위치를 우선한다.
 
 ## 저장 데이터 규칙
 - `book_data`는 풍부한 도서 원본 JSON이고, `stock_*` 컬럼은 조회·갱신 가능한 최상위 저장값이다.
