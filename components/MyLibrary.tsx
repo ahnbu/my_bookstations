@@ -748,9 +748,9 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
       );
     }
 
-    // if (showFavoritesOnly) {
-    //   filteredBooks = filteredBooks.filter(book => book.isFavorite === true);
-    // }
+    if (showFavoritesOnly) {
+      filteredBooks = filteredBooks.filter(book => book.isFavorite === true);
+    }
 
     // Then sort the filtered books
     return filteredBooks.sort((a, b) => {
