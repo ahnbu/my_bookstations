@@ -1,5 +1,26 @@
 # 📚 마이북스테이션 (My BookStation)
 
+## 서비스 정보
+
+> 최종 확인: 2026-07-22
+
+| 항목 | 값 |
+|---|---|
+| 서비스 URL | https://my-bookstations.vercel.app/ |
+| 상태 | ✅ 정상 |
+| 호스팅 | Vercel (프론트 + `/api/search`) + Cloudflare Workers (`library-checker`) |
+| DB | Supabase (Postgres) — Auth · RPC · Edge Function 포함 |
+| ⚠️ 유지 조건 | **CF Cron이 3일마다 Supabase `keep_alive` RPC 호출. 이 Worker가 멈추면 7일 후 무료티어 DB가 정지되어 서비스 전체가 중단된다** |
+| 인증 | Supabase Auth (이메일/비밀번호 + OAuth) |
+| 외부 API | 알라딘 TTB, 도서관 4종(광주시립·경기교육청 등), Gemini |
+| 부속 Worker | https://library-checker.byungwook-an.workers.dev |
+| 배포 방식 | `library-checker/**` 변경 시 GitHub Actions → CF 자동 배포 (프론트는 Vercel 자동) |
+| 필요 환경변수 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `ALADIN_TTB_KEY`(서버 전용), `VITE_ALADIN_TTB_KEY`(로컬 개발 전용) |
+
+> 알라딘 TTB 키는 프로덕션에서 서버(`api/search.ts`) 경유로만 사용되며 클라이언트 번들에 포함되지 않는다. `VITE_ALADIN_TTB_KEY`는 로컬 Vite 프록시 전용이다.
+
+---
+
 **도서 검색 및 도서관 재고 확인 서비스**
 
 알라딘 API와 연동하여 도서를 검색하고, 여러 도서관의 재고 현황을 실시간으로 확인할 수 있는 웹 애플리케이션입니다. 개인 서재 관리 기능을 통해 관심 도서를 체계적으로 관리할 수 있습니다.
