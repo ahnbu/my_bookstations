@@ -4,6 +4,7 @@
 
 | 일시 | 유형 | 범위 | 변경내용 (목적 포함) |
 |---|---|---|---|
+| 2026-07-22 17:55 | fix | pnpm-policy | preinstall 가드가 pnpm 자신을 차단하던 버그 수정 — npm_execpath 폴백 검사 추가 |
 | 2026-07-22 17:05 | chore | pnpm-policy | packageManager 고정 및 preinstall 가드 추가 — npm/yarn 혼용 차단 |
 | 2026-07-22 17:01 | docs | docs | 도서MD수집 검토결과를 skills/_docs로 이관 — 실제 변경 대상이 스킬 코드라 위치 정합성 확보 |
 | 2026-07-22 15:49 | docs | readme | 배포 정보 절 추가 - 서비스 URL, 유지 조건(keep-alive), 시크릿 안전성 확인 결과 기록 |
