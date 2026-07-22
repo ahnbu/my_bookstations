@@ -4,6 +4,7 @@
 
 | 일시 | 유형 | 범위 | 변경내용 (목적 포함) |
 |---|---|---|---|
+| 2026-07-22 15:24 | feat | analytics | Vercel Analytics 도입 — index.tsx에 <Analytics /> 추가, 배포 서비스 방문 빈도 추적 |
 | 2026-07-22 15:18 | docs | docs | 도서 MD 수집 앱 연동 검토 결과 — 앱 버튼 대신 CLI 배치 권장, 목차 누락 버그 발견·수정 기록 |
 | 2026-07-19 12:47 | docs | rules | CLAUDE.md를 @AGENTS.md 포인터로 통일 + AGENTS.md 수동 동기화 문구 제거 |
 | 2026-07-14 16:10 | feat | ui | 즐겨찾기 도서 필터 기능 활성화 |
