@@ -4,6 +4,7 @@
 
 | 일시 | 유형 | 범위 | 변경내용 (목적 포함) |
 |---|---|---|---|
+| 2026-07-23 23:33 | docs | pwa | PWA Lite 계획서 및 plan-check·done-check 검수보고서 추가 |
 | 2026-07-23 23:32 | feat | pwa | PWA Lite 적용 — manifest·앱 아이콘(A안)·홈 화면 추가 메타 태그로 standalone 실행 지원 |
 | 2026-07-22 17:55 | fix | pnpm-policy | preinstall 가드가 pnpm 자신을 차단하던 버그 수정 — npm_execpath 폴백 검사 추가 |
 | 2026-07-22 17:05 | chore | pnpm-policy | packageManager 고정 및 preinstall 가드 추가 — npm/yarn 혼용 차단 |
