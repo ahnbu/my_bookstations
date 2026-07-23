@@ -4,6 +4,7 @@
 
 | 일시 | 유형 | 범위 | 변경내용 (목적 포함) |
 |---|---|---|---|
+| 2026-07-23 23:42 | docs | pwa | PWA 계획서에 아이콘 SVG→PNG 변환 레슨런 추가 (승인 벡터는 재계산 없이 그대로 변환) |
 | 2026-07-23 23:33 | docs | pwa | PWA Lite 계획서 및 plan-check·done-check 검수보고서 추가 |
 | 2026-07-23 23:32 | feat | pwa | PWA Lite 적용 — manifest·앱 아이콘(A안)·홈 화면 추가 메타 태그로 standalone 실행 지원 |
 | 2026-07-22 17:55 | fix | pnpm-policy | preinstall 가드가 pnpm 자신을 차단하던 버그 수정 — npm_execpath 폴백 검사 추가 |
