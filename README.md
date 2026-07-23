@@ -194,6 +194,13 @@
 - 두 RPC의 병합 SQL 정본은 `supabase/20260705_auto_tags_rpc.sql`이며, 운영 적용은 별도 승인과 검증이 필요합니다.
 - 상세 구조와 관련 코드는 [개발 가이드](docs/DEVELOPMENT.md)의 `태그 데이터 모델` 섹션을 확인합니다.
 
+### PWA(홈 화면 추가)
+
+- `public/manifest.webmanifest`와 `public/icon-192.png`·`icon-512.png`·`icon-maskable-512.png`로 홈 화면 추가 시 전용 아이콘과 standalone(전체화면) 실행을 지원합니다.
+- PWA 메타 태그(`manifest`, `theme-color`, `apple-touch-icon` 등)는 `index.html` `<head>`에 있습니다.
+- `public/` 파일은 빌드 시 `dist/` 루트로 복사되어 Vercel에서 절대경로(`/manifest.webmanifest` 등)로 서빙됩니다.
+- Service Worker·오프라인·푸시는 적용 범위가 아닙니다(온라인 검색 서비스 특성상 제외).
+
 ## 🔗 관련 문서
 
 - **[개발 가이드](docs/DEVELOPMENT.md)** - 개발환경 설정, 아키텍처, 기술 상세 정보
