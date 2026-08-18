@@ -22,6 +22,16 @@ const BROWSER_CANDIDATES = [
 const demo = JSON.parse(readFileSync(`${REPO_ROOT}data/demoLibrary.json`, 'utf8'));
 const DEMO_COUNT = demo.books.length;
 
+// 사람이 나중에 보기 위한 증거만 남긴다. 통과 조건이 아니므로 실패해도 테스트를 깨뜨리지 않는다.
+// 저장 위치 temp/는 .gitignore에 등록돼 있어 커밋에 포함되지 않는다(local-only).
+async function captureScreenshot(page, path) {
+  try {
+    await page.screenshot({ path, fullPage: false });
+  } catch (error) {
+    console.warn(`스크린샷 저장 실패(무시): ${path} — ${error.message}`);
+  }
+}
+
 async function waitForServer(serverProcess) {
   const startedAt = Date.now();
   let lastError;
@@ -114,13 +124,25 @@ test('비로그인 첫 화면은 스크롤되고, 웰컴 모달 없이 데모 �
     assert.ok(scrollY > 0, `세로 스크롤이 동작하지 않는다: scrollY=${scrollY}`);
     await page.evaluate(() => window.scrollTo(0, 0));
 
+    // [V-7] 로그인 이력이 없는 신규 컨텍스트에서는 데모 서재가 렌더된다
+    assert.equal(await page.locator('[data-testid="demo-library"]').count(), 1, '신규 방문자에게 데모가 렌더되지 않았다');
+    assert.equal(await page.locator('[data-testid="logged-out-notice"]').count(), 0, '신규 방문자에게 로그아웃 안내가 떴다');
+
     // 데모 도서 전량 렌더
-    const cards = page.locator('[data-testid="demo-book-card"]');
+    const cards = page.locator('[data-testid="demo-book-list"] > *');
     assert.equal(await cards.count(), DEMO_COUNT);
+
+    // [V-5] 카드가 컨테이너의 직접 자식이다. 중간 래퍼가 있으면 grid 셀이 어긋난다
+    const wrapperCount = await page.evaluate(() => {
+      const list = document.querySelector('[data-testid="demo-book-list"]');
+      if (!list) return -1;
+      return [...list.children].filter(child => child.hasAttribute('data-testid')).length;
+    });
+    assert.equal(wrapperCount, 0, `컨테이너와 카드 사이에 래퍼가 있다: ${wrapperCount}개`);
 
     // 재고 배지가 도서당 6개씩 렌더된다
     assert.equal(
-      await page.locator('[data-testid="demo-book-card"] .library-tag').count(),
+      await page.locator('[data-testid="demo-book-list"] .library-tag').count(),
       DEMO_COUNT * 6,
     );
 
@@ -149,7 +171,7 @@ test('비로그인 첫 화면은 스크롤되고, 웰컴 모달 없이 데모 �
     await page.waitForTimeout(300);
     assert.equal(await cards.count(), DEMO_COUNT, '태그를 해제해도 전체가 복귀하지 않았다');
 
-    // --- 4. 정렬 ---
+    // --- 4. 정렬 --- [V-9] 정렬 비교자는 utils/librarySort.ts를 MyLibrary와 공유한다
     const firstTitleBefore = await cards.first().innerText();
     await page.locator('button:visible:has-text("추가순")').first().click();
     await page.locator('button:visible:has-text("제목순")').first().click();
@@ -168,6 +190,46 @@ test('비로그인 첫 화면은 스크롤되고, 웰컴 모달 없이 데모 �
     await page.locator('button[title="전체 책 보기"]:visible').first().click();
     await page.waitForTimeout(300);
 
+    // --- 5-1. 뷰 전환 레이아웃 (1280px) ---
+    // 데모가 컨테이너를 따로 지어 그리드가 1열로 늘어졌던 사고의 재발 방지 단언이다.
+    await page.locator('button[title="그리드 보기"]:visible').first().click();
+    await page.waitForTimeout(300);
+
+    const gridLayout = await page.evaluate(() => {
+      const list = document.querySelector('[data-testid="demo-book-list"]');
+      const style = getComputedStyle(list);
+      const children = [...list.children];
+      return {
+        display: style.display,
+        tracks: style.gridTemplateColumns.split(' ').filter(Boolean).length,
+        firstTop: children[0]?.getBoundingClientRect().top,
+        secondTop: children[1]?.getBoundingClientRect().top,
+      };
+    });
+
+    // [V-1] 그리드 뷰의 컨테이너가 실제 grid다
+    assert.equal(gridLayout.display, 'grid', `그리드 뷰인데 display가 grid가 아니다: ${gridLayout.display}`);
+    // [V-2] 1280px에서 4열 (useGridColumns의 중형 이상 분기)
+    assert.equal(gridLayout.tracks, 4, `1280px에서 그리드 트랙이 4개가 아니다: ${gridLayout.tracks}`);
+    // [V-4] 첫 두 카드가 한 행에 나란히 놓인다
+    assert.equal(
+      gridLayout.firstTop,
+      gridLayout.secondTop,
+      `그리드인데 카드가 세로로 쌓인다: ${gridLayout.firstTop} vs ${gridLayout.secondTop}`,
+    );
+    assert.equal(await cards.count(), DEMO_COUNT, '그리드로 전환하니 카드 수가 달라졌다');
+
+    await captureScreenshot(page, `${REPO_ROOT}temp/demo-grid-1280.png`);
+
+    // [V-6] 카드 뷰로 되돌리면 세로 스택으로 복귀한다
+    await page.locator('button[title="카드 보기"]:visible').first().click();
+    await page.waitForTimeout(300);
+    const cardDisplay = await page.evaluate(
+      () => getComputedStyle(document.querySelector('[data-testid="demo-book-list"]')).display,
+    );
+    assert.equal(cardDisplay, 'block', `카드 뷰인데 display가 block이 아니다: ${cardDisplay}`);
+    assert.equal(await cards.count(), DEMO_COUNT, '카드 뷰로 되돌리니 카드 수가 달라졌다');
+
     // --- 6. 상호작용은 로그인 안내로 연결 ---
     await cards.first().locator('button[title="좋아요"]:visible, button[title="좋아요 취소"]:visible').first().click();
     await page.waitForSelector('text=예시 화면입니다', { timeout: 5000 });
@@ -178,10 +240,39 @@ test('비로그인 첫 화면은 스크롤되고, 웰컴 모달 없이 데모 �
     const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
     assert.ok(scrollWidth <= 376, `375px 폭에서 가로 스크롤 발생: scrollWidth=${scrollWidth}`);
 
+    // [V-3] 375px에서는 2열이다 (useGridColumns의 모바일 분기)
+    await page.locator('button[title="그리드 보기"]:visible').first().click();
+    await page.waitForTimeout(300);
+    const mobileTracks = await page.evaluate(() => {
+      const style = getComputedStyle(document.querySelector('[data-testid="demo-book-list"]'));
+      return style.gridTemplateColumns.split(' ').filter(Boolean).length;
+    });
+    assert.equal(mobileTracks, 2, `375px에서 그리드 트랙이 2개가 아니다: ${mobileTracks}`);
+    await captureScreenshot(page, `${REPO_ROOT}temp/demo-grid-375.png`);
+
+    // [V-10] 콘솔·페이지 에러 0건
     assert.deepEqual(pageErrors, [], '페이지 에러가 발생했다');
     assert.deepEqual(consoleErrors, [], '콘솔 에러가 발생했다');
 
     await freshContext.close();
+
+    // --- 7-1. 로그인 이력이 있으면 데모 대신 안내 화면 ---
+    const returningContext = await browser.newContext({ viewport: { width: 1280, height: 600 } });
+    await returningContext.addInitScript(() => {
+      localStorage.setItem('hasSignedIn', 'true');
+    });
+    const returningPage = await returningContext.newPage();
+    await returningPage.goto(BASE_URL);
+    await returningPage.waitForSelector('[data-testid="logged-out-notice"]', { timeout: 15000 });
+
+    // [V-8] 로그아웃·세션 만료 사용자에게 남의 책 20권을 띄우지 않는다
+    assert.equal(
+      await returningPage.locator('[data-testid="demo-library"]').count(),
+      0,
+      '로그인 이력이 있는데 데모 서재가 렌더됐다',
+    );
+    await captureScreenshot(returningPage, `${REPO_ROOT}temp/logged-out-notice.png`);
+    await returningContext.close();
 
     // --- 8. 관리자 로컬 설정으로 켠 경우 ---
     const adminContext = await browser.newContext();

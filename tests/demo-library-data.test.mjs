@@ -141,3 +141,32 @@ test('데모가 재사용하는 컴포넌트는 스토어를 직접 호출하지
     assert.ok(!source.includes('useUIStore'), `${file}이 useUIStore를 직접 참조한다`);
   }
 });
+
+// [V-11] 로그인 이력 기록을 SIGNED_IN 이벤트 조건으로 걸면 안 된다.
+// supabase-js는 로그인 상태로 페이지를 열면 INITIAL_SESSION, 토큰 갱신 시 TOKEN_REFRESHED를 발생시키므로
+// SIGNED_IN만 보면 배포 시점에 이미 로그인돼 있던 사용자의 브라우저에 키가 남지 않는다.
+// 그 사용자가 로그아웃하면 내 서재 자리에 데모 20권이 뜬다.
+test('로그인 이력(hasSignedIn)을 SIGNED_IN 이벤트 조건으로만 기록하지 않는다', () => {
+  const source = readFileSync(`${REPO_ROOT}stores/useAuthStore.ts`, 'utf8');
+  assert.ok(source.includes('markSignedIn'), 'useAuthStore가 로그인 이력을 기록하지 않는다');
+  assert.ok(
+    !/event\s*===\s*['"]SIGNED_IN['"][\s\S]{0,160}markSignedIn/.test(source),
+    'hasSignedIn을 SIGNED_IN 이벤트 조건 안에서만 기록한다',
+  );
+});
+
+// 레이아웃·정렬 정본이 하나인지 확인한다. 데모가 자체 구현하면 같은 사고가 재발한다.
+test('데모와 로그인 화면이 레이아웃·열 수·정렬 정본을 공유한다', () => {
+  const demoSource = readFileSync(`${REPO_ROOT}components/DemoLibrary.tsx`, 'utf8');
+  const librarySource = readFileSync(`${REPO_ROOT}components/MyLibrary.tsx`, 'utf8');
+
+  for (const [file, source] of [['DemoLibrary.tsx', demoSource], ['MyLibrary.tsx', librarySource]]) {
+    assert.ok(source.includes('BookListContainer'), `${file}이 공용 목록 컨테이너를 쓰지 않는다`);
+    assert.ok(source.includes('useGridColumns'), `${file}이 공용 그리드 컬럼 훅을 쓰지 않는다`);
+    assert.ok(source.includes('createSortComparator'), `${file}이 공용 정렬 비교자를 쓰지 않는다`);
+    assert.ok(
+      !source.includes('gridTemplateColumns'),
+      `${file}이 그리드 레이아웃을 직접 정의한다`,
+    );
+  }
+});

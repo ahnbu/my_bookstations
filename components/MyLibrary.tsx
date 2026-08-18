@@ -13,6 +13,11 @@ import { addHomeResetListener } from '../utils/events';
 import MyLibraryListItem from './MyLibraryListItem'; // ✅ 새로 만든 컴포넌트 import
 import MyLibraryToolbar from './MyLibraryToolbar';   // ✅ 새로 추가
 import DemoLibrary from './DemoLibrary';             // 비로그인 예시 서재
+import LoggedOutLibraryNotice from './LoggedOutLibraryNotice'; // 로그아웃·세션 만료 안내
+import BookListContainer from './BookListContainer'; // 목록 레이아웃 정본(DemoLibrary와 공유)
+import { useGridColumns } from '../hooks/useGridColumns';
+import { createSortComparator } from '../utils/librarySort';
+import { hasSignedInBefore } from '../utils/authFlags';
 
 // [핵심 수정] import 문 정리
 import { 
@@ -465,7 +470,7 @@ const MyLibrary: React.FC = () => {
   const [detailModalBookId, setDetailModalBookId] = useState<number | null>(null);
   const [selectedBooks, setSelectedBooks] = useState<Set<number>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
-  const [gridColumns, setGridColumns] = useState(5);
+  const gridColumns = useGridColumns();
   const [backgroundRefreshComplete, setBackgroundRefreshComplete] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [bulkTagModalOpen, setBulkTagModalOpen] = useState(false);
@@ -654,21 +659,8 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
     return cleanup;
   }, []); // 빈 의존성 배열로 이벤트 리스너 재등록 방지
 
-  // Responsive grid columns (optimized for max-w-4xl container)
-  useEffect(() => {
-    const updateColumns = () => {
-      const width = window.innerWidth;
-      if (width < 640) setGridColumns(2);        // 모바일: 2개 (~320px/카드)
-      else if (width < 768) setGridColumns(3);   // 태블릿: 3개 (~256px/카드)
-      else if (width < 1024) setGridColumns(3);  // 소형 데스크톱: 3개 (~298px/카드)
-      else setGridColumns(4);                    // 중형 이상: 4개 (~224px/카드)
-    };
+  // 반응형 그리드 컬럼 수는 hooks/useGridColumns.ts가 정본이다(DemoLibrary와 공유).
 
-    updateColumns();
-    window.addEventListener('resize', updateColumns);
-    return () => window.removeEventListener('resize', updateColumns);
-  }, []);
-  
   // Sort options mapping
   const sortOptions: Record<SortKey, string> = {
     addedDate: '추가순',
@@ -723,8 +715,6 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
   }, [debouncedSearchQuery, activeTags, showFavoritesOnly, authorFilter]);
 
   const sortedAndFilteredLibraryBooks = useMemo(() => {
-    const readStatusOrder: Record<ReadStatus, number> = { '완독': 0, '읽는 중': 1, '읽지 않음': 2 };
-
     // [핵심 수정] 필터 우선순위에 따라 기본 데이터셋 결정
     let filteredBooks: SelectedBook[];
 
@@ -753,33 +743,8 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
       filteredBooks = filteredBooks.filter(book => book.isFavorite === true);
     }
 
-    // Then sort the filtered books
-    return filteredBooks.sort((a, b) => {
-        if (!sortConfig.key) return 0;
-
-        let aVal = a[sortConfig.key as keyof SelectedBook];
-        let bVal = b[sortConfig.key as keyof SelectedBook];
-
-        // Handle pubDate for sorting
-        if (sortConfig.key === 'pubDate') {
-            aVal = new Date(a.pubDate).getTime();
-            bVal = new Date(b.pubDate).getTime();
-        }
-
-        if (typeof aVal === 'number' && typeof bVal === 'number') {
-            return sortConfig.order === 'asc' ? aVal - bVal : bVal - aVal;
-        }
-
-        if (typeof aVal === 'string' && typeof bVal === 'string') {
-             if (sortConfig.key === 'readStatus') {
-                const comparison = readStatusOrder[a.readStatus] - readStatusOrder[b.readStatus];
-                return sortConfig.order === 'asc' ? comparison : -comparison;
-            }
-            const comparison = aVal.localeCompare(bVal, 'ko-KR');
-            return sortConfig.order === 'asc' ? comparison : -comparison;
-        }
-        return 0;
-    });
+    // Then sort the filtered books — 비교자 정본은 utils/librarySort.ts (DemoLibrary와 공유)
+    return filteredBooks.sort(createSortComparator(sortConfig));
   }, [
     myLibraryBooks, 
     librarySearchResults, 
@@ -825,7 +790,12 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
 
 
   if (!session) {
-    // 비로그인 방문자에게는 정적 스냅샷 기반 예시 서재를 보여준다.
+    // 로그인 이력이 있으면(로그아웃·세션 만료) 내 서재 자리에 데모를 띄우지 않는다.
+    // 남의 책 20권이 뜨면 기존 사용자가 자기 서재로 오인한다.
+    if (hasSignedInBefore()) {
+      return <LoggedOutLibraryNotice />;
+    }
+    // 첫 방문자에게만 정적 스냅샷 기반 예시 서재를 보여준다.
     return <DemoLibrary />;
   }
   
@@ -872,7 +842,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
       {/* View Type Conditional Rendering */}
       {viewType === 'card' ? (
         /* Card View */
-        <div className="space-y-4 max-w-4xl mx-auto">
+        <BookListContainer viewType="card" gridColumns={gridColumns}>
           {/* ================= ✅ 아래 코드를 붙여넣으세요 ================= */}
           {(isSearchingLibrary || isFilteringByTag ) ? (
             <div className="text-center p-8">
@@ -916,10 +886,10 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
             ))
           )}
           {/* ================= ✅ 여기까지 ================= */}
-        </div>
+        </BookListContainer>
       ) : (
         /* Grid View */
-        <div className="grid gap-4 max-w-4xl mx-auto" style={{ gridTemplateColumns: `repeat(${gridColumns}, 1fr)` }}>
+        <BookListContainer viewType="grid" gridColumns={gridColumns}>
           {/* ================= ✅ 아래 코드를 붙여넣으세요 ================= */}
           {(isSearchingLibrary || isFilteringByTag) ? ( // 그리드 뷰에는 isFilteringByFavorites가 빠져있었네요. 필요하면 추가하세요.
             <div className="col-span-full text-center p-8">
@@ -960,7 +930,7 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
             ))
           )}
           {/* ================= ✅ 여기까지 ================= */}
-        </div>
+        </BookListContainer>
       )}
 
       {/* View All Button - 필터가 없고 전체보기 모드가 아닐 때만 표시 */}

@@ -55,12 +55,16 @@ my_bookstation/
 │   └── search.ts
 ├── components/              # React 컴포넌트
 │   ├── layout/              # Header, Footer 등 레이아웃
-│   ├── DemoLibrary.tsx      # 비로그인 방문자용 읽기 전용 예시 서재
+│   ├── BookListContainer.tsx # 프레젠테이셔널: 목록 레이아웃 정본 (MyLibrary·DemoLibrary 공유)
+│   ├── DemoLibrary.tsx      # 로그인 이력 없는 방문자용 읽기 전용 예시 서재
 │   ├── DevToolsFloat.tsx    # 관리자 전용 기능 모달 (구 AdminPanel.tsx)
+│   ├── LoggedOutLibraryNotice.tsx # 로그아웃·세션 만료 시 내 서재 자리에 뜨는 안내
 │   ├── MyLibrary.tsx        # 컨테이너: 서재의 상태 및 비즈니스 로직 담당
 │   ├── MyLibraryListItem.tsx # 프레젠테이셔널: 개별 책 아이템 UI
 │   ├── MyLibraryToolbar.tsx  # 프레젠테이셔널: 서재 상단 툴바 UI
 │   └── ... (기타 UI 컴포넌트)
+├── hooks/                   # 공용 React 훅
+│   └── useGridColumns.ts    # 그리드 뷰 반응형 컬럼 수 정본 (2/3/3/4)
 ├── data/                    # 정적 데이터
 │   ├── demoLibrary.json     # 로그인 전 예시 서재 스냅샷 (도서 20권 + 데모 태그 6종)
 │   └── demoLibrary.ts       # 위 JSON을 SelectedBook[]으로 노출
@@ -72,6 +76,8 @@ my_bookstation/
 │   └── functions/
 │       └── send-feedback-email/ # 피드백 처리 Edge Function
 ├── utils/                   # 공통 유틸리티 함수
+│   ├── authFlags.ts         # 로그인 이력(hasSignedIn) 기록·조회
+│   ├── librarySort.ts       # 서재 정렬 비교자 정본 (MyLibrary·DemoLibrary 공유)
 │   ├── adminCheck.ts        # 관리자 이메일 확인
 │   ├── bookDataCombiner.ts  # 데이터 조합 로직
 │   ├── isbnMatcher.ts       # ISBN 기반 도서 매칭
@@ -507,20 +513,62 @@ Supabase 대시보드에서 보고된 성능 및 보안 관련 경고들에 대�
 
 ## 🪟 로그인 전 화면 (예시 서재 + 초기 안내 메시지)
 
+### 0. 비로그인 화면 분기
+
+`components/MyLibrary.tsx`의 `if (!session)` 자리에서 **로그인 이력**을 기준으로 두 화면이 갈린다.
+
+| 조건 | 화면 | 부가 |
+|---|---|---|
+| 세션 있음 | 기존 `MyLibrary` | — |
+| 세션 없음 + 로그인 이력 **없음** | `DemoLibrary` (예시 서재 20권) | 상단 안내 띠 1줄 |
+| 세션 없음 + 로그인 이력 **있음** | `LoggedOutLibraryNotice` (로그인 안내) | 만료면 재로그인 토스트 |
+
+**왜 나눴나.** 로그인 이력을 보지 않고 세션만 보면, 기존 사용자가 로그아웃하거나 세션이 만료됐을 때 내 서재 자리에 남의 책 20권이 뜬다. 데모 도입 전에는 같은 자리에 "로그인 후 '내 서재' 기능을 사용해보세요"가 떠서 상태가 즉시 드러났는데, 데모가 그 신호를 덮었다.
+
+**로그인 이력 판정 — `utils/authFlags.ts`**
+
+-   키: `localStorage`의 `hasSignedIn` (불리언 문자열 `'true'` 하나. 개인 식별 정보 없음)
+-   기록: `stores/useAuthStore.ts`의 `onAuthStateChange` 콜백에서 **`session`이 truthy이면 이벤트 종류를 가리지 않고** 저장한다
+-   **`event === 'SIGNED_IN'` 조건으로 걸면 안 된다.** `@supabase/supabase-js` 2.x는 로그인 상태로 페이지를 열면 `INITIAL_SESSION`, 토큰 자동 갱신 시 `TOKEN_REFRESHED`를 발생시키고 `SIGNED_IN`은 새로 로그인할 때만 발생한다. `SIGNED_IN`만 보면 배포 시점에 이미 로그인돼 있던 기존 사용자의 브라우저에 키가 남지 않아, 그 사용자가 로그아웃할 때 데모가 뜬다. 이 계약은 `tests/demo-library-data.test.mjs`의 `[V-11]`이 소스 수준에서 단언한다
+-   **삭제하지 않는다.** 로그아웃해도 남긴다. 대신 한 번 로그인한 브라우저에서는 예시 서재를 볼 수 없으므로, 확인이 필요하면 시크릿 창을 쓴다
+
+**로그아웃과 만료 구분 — `stores/useAuthStore.ts`**
+
+모듈 스코프의 `isExplicitSignOut` 플래그로 가른다. `signOut()` 진입 시 `true`로 세우고 `SIGNED_OUT` 처리 후 `false`로 되돌린다. 플래그가 서 있지 않은 `SIGNED_OUT`은 토큰 만료로 보고 "로그인이 만료되었습니다" 토스트를 띄운다. 명시적 로그아웃은 `Auth.tsx`가 이미 토스트를 띄우므로 중복을 막는다.
+
+`signOut()`이 실패하면 `SIGNED_OUT`이 오지 않으므로 **에러 분기에서 플래그를 명시적으로 원복**한다. `try/finally`로 감싸면 정상 경로에서도 콜백보다 먼저 복원돼 만료로 오판한다.
+
 ### 1. 예시 서재(DemoLibrary)
 
--   **목표**: 비로그인 방문자가 첫 화면에서 서비스의 결과물(도서관별 재고 배지가 붙은 서재)과 조작 방식(검색·정렬·태그 필터)을 바로 경험하게 한다.
+-   **목표**: 로그인 이력이 없는 방문자가 첫 화면에서 서비스의 결과물(도서관별 재고 배지가 붙은 서재)과 조작 방식(검색·정렬·태그 필터)을 바로 경험하게 한다.
 -   **구성**:
     -   `data/demoLibrary.json` — 운영 DB에서 1회 추출한 도서 20권 스냅샷 + 데모 태그 6종 + `snapshotDate`
     -   `data/demoLibrary.ts` — 위 JSON을 `SelectedBook[]`, `CustomTag[]`로 노출
     -   `components/DemoLibrary.tsx` — 읽기 전용 렌더. `MyLibraryToolbar`와 `MyLibraryListItem`을 재사용
-    -   `components/MyLibrary.tsx`의 `if (!session)` 분기에서 렌더
+    -   `components/MyLibrary.tsx`의 비로그인 분기(위 0절)에서 렌더
+-   **화면 구성은 로그인 화면과 같게 유지한다.** 상단에는 안내 띠 1줄(`이 화면은 예시 서재입니다...`)만 두고, 하단에 로그인 CTA 버튼을 둔다. 실물에 없는 제목·설명 블록을 얹으면 포트폴리오 첫인상이 습작처럼 보인다.
 -   **네트워크 요청 없음**: 정적 스냅샷이므로 Supabase·Worker를 호출하지 않는다.
+
+#### 1-1. 레이아웃·열 수·정렬 정본 (데모가 자체 구현하지 않는다)
+
+데모가 `MyLibrary`의 레이아웃을 **재사용하지 않고 새로 작성해서** 그리드 뷰가 1열로 늘어진 사고가 있었다. 그 재발을 막기 위해 아래 세 축은 정본이 하나뿐이며 양쪽이 같은 코드를 호출한다.
+
+| 축 | 정본 | 내용 |
+|---|---|---|
+| 목록 컨테이너 | `components/BookListContainer.tsx` | card는 `space-y-4 max-w-4xl mx-auto`, grid는 `grid gap-4 max-w-4xl mx-auto` + `repeat(gridColumns, 1fr)` |
+| 그리드 열 수 | `hooks/useGridColumns.ts` | `<640px` 2열 / `<768px` 3열 / `<1024px` 3열 / 그 이상 4열. `resize` 리스너 포함 |
+| 정렬 비교자 | `utils/librarySort.ts` | `createSortComparator(sortConfig)`. `pubDate` 숫자 변환, `readStatus` 순서(완독·읽는 중·읽지 않음), 문자열 `localeCompare('ko-KR')` |
+
+**규칙:** `DemoLibrary`와 `MyLibrary` 어느 쪽도 `gridTemplateColumns`를 직접 쓰지 않는다. 레이아웃이나 열 수를 바꾸려면 위 정본 파일만 고친다. 이 계약은 `tests/demo-library-data.test.mjs`가 소스 수준에서 단언한다.
+
+**필터 파이프라인은 의도적으로 공유하지 않는다.** `MyLibrary`는 검색·태그를 Supabase RPC로 처리하고 `DemoLibrary`는 네트워크 0이 설계 전제라 구조가 다르다. 대신 계약(검색 2자 이상, 태그 AND)을 여기와 `DemoLibrary` 주석에 고정한다.
+
+-   **테스트 셀렉터**: 카드는 `[data-testid="demo-book-list"]`의 **직접 자식**이다. 중간에 래퍼 `div`를 넣으면 그 래퍼가 grid 셀이 되어 카드 루트의 `min-w-0`이 무력화되므로 넣지 않는다.
 -   **동작하는 기능 / 로그인 안내로 연결되는 기능**
 
     | 조작 | 데모에서 |
     |---|---|
-    | 제목·저자 검색(2자 이상), 정렬 6종, 태그 필터(AND), 좋아요 필터, 카드/리스트 뷰 전환 | 로컬 state와 배열 연산으로 **실제 동작** |
+    | 제목·저자 검색(2자 이상), 정렬 6종, 태그 필터(AND), 좋아요 필터, 카드/그리드 뷰 전환 | 로컬 state와 배열 연산으로 **실제 동작** |
     | 개별·전체 선택, 일괄 태그 관리, 삭제 | 로그인 안내 |
     | 카드의 좋아요·별점·읽음상태·새로고침·상세·메모 | 로그인 안내 |
 

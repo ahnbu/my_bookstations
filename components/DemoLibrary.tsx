@@ -10,14 +10,14 @@
 // 여기서 넘기는 안내용 콜백만으로 읽기 전용이 보장된다.
 
 import React from 'react';
-import { ReadStatus, SelectedBook, SortKey, ViewType } from '../types';
+import { SelectedBook, SortKey, ViewType } from '../types';
 import MyLibraryListItem from './MyLibraryListItem';
 import MyLibraryToolbar from './MyLibraryToolbar';
+import BookListContainer from './BookListContainer';
+import { useGridColumns } from '../hooks/useGridColumns';
+import { createSortComparator } from '../utils/librarySort';
 import { useUIStore } from '../stores/useUIStore';
 import { DEMO_BOOKS, DEMO_TAGS, DEMO_SNAPSHOT_DATE } from '../data/demoLibrary';
-
-// MyLibrary의 정렬 규칙과 같은 순서를 유지한다
-const READ_STATUS_ORDER: Record<ReadStatus, number> = { '완독': 0, '읽는 중': 1, '읽지 않음': 2 };
 
 const DemoLibrary: React.FC = () => {
   const setNotification = useUIStore(state => state.setNotification);
@@ -31,6 +31,7 @@ const DemoLibrary: React.FC = () => {
   const [activeTags, setActiveTags] = React.useState<Set<string>>(new Set());
   const [showFavoritesOnly, setShowFavoritesOnly] = React.useState(false);
   const [viewType, setViewType] = React.useState<ViewType>('card');
+  const gridColumns = useGridColumns();
 
   const notifyLoginNeeded = React.useCallback(() => {
     setNotification({
@@ -74,32 +75,8 @@ const DemoLibrary: React.FC = () => {
       books = books.filter(book => book.isFavorite === true);
     }
 
-    return books.sort((a, b) => {
-      if (sortConfig.key === 'pubDate') {
-        const aTime = new Date(a.pubDate).getTime();
-        const bTime = new Date(b.pubDate).getTime();
-        return sortConfig.order === 'asc' ? aTime - bTime : bTime - aTime;
-      }
-
-      if (sortConfig.key === 'readStatus') {
-        const comparison = READ_STATUS_ORDER[a.readStatus] - READ_STATUS_ORDER[b.readStatus];
-        return sortConfig.order === 'asc' ? comparison : -comparison;
-      }
-
-      const aVal = a[sortConfig.key as keyof SelectedBook];
-      const bVal = b[sortConfig.key as keyof SelectedBook];
-
-      if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return sortConfig.order === 'asc' ? aVal - bVal : bVal - aVal;
-      }
-
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        const comparison = aVal.localeCompare(bVal, 'ko-KR');
-        return sortConfig.order === 'asc' ? comparison : -comparison;
-      }
-
-      return 0;
-    });
+    // 정렬 비교자 정본은 utils/librarySort.ts다. MyLibrary와 같은 함수를 쓴다.
+    return books.sort(createSortComparator(sortConfig));
   }, [searchQuery, activeTags, showFavoritesOnly, sortConfig]);
 
   const hasActiveFilters = searchQuery.trim().length >= 2 || activeTags.size > 0 || showFavoritesOnly;
@@ -132,16 +109,9 @@ const DemoLibrary: React.FC = () => {
 
   return (
     <div className="mt-12 animate-fade-in" data-testid="demo-library">
-      <div className="mb-6 p-4 bg-elevated rounded-lg">
-        <div className="flex flex-wrap items-center gap-2 mb-2">
-          <h2 className="text-2xl font-bold text-primary">내 서재 미리보기</h2>
-          <span className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary whitespace-nowrap">
-            예시 서재 · {DEMO_SNAPSHOT_DATE} 기준
-          </span>
-        </div>
-        <p className="text-sm text-secondary">
-          검색·정렬·태그 필터를 직접 눌러보세요. 위 검색창에서 책을 찾아 '내 서재에 추가'를 누르면, 아래처럼 광주시 도서관과 전자도서관의 재고를 한눈에 볼 수 있습니다.
-        </p>
+      {/* 실물 화면과 구조를 같게 유지한다. 안내는 띠 한 줄로만 둔다. */}
+      <div className="mb-4 px-4 py-2 rounded-lg bg-elevated text-sm text-secondary">
+        이 화면은 예시 서재입니다. 로그인하면 나만의 서재를 만들 수 있어요.
       </div>
 
       <MyLibraryToolbar
@@ -179,33 +149,32 @@ const DemoLibrary: React.FC = () => {
           </button>
         </div>
       ) : (
-        <div className={viewType === 'card' ? 'space-y-4 max-w-4xl mx-auto' : 'space-y-2 max-w-4xl mx-auto'}>
+        <BookListContainer viewType={viewType} gridColumns={gridColumns} data-testid="demo-book-list">
           {filteredBooks.map(book => (
-            <div key={book.id} data-testid="demo-book-card">
-              <MyLibraryListItem
-                book={{ ...book, isSelected: false }}
-                viewType={viewType}
-                refreshingIsbn={null}
-                refreshingEbookId={null}
-                tagCounts={tagCounts}
-                editingNoteId={null}
-                noteInputValue=""
-                tagsOverride={DEMO_TAGS}
-                onSelect={notifyLoginNeeded}
-                onRefresh={notifyLoginNeeded}
-                onOpenDetail={notifyLoginNeeded}
-                onToggleFavorite={notifyLoginNeeded}
-                onUpdateReadStatus={notifyLoginNeeded}
-                onUpdateRating={notifyLoginNeeded}
-                onNoteEdit={notifyLoginNeeded}
-                onNoteSave={notifyLoginNeeded}
-                onNoteCancel={notifyLoginNeeded}
-                onNoteChange={notifyLoginNeeded}
-                onNoteKeyDown={notifyLoginNeeded}
-              />
-            </div>
+            <MyLibraryListItem
+              key={book.id}
+              book={{ ...book, isSelected: false }}
+              viewType={viewType}
+              refreshingIsbn={null}
+              refreshingEbookId={null}
+              tagCounts={tagCounts}
+              editingNoteId={null}
+              noteInputValue=""
+              tagsOverride={DEMO_TAGS}
+              onSelect={notifyLoginNeeded}
+              onRefresh={notifyLoginNeeded}
+              onOpenDetail={notifyLoginNeeded}
+              onToggleFavorite={notifyLoginNeeded}
+              onUpdateReadStatus={notifyLoginNeeded}
+              onUpdateRating={notifyLoginNeeded}
+              onNoteEdit={notifyLoginNeeded}
+              onNoteSave={notifyLoginNeeded}
+              onNoteCancel={notifyLoginNeeded}
+              onNoteChange={notifyLoginNeeded}
+              onNoteKeyDown={notifyLoginNeeded}
+            />
           ))}
-        </div>
+        </BookListContainer>
       )}
 
       <div className="mt-8 text-center">
