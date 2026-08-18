@@ -10,18 +10,23 @@
 //   - sticky top-0: 책 목록까지 스크롤해도 예시라는 사실이 유지돼야 한다
 //   - 문구는 중앙 정렬 + 우측 여백: 토스트가 fixed top-5 right-5라 세로 구간이 겹친다.
 //     토스트가 위에 그려지므로 문구가 우측으로 뻗으면 가려진다
+//
+// 색: 로그인 버튼과 같은 파랑(blue-600)을 쓰면 클릭 가능한 CTA처럼 읽힌다.
+// 같은 계열에서 채도만 낮춰 "관련은 있되 조작 대상은 아닌" 층으로 보이게 한다.
+// 하단 경계선이 서비스 본체와의 경계를 긋는다.
+//
+// 색은 Tailwind의 dark: variant가 아니라 index.css의 .demo-mode-banner가 담당한다.
+// 이 프로젝트는 tailwind.config 없이 CDN만 쓰므로 dark:가 OS 선호를 따르고
+// 앱 테마(body의 .dark/.light)와 어긋난다. 자세한 이유는 index.css 주석 참조.
 
 import React from 'react';
-import { DEMO_SNAPSHOT_DATE } from '../data/demoLibrary';
 
 const DemoModeBanner: React.FC = () => (
   <div
-    className="sticky top-0 z-40 w-full bg-blue-600 text-white text-sm text-center px-4 sm:px-64 py-2"
+    className="demo-mode-banner sticky top-0 z-40 w-full text-sm text-center px-4 sm:px-64 py-2"
     data-testid="demo-mode-banner"
   >
-    로그인 전 미리보기 — 아래 서재는 예시 데이터입니다
-    {/* 재고 기준일은 375px에서 줄바꿈을 만들므로 640px 이상에서만 노출한다 */}
-    <span className="hidden sm:inline"> (재고 {DEMO_SNAPSHOT_DATE} 기준)</span>
+    미리보기 - 로그인하시면 나만의 서재를 만듭니다
   </div>
 );
 

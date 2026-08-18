@@ -139,7 +139,7 @@ test('비로그인 첫 화면은 스크롤되고, 웰컴 모달 없이 데모 �
     });
     assert.equal(bannerPlacement.count, 1, `데모 안내 띠가 1개가 아니다: ${bannerPlacement.count}`);
     assert.equal(bannerPlacement.insideMain, false, '안내 띠가 main 안에 있다 — 서비스 본체와 섞였다');
-    assert.match(bannerPlacement.text, /예시 데이터/, '안내 띠 문구가 예시임을 알리지 않는다');
+    assert.match(bannerPlacement.text, /미리보기/, '안내 띠 문구가 미리보기임을 알리지 않는다');
     await captureScreenshot(page, `${REPO_ROOT}temp/banner-1280-top.png`);
 
     // [V-13] 스크롤해도 띠가 화면에 남는다 (sticky)
@@ -302,7 +302,7 @@ test('비로그인 첫 화면은 스크롤되고, 웰컴 모달 없이 데모 �
     assert.equal(mobileTracks, 2, `375px에서 그리드 트랙이 2개가 아니다: ${mobileTracks}`);
     await captureScreenshot(page, `${REPO_ROOT}temp/demo-grid-375.png`);
 
-    // [V-17] 375px에서 띠가 1줄을 유지한다 (재고 기준일은 sm 미만에서 숨김)
+    // [V-17] 375px에서 띠가 1줄을 유지한다
     // 앞 단계에서 띄운 info 토스트(3초)가 사라진 뒤 재야 한다. 토스트는 모바일 폭에서 띠를 덮는다.
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.waitForSelector('text=예시 화면입니다', { state: 'detached', timeout: 8000 });
@@ -323,7 +323,7 @@ test('비로그인 첫 화면은 스크롤되고, 웰컴 모달 없이 데모 �
       mobileBanner.height <= mobileBanner.oneLineHeight + 1,
       `375px에서 띠가 2줄 이상이다: height=${mobileBanner.height}, 1줄=${mobileBanner.oneLineHeight}`,
     );
-    assert.ok(!mobileBanner.text.includes('재고'), '375px에서 재고 기준일이 숨겨지지 않았다');
+    assert.match(mobileBanner.text, /미리보기/, '375px에서 띠 문구가 사라졌다');
 
     await captureScreenshot(page, `${REPO_ROOT}temp/banner-375.png`);
 
@@ -356,6 +356,55 @@ test('비로그인 첫 화면은 스크롤되고, 웰컴 모달 없이 데모 �
     );
     await captureScreenshot(returningPage, `${REPO_ROOT}temp/logged-out-notice.png`);
     await returningContext.close();
+
+    // --- 7-2. 안내 띠 색이 OS 선호가 아니라 앱 테마를 따른다 ---
+    // Tailwind를 CDN으로만 로드해 darkMode 기본값이 'media'다. dark: variant를 쓰면
+    // 앱이 라이트인데 OS가 다크일 때 띠만 다크로 렌더되어 나머지 UI와 어긋난다.
+    // index.css의 .demo-mode-banner / .dark .demo-mode-banner가 body 클래스를 직접 본다.
+    const themeContext = await browser.newContext({
+      viewport: { width: 1280, height: 600 },
+      colorScheme: 'dark', // OS는 다크 선호
+    });
+    const themePage = await themeContext.newPage();
+    await themePage.goto(BASE_URL);
+    await themePage.waitForSelector('[data-testid="demo-mode-banner"]', { timeout: 15000 });
+
+    const themeSync = await themePage.evaluate(async () => {
+      const banner = document.querySelector('[data-testid="demo-mode-banner"]');
+      const read = () => getComputedStyle(banner).backgroundColor;
+
+      document.body.classList.remove('dark');
+      document.body.classList.add('light');
+      await new Promise(r => setTimeout(r, 100));
+      const whenLight = read();
+
+      document.body.classList.remove('light');
+      document.body.classList.add('dark');
+      await new Promise(r => setTimeout(r, 100));
+      const whenDark = read();
+
+      return { whenLight, whenDark };
+    });
+
+    // [V-18] 앱 테마를 바꾸면 띠 색도 따라 바뀐다 (OS 선호에 고정되지 않는다)
+    assert.notEqual(
+      themeSync.whenLight,
+      themeSync.whenDark,
+      `앱 테마를 바꿔도 띠 색이 그대로다 — OS 선호에 묶여 있다: ${themeSync.whenLight}`,
+    );
+    assert.equal(
+      themeSync.whenLight,
+      'rgb(239, 246, 255)',
+      `앱이 라이트인데 띠가 라이트 팔레트가 아니다: ${themeSync.whenLight}`,
+    );
+    assert.equal(
+      themeSync.whenDark,
+      'rgb(23, 37, 84)',
+      `앱이 다크인데 띠가 다크 팔레트가 아니다: ${themeSync.whenDark}`,
+    );
+
+    await captureScreenshot(themePage, `${REPO_ROOT}temp/banner-dark-theme.png`);
+    await themeContext.close();
 
     // --- 8. 관리자 로컬 설정으로 켠 경우 ---
     const adminContext = await browser.newContext();
