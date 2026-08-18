@@ -13,6 +13,8 @@ import BulkSearchModal from './components/BulkSearchModal';
 import APITestModal from './components/APITestModal';
 import DevNoteModal from './components/DevNoteModal';
 import WelcomeModal from './components/WelcomeModal';
+import DemoModeBanner from './components/DemoModeBanner';
+import { useDemoMode } from './hooks/useDemoMode';
 import MyLibraryBookDetailModal from './components/MyLibraryBookDetailModal';
 import KeywordSearchModal from './components/KeywordSearchModal';
 import Notification from './components/Notification';
@@ -31,6 +33,7 @@ const App: React.FC = () => {
   const { notification, setNotification, openWelcomeModal, selectedBookIdForDetail, closeMyLibraryBookDetailModal } = useUIStore();
   const initializeAuthListener = useAuthStore(state => state.initializeAuthListener);
   const session = useAuthStore(state => state.session);
+  const viewMode = useDemoMode();
   const fetchUserLibrary = useBookStore(state => state.fetchUserLibrary);
   const clearLibrary = useBookStore(state => state.clearLibrary);
   const fetchUserSettings = useSettingsStore(state => state.fetchUserSettings);
@@ -103,6 +106,8 @@ const App: React.FC = () => {
           onClose={() => setNotification(null)}
         />
       )}
+      {/* 메타 안내는 서비스 본체(main) 바깥 별도 층에 둔다 */}
+      {viewMode === 'demo' && <DemoModeBanner />}
       <main className="max-w-4xl mx-auto px-4 py-8">
         <Header />
 

@@ -124,6 +124,54 @@ test('비로그인 첫 화면은 스크롤되고, 웰컴 모달 없이 데모 �
     assert.ok(scrollY > 0, `세로 스크롤이 동작하지 않는다: scrollY=${scrollY}`);
     await page.evaluate(() => window.scrollTo(0, 0));
 
+    // --- 0. 데모 모드 안내 띠 (메타 레이어) ---
+    // [V-12] 띠가 있고, 서비스 본체(main) 바깥에 있다.
+    // main 안에 들어가면 max-w-4xl 콘텐츠로 읽혀 메타/본체 분리가 무의미해진다.
+    const bannerPlacement = await page.evaluate(() => {
+      const banners = document.querySelectorAll('[data-testid="demo-mode-banner"]');
+      if (banners.length !== 1) return { count: banners.length };
+      const banner = banners[0];
+      return {
+        count: 1,
+        insideMain: banner.closest('main') !== null,
+        text: banner.innerText,
+      };
+    });
+    assert.equal(bannerPlacement.count, 1, `데모 안내 띠가 1개가 아니다: ${bannerPlacement.count}`);
+    assert.equal(bannerPlacement.insideMain, false, '안내 띠가 main 안에 있다 — 서비스 본체와 섞였다');
+    assert.match(bannerPlacement.text, /예시 데이터/, '안내 띠 문구가 예시임을 알리지 않는다');
+    await captureScreenshot(page, `${REPO_ROOT}temp/banner-1280-top.png`);
+
+    // [V-13] 스크롤해도 띠가 화면에 남는다 (sticky)
+    const stickyCheck = await page.evaluate(async () => {
+      const scrollable = document.documentElement.scrollHeight > window.innerHeight + 600;
+      window.scrollTo(0, 600);
+      await new Promise(r => setTimeout(r, 200));
+      const top = document.querySelector('[data-testid="demo-mode-banner"]').getBoundingClientRect().top;
+      const scrolled = window.scrollY;
+      window.scrollTo(0, 0);
+      return { scrollable, top, scrolled };
+    });
+    assert.ok(stickyCheck.scrollable, '문서가 충분히 길지 않아 sticky 검증을 할 수 없다');
+    assert.ok(stickyCheck.scrolled > 0, `스크롤이 동작하지 않았다: scrollY=${stickyCheck.scrolled}`);
+    assert.ok(stickyCheck.top <= 5, `스크롤 후 띠가 화면 밖으로 나갔다: top=${stickyCheck.top}`);
+
+    // 스크롤 상태 증거: 띠가 남아 있고 서재 섹션에 안내가 없음을 사람이 확인한다
+    await page.evaluate(() => window.scrollTo(0, 600));
+    await page.waitForTimeout(300);
+    await captureScreenshot(page, `${REPO_ROOT}temp/banner-1280-scrolled.png`);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(200);
+
+    // [V-14] 서재 섹션 안에는 메타 안내 문구가 남아 있지 않다
+    const demoBodyText = await page.locator('[data-testid="demo-library"]').innerText();
+    for (const phrase of ['예시', '미리보기', '기준입니다']) {
+      assert.ok(
+        !demoBodyText.includes(phrase),
+        `서재 본문에 메타 안내 문구가 남아 있다: "${phrase}"`,
+      );
+    }
+
     // [V-7] 로그인 이력이 없는 신규 컨텍스트에서는 데모 서재가 렌더된다
     assert.equal(await page.locator('[data-testid="demo-library"]').count(), 1, '신규 방문자에게 데모가 렌더되지 않았다');
     assert.equal(await page.locator('[data-testid="logged-out-notice"]').count(), 0, '신규 방문자에게 로그아웃 안내가 떴다');
@@ -234,6 +282,10 @@ test('비로그인 첫 화면은 스크롤되고, 웰컴 모달 없이 데모 �
     await cards.first().locator('button[title="좋아요"]:visible, button[title="좋아요 취소"]:visible').first().click();
     await page.waitForSelector('text=예시 화면입니다', { timeout: 5000 });
 
+    // 토스트가 뜬 상태에서 띠 문구가 가려지지 않는지 사람이 확인한다
+    // (토스트는 fixed top-5 right-5 / z-[100]이라 띠와 세로 구간이 겹친다)
+    await captureScreenshot(page, `${REPO_ROOT}temp/banner-toast.png`);
+
     // --- 7. 모바일 폭에서 가로 스크롤 없음 ---
     await page.setViewportSize({ width: 375, height: 812 });
     await page.waitForTimeout(300);
@@ -249,6 +301,31 @@ test('비로그인 첫 화면은 스크롤되고, 웰컴 모달 없이 데모 �
     });
     assert.equal(mobileTracks, 2, `375px에서 그리드 트랙이 2개가 아니다: ${mobileTracks}`);
     await captureScreenshot(page, `${REPO_ROOT}temp/demo-grid-375.png`);
+
+    // [V-17] 375px에서 띠가 1줄을 유지한다 (재고 기준일은 sm 미만에서 숨김)
+    // 앞 단계에서 띄운 info 토스트(3초)가 사라진 뒤 재야 한다. 토스트는 모바일 폭에서 띠를 덮는다.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForSelector('text=예시 화면입니다', { state: 'detached', timeout: 8000 });
+    await page.waitForTimeout(300);
+
+    const mobileBanner = await page.evaluate(() => {
+      const banner = document.querySelector('[data-testid="demo-mode-banner"]');
+      const style = getComputedStyle(banner);
+      const lineHeight = parseFloat(style.lineHeight);
+      const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+      return {
+        height: banner.getBoundingClientRect().height,
+        oneLineHeight: lineHeight + paddingY,
+        text: banner.innerText,
+      };
+    });
+    assert.ok(
+      mobileBanner.height <= mobileBanner.oneLineHeight + 1,
+      `375px에서 띠가 2줄 이상이다: height=${mobileBanner.height}, 1줄=${mobileBanner.oneLineHeight}`,
+    );
+    assert.ok(!mobileBanner.text.includes('재고'), '375px에서 재고 기준일이 숨겨지지 않았다');
+
+    await captureScreenshot(page, `${REPO_ROOT}temp/banner-375.png`);
 
     // [V-10] 콘솔·페이지 에러 0건
     assert.deepEqual(pageErrors, [], '페이지 에러가 발생했다');
@@ -271,6 +348,12 @@ test('비로그인 첫 화면은 스크롤되고, 웰컴 모달 없이 데모 �
       0,
       '로그인 이력이 있는데 데모 서재가 렌더됐다',
     );
+    // [V-15] 데모가 안 뜨면 안내 띠도 뜨지 않는다 (조건 드리프트 방지)
+    assert.equal(
+      await returningPage.locator('[data-testid="demo-mode-banner"]').count(),
+      0,
+      '데모가 없는데 안내 띠만 렌더됐다 — 판정 조건이 갈라졌다',
+    );
     await captureScreenshot(returningPage, `${REPO_ROOT}temp/logged-out-notice.png`);
     await returningContext.close();
 
@@ -291,6 +374,28 @@ test('비로그인 첫 화면은 스크롤되고, 웰컴 모달 없이 데모 �
       1,
       '관리자 로컬 설정이 켜져 있는데 웰컴 모달이 표시되지 않았다',
     );
+
+    // [V-16] 모달이 뜬 상태에서 띠(z-40)가 모달 오버레이(z-50) 위로 뚫고 나오지 않는다.
+    // 색만 보고 판단하면 bg-opacity-50 아래의 파란 띠를 "안 덮였다"고 오독하므로 좌표로 실측한다.
+    const bannerCovered = await adminPage.evaluate(() => {
+      const banner = document.querySelector('[data-testid="demo-mode-banner"]');
+      if (!banner) return { hasBanner: false };
+      const rect = banner.getBoundingClientRect();
+      const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      return {
+        hasBanner: true,
+        hitIsBanner: hit === banner || banner.contains(hit),
+        hitClass: hit ? hit.className : null,
+      };
+    });
+    assert.ok(bannerCovered.hasBanner, '관리자 컨텍스트에서 데모 띠가 렌더되지 않았다');
+    assert.equal(
+      bannerCovered.hitIsBanner,
+      false,
+      `모달이 떠 있는데 띠가 최상단에 있다 — z-index 순서가 잘못됐다 (hit=${bannerCovered.hitClass})`,
+    );
+
+    await captureScreenshot(adminPage, `${REPO_ROOT}temp/banner-modal.png`);
 
     await adminContext.close();
   } finally {

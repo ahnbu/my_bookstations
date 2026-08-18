@@ -57,6 +57,7 @@ my_bookstation/
 │   ├── layout/              # Header, Footer 등 레이아웃
 │   ├── BookListContainer.tsx # 프레젠테이셔널: 목록 레이아웃 정본 (MyLibrary·DemoLibrary 공유)
 │   ├── DemoLibrary.tsx      # 로그인 이력 없는 방문자용 읽기 전용 예시 서재
+│   ├── DemoModeBanner.tsx   # 최상단 고정 안내 띠 (메타 레이어, main 바깥)
 │   ├── DevToolsFloat.tsx    # 관리자 전용 기능 모달 (구 AdminPanel.tsx)
 │   ├── LoggedOutLibraryNotice.tsx # 로그아웃·세션 만료 시 내 서재 자리에 뜨는 안내
 │   ├── MyLibrary.tsx        # 컨테이너: 서재의 상태 및 비즈니스 로직 담당
@@ -64,6 +65,7 @@ my_bookstation/
 │   ├── MyLibraryToolbar.tsx  # 프레젠테이셔널: 서재 상단 툴바 UI
 │   └── ... (기타 UI 컴포넌트)
 ├── hooks/                   # 공용 React 훅
+│   ├── useDemoMode.ts       # 비로그인 화면 분기 판정 정본 (library/demo/loggedOut)
 │   └── useGridColumns.ts    # 그리드 뷰 반응형 컬럼 수 정본 (2/3/3/4)
 ├── data/                    # 정적 데이터
 │   ├── demoLibrary.json     # 로그인 전 예시 서재 스냅샷 (도서 20권 + 데모 태그 6종)
@@ -515,7 +517,11 @@ Supabase 대시보드에서 보고된 성능 및 보안 관련 경고들에 대�
 
 ### 0. 비로그인 화면 분기
 
-`components/MyLibrary.tsx`의 `if (!session)` 자리에서 **로그인 이력**을 기준으로 두 화면이 갈린다.
+판정 정본은 **`hooks/useDemoMode.ts`** 하나다. `'library' | 'demo' | 'loggedOut'` 세 값을 반환하고, `App.tsx`(최상단 안내 띠)와 `components/MyLibrary.tsx`(서재 본문)가 **같은 훅을 읽는다.** 두 곳이 조건을 따로 계산하면 띠만 뜨고 데모는 안 뜨는 상태가 생기므로 훅 밖에서 `hasSignedInBefore()`를 직접 호출하지 않는다. 이 계약은 `tests/demo-library-ui.test.mjs`의 `[V-15]`가 단언한다.
+
+`localStorage` 값은 렌더 도중 바뀌면 안 되므로 훅 안에서 `useState` 초기화로 마운트 시 1회만 읽는다.
+
+**로그인 이력**을 기준으로 두 화면이 갈린다.
 
 | 조건 | 화면 | 부가 |
 |---|---|---|
@@ -546,8 +552,19 @@ Supabase 대시보드에서 보고된 성능 및 보안 관련 경고들에 대�
     -   `data/demoLibrary.ts` — 위 JSON을 `SelectedBook[]`, `CustomTag[]`로 노출
     -   `components/DemoLibrary.tsx` — 읽기 전용 렌더. `MyLibraryToolbar`와 `MyLibraryListItem`을 재사용
     -   `components/MyLibrary.tsx`의 비로그인 분기(위 0절)에서 렌더
--   **화면 구성은 로그인 화면과 같게 유지한다.** 상단에는 안내 띠 1줄(`이 화면은 예시 서재입니다...`)만 두고, 하단에 로그인 CTA 버튼을 둔다. 실물에 없는 제목·설명 블록을 얹으면 포트폴리오 첫인상이 습작처럼 보인다.
+-   **서재 섹션 안에는 안내 요소를 두지 않는다.** 메타 안내는 아래 1-2의 최상단 띠가 담당하고, `DemoLibrary`에는 툴바 → 목록 → 로그인 CTA 버튼만 남는다. 실물 `MyLibrary`와 구조가 같아진다.
 -   **네트워크 요청 없음**: 정적 스냅샷이므로 Supabase·Worker를 호출하지 않는다.
+
+#### 1-2. 데모 모드 안내 띠(DemoModeBanner)
+
+"이 화면은 예시다"는 **화면에 대한 메타 설명**이고 툴바·카드는 **서비스 본체**다. 층이 다르므로 섞지 않는다. 섞으면 실물에 없는 요소가 서재에 끼어들고(본체 훼손), 안내는 UI의 일부로 읽혀 눈에 띄지 않는다(안내 실패).
+
+-   **위치**: `App.tsx`의 루트 `div` 첫 자식, **`main` 바깥**. `main`은 `max-w-4xl mx-auto`라 안에 넣으면 콘텐츠로 읽힌다. 전체폭이어야 별도 층으로 보인다. `[V-12]`가 `banner.closest('main') === null`을 단언한다
+-   **고정**: `sticky top-0`. 책 목록까지 스크롤해도 예시라는 사실이 유지돼야 한다 (`[V-13]`)
+-   **z-index**: `z-40`. 모달(`z-50`)과 토스트(`z-[100]`) **아래**여야 한다. `[V-16]`이 모달 표시 상태에서 `document.elementFromPoint`로 실측한다 — 스크린샷 색만 보면 `bg-opacity-50` 아래의 파란 띠를 "안 덮였다"고 오독한다
+-   **문구**: `로그인 전 미리보기 — 아래 서재는 예시 데이터입니다 (재고 YYYY-MM-DD 기준)`. **모드 서술 + 범위 한정**이다. 비로그인에서도 검색은 실제로 동작하므로 "이 화면은 예시입니다" 같은 내용 주장을 쓰면 동작하는 기능까지 예시로 오해된다. 괄호의 재고 기준일은 `hidden sm:inline`으로 640px 미만에서 숨겨 1줄을 유지한다 (`[V-17]`)
+-   **대비**: `bg-blue-600 text-white`. 서비스 팔레트 밖의 색을 써서 "서비스가 아닌 층"임을 선언한다. 흰 글자라 다크 모드에서도 동일하다
+-   **토스트 겹침**: 토스트는 `fixed top-5 right-5`라 세로 구간이 겹칠 수 있다. 띠 문구를 `text-center` + `sm:px-64`로 중앙에 모아 토스트 영역을 피한다. `Notification`은 공용 컴포넌트이므로 데모 전용 위치 조정을 넣지 않는다. 375px에서는 토스트가 띠를 일시적으로 덮으나 3초 후 사라진다
 
 #### 1-1. 레이아웃·열 수·정렬 정본 (데모가 자체 구현하지 않는다)
 

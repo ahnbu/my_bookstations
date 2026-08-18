@@ -3,7 +3,6 @@ import { SelectedBook, SortKey, ReadStatus, CustomTag, LibraryName, TagColor, Vi
 import { TrashIcon, RefreshIcon, CheckIcon, SearchIcon, CloseIcon, HeartIcon, MessageSquareIcon } from './Icons';
 import Spinner from './Spinner';
 import { useBookStore } from '../stores/useBookStore';
-import { useAuthStore } from '../stores/useAuthStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import StarRating from './StarRating';
 import MyLibraryBookDetailModal from './MyLibraryBookDetailModal';
@@ -16,8 +15,8 @@ import DemoLibrary from './DemoLibrary';             // 비로그인 예시 서�
 import LoggedOutLibraryNotice from './LoggedOutLibraryNotice'; // 로그아웃·세션 만료 안내
 import BookListContainer from './BookListContainer'; // 목록 레이아웃 정본(DemoLibrary와 공유)
 import { useGridColumns } from '../hooks/useGridColumns';
+import { useDemoMode } from '../hooks/useDemoMode';
 import { createSortComparator } from '../utils/librarySort';
-import { hasSignedInBefore } from '../utils/authFlags';
 
 // [핵심 수정] import 문 정리
 import { 
@@ -418,7 +417,7 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
 };
 
 const MyLibrary: React.FC = () => {
-  const { session } = useAuthStore();
+  const viewMode = useDemoMode();
   const { settings } = useSettingsStore();
   const {
     myLibraryBooks,
@@ -789,13 +788,13 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
   }, [myLibraryBooks, backgroundRefreshComplete, refreshAllBookInfo]);
 
 
-  if (!session) {
-    // 로그인 이력이 있으면(로그아웃·세션 만료) 내 서재 자리에 데모를 띄우지 않는다.
-    // 남의 책 20권이 뜨면 기존 사용자가 자기 서재로 오인한다.
-    if (hasSignedInBefore()) {
-      return <LoggedOutLibraryNotice />;
-    }
-    // 첫 방문자에게만 정적 스냅샷 기반 예시 서재를 보여준다.
+  // 로그인 이력이 있으면(로그아웃·세션 만료) 내 서재 자리에 데모를 띄우지 않는다.
+  // 남의 책 20권이 뜨면 기존 사용자가 자기 서재로 오인한다.
+  if (viewMode === 'loggedOut') {
+    return <LoggedOutLibraryNotice />;
+  }
+  // 첫 방문자에게만 정적 스냅샷 기반 예시 서재를 보여준다.
+  if (viewMode === 'demo') {
     return <DemoLibrary />;
   }
   

@@ -17,7 +17,7 @@ import BookListContainer from './BookListContainer';
 import { useGridColumns } from '../hooks/useGridColumns';
 import { createSortComparator } from '../utils/librarySort';
 import { useUIStore } from '../stores/useUIStore';
-import { DEMO_BOOKS, DEMO_TAGS, DEMO_SNAPSHOT_DATE } from '../data/demoLibrary';
+import { DEMO_BOOKS, DEMO_TAGS } from '../data/demoLibrary';
 
 const DemoLibrary: React.FC = () => {
   const setNotification = useUIStore(state => state.setNotification);
@@ -109,11 +109,7 @@ const DemoLibrary: React.FC = () => {
 
   return (
     <div className="mt-12 animate-fade-in" data-testid="demo-library">
-      {/* 실물 화면과 구조를 같게 유지한다. 안내는 띠 한 줄로만 둔다. */}
-      <div className="mb-4 px-4 py-2 rounded-lg bg-elevated text-sm text-secondary">
-        이 화면은 예시 서재입니다. 로그인하면 나만의 서재를 만들 수 있어요.
-      </div>
-
+      {/* 안내 문구는 여기 두지 않는다. 메타 안내는 DemoModeBanner(App.tsx 최상단)가 담당한다. */}
       <MyLibraryToolbar
         searchQuery={searchQuery}
         onSearchQueryChange={setSearchQuery}
@@ -184,9 +180,6 @@ const DemoLibrary: React.FC = () => {
         >
           로그인하고 내 서재 만들기
         </button>
-        <p className="text-xs text-secondary mt-3">
-          위 목록은 예시이며, 재고는 {DEMO_SNAPSHOT_DATE} 기준입니다.
-        </p>
       </div>
     </div>
   );
