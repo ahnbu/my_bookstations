@@ -55,11 +55,15 @@ my_bookstation/
 │   └── search.ts
 ├── components/              # React 컴포넌트
 │   ├── layout/              # Header, Footer 등 레이아웃
+│   ├── DemoLibrary.tsx      # 비로그인 방문자용 읽기 전용 예시 서재
 │   ├── DevToolsFloat.tsx    # 관리자 전용 기능 모달 (구 AdminPanel.tsx)
 │   ├── MyLibrary.tsx        # 컨테이너: 서재의 상태 및 비즈니스 로직 담당
 │   ├── MyLibraryListItem.tsx # 프레젠테이셔널: 개별 책 아이템 UI
 │   ├── MyLibraryToolbar.tsx  # 프레젠테이셔널: 서재 상단 툴바 UI
 │   └── ... (기타 UI 컴포넌트)
+├── data/                    # 정적 데이터
+│   ├── demoLibrary.json     # 로그인 전 예시 서재 스냅샷 (도서 10권 + 데모 태그)
+│   └── demoLibrary.ts       # 위 JSON을 SelectedBook[]으로 노출
 ├── library-checker/         # Cloudflare Workers (재고 확인 API)
 │   └── src/index.ts         # TypeScript로 마이그레이션됨
 ├── services/                # API 서비스 계층
@@ -498,6 +502,42 @@ Supabase 대시보드에서 보고된 성능 및 보안 관련 경고들에 대�
     4.  `bulkRefreshAllBooks`는 전달받은 `targetBooks` 목록만을 대상으로 재고 갱신을 수행합니다.
 
 이 두 시스템의 결합을 통해, 일시적인 네트워크 오류로 발생한 데이터 불일치를 자동으로 복구하고, 사용자에게는 필요 시 데이터를 즉시 교정할 수 있는 수단을 제공하여 데이터의 신뢰성을 높은 수준으로 유지합니다.
+
+---
+
+## 🪟 로그인 전 화면 (예시 서재 + 초기 안내 메시지)
+
+### 1. 예시 서재(DemoLibrary)
+
+-   **목표**: 비로그인 방문자가 첫 화면에서 서비스의 결과물(도서관별 재고 배지가 붙은 서재)을 바로 확인하게 한다.
+-   **구성**:
+    -   `data/demoLibrary.json` — 운영 DB에서 1회 추출한 도서 10권 스냅샷 + 데모 태그 정의 + `snapshotDate`
+    -   `data/demoLibrary.ts` — 위 JSON을 `SelectedBook[]`, `CustomTag[]`로 노출
+    -   `components/DemoLibrary.tsx` — 읽기 전용 렌더. `MyLibraryListItem`을 카드 뷰로 재사용
+    -   `components/MyLibrary.tsx`의 `if (!session)` 분기에서 렌더
+-   **네트워크 요청 없음**: 정적 스냅샷이므로 Supabase·Worker를 호출하지 않는다.
+-   **읽기 전용 보장 구조**: `MyLibraryListItem`은 `useSettingsStore`만 참조하고 `useBookStore` / `useUIStore`를 직접 호출하지 않는다. 모든 변경 동작은 부모가 넘긴 props 콜백이므로, `DemoLibrary`가 콜백을 로그인 안내로 바꿔 넘기면 스토어·DB에 닿을 수 없다. 이 계약은 `tests/demo-library-data.test.mjs`가 단언한다.
+-   **데모 태그**: 비로그인 기본 설정에는 `default_personal` 하나뿐이므로, `MyLibraryListItem`의 `tagsOverride` prop으로 `DEMO_TAGS`를 주입한다. 이 prop을 넘기지 않으면 기존처럼 `settings.tagSettings.tags`를 쓴다.
+-   **id 규칙**: 데모 도서 `id`는 `-1` ~ `-10`. 실제 `user_library.id`(양수)와 충돌하지 않는다.
+
+### 2. 데모 서재 스냅샷 갱신 절차
+
+1.  Supabase(`library_book_manager`, project_id `ugzruzaywohbynjzjesm`)에서 후보를 조회한다. 조회 전용이라 영구 데이터를 바꾸지 않는다.
+
+select ul.id, ul.book_data->>'title' as title, ul.book_data->>'author' as author, ul.stock_gwangju_toechon_total, ul.stock_gwangju_other_total, ul.stock_sirip_subs_total, ul.stock_sirip_owned_total, ul.stock_gyeonggi_total, ul.stock_gyeonggi_edu_total from user_library ul join auth.users u on u.id = ul.user_id where u.email = '<대상 계정 이메일>' and coalesce(ul.stock_gwangju_toechon_total,0) + coalesce(ul.stock_gwangju_other_total,0) + coalesce(ul.stock_sirip_subs_total,0) + coalesce(ul.stock_sirip_owned_total,0) + coalesce(ul.stock_gyeonggi_total,0) + coalesce(ul.stock_gyeonggi_edu_total,0) > 0 order by ul.created_at desc limit 200;
+
+2.  6개 배지(퇴촌·기타·e시립구독·e시립소장·e경기·e교육) 각각에 `total > 0`인 도서가 최소 1권 포함되도록 10권을 고른다. 대출 변동이 적은 다권 소장 스테디셀러를 우선한다.
+3.  선정한 id 목록을 `in (...)` 조건에 직접 채워 상세를 조회한다(`ul.book_data`와 `stock_*` 12개 컬럼).
+4.  결과를 `data/demoLibrary.json`의 슬림 필드로 옮긴다. `note`, `user_id`, `email`, `created_at`은 넣지 않는다. `description`은 빈 문자열로 둔다(번들 비대 방지).
+5.  `id`를 `-1` ~ `-10`으로 치환하고 `snapshotDate`를 갱신일로 바꾼다.
+6.  `node --test tests/demo-library-data.test.mjs`와 `node --test tests/demo-library-ui.test.mjs`를 실행해 계약을 확인한다.
+
+### 3. 초기 안내 메시지(WelcomeModal)
+
+-   **저장 위치**: `localStorage['adminWelcomeMessageSettings']`. **서버 저장 경로가 없다.**
+-   **기본값**: `enabled: false`. 관리자 브라우저 밖(다른 방문자, 시크릿 창)에서는 항상 이 기본값이 적용되므로 모달이 뜨지 않는다.
+-   **관리자 토글의 적용 범위**: 토글을 켜면 그 브라우저에서만 모달이 표시된다. 전역 on/off가 필요해지면 Supabase 전역 설정 테이블 + anon select RLS가 별도로 필요하다.
+-   **`hasVisited` 키**: '다시 보지 않기'를 누르면 저장되는 브라우저별 플래그. 시크릿 창은 항상 첫 방문으로 취급된다.
 
 ---
 

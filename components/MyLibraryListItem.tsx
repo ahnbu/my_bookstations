@@ -176,6 +176,9 @@ interface MyLibraryListItemProps {
   tagCounts: Record<string, number>;
   editingNoteId: number | null;
   noteInputValue: string;
+  // 데모 서재처럼 사용자 설정에 없는 태그를 표시해야 할 때만 주입한다.
+  // 미전달이면 기존처럼 settings.tagSettings.tags를 사용한다.
+  tagsOverride?: CustomTag[];
   
   // Event Handlers
   onSelect: (bookId: number, isSelected: boolean) => void;
@@ -199,6 +202,7 @@ const MyLibraryListItem: React.FC<MyLibraryListItemProps> = React.memo(({
   tagCounts,
   editingNoteId,
   noteInputValue,
+  tagsOverride,
   onSelect,
   onRefresh,
   onOpenDetail,
@@ -213,6 +217,7 @@ const MyLibraryListItem: React.FC<MyLibraryListItemProps> = React.memo(({
 }) => {
   const { settings } = useSettingsStore();
   const displayTagIds = getMergedTagIds(book);
+  const availableTags = tagsOverride ?? settings.tagSettings.tags;
   const gridColumns = 4; // 그리드 컬럼 수는 MyLibrary에서 관리하므로, 여기서는 임의의 값을 사용하거나 props로 받아야 합니다.
                          // 이 컴포넌트에서는 gridColumns 값이 레이아웃에 직접 영향을 주지 않으므로 상수로 두어도 괜찮습니다.
 
@@ -276,7 +281,7 @@ const MyLibraryListItem: React.FC<MyLibraryListItemProps> = React.memo(({
             </div>
             {settings.showTags && displayTagIds.length > 0 && (
               <div className="flex flex-wrap gap-1">
-                {displayTagIds.map(tagId => settings.tagSettings.tags.find(t => t.id === tagId)).filter((tag): tag is CustomTag => !!tag).sort((a, b) => { const colorOrder: Record<TagColor, number> = { 'primary': 0, 'secondary': 1, 'tertiary': 2 }; const colorDifference = (colorOrder[a.color] ?? 99) - (colorOrder[b.color] ?? 99); if (colorDifference !== 0) return colorDifference; const countA = tagCounts[a.id] || 0; const countB = tagCounts[b.id] || 0; const countDifference = countB - countA; if (countDifference !== 0) return countDifference; return a.name.localeCompare(b.name, 'ko-KR'); }).map(tag => <CustomTagComponent key={tag.id} tag={tag} isActive={false} onClick={() => {}} size="sm" />)}
+                {displayTagIds.map(tagId => availableTags.find(t => t.id === tagId)).filter((tag): tag is CustomTag => !!tag).sort((a, b) => { const colorOrder: Record<TagColor, number> = { 'primary': 0, 'secondary': 1, 'tertiary': 2 }; const colorDifference = (colorOrder[a.color] ?? 99) - (colorOrder[b.color] ?? 99); if (colorDifference !== 0) return colorDifference; const countA = tagCounts[a.id] || 0; const countB = tagCounts[b.id] || 0; const countDifference = countB - countA; if (countDifference !== 0) return countDifference; return a.name.localeCompare(b.name, 'ko-KR'); }).map(tag => <CustomTagComponent key={tag.id} tag={tag} isActive={false} onClick={() => {}} size="sm" />)}
               </div>
             )}
           </div>
@@ -352,7 +357,7 @@ const MyLibraryListItem: React.FC<MyLibraryListItemProps> = React.memo(({
         {settings.showReadStatus && (<ReadStatusDropdown value={book.readStatus} onChange={(newStatus) => onUpdateReadStatus(book.id, newStatus)} size="sm" />)}
         {settings.showTags && displayTagIds.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {displayTagIds.map(tagId => settings.tagSettings.tags.find(t => t.id === tagId)).filter((tag): tag is CustomTag => !!tag).sort((a, b) => { const colorOrder: Record<TagColor, number> = { 'primary': 0, 'secondary': 1, 'tertiary': 2 }; const colorDifference = (colorOrder[a.color] ?? 99) - (colorOrder[b.color] ?? 99); if (colorDifference !== 0) return colorDifference; const countA = tagCounts[a.id] || 0; const countB = tagCounts[b.id] || 0; const countDifference = countB - countA; if (countDifference !== 0) return countDifference; return a.name.localeCompare(b.name, 'ko-KR'); }).map(tag => <CustomTagComponent key={tag.id} tag={tag} isActive={false} onClick={() => {}} size="sm" />)}
+            {displayTagIds.map(tagId => availableTags.find(t => t.id === tagId)).filter((tag): tag is CustomTag => !!tag).sort((a, b) => { const colorOrder: Record<TagColor, number> = { 'primary': 0, 'secondary': 1, 'tertiary': 2 }; const colorDifference = (colorOrder[a.color] ?? 99) - (colorOrder[b.color] ?? 99); if (colorDifference !== 0) return colorDifference; const countA = tagCounts[a.id] || 0; const countB = tagCounts[b.id] || 0; const countDifference = countB - countA; if (countDifference !== 0) return countDifference; return a.name.localeCompare(b.name, 'ko-KR'); }).map(tag => <CustomTagComponent key={tag.id} tag={tag} isActive={false} onClick={() => {}} size="sm" />)}
           </div>
         )}
         {/* 도서관 재고 정보 */}

@@ -351,6 +351,7 @@ const DefaultSettingsContent: React.FC = () => {
             <div>
               <label className="text-sm font-medium text-white">초기 안내 메시지</label>
               <p className="text-xs text-secondary mt-1 hidden sm:block">첫 방문자에게 표시되는 환영 메시지를 관리합니다.</p>
+              <p className="text-xs text-amber-400 mt-1">이 설정은 지금 사용 중인 브라우저에만 적용됩니다. 다른 방문자에게는 기본값(표시 안 함)이 적용됩니다.</p>
             </div>
             <button
               onClick={() => setWelcomeMessageSettings(prev => ({ ...prev, enabled: !prev.enabled }))}

@@ -12,6 +12,7 @@ import CustomTagComponent from './CustomTag';
 import { addHomeResetListener } from '../utils/events';
 import MyLibraryListItem from './MyLibraryListItem'; // ✅ 새로 만든 컴포넌트 import
 import MyLibraryToolbar from './MyLibraryToolbar';   // ✅ 새로 추가
+import DemoLibrary from './DemoLibrary';             // 비로그인 예시 서재
 
 // [핵심 수정] import 문 정리
 import { 
@@ -824,13 +825,8 @@ const handleBookSelection = useCallback((bookId: number, isSelected: boolean) =>
 
 
   if (!session) {
-    return (
-      <div className="mt-12 animate-fade-in text-center text-secondary p-8 bg-elevated rounded-lg shadow-inner">
-        <h2 className="text-2xl font-bold mb-4 text-primary">내 서재</h2>
-        <p>로그인 후 '내 서재' 기능을 사용해보세요.</p>
-        <p className="text-sm mt-2">관심있는 책을 저장하고, 여러 기기에서 확인하세요.</p>
-      </div>
-    );
+    // 비로그인 방문자에게는 정적 스냅샷 기반 예시 서재를 보여준다.
+    return <DemoLibrary />;
   }
   
   if (myLibraryBooks.length === 0) {

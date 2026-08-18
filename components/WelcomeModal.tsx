@@ -15,8 +15,10 @@ const WelcomeModal: React.FC = () => {
       console.error('환영 메시지 설정 로드 실패:', error);
     }
     // 기본값 반환
+    // enabled 기본값은 false다. 이 설정은 localStorage에만 저장되므로
+    // 관리자 브라우저 밖(다른 방문자·시크릿 창)에서는 항상 이 기본값이 적용된다.
     return {
-      enabled: true,
+      enabled: false,
       content: `마이 북스테이션에
 오신 것을 환영합니다.
 
