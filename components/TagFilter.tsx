@@ -8,6 +8,9 @@ interface TagFilterProps {
   activeTags: Set<string>;
   onTagClick: (tagId: string) => void;
   onClearAll: () => void;
+  // 데모 서재처럼 스토어 밖의 데이터로 카운트를 계산해야 할 때만 주입한다.
+  // 미전달이면 기존처럼 useBookStore의 tagCounts를 사용한다.
+  tagCountsOverride?: Record<string, number>;
 }
 
 const TagFilter: React.FC<TagFilterProps> = ({
@@ -15,9 +18,11 @@ const TagFilter: React.FC<TagFilterProps> = ({
   activeTags,
   onTagClick,
   onClearAll,
+  tagCountsOverride,
 }) => {
   // useBookStore에서 전체 서재 기준 태그 카운트 가져오기
-  const { tagCounts } = useBookStore();
+  const { tagCounts: storeTagCounts } = useBookStore();
+  const tagCounts = tagCountsOverride ?? storeTagCounts;
 
   // ✅ [수정] 1순위: 색상, 2순위: 인기도 순으로 정렬
   const tagUsageStats = React.useMemo(() => {

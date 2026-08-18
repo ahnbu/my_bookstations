@@ -62,7 +62,7 @@ my_bookstation/
 │   ├── MyLibraryToolbar.tsx  # 프레젠테이셔널: 서재 상단 툴바 UI
 │   └── ... (기타 UI 컴포넌트)
 ├── data/                    # 정적 데이터
-│   ├── demoLibrary.json     # 로그인 전 예시 서재 스냅샷 (도서 10권 + 데모 태그)
+│   ├── demoLibrary.json     # 로그인 전 예시 서재 스냅샷 (도서 20권 + 데모 태그 6종)
 │   └── demoLibrary.ts       # 위 JSON을 SelectedBook[]으로 노출
 ├── library-checker/         # Cloudflare Workers (재고 확인 API)
 │   └── src/index.ts         # TypeScript로 마이그레이션됨
@@ -509,28 +509,52 @@ Supabase 대시보드에서 보고된 성능 및 보안 관련 경고들에 대�
 
 ### 1. 예시 서재(DemoLibrary)
 
--   **목표**: 비로그인 방문자가 첫 화면에서 서비스의 결과물(도서관별 재고 배지가 붙은 서재)을 바로 확인하게 한다.
+-   **목표**: 비로그인 방문자가 첫 화면에서 서비스의 결과물(도서관별 재고 배지가 붙은 서재)과 조작 방식(검색·정렬·태그 필터)을 바로 경험하게 한다.
 -   **구성**:
-    -   `data/demoLibrary.json` — 운영 DB에서 1회 추출한 도서 10권 스냅샷 + 데모 태그 정의 + `snapshotDate`
+    -   `data/demoLibrary.json` — 운영 DB에서 1회 추출한 도서 20권 스냅샷 + 데모 태그 6종 + `snapshotDate`
     -   `data/demoLibrary.ts` — 위 JSON을 `SelectedBook[]`, `CustomTag[]`로 노출
-    -   `components/DemoLibrary.tsx` — 읽기 전용 렌더. `MyLibraryListItem`을 카드 뷰로 재사용
+    -   `components/DemoLibrary.tsx` — 읽기 전용 렌더. `MyLibraryToolbar`와 `MyLibraryListItem`을 재사용
     -   `components/MyLibrary.tsx`의 `if (!session)` 분기에서 렌더
 -   **네트워크 요청 없음**: 정적 스냅샷이므로 Supabase·Worker를 호출하지 않는다.
--   **읽기 전용 보장 구조**: `MyLibraryListItem`은 `useSettingsStore`만 참조하고 `useBookStore` / `useUIStore`를 직접 호출하지 않는다. 모든 변경 동작은 부모가 넘긴 props 콜백이므로, `DemoLibrary`가 콜백을 로그인 안내로 바꿔 넘기면 스토어·DB에 닿을 수 없다. 이 계약은 `tests/demo-library-data.test.mjs`가 단언한다.
--   **데모 태그**: 비로그인 기본 설정에는 `default_personal` 하나뿐이므로, `MyLibraryListItem`의 `tagsOverride` prop으로 `DEMO_TAGS`를 주입한다. 이 prop을 넘기지 않으면 기존처럼 `settings.tagSettings.tags`를 쓴다.
--   **id 규칙**: 데모 도서 `id`는 `-1` ~ `-10`. 실제 `user_library.id`(양수)와 충돌하지 않는다.
+-   **동작하는 기능 / 로그인 안내로 연결되는 기능**
+
+    | 조작 | 데모에서 |
+    |---|---|
+    | 제목·저자 검색(2자 이상), 정렬 6종, 태그 필터(AND), 좋아요 필터, 카드/리스트 뷰 전환 | 로컬 state와 배열 연산으로 **실제 동작** |
+    | 개별·전체 선택, 일괄 태그 관리, 삭제 | 로그인 안내 |
+    | 카드의 좋아요·별점·읽음상태·새로고침·상세·메모 | 로그인 안내 |
+
+-   **읽기 전용 보장 구조**: `MyLibraryListItem`과 `MyLibraryToolbar`는 `useBookStore` / `useUIStore`를 직접 호출하지 않는다(전자는 `useSettingsStore`만, 후자는 스토어 없음). 모든 변경 동작은 부모가 넘긴 props 콜백이므로, `DemoLibrary`가 콜백을 로그인 안내로 바꿔 넘기면 스토어·DB에 닿을 수 없다. 이 계약은 `tests/demo-library-data.test.mjs`가 단언한다.
+-   **데모 태그**: 비로그인 기본 설정에는 `default_personal` 하나뿐이므로 두 곳에 주입한다.
+    -   `MyLibraryListItem`의 `tagsOverride` — 카드에 붙는 태그 칩
+    -   `TagFilter`(→ `MyLibraryToolbar`)의 `tagCountsOverride` — 필터 바의 태그와 개수. `TagFilter`는 카운트가 0인 태그를 숨기므로, 이 prop이 없으면 데모 태그가 하나도 보이지 않는다
+    -   두 prop 모두 optional이며, 미전달 시 기존 스토어·설정 경로가 그대로 쓰인다
+-   **태그 카운트 기준**: 전체 20권에 대한 **정적 총량**이다. 검색·필터를 걸어도 숫자는 변하지 않는다(로그인 사용자의 `MyLibrary`도 서재 전체 기준 `tagCounts`를 쓴다).
+-   **id 규칙**: 데모 도서 `id`는 `-1` ~ `-20`. 실제 `user_library.id`(양수)와 충돌하지 않는다.
+-   **재고 분포**: 실제 서재의 분포를 축소 반영한다. 전권이 "모든 도서관에 있음"이면 현실감이 없기 때문이다.
+
+    | 배지 개수 | 권수 |
+    |---|---|
+    | 0개(재고 없음) | 3 |
+    | 1개 | 5 |
+    | 2~3개 | 6 |
+    | 4~5개 | 4 |
+    | 6개 | 2 |
+
+    여기에 대출중(`total > 0`, `available = 0`) 도서가 3권 이상 포함된다. 이 분포는 `tests/demo-library-data.test.mjs`가 단언하므로, 도서를 교체하면 테스트도 함께 확인해야 한다.
 
 ### 2. 데모 서재 스냅샷 갱신 절차
 
-1.  Supabase(`library_book_manager`, project_id `ugzruzaywohbynjzjesm`)에서 후보를 조회한다. 조회 전용이라 영구 데이터를 바꾸지 않는다.
+1.  Supabase(`library_book_manager`, project_id `ugzruzaywohbynjzjesm`)에서 배지 개수 구간별 후보를 조회한다. 조회 전용이라 영구 데이터를 바꾸지 않는다. `<대상 계정 이메일>`만 실제 값으로 바꿔 실행한다.
 
-select ul.id, ul.book_data->>'title' as title, ul.book_data->>'author' as author, ul.stock_gwangju_toechon_total, ul.stock_gwangju_other_total, ul.stock_sirip_subs_total, ul.stock_sirip_owned_total, ul.stock_gyeonggi_total, ul.stock_gyeonggi_edu_total from user_library ul join auth.users u on u.id = ul.user_id where u.email = '<대상 계정 이메일>' and coalesce(ul.stock_gwangju_toechon_total,0) + coalesce(ul.stock_gwangju_other_total,0) + coalesce(ul.stock_sirip_subs_total,0) + coalesce(ul.stock_sirip_owned_total,0) + coalesce(ul.stock_gyeonggi_total,0) + coalesce(ul.stock_gyeonggi_edu_total,0) > 0 order by ul.created_at desc limit 200;
+with scored as (select ul.id, ul.book_data->>'title' as title, coalesce(ul.stock_gwangju_toechon_total,0) as t_tot, coalesce(ul.stock_gwangju_toechon_available,0) as t_av, coalesce(ul.stock_gwangju_other_total,0) as o_tot, coalesce(ul.stock_gwangju_other_available,0) as o_av, coalesce(ul.stock_sirip_subs_total,0) as ss_tot, coalesce(ul.stock_sirip_owned_total,0) as so_tot, coalesce(ul.stock_gyeonggi_total,0) as g_tot, coalesce(ul.stock_gyeonggi_edu_total,0) as ge_tot, (case when coalesce(ul.stock_gwangju_toechon_total,0)>0 then 1 else 0 end + case when coalesce(ul.stock_gwangju_other_total,0)>0 then 1 else 0 end + case when coalesce(ul.stock_sirip_subs_total,0)>0 then 1 else 0 end + case when coalesce(ul.stock_sirip_owned_total,0)>0 then 1 else 0 end + case when coalesce(ul.stock_gyeonggi_total,0)>0 then 1 else 0 end + case when coalesce(ul.stock_gyeonggi_edu_total,0)>0 then 1 else 0 end) as badges from user_library ul join auth.users u on u.id = ul.user_id where u.email = '<대상 계정 이메일>' and ul.book_data->>'cover' is not null and ul.stock_gwangju_toechon_total is not null), ranked as (select *, row_number() over (partition by badges order by length(title)) as rn from scored) select badges, id, title, t_tot, t_av, o_tot, o_av, ss_tot, so_tot, g_tot, ge_tot from ranked where rn <= 8 order by badges, rn;
 
-2.  6개 배지(퇴촌·기타·e시립구독·e시립소장·e경기·e교육) 각각에 `total > 0`인 도서가 최소 1권 포함되도록 10권을 고른다. 대출 변동이 적은 다권 소장 스테디셀러를 우선한다.
-3.  선정한 id 목록을 `in (...)` 조건에 직접 채워 상세를 조회한다(`ul.book_data`와 `stock_*` 12개 컬럼).
+2.  위 재고 분포표와 "6개 배지 각각 `total > 0`인 도서 1권 이상", "대출중 3권 이상"을 만족하도록 20권을 고른다.
+3.  선정한 id 20개를 `in` 조건에 넣어 상세를 조회한다(`ul.book_data`와 `stock_*` 12개 컬럼).
 4.  결과를 `data/demoLibrary.json`의 슬림 필드로 옮긴다. `note`, `user_id`, `email`, `created_at`은 넣지 않는다. `description`은 빈 문자열로 둔다(번들 비대 방지).
-5.  `id`를 `-1` ~ `-10`으로 치환하고 `snapshotDate`를 갱신일로 바꾼다.
-6.  `node --test tests/demo-library-data.test.mjs`와 `node --test tests/demo-library-ui.test.mjs`를 실행해 계약을 확인한다.
+5.  `id`를 `-1` ~ `-20`으로 치환하고 `snapshotDate`를 갱신일로 바꾼다. 기본 정렬이 추가순(내림차순)이므로 재고 0인 도서는 `addedDate`를 낮게 잡아 목록 후반에 배치한다.
+6.  태그 6종을 도서당 1~2개 배정하고, 읽음상태 3종·별점·좋아요가 고르게 분포하도록 채운다.
+7.  `node --test tests/demo-library-data.test.mjs`와 `node --test tests/demo-library-ui.test.mjs`를 실행해 계약을 확인한다.
 
 ### 3. 초기 안내 메시지(WelcomeModal)
 

@@ -25,6 +25,8 @@ interface MyLibraryToolbarProps {
   activeTags: Set<string>;
   onTagClick: (tagId: string) => void;
   onClearAllTags: () => void;
+  // 데모 서재용. TagFilter로 그대로 통과시킨다. 미전달 시 스토어 카운트를 쓴다.
+  tagCountsOverride?: Record<string, number>;
   
   // Sort
   sortConfig: { key: SortKey; order: 'asc' | 'desc' };
@@ -56,6 +58,7 @@ const MyLibraryToolbar: React.FC<MyLibraryToolbarProps> = ({
   activeTags,
   onTagClick,
   onClearAllTags,
+  tagCountsOverride,
   sortConfig,
   onSortChange,
   selectedBookCount,
@@ -143,7 +146,7 @@ const MyLibraryToolbar: React.FC<MyLibraryToolbarProps> = ({
       </div>
 
       {/* Second Row: Tag Filter */}
-      <TagFilter tags={availableTags} activeTags={activeTags} onTagClick={onTagClick} onClearAll={onClearAllTags} />
+      <TagFilter tags={availableTags} activeTags={activeTags} onTagClick={onTagClick} onClearAll={onClearAllTags} tagCountsOverride={tagCountsOverride} />
 
       {/* Third Row: Responsive Layout */}
       <div className="space-y-3 md:space-y-0">

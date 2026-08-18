@@ -48,15 +48,19 @@ const WelcomeModal: React.FC = () => {
 
   const welcomeSettings = getWelcomeMessageSettings();
 
+  // 실제로 화면에 보이는 조건. 스크롤 잠금·ESC 핸들러·렌더 가드가 모두 이 값을 기준으로 한다.
+  // enabled가 false인데 스크롤만 잠기면 사용자가 풀 방법이 없다.
+  const shouldShow = isWelcomeModalOpen && welcomeSettings.enabled;
+
   // ESC 키로 모달 닫기
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isWelcomeModalOpen) {
+      if (event.key === 'Escape') {
         closeWelcomeModal();
       }
     };
 
-    if (isWelcomeModalOpen) {
+    if (shouldShow) {
       document.addEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'hidden';
     }
@@ -65,7 +69,7 @@ const WelcomeModal: React.FC = () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'unset';
     };
-  }, [isWelcomeModalOpen, closeWelcomeModal]);
+  }, [shouldShow, closeWelcomeModal]);
 
   // "다시 보지 않기" 버튼 클릭 핸들러
   const handleDontShowAgain = () => {
@@ -79,7 +83,7 @@ const WelcomeModal: React.FC = () => {
   };
 
   // 관리자가 환영 메시지를 비활성화한 경우 또는 모달이 닫혀있는 경우 렌더링하지 않음
-  if (!isWelcomeModalOpen || !welcomeSettings.enabled) return null;
+  if (!shouldShow) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
