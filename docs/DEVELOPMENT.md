@@ -98,7 +98,9 @@ my_bookstation/
 - **Cloudflare Workers**: 도서관 재고 크롤링 및 키워드 통합 검색 API 서버. **TypeScript** 기반이며 **Cache API**를 활용한 응답 캐싱. **[수정]**
 - **Vercel Serverless Functions**: Aladin API 키 보호를 위한 프록시 서버.
 - **Supabase Edge Functions**: 보안이 필요한 서버 사이드 로직 (피드백 이메일 전송).
-- **Tailwind CSS**: 유틸리티 우선 CSS 프레임워크.
+- **Tailwind CSS**: 유틸리티 우선 CSS 프레임워크. `index.html`에서 CDN(`https://cdn.tailwindcss.com`)으로 로드하며, 빌드 파이프라인에 포함되지 않는다(`package.json`에 tailwind 의존성 없음).
+    -   **`darkMode`는 `'class'`다.** `index.html`의 CDN 스크립트 바로 뒤 인라인 `tailwind.config = { darkMode: 'class' }`로 지정한다. 지정하지 않으면 기본값이 `'media'`가 되어 `dark:` variant가 OS의 `prefers-color-scheme`를 따르고, 앱 테마와 어긋난다(앱을 라이트로 설정해도 OS가 다크면 `dark:` 요소만 다크로 렌더).
+    -   **앱 테마의 정본은 `stores/useSettingsStore.ts`의 `applyTheme()`**이며 `document.body`에 `.dark` / `.light` 클래스를 붙인다. `index.css`의 `:root`(라이트) / `.dark`(다크) OKLCH 변수와 짝이다. `darkMode: 'class'`가 만드는 선택자는 `.dark .dark\:xxx` 형태의 **조상** 선택자라 `body`의 클래스만으로 `#root` 하위 전체가 매칭된다. 이 때문에 `<html>`에는 클래스를 붙이지 않는다 — 붙이면 `body` 클래스만 토글하는 `[V-18]` 같은 검증이 무력화된다.
 - **Zod**: 런타임 데이터 검증.
 
 ## 🚀 개발 환경 설정
@@ -564,8 +566,7 @@ Supabase 대시보드에서 보고된 성능 및 보안 관련 경고들에 대�
 -   **z-index**: `z-40`. 모달(`z-50`)과 토스트(`z-[100]`) **아래**여야 한다. `[V-16]`이 모달 표시 상태에서 `document.elementFromPoint`로 실측한다 — 스크린샷 색만 보면 `bg-opacity-50` 아래의 파란 띠를 "안 덮였다"고 오독한다
 -   **문구**: `미리보기 - 로그인하시면 나만의 서재를 만듭니다`. 모드를 서술하고 다음 행동을 알려준다. 재고 기준일 같은 운영 정보는 넣지 않는다 — 방문자에게 필요한 정보가 아니고 375px에서 줄을 넘긴다. 1줄 유지는 `[V-17]`이 높이로 단언한다
 -   **색**: 라이트 `#eff6ff`/`#1e40af`, 다크 `#172554`/`#bfdbfe` (blue-50·800 / blue-950·200). **로그인 버튼과 같은 `blue-600`을 쓰면 클릭 가능한 CTA처럼 읽힌다.** 같은 계열에서 채도만 낮춰 "관련은 있되 조작 대상은 아닌" 층으로 만들고, 하단 경계선이 서비스 본체와의 경계를 긋는다. 부각은 이미 위치(최상단 고정)로 확보돼 있어 색까지 강할 필요가 없다
--   **색은 Tailwind `dark:` variant가 아니라 `index.css`의 `.demo-mode-banner` / `.dark .demo-mode-banner`가 담당한다.** `index.html`이 Tailwind를 CDN 한 줄로만 로드하고 `tailwind.config`가 없어 `darkMode` 기본값이 `'media'`다 — `dark:`는 OS 선호(`prefers-color-scheme`)를 따르고, 앱이 `body`에 붙이는 `.dark`/`.light`(`stores/useSettingsStore.ts`)를 무시한다. 앱을 라이트로 써도 OS가 다크면 띠만 다크로 렌더되어 나머지 UI와 어긋난다. `index.css` 규칙은 `body`의 `.dark`를 직접 보므로 앱 테마를 정확히 따른다. `[V-18]`이 앱 테마를 바꿔가며 띠 색이 함께 바뀌는지 단언한다
-    -   같은 한계가 `components/SettingsModal.tsx`, `components/KeywordSearchModal.tsx`의 기존 `dark:` 사용처에도 있다. 근본 해결은 `index.html`에 `tailwind.config = { darkMode: 'class' }`를 추가하는 것이지만, 그 세 곳의 렌더가 함께 바뀌므로 별도 작업으로 분리한다
+-   **색은 Tailwind `dark:` variant가 아니라 `index.css`의 `.demo-mode-banner` / `.dark .demo-mode-banner`가 담당한다.** `index.html`에 `tailwind.config = { darkMode: 'class' }`가 있어 `dark:`도 앱 테마를 따르지만(위 "기술 스택 상세" 절), 이 띠는 색 정본을 CSS에 두어 Tailwind 설정·CDN 로드 여부와 무관하게 `body`의 `.dark`를 직접 보게 한다. `[V-18]`이 앱 테마를 바꿔가며 띠 색이 함께 바뀌는지, 그리고 hex 값이 위와 일치하는지 단언한다
 -   **토스트 겹침**: 토스트는 `fixed top-5 right-5`라 세로 구간이 겹칠 수 있다. 띠 문구를 `text-center` + `sm:px-64`로 중앙에 모아 토스트 영역을 피한다. `Notification`은 공용 컴포넌트이므로 데모 전용 위치 조정을 넣지 않는다. 375px에서는 토스트가 띠를 일시적으로 덮으나 3초 후 사라진다
 
 #### 1-1. 레이아웃·열 수·정렬 정본 (데모가 자체 구현하지 않는다)

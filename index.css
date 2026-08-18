@@ -549,13 +549,11 @@
 /*
  * 데모 모드 안내 띠 (components/DemoModeBanner.tsx)
  *
- * Tailwind의 dark: variant를 쓰지 않는다.
- * index.html이 Tailwind를 CDN 한 줄로만 로드하고 tailwind.config가 없어
- * darkMode 기본값이 'media'다 — dark:는 OS 선호를 따르고, 앱이 body에 붙이는
- * .dark/.light 클래스(stores/useSettingsStore.ts)를 무시한다.
- * 앱을 라이트로 써도 OS가 다크면 띠만 다크로 렌더되어 나머지 UI와 어긋난다.
+ * 띠의 색 정본은 Tailwind의 dark: variant가 아니라 여기다.
+ * index.html에 tailwind.config = { darkMode: 'class' }가 있어 dark:도 앱 테마를 따르지만,
+ * 이 규칙은 body의 .dark를 직접 보므로 Tailwind 설정·CDN 로드 여부와 무관하게 앱 테마를 따른다.
+ * (tests/demo-library-ui.test.mjs의 [V-18]이 아래 hex 값을 그대로 단언한다.)
  *
- * 여기 규칙은 body의 .dark를 직접 보므로 앱 테마를 정확히 따른다.
  * 색은 blue-50/800/200(라이트), blue-950/200/800(다크).
  * 로그인 버튼과 같은 blue-600을 쓰면 클릭 가능한 CTA처럼 읽히므로 채도를 낮췄다.
  */

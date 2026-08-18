@@ -12,6 +12,13 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="북스테이션">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tailwind CDN의 darkMode 기본값은 'media'라 dark:가 OS의 prefers-color-scheme를 따른다.
+        // 이 앱의 테마 정본은 stores/useSettingsStore.ts의 applyTheme()이 body에 붙이는
+        // .dark/.light 클래스이므로 'class'로 바꿔 dark:도 앱 테마를 따르게 한다.
+        // darkMode: 'class'는 `.dark .dark\:xxx` 형태의 조상 선택자를 만들므로 body 하위 전체에 적용된다.
+        tailwind.config = { darkMode: 'class' };
+    </script>
     <style>
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }

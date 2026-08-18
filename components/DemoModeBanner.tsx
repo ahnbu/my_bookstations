@@ -16,8 +16,9 @@
 // 하단 경계선이 서비스 본체와의 경계를 긋는다.
 //
 // 색은 Tailwind의 dark: variant가 아니라 index.css의 .demo-mode-banner가 담당한다.
-// 이 프로젝트는 tailwind.config 없이 CDN만 쓰므로 dark:가 OS 선호를 따르고
-// 앱 테마(body의 .dark/.light)와 어긋난다. 자세한 이유는 index.css 주석 참조.
+// index.html의 tailwind.config = { darkMode: 'class' } 덕에 dark:도 앱 테마를 따르지만,
+// 이 띠는 색 정본을 CSS에 두어 Tailwind 설정과 무관하게 body의 .dark를 직접 본다.
+// 실제 hex 값과 그 선택 이유는 index.css 주석 참조.
 
 import React from 'react';
 
