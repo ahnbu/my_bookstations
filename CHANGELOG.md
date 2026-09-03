@@ -4,6 +4,7 @@
 
 | 일시 | 유형 | 범위 | 변경내용 (목적 포함) |
 |---|---|---|---|
+| 2026-09-03 14:26 | docs | backlog | BACKLOG.md에 복제돼 있던 관리 규칙 30여 줄 제거 (정본은 문서_작성기준 §4) |
 | 2026-08-31 16:30 | chore | docs | (실행완료) → _실행완료 개명과 그에 따른 위키링크·마크다운 링크 갱신 |
 | 2026-08-29 13:56 | chore | 프로젝트 규칙 | CLAUDE.md를 @AGENTS.md 참조에서 AGENTS.md 사본으로 전환. 하위 폴더에서 세션을 시작하면 상위 CLAUDE.md의 import가 전개되지 않아 프로젝트 규칙이 통째로 유실된다(2026-08-29 실측). sync-project-rules.mjs 산출물 |
 | 2026-08-18 16:59 | fix | theme | Tailwind darkMode를 'class'로 지정해 dark: variant가 OS 선호 대신 앱 테마(body의 .dark/.light)를 따르게 수정 — 앱 라이트·OS 다크 조합에서 설정 모달·키워드 검색 모달만 다크로 어긋나던 문제 해소 |
