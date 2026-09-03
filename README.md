@@ -13,7 +13,7 @@
 | ⚠️ 유지 조건 | **CF Cron이 3일마다 Supabase `keep_alive` RPC 호출. 이 Worker가 멈추면 7일 후 무료티어 DB가 정지되어 서비스 전체가 중단된다** |
 | ⚠️ 유지 조건 2 | **구글 OAuth 클라이언트가 지워지면 신규 로그인만 막히고 나머지 화면은 멀쩡해 몇 달간 드러나지 않는다.** 구글은 6개월 미사용 클라이언트를 자동 삭제하며, 복원 창은 30일이다 |
 | 인증 | Supabase Auth (이메일/비밀번호 + 구글 OAuth). 구글 클라이언트는 **`gen-lang-client-0500434550`(콘솔 표시명 「Gemini API」)의 `my-bookstation-web`** — 프로젝트 이름이 서비스명과 다르니 여기서 찾는다 |
-| 로그인 재발급 | 승인된 리디렉션 URI는 `https://ugzruzaywohbynjzjesm.supabase.co/auth/v1/callback` **하나뿐**이다. 새 클라이언트에 이 값만 넣고, Supabase → Authentication → Sign In / Providers → Google에서 ID·보안 비밀번호를 교체한다. 상세는 [20260808\_01](docs/20260808_01_구글OAuth-클라이언트-삭제와-재발급.md) |
+| 로그인 재발급 | 승인된 리디렉션 URI는 `https://ugzruzaywohbynjzjesm.supabase.co/auth/v1/callback` **하나뿐**이다. 새 클라이언트에 이 값만 넣고, Supabase → Authentication → Sign In / Providers → Google에서 ID·보안 비밀번호를 교체한다. 상세는 [20260808\_01](_docs/20260808_01_구글OAuth-클라이언트-삭제와-재발급.md) |
 | 외부 API | 알라딘 TTB, 도서관 4종(광주시립·경기교육청 등), Gemini |
 | 부속 Worker | https://library-checker.byungwook-an.workers.dev |
 | 배포 방식 | `library-checker/**` 변경 시 GitHub Actions → CF 자동 배포 (프론트는 Vercel 자동) |
@@ -197,7 +197,7 @@
 - 화면 표시와 Supabase RPC의 태그 집계·필터는 두 배열을 병합해 사용합니다.
 - 태그 사용 권수는 `get_tag_counts_for_user`, 태그 필터링은 `get_books_by_tags` RPC를 사용합니다.
 - 두 RPC의 병합 SQL 정본은 `supabase/20260705_auto_tags_rpc.sql`이며, 운영 적용은 별도 승인과 검증이 필요합니다.
-- 상세 구조와 관련 코드는 [개발 가이드](docs/DEVELOPMENT.md)의 `태그 데이터 모델` 섹션을 확인합니다.
+- 상세 구조와 관련 코드는 [개발 가이드](_docs/DEVELOPMENT.md)의 `태그 데이터 모델` 섹션을 확인합니다.
 
 ### PWA(홈 화면 추가)
 
@@ -208,7 +208,7 @@
 
 ## 🔗 관련 문서
 
-- **[개발 가이드](docs/DEVELOPMENT.md)** - 개발환경 설정, 아키텍처, 기술 상세 정보
+- **[개발 가이드](_docs/DEVELOPMENT.md)** - 개발환경 설정, 아키텍처, 기술 상세 정보
 - **[변경 내역](CHANGELOG.md)** - 최신 Git 커밋 기준 변경 기록
 
 ## 🤝 기여하기
