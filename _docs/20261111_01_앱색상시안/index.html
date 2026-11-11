@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>마이 북스테이션 색 시안</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "Apple SD Gothic Neo", "Pretendard", sans-serif; background: #f4f4f5; color: #18181b; }
+  header.top { padding: 20px 16px 8px; }
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  p.lead { margin: 0; font-size: 14px; color: #52525b; line-height: 1.5; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; padding: 16px; }
+  .card { background: #fff; border-radius: 16px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .label { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+  .label b { font-size: 16px; }
+  .tag { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #f4f4f5; color: #3f3f46; }
+  .tag.now { background: #ede9fe; color: #5b21b6; }
+  .tag.old { background: #e0f2fe; color: #075985; }
+  .desc { font-size: 13px; color: #52525b; margin: 0 0 12px; line-height: 1.45; }
+  .row { display: flex; gap: 14px; align-items: flex-start; }
+  .icon-wrap { text-align: center; font-size: 11px; color: #52525b; width: 76px; flex: none; }
+  .icon { width: 64px; height: 64px; border-radius: 15px; display: grid; place-items: center; margin: 0 auto 6px; }
+  .icon svg { width: 40px; height: 40px; }
+  .phone { flex: 1; border-radius: 18px; overflow: hidden; border: 1px solid #e4e4e7; background: #111827; min-width: 0; }
+  .bar { height: 22px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; font-size: 10px; font-weight: 600; }
+  .screen { padding: 10px; color: #e5e7eb; font-size: 11px; }
+  .logo { display: flex; align-items: center; gap: 5px; font-weight: 700; font-size: 13px; margin-bottom: 8px; }
+  .logo svg { width: 14px; height: 14px; }
+  .search { background: #1f2937; border-radius: 999px; padding: 6px 10px; color: #9ca3af; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+  .chip { padding: 2px 7px; border-radius: 5px; font-size: 10px; }
+  .btns { display: flex; gap: 6px; }
+  .btn { padding: 5px 10px; border-radius: 7px; font-weight: 700; font-size: 11px; }
+  .navbar { height: 26px; display: flex; justify-content: space-around; align-items: center; font-size: 13px; }
+  .hex { font-family: ui-monospace, monospace; font-size: 11px; color: #71717a; }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>마이 북스테이션 색 시안</h1>
+  <p class="lead">각 카드: 왼쪽은 홈 화면 아이콘, 오른쪽은 앱으로 열었을 때의 화면입니다. 위아래 막대, 버튼, 태그 색이 함께 바뀝니다.</p>
+</header>
+<main class="grid" id="grid"></main>
+<script>
+const book = (stroke) => `<svg viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`;
+const options = [
+  { name: "현재: 인디고", tag: "지금", cls: "now", main: "#5b57e0", ink: "#ffffff", soft: "#a5a3f5", desc: "2025-09-13부터 앱 기본색, 2026-07-23부터 아이콘·위아래 막대 색." },
+  { name: "예전: 파랑", tag: "2025-08~09월", cls: "old", main: "#2563eb", ink: "#ffffff", soft: "#93c5fd", desc: "테마 작업 이전의 버튼색. 그때는 아이콘·위아래 막대 색 지정이 없었습니다(아이콘은 검은 바탕 하늘색 선)." },
+  { name: "라임", tag: "새 후보", cls: "", main: "#84cc16", ink: "#1a2e05", soft: "#bef264", desc: "밝은 라임. 바탕이 밝아서 아이콘 심볼과 버튼 글자를 진한 색으로 바꿔야 잘 보입니다." },
+  { name: "연두(진한 라임)", tag: "새 후보", cls: "", main: "#65a30d", ink: "#ffffff", soft: "#a3e635", desc: "라임보다 한 단계 진한 색. 흰 글자·흰 심볼을 그대로 쓸 수 있습니다." },
+  { name: "초록", tag: "새 후보", cls: "", main: "#16a34a", ink: "#ffffff", soft: "#86efac", desc: "예전 '대출 가능' 표시에 쓰던 초록과 같은 계열. 재고 표시 초록과 겹칠 수 있습니다." },
+  { name: "에메랄드(청록빛 초록)", tag: "새 후보", cls: "", main: "#059669", ink: "#ffffff", soft: "#6ee7b7", desc: "푸른 기가 도는 초록. 차분하고 '대출 가능' 초록과도 구분됩니다." },
+];
+const grid = document.getElementById("grid");
+for (const o of options) {
+  grid.insertAdjacentHTML("beforeend", `
+  <section class="card">
+    <div class="label"><b>${o.name}</b><span class="tag ${o.cls}">${o.tag}</span></div>
+    <p class="desc">${o.desc} <span class="hex">${o.main}</span></p>
+    <div class="row">
+      <div class="icon-wrap">
+        <div class="icon" style="background:${o.main}">${book(o.ink)}</div>
+        북스테이션
+      </div>
+      <div class="phone">
+        <div class="bar" style="background:${o.main};color:${o.ink}"><span>9:41</span><span>▮▮ 100%</span></div>
+        <div class="screen">
+          <div class="logo" style="color:${o.soft}">${book(o.soft)}마이 북스테이션</div>
+          <div class="search">도서관 책을 찾고, 내 서재에 추가하세요</div>
+          <div class="chips">
+            <span class="chip" style="background:${o.main};color:${o.ink}">개인 (355)</span>
+            <span class="chip" style="background:${o.main};color:${o.ink}">AI (86)</span>
+            <span class="chip" style="background:#374151;color:#d1d5db">읽는중 (6)</span>
+          </div>
+          <div class="btns">
+            <span class="btn" style="background:${o.main};color:${o.ink}">책 추가</span>
+            <span class="btn" style="background:#374151;color:#e5e7eb">취소</span>
+          </div>
+        </div>
+        <div class="navbar" style="background:${o.main};color:${o.ink}"><span>◁</span><span>○</span><span>▢</span></div>
+      </div>
+    </div>
+  </section>`);
+}
+</script>
+</body>
+</html>

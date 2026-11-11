@@ -4,8 +4,8 @@
   "description": "경기도 광주시 지역 도서관 재고 검색 서비스",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a1a2e",
-  "theme_color": "#5b57e0",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
   "lang": "ko",
   "icons": [
     {
