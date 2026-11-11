@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { searchKakaoCatalog } from '../lib/kakaoBook';
+import { searchKakaoCatalog } from '../lib/kakaoBook.js';
 
 // Book search proxy. Aladin OpenAPI was shut down on 2026-10-30, so this now calls
 // Kakao book search and returns items in the app's existing Aladin-shaped format.

@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { isValidIsbn13, lookupAladinEbook } from '../lib/aladinEbook';
+import { isValidIsbn13, lookupAladinEbook } from '../lib/aladinEbook.js';
 
 export const config = { maxDuration: 15 };
 
