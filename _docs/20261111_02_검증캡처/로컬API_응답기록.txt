@@ -1,0 +1,18 @@
+# V-3 로컬 API 실호출 기록 (2026-11-11 23:42:13 KST)
+## GET /api/search?Query=데미안&QueryType=Keyword&MaxResults=5
+[HTTP 200 0.102517s]
+9788937460449 | 데미안 | https://www.aladin.co.kr/shop/wproduct.aspx?ISBN=9788937460449 | https://t1.daumcdn.net/lbook/image/540810?timestamp=20261023
+9791164453115 | 데미안(초판본)(1919년 오리지널 초판본 표지 디자인 | https://www.aladin.co.kr/shop/wproduct.aspx?ISBN=9791164453115 | https://t1.daumcdn.net/lbook/image/5449693?timestamp=2026102
+9791187011590 | 데미안: 오리지널 초판본 표지디자인 | https://www.aladin.co.kr/shop/wproduct.aspx?ISBN=9791187011590 | https://t1.daumcdn.net/lbook/image/1639933?timestamp=2026031
+9791164456338 | 데미안(리커버 한정판) | https://www.aladin.co.kr/shop/wproduct.aspx?ISBN=9791164456338 | https://t1.daumcdn.net/lbook/image/6295770?timestamp=2026111
+2090000162851 | 데미안 | https://www.aladin.co.kr/shop/wproduct.aspx?ISBN=2090000162851 | https://t1.daumcdn.net/lbook/image/7109967?timestamp=2026101
+## GET /api/aladin-ebook?isbn=9788937460449
+{"status":"found","itemId":18094736,"link":"https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=18094736","paperFound":true}  [HTTP 200 1.474003s]
+## GET /api/aladin-ebook?isbn=9788901276533
+{"status":"none","paperFound":true}  [HTTP 200 0.547704s]
+## GET /api/aladin-ebook?isbn=9791191891287
+{"status":"none","paperFound":false}  [HTTP 200 0.133421s]
+## GET /api/aladin-ebook?isbn=9788936434120
+{"status":"found","itemId":385407201,"link":"https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=385407201","paperFound":true}  [HTTP 200 0.719025s]
+## GET /api/aladin-ebook?isbn=abc
+{"status":"failed","reason":"invalid-isbn"}  [HTTP 400 0.000965s]

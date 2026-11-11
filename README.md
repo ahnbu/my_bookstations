@@ -14,18 +14,20 @@
 | ⚠️ 유지 조건 2 | **구글 OAuth 클라이언트가 지워지면 신규 로그인만 막히고 나머지 화면은 멀쩡해 몇 달간 드러나지 않는다.** 구글은 6개월 미사용 클라이언트를 자동 삭제하며, 복원 창은 30일이다 |
 | 인증 | Supabase Auth (이메일/비밀번호 + 구글 OAuth). 구글 클라이언트는 **`gen-lang-client-0500434550`(콘솔 표시명 「Gemini API」)의 `my-bookstation-web`** — 프로젝트 이름이 서비스명과 다르니 여기서 찾는다 |
 | 로그인 재발급 | 승인된 리디렉션 URI는 `https://ugzruzaywohbynjzjesm.supabase.co/auth/v1/callback` **하나뿐**이다. 새 클라이언트에 이 값만 넣고, Supabase → Authentication → Sign In / Providers → Google에서 ID·보안 비밀번호를 교체한다. 상세는 [20260808\_01](_docs/20260808_01_구글OAuth-클라이언트-삭제와-재발급.md) |
-| 외부 API | 알라딘 TTB, 도서관 4종(광주시립·경기교육청 등), Gemini |
+| 외부 API | 카카오 책 검색(도서 정보), 알라딘 웹페이지(종이책·전자책 링크), 도서관 4종(광주시립·경기교육청 등), Gemini. 알라딘 OpenAPI는 2026-10-30 종료로 쓰지 않는다 |
 | 부속 Worker | https://library-checker.byungwook-an.workers.dev |
 | 배포 방식 | `library-checker/**` 변경 시 GitHub Actions → CF 자동 배포 (프론트는 Vercel 자동) |
-| 필요 환경변수 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `ALADIN_TTB_KEY`(서버 전용), `VITE_ALADIN_TTB_KEY`(로컬 개발 전용) |
+| 필요 환경변수 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `KAKAO_REST_API_KEY`(서버 전용 — Vercel 함수와 로컬 `vite dev` 미들웨어가 읽는다) |
 
-> 알라딘 TTB 키는 프로덕션에서 서버(`api/search.ts`) 경유로만 사용되며 클라이언트 번들에 포함되지 않는다. `VITE_ALADIN_TTB_KEY`는 로컬 Vite 프록시 전용이다.
+> 카카오 키는 서버(`api/search.ts`, 로컬은 `vite.config.ts`의 미들웨어) 경유로만 쓰이며 클라이언트 번들에 들어가지 않는다. 검색 결과는 기존 저장 형태(알라딘 형식)로 변환해 돌려준다(`lib/kakaoBook.ts`).
+>
+> **종이책·전자책 버튼은 둘 다 알라딘으로 간다.** 종이책은 ISBN 상품 페이지, 전자책은 책을 추가할 때 알라딘 종이책 페이지의 「전자책」 탭에서 찾아 저장한 상품 페이지(`api/aladin-ebook.ts`). 못 찾은 책은 알라딘 전자책 검색 결과로 연다. 규칙은 `utils/ebookLink.ts` 한 곳에 있다.
 
 ---
 
 **도서 검색 및 도서관 재고 확인 서비스**
 
-알라딘 API와 연동하여 도서를 검색하고, 여러 도서관의 재고 현황을 실시간으로 확인할 수 있는 웹 애플리케이션입니다. 개인 서재 관리 기능을 통해 관심 도서를 체계적으로 관리할 수 있습니다.
+카카오 책 검색으로 도서를 찾고, 여러 도서관의 재고 현황을 실시간으로 확인할 수 있는 웹 애플리케이션입니다. 개인 서재 관리 기능을 통해 관심 도서를 체계적으로 관리할 수 있습니다.
 
 ![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
@@ -45,9 +47,9 @@
 ## ✨ 주요 기능
 
 ### 📖 도서 검색
-- **알라딘 API 연동**: 제목, 저자, 출판사, **전자책**별 검색 및 페이지네이션 지원
+- **카카오 책 검색 연동**: 전체·제목·저자·출판사별 검색 및 페이지네이션 지원 (2026-11 알라딘 OpenAPI 종료로 전환, 「전자책」 검색 종류는 제거)
 - **검색 결과 필터링**: '[세트]'로 시작하는 도서를 자동으로 제외하여 검색 결과의 정확성 향상
-- **상세 정보 제공**: 도서 정보, 가격, ISBN, 전자책 유무, 알라딘 구매 링크 등 상세 정보 표시
+- **상세 정보 제공**: 도서 정보, 가격, ISBN, 전자책 유무, 알라딘 종이책·전자책 링크 등 상세 정보 표시
 - **키워드 통합 검색**: 단일 키워드로 여러 도서관의 소장 자료를 한 번에 검색하는 기능
 
 ### 📍 통합 도서 재고 확인
@@ -114,7 +116,7 @@
 - **Supabase**: PostgreSQL 데이터베이스, 인증, 실시간 동기화
 - **Supabase Edge Functions**: 서버리스 로직 (피드백 처리)
 - **Cloudflare Workers**: 도서관 재고 크롤링 및 키워드 검색 API
-- **Vercel Serverless Functions**: Aladin API 프록시 처리
+- **Vercel Serverless Functions**: 카카오 책 검색 프록시(`api/search.ts`), 알라딘 전자책 링크 조회(`api/aladin-ebook.ts`)
 
 ### Data Validation
 - **Zod**: 런타임 타입 검증으로 외부 API 응답 안정성 확보
@@ -140,7 +142,7 @@
     ```bash
     VITE_SUPABASE_URL=your_supabase_url
     VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-    VITE_ALADIN_TTB_KEY=your_aladin_ttb_key
+    KAKAO_REST_API_KEY=your_kakao_rest_api_key
     ```
 4.  **개발 서버 실행**
     ```bash

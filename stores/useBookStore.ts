@@ -6,12 +6,13 @@ import { AladdinBookItem, SortKey, ReadStatus, Json,
   BookData,            
   SelectedBook,       
 } from '../types';
-import { searchAladinBooks } from '../services/aladin.service';
+import { searchBookCatalog } from '../services/bookSearch.service';
 import { useUIStore } from './useUIStore';
 import { useAuthStore } from './useAuthStore';
 import { useSettingsStore } from './useSettingsStore';
 import { fetchBookAvailability} from '../services/unifiedLibrary.service'; 
 import { createBookDataFromApis } from '../utils/bookDataCombiner';
+import { applyEbookLookup, fetchEbookLookup, shouldLookupEbook } from '../utils/ebookLink';
 import { calculateAutoTagIds, getMergedTagIds } from '../utils/autoTagRules';
 
 // 1. 중앙화된 컬럼 목록 변수
@@ -219,7 +220,8 @@ interface BookState {
   unselectBook: () => void;
   addToLibrary: (bookToAdd?: AladdinBookItem | SelectedBook) => Promise<SelectedBook | null>;
   removeFromLibrary: (id: number) => Promise<void>;
-  refreshBookInfo: (id: number, isbn13: string, title: string, author: string) => Promise<void>;
+  // resolveEbook(기본 true): 전자책 링크가 없으면 알라딘에서 찾아 함께 저장. 일괄 갱신은 false로 부른다.
+  refreshBookInfo: (id: number, isbn13: string, title: string, author: string, options?: { resolveEbook?: boolean }) => Promise<void>;
   sortLibrary: (key: SortKey) => void;
   fetchUserLibrary: () => Promise<void>;
   fetchRemainingLibrary: () => Promise<void>;
@@ -594,7 +596,7 @@ export const useBookStore = create<BookState>(
           lastSearchType: searchType
         });
         try {
-          const results = await searchAladinBooks(query, searchType, 1, default_search_results);
+          const results = await searchBookCatalog(query, searchType, 1, default_search_results);
           // [세트] 로 시작하는 도서 제외
           const filteredResults = results.filter(book => !book.title.startsWith('[세트]'));
 
@@ -723,7 +725,8 @@ export const useBookStore = create<BookState>(
 
               // 백그라운드 재고 조회 실행
               const delay = window.location.hostname === 'localhost' ? 100 : 800;
-              setTimeout(() => { get().refreshBookInfo(newBookWithId.id, newBookWithId.isbn13, newBookWithId.title, newBookWithId.author); }, delay);
+              // 재고와 함께 알라딘 전자책 링크를 찾아 저장한다(resolveEbook).
+              setTimeout(() => { get().refreshBookInfo(newBookWithId.id, newBookWithId.isbn13, newBookWithId.title, newBookWithId.author, { resolveEbook: true }); }, delay);
 
               return newBookWithId;
 
@@ -791,7 +794,7 @@ export const useBookStore = create<BookState>(
       },
 
       // 개별 책에 대한 재고 정보 업데이트
-      refreshBookInfo: async (id, isbn13, title, author) => {
+      refreshBookInfo: async (id, isbn13, title, author, options) => {
           set({ refreshingIsbn: isbn13, refreshingEbookId: id });
           const originalBook = await get().getBookById(id);
 
@@ -800,22 +803,49 @@ export const useBookStore = create<BookState>(
             return;
           }
 
+          // 저장 실패 시 이 책에서 "이번 갱신이 바꾼 값"만 되돌린다.
+          // 목록 전체를 복원하면 그사이 추가된 다른 책이, 책 전체를 복원하면 그사이 남긴 별점·메모가 사라진다.
+          let changedKeys: string[] = [];
+          const revertThisBook = () => set(state => {
+            const restore = (b: SelectedBook) => {
+              if (b.id !== id) return b;
+              const reverted: Record<string, unknown> = { ...b };
+              changedKeys.forEach(key => { reverted[key] = (originalBook as unknown as Record<string, unknown>)[key]; });
+              return reverted as unknown as SelectedBook;
+            };
+            const myLibraryBooks = state.myLibraryBooks.map(restore);
+            const errorBooks = calculateErrorBooks(myLibraryBooks);
+            return {
+              myLibraryBooks,
+              librarySearchResults: state.librarySearchResults.map(restore),
+              libraryTagFilterResults: state.libraryTagFilterResults.map(restore),
+              selectedBook: state.selectedBook && 'id' in state.selectedBook && state.selectedBook.id === id ? restore(state.selectedBook as SelectedBook) : state.selectedBook,
+              errorBooks,
+              errorBooksCount: errorBooks.length,
+            };
+          });
+          let uiUpdated = false;
+
           try {
             // 끝을 true로 바꾸면 기존 저장캐시 무시하고, 항상 캐싱 새롭게 저장한다.
             // (예)  fetchBookAvailability(isbn13, title, author, originalBook.customSearchTitle, true);
             const libraryPromise = fetchBookAvailability(isbn13, title, author, originalBook.customSearchTitle, false);
 
-            const aladinPromise = searchAladinBooks(isbn13, 'ISBN');
-            const [libraryResult, aladinResult] = await Promise.allSettled([libraryPromise, aladinPromise]);
+            // 알라딘 OpenAPI 종료(2026-10-30) 이후 메타데이터는 다시 받지 않고 저장된 값을 그대로 쓴다.
+            // 전자책 링크만, 아직 없으면 알라딘 상품 페이지에서 찾아 함께 저장한다.
+            const resolveEbook = options?.resolveEbook !== false;
+            const ebookPromise = resolveEbook && shouldLookupEbook(originalBook)
+              ? fetchEbookLookup(isbn13)
+              : Promise.resolve(null);
+            const [libraryResult, ebookResult] = await Promise.allSettled([libraryPromise, ebookPromise]);
 
             if (libraryResult.status === 'rejected') throw new Error(`도서관 재고 조회 실패: ${libraryResult.reason.message}`);
-            
-            const aladinBookData = (aladinResult.status === 'fulfilled' && aladinResult.value.length > 0)
-              ? aladinResult.value.find(b => b.isbn13 === isbn13) : null;
 
-            if (!aladinBookData) throw new Error("알라딘 정보 조회 실패");
-            
-            const pureApiData = createBookDataFromApis(aladinBookData, libraryResult.value);
+            const metadataSource: SelectedBook = (ebookResult.status === 'fulfilled' && ebookResult.value)
+              ? applyEbookLookup(originalBook, ebookResult.value)
+              : originalBook;
+
+            const pureApiData = createBookDataFromApis(metadataSource as unknown as AladdinBookItem, libraryResult.value);
             
             const finalBookData: BookData = {
                 ...(originalBook as BookData),
@@ -882,6 +912,10 @@ export const useBookStore = create<BookState>(
               ...finalBookData,
               ...Object.keys(dbUpdatePayload).filter(k => k.startsWith('stock_')).reduce((obj, key) => ({...obj, [key]: dbUpdatePayload[key]}), {})
             };
+            // 이번 갱신이 실제로 바꾼 키만 기록한다(실패 시 이 키만 되돌린다).
+            const originalRecord = originalBook as unknown as Record<string, unknown>;
+            const updatedRecord = updatedBookForUI as unknown as Record<string, unknown>;
+            changedKeys = Object.keys(updatedRecord).filter(key => updatedRecord[key] !== originalRecord[key]);
 
             // UI 상태 즉시 업데이트
             set(state => {
@@ -900,6 +934,7 @@ export const useBookStore = create<BookState>(
                 errorBooksCount: errorBooks.length,
               };
             });
+            uiUpdated = true;
 
             // --- ▼▼▼ [수정] DB 업데이트 로직 직접 처리 ▼▼▼ ---
             const { error } = await supabase
@@ -913,7 +948,8 @@ export const useBookStore = create<BookState>(
           } catch (error) {
             console.error(`Failed to refresh book info for ${title}:`, error);
             useUIStore.getState().setNotification({ message: '도서 정보 갱신에 실패했습니다.', type: 'error' });
-            // 롤백 로직 (필요 시 구현)
+            // 화면을 먼저 바꾼 뒤 저장이 실패했으면 갱신 전 상태로 되돌린다.
+            if (uiUpdated) revertThisBook();
           } finally {
             set({ refreshingIsbn: null, refreshingEbookId: null });
           }
@@ -1194,7 +1230,7 @@ export const useBookStore = create<BookState>(
         try {
           const nextPage = currentPage + 1;
           const startIndex = nextPage; // 알라딘 API는 페이지 번호를 그대로 사용
-          const results = await searchAladinBooks(lastSearchQuery, lastSearchType, startIndex, default_search_results);
+          const results = await searchBookCatalog(lastSearchQuery, lastSearchType, startIndex, default_search_results);
 
           // [세트] 로 시작하는 도서 제외
           const filteredResults = results.filter(book => !book.title.startsWith('[세트]'));
@@ -1521,7 +1557,8 @@ export const useBookStore = create<BookState>(
               }));
 
               try {
-                await get().refreshBookInfo(book.id, book.isbn13, book.title, book.author);
+                // 일괄 갱신은 전자책 링크 조회를 하지 않는다(678권이 알라딘에 몰리지 않게).
+                await get().refreshBookInfo(book.id, book.isbn13, book.title, book.author, { resolveEbook: false });
               } catch (error) {
                 console.error(`Failed to refresh book ${book.id}:`, error);
                 failed.push(book.id);

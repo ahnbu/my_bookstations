@@ -38,6 +38,11 @@ export const AladdinBookItemSchema = z.object({
       priceSales: z.number(),
       link: z.string(),
     })).optional(),
+    // 알라딘 전자책 링크 조회 기록 (카카오 전환 후 책 추가·단건 갱신 때 기록, utils/ebookLink.ts)
+    ebookLookup: z.object({
+      status: z.enum(['found', 'none', 'failed']),
+      checkedAt: z.number(),
+    }).optional(),
   }).optional(),
   mallType: z.enum(['BOOK', 'EBOOK', 'MUSIC', 'DVD', 'FOREIGN', 'USED']),
 });

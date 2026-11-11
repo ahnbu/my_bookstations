@@ -14,6 +14,7 @@ const BROWSER_CANDIDATES = [
   'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
   'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
 ];
 
 const sampleBook = {
@@ -89,7 +90,7 @@ test('cover quick-add keeps search modal open and turns the book into a duplicat
     const executablePath = BROWSER_CANDIDATES.find(existsSync);
     assert.ok(executablePath, 'Chrome 또는 Edge 실행 파일을 찾을 수 없습니다.');
 
-    browser = await chromium.launch({ executablePath });
+    browser = await chromium.launch({ executablePath, headless: true });
     const context = await browser.newContext();
     await context.addInitScript(() => {
       localStorage.setItem('hasVisited', 'true');

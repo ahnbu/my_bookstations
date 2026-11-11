@@ -5,6 +5,7 @@ import { useBookStore } from '../stores/useBookStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useAuthStore } from '../stores/useAuthStore';
 import { AladdinBookItem } from '../types'; // [추가] 명확한 타입을 위해 import
+import { getStoreLinks } from '../utils/ebookLink';
 
 const BookSearchListModal: React.FC = () => {
   const { isBookSearchListModalOpen, closeBookSearchListModal, openMyLibraryBookDetailModal } = useUIStore();
@@ -193,15 +194,7 @@ const BookSearchListModal: React.FC = () => {
                     {/* [종이책][전자책] */}                  
                     <div className="flex gap-1 w-32 mb-3">
                       {(() => {
-                        const isEbookResult = book.mallType === 'EBOOK';
-                        
-                        const paperBookLink = isEbookResult
-                          ? book.subInfo?.paperBookList?.[0]?.link || null
-                          : book.link;
-                          
-                        const ebookLink = isEbookResult
-                          ? book.link
-                          : book.subInfo?.ebookList?.[0]?.link || null;
+                        const { paperLink: paperBookLink, ebookLink } = getStoreLinks(book);
 
                         const hasPaper = !!paperBookLink;
                         const hasEbook = !!ebookLink;

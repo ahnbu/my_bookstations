@@ -7,6 +7,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { SelectedBook, ReadStatus, StockInfo } from '../types';
 import Spinner from './Spinner';
 import AuthorButtons from './AuthorButtons';
+import { getStoreLinks, isEbookSearchLink } from '../utils/ebookLink';
 
 const createSearchSubject = (title: string): string => {
   const chunks = title.split(' ');
@@ -51,17 +52,9 @@ const BookDetails: React.FC = () => {
   const bookFromLibrary = isFromLibrary ? (selectedBook as SelectedBook) : null;
   // const hasEbookLink = selectedBook?.subInfo?.ebookList?.[0]?.link;
 
-  // [수정] ✅ mallType을 기준으로 종이책/전자책 링크를 정확히 할당
-  const isEbookResult = selectedBook?.mallType === 'EBOOK';
+  // 종이책·전자책 링크는 utils/ebookLink.ts 한 곳에서 계산한다.
+  const { paperLink: paperBookLink, ebookLink } = getStoreLinks(selectedBook);
 
-  const paperBookLink = isEbookResult
-    ? selectedBook?.subInfo?.paperBookList?.[0]?.link || null
-    : selectedBook?.link;
-    
-  const ebookLink = isEbookResult
-    ? selectedBook?.link
-    : selectedBook?.subInfo?.ebookList?.[0]?.link || null;
-  
   const handleAddClick = async () => {
     if (isAdding || isBookInLibrary || !selectedBook) return;
 
@@ -311,7 +304,7 @@ const BookDetails: React.FC = () => {
               className={`w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-sky-500 text-primary font-semibold rounded-lg transition-colors duration-300 text-sm ${
                 !ebookLink ? 'opacity-50 cursor-not-allowed' : 'hover:bg-sky-600'
               }`}
-              title={!ebookLink ? "알라딘에서 제공하는 전자책 정보가 없습니다" : "알라딘에서 전자책 보기"}
+              title={!ebookLink ? "알라딘에서 제공하는 전자책 정보가 없습니다" : isEbookSearchLink(ebookLink) ? "알라딘에서 전자책 찾기" : "알라딘에서 전자책 보기"}
             >
               <BookOpenIcon className="w-4 h-4" />
               전자책 보기

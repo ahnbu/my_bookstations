@@ -9,6 +9,7 @@ import StarRating from './StarRating';
 import CustomTagComponent from './CustomTag';
 import { createLibraryOpenURL } from '../services/unifiedLibrary.service';
 import { getMergedTagIds } from '../utils/autoTagRules';
+import { getStoreLinks } from '../utils/ebookLink';
 
 // MyLibrary.tsx에 있던 로컬 컴포넌트들을 여기로 이동
 // 1. ReadStatusDropdown
@@ -250,9 +251,7 @@ const MyLibraryListItem: React.FC<MyLibraryListItemProps> = React.memo(({
           </div>
           <div className="flex gap-1 mt-2">
             {(() => {
-              const isEbookResult = book.mallType === 'EBOOK';
-              const paperBookLink = isEbookResult ? book.subInfo?.paperBookList?.[0]?.link || null : book.link;
-              const ebookLink = isEbookResult ? book.link : book.subInfo?.ebookList?.[0]?.link || null;
+              const { paperLink: paperBookLink, ebookLink } = getStoreLinks(book);
               const hasBothFormats = paperBookLink && ebookLink;
               const buttonClass = hasBothFormats ? "flex-1 px-1 py-1 bg-elevated border border-secondary text-secondary text-xs rounded hover:bg-secondary hover:text-primary transition-colors text-center whitespace-nowrap" : "w-full px-2 py-1 bg-elevated border border-secondary text-secondary text-xs rounded hover:bg-secondary hover:text-primary transition-colors text-center";
               return (
@@ -336,10 +335,16 @@ const MyLibraryListItem: React.FC<MyLibraryListItemProps> = React.memo(({
           title="상세 정보 보기"
         />
         <div className="flex gap-1 justify-center">
-          <a href={book.link} target="_blank" rel="noopener noreferrer" className="px-2 py-1 bg-elevated border border-secondary text-secondary text-xs rounded hover:bg-secondary hover:text-primary transition-colors">종이책</a>
-          {book.subInfo?.ebookList?.[0]?.isbn13 && (
-            <a href={book.subInfo.ebookList[0].link} target="_blank" rel="noopener noreferrer" className="px-2 py-1 bg-elevated border border-secondary text-secondary text-xs rounded hover:bg-secondary hover:text-primary transition-colors">전자책</a>
-          )}
+          {(() => {
+            const { paperLink, ebookLink } = getStoreLinks(book);
+            const gridButtonClass = "px-2 py-1 bg-elevated border border-secondary text-secondary text-xs rounded hover:bg-secondary hover:text-primary transition-colors";
+            return (
+              <>
+                {paperLink && <a href={paperLink} target="_blank" rel="noopener noreferrer" className={gridButtonClass}>종이책</a>}
+                {ebookLink && <a href={ebookLink} target="_blank" rel="noopener noreferrer" className={gridButtonClass}>전자책</a>}
+              </>
+            );
+          })()}
         </div>
       </div>
       <div className="space-y-2">

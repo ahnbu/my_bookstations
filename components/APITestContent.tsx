@@ -3,7 +3,7 @@ import { AladdinBookItem, LibraryApiResponse } from '../types';
 import { SearchIcon, AlertCircleIcon, BookIcon, CopyIcon } from './Icons';
 import Spinner from './Spinner';
 import { fetchBookAvailability, processGyeonggiEbookEduTitle  } from '../services/unifiedLibrary.service';
-import { searchAladinBooks } from '../services/aladin.service';
+import { searchBookCatalog } from '../services/bookSearch.service';
 import APITestBookSearchModal from './APITestBookSearchModal';
 import { combineRawApiResults } from '../utils/bookDataCombiner'; // ✅ [추가]
 
@@ -52,7 +52,7 @@ const APITestContent: React.FC = () => {
     setError(null);
     
     try {
-      const results = await searchAladinBooks(query.trim(), type);
+      const results = await searchBookCatalog(query.trim(), type);
       const filteredResults = results.filter(book => !book.title.startsWith('[세트]'));
       setApiSearchResults(filteredResults);
       setIsSearchModalOpen(true);
@@ -107,7 +107,7 @@ const APITestContent: React.FC = () => {
 
     try {
       const libraryPromise = fetchBookAvailability(testIsbn.trim(), testTitle.trim(), testAuthor.trim());
-      const aladinPromise = searchAladinBooks(testIsbn.trim(), 'ISBN');
+      const aladinPromise = searchBookCatalog(testIsbn.trim(), 'ISBN');
       const [libraryResult, aladinResultSettled] = await Promise.allSettled([libraryPromise, aladinPromise]);
 
       if (libraryResult.status === 'rejected') {

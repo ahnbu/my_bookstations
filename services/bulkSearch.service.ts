@@ -1,5 +1,5 @@
 import { AladdinBookItem, BulkSearchResult } from '../types';
-import { searchAladinBooks } from './aladin.service';
+import { searchBookCatalog } from './bookSearch.service';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -41,7 +41,7 @@ export const searchSingleBook = async (inputTitle: string): Promise<BulkSearchRe
   const searchQuery = generateSearchQuery(inputTitle);
 
   try {
-    const searchResults = await searchAladinBooks(searchQuery, 'Keyword');
+    const searchResults = await searchBookCatalog(searchQuery, 'Keyword');
 
     // 검색 쿼리와 매칭되는 결과만 필터링
     const matchedResults = searchResults.filter(book =>

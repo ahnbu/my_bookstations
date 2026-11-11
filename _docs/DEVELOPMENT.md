@@ -20,16 +20,18 @@ graph TD
     end
 
     subgraph "External APIs"
-        D[Aladin API]
+        D[Kakao Book Search API]
+        J[Aladin web pages]
         E[Library Crawling Targets]
     end
 
     C -- "DB/Auth/Realtime" --> F
     C -- "Stock Check API" --> G
-    C -- "Aladin Proxy" --> H
+    C -- "Book Search / Ebook Link" --> H
     C -- "Feedback" --> I
 
     H -- "REST API" --> D
+    H -- "HTML (전자책 탭)" --> J
     G -- "HTML Crawling/API" --> E
 ```
 
@@ -41,18 +43,23 @@ graph TD
   - `useBookStore`: 도서 데이터, 내 서재, API 연동 등 핵심 비즈니스 로직
   - `useSettingsStore`: 사용자 맞춤 설정 관리
 - **서비스 계층**: 외부 API와의 통신을 담당하는 모듈 (`/services`).
-  - `aladin.service.ts`: Vercel 프록시를 통해 알라딘 API 호출
+  - `bookSearch.service.ts`: `/api/search`(카카오 책 검색 프록시) 호출. 결과는 기존 저장 형태(알라딘 형식)로 받는다
   - `unifiedLibrary.service.ts`: Cloudflare Worker로 통합된 도서관 재고 API 호출, 도서관 링크 생성 담당
   - `feedback.service.ts`: Supabase Edge Function으로 피드백 전송
 - **유틸리티**: 특정 도메인에 종속되지 않는 순수 함수 모음 (`/utils`).
   - `bookDataCombiner.ts`: API 응답을 내부 데이터 구조로 조합
   - `isbnMatcher.ts`: ISBN 기반으로 도서를 매칭하는 로직
+  - `ebookLink.ts`: 종이책·전자책 버튼 링크 계산(`getStoreLinks`)과 알라딘 전자책 링크 저장 규칙(`shouldLookupEbook`·`applyEbookLookup`)의 정본
+- **공용 서버 로직** (`/lib`, Vercel 함수와 로컬 `vite dev` 미들웨어가 함께 쓴다)
+  - `kakaoBook.ts`: 카카오 책 검색 호출과 알라딘 형식 변환(ISBN13, 원본 표지 주소, 알라딘 ISBN 상품 링크)
+  - `aladinEbook.ts`: 알라딘 종이책 페이지의 「전자책」 탭 파싱과 알라딘 주소 생성
 
 ## 📁 프로젝트 구조
 ```
 my_bookstation/
-├── api/                     # Vercel Serverless Functions (Aladin 프록시)
-│   └── search.ts
+├── api/                     # Vercel Serverless Functions
+│   ├── search.ts            # 카카오 책 검색 프록시
+│   └── aladin-ebook.ts      # 알라딘 전자책 링크 조회
 ├── components/              # React 컴포넌트
 │   ├── layout/              # Header, Footer 등 레이아웃
 │   ├── BookListContainer.tsx # 프레젠테이셔널: 목록 레이아웃 정본 (MyLibrary·DemoLibrary 공유)
@@ -96,7 +103,7 @@ my_bookstation/
 - **Zustand**: 경량화된 전역 상태 관리.
 - **Supabase**: PostgreSQL 데이터베이스, 인증, Row Level Security(RLS).
 - **Cloudflare Workers**: 도서관 재고 크롤링 및 키워드 통합 검색 API 서버. **TypeScript** 기반이며 **Cache API**를 활용한 응답 캐싱. **[수정]**
-- **Vercel Serverless Functions**: Aladin API 키 보호를 위한 프록시 서버.
+- **Vercel Serverless Functions**: 카카오 키 보호를 위한 검색 프록시와 알라딘 전자책 링크 조회. 로컬 `vite dev`에서는 `vite.config.ts`의 미들웨어가 같은 `lib/` 코드로 같은 경로를 처리한다.
 - **Supabase Edge Functions**: 보안이 필요한 서버 사이드 로직 (피드백 이메일 전송).
 - **Tailwind CSS**: 유틸리티 우선 CSS 프레임워크. `index.html`에서 CDN(`https://cdn.tailwindcss.com`)으로 로드하며, 빌드 파이프라인에 포함되지 않는다(`package.json`에 tailwind 의존성 없음).
     -   **`darkMode`는 `'class'`다.** `index.html`의 CDN 스크립트 바로 뒤 인라인 `tailwind.config = { darkMode: 'class' }`로 지정한다. 지정하지 않으면 기본값이 `'media'`가 되어 `dark:` variant가 OS의 `prefers-color-scheme`를 따르고, 앱 테마와 어긋난다(앱을 라이트로 설정해도 OS가 다크면 `dark:` 요소만 다크로 렌더).
@@ -116,7 +123,7 @@ my_bookstation/
     ```env
     VITE_SUPABASE_URL=your_supabase_url
     VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-    VITE_ALADIN_TTB_KEY=your_aladin_ttb_key
+    KAKAO_REST_API_KEY=your_kakao_rest_api_key
     ```
 3.  **Cloudflare Workers 로컬 실행** (별도 터미널)
     ```bash
@@ -133,9 +140,16 @@ my_bookstation/
 
 ## 📊 API 명세
 
-### 1. Aladin API 프록시 (Vercel Serverless)
-- **엔드포인트**: `/api/search`
-- **역할**: 클라이언트로부터 받은 검색 파라미터를 사용하여 서버 측에서 Aladin API를 호출합니다. TTB Key를 클라이언트에 노출하지 않습니다.
+### 1. 도서 검색 프록시 (Vercel Serverless)
+- **엔드포인트**: `GET /api/search?Query=&QueryType=Keyword|Title|Author|Publisher|ISBN&MaxResults=&start=`
+- **역할**: 카카오 책 검색을 서버에서 호출하고(키 `KAKAO_REST_API_KEY`), 결과를 기존 저장 형태 `{ item: AladdinBookItem[] }`로 변환해 돌려준다. `link`는 알라딘 ISBN 상품 페이지다.
+- **배경**: 알라딘 OpenAPI가 2026-10-30 종료됐다(`errorCode 999`). 계획 `_docs/20261111_02_카카오검색전환-알라딘전자책링크_수행계획_실행완료.md`.
+
+### 1-1. 알라딘 전자책 링크 조회 (Vercel Serverless)
+- **엔드포인트**: `GET /api/aladin-ebook?isbn=<13자리>`
+- **역할**: 알라딘 종이책 페이지의 「전자책」 탭에서 전자책 상품 링크를 읽는다. 알라딘이 가끔 한 요청을 멈추므로 6.5초씩 2회 시도한다.
+- **응답**: `{ status: "found", itemId, link, paperFound: true }` · `{ status: "none", paperFound }`(paperFound가 false면 알라딘 미등록) · `{ status: "failed", reason }`
+- **호출 시점**: 책 추가 직후와 단건 새로고침(`refreshBookInfo`, 전자책 링크가 없고 30일 안에 조회한 적 없을 때). 일괄 갱신은 부르지 않는다.
 
 ### 2. 통합 도서관 재고 API (Cloudflare Workers)
 - **엔드포인트**:
@@ -257,7 +271,9 @@ const searchUrl = createLibraryOpenURL("e경기", book.title, book.customSearchT
 
 2.  **`book_data` (JSONB 컬럼):**
     -   **역할**: API로부터 받은 원본 데이터, 서지 정보, 그리고 자주 변경되지 않는 기타 메타데이터의 "저장소(Repository)" 역할을 합니다.
-    -   **대상**: 알라딘 API 응답 전문, 각 도서관 API의 상세 응답 객체(`gwangjuPaperInfo` 등).
+    -   **대상**: 도서 서지 정보(알라딘 API 시절 책은 알라딘 응답 전문, 2026-11 이후 추가한 책은 카카오 응답을 알라딘 형식으로 바꾼 값), 각 도서관 API의 상세 응답 객체(`gwangjuPaperInfo` 등).
+    -   **`subInfo.ebookList` / `subInfo.ebookLookup`**: 전자책 상품 링크와 그 조회 기록(`found`·`none`·`failed`, `checkedAt`). 버튼 규칙은 `utils/ebookLink.ts`의 `getStoreLinks` — 저장된 링크가 있으면 전자책 상품, 알라딘 API 시절 책(링크에 `ItemId=`)인데 전자책 링크가 없으면 새로고침 뒤에도 버튼 없음, 그 밖은 알라딘 전자책 검색 결과.
+    -   **재고 갱신(`refreshBookInfo`)은 서지 정보를 다시 받지 않는다.** 저장된 값을 그대로 두고 재고와 전자책 링크만 갱신한다. 저장이 실패하면 그 책에서 이번 갱신이 바꾼 값만 되돌린다(그사이 추가한 다른 책, 같은 책에 남긴 별점·메모는 유지).
     -   **장점**:
         -   **유연성**: 향후 API 응답에 새로운 필드가 추가되더라도 DB 스키마 변경 없이 유연하게 저장할 수 있습니다.
         -   **데이터 보존**: API 실패 시 데이터 복원(폴백)을 위한 원본 데이터를 보존합니다.
@@ -311,7 +327,7 @@ const searchUrl = createLibraryOpenURL("e경기", book.title, book.customSearchT
 ```mermaid
 graph TD
     subgraph "API Calls"
-        A[Aladin API]
+        A[Aladin ebook link /api/aladin-ebook]
         L[Library API via Cloudflare]
     end
 

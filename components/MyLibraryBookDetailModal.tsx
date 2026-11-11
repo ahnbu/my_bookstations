@@ -13,9 +13,9 @@ import StarRating from './StarRating';
 import CustomTagComponent from './CustomTag';
 import AuthorButtons from './AuthorButtons';
 import { createOptimalSearchTitle, createLibraryOpenURL, fetchBookAvailability } from '../services/unifiedLibrary.service';
-import { searchAladinBooks } from '../services/aladin.service';
 import { combineRawApiResults } from '../utils/bookDataCombiner';
 import { getMergedTagIds } from '../utils/autoTagRules';
+import { getStoreLinks, isEbookSearchLink } from '../utils/ebookLink';
 
 // 제목 가공 함수 (3단어, 괄호 등 제거 후)
 const createSearchSubject = createOptimalSearchTitle;
@@ -596,16 +596,8 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
 
   const displayTagIds = getMergedTagIds(book);
 
-  // [수정] ✅ mallType을 기준으로 종이책/전자책 링크를 정확히 할당
-  const isEbookResult = book.mallType === 'EBOOK';
-
-  const paperBookLink = isEbookResult
-    ? book.subInfo?.paperBookList?.[0]?.link || null
-    : book.link;
-
-  const ebookLink = isEbookResult
-    ? book.link
-    : book.subInfo?.ebookList?.[0]?.link || null;
+  // 종이책·전자책 링크는 utils/ebookLink.ts 한 곳에서 계산한다.
+  const { paperLink: paperBookLink, ebookLink } = getStoreLinks(book);
 
   // 레이아웃 로직 변수 정의
   // const hasEbookLink = book.subInfo?.ebookList?.[0]?.link; // ⛔️ 이 줄 삭제 또는 주석 처리
@@ -647,9 +639,6 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
               <p className="text-md text-tertiary mb-1"><strong>출판사:</strong> {book.publisher}</p>
               <p className="text-md text-tertiary mb-1"><strong>출간일:</strong> {book.pubDate}</p>
               <p className="text-md text-tertiary mb-1"><strong>ISBN:</strong> {book.isbn13}</p>
-              {book.subInfo?.ebookList?.[0]?.isbn13 && (
-                <p className="text-md text-tertiary mb-4"><strong>ISBN:</strong> {book.subInfo.ebookList[0].isbn13} (전자책)</p>
-              )}
 
               <div className="flex items-baseline mb-4">
                 <p className="text-2xl font-bold text-blue-400">{book.priceSales.toLocaleString()}원</p>
@@ -680,7 +669,7 @@ const MyLibraryBookDetailModal: React.FC<MyLibraryBookDetailModalProps> = ({ boo
                   onClick={(e) => !ebookLink && e.preventDefault()}
                   className={`inline-flex items-center justify-center gap-2 px-5 py-2 bg-sky-500 text-white font-semibold rounded-lg transition-colors duration-300 ${!ebookLink ? 'opacity-50 cursor-not-allowed' : 'hover:bg-sky-600'
                     }`}
-                  title={!ebookLink ? "알라딘에서 제공하는 전자책 정보가 없습니다" : "알라딘에서 전자책 보기"}
+                  title={!ebookLink ? "알라딘에서 제공하는 전자책 정보가 없습니다" : isEbookSearchLink(ebookLink) ? "알라딘에서 전자책 찾기" : "알라딘에서 전자책 보기"}
                 >
                   <BookOpenIcon className="w-5 h-5" />
                   전자책 보기
