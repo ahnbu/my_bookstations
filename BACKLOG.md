@@ -13,6 +13,7 @@
 | BL-0503-02 | 2026-05-03 | library-checker TypeScript 검증 환경 정리 | `library-checker/tsconfig.json` | `████░░` | `████░░` | `npx tsc --noEmit`이 Supabase 타입의 DOM/Node 요구 타입 누락으로 실패. 이번 버그 수정과 무관한 기존 환경 이슈. 우선순위: 배포를 막는 문제는 아니므로 낮음~중간 |
 | BL-0503-04 | 2026-05-03 | Tailwind 빌드 통합 여부 결정 | `index.html`, `vite.config.ts`, `index.css` | `████░░` | `████░░` | 현재 Tailwind 유틸리티는 `index.html`의 Play CDN으로 공급되고, `index.css`가 디자인 토큰과 공통 클래스를 담당함. 필요 시 CDN을 제거하고 `tailwindcss` + `@tailwindcss/vite` 기반 빌드 통합으로 전환 검토. 우선순위: 현재 `pnpm build`가 통과하므로 낮음 |
 | BL-0707-01 | 2026-07-07 | 일괄 재고 갱신 결과를 해소·미해소·실패로 분리 | `stores/useBookStore.ts:794`, `stores/useBookStore.ts:1434`, `components/SettingsModal.tsx:318` | `████░░` | `████░░` | `refreshBookInfo()`가 요청 종료와 에러 해소 여부를 구분한 결과 객체를 반환하고, `bulkRefreshAllBooks()`가 에러 해소·여전히 에러·요청/저장 실패를 별도 집계하도록 개선 검토. 토스트 알림 자체는 보류. 세션: `codex:019f3add-4a5c-7dd1-ba9e-32ac4b87a0e8` |
+| BL-1124-01 | 2026-11-24 | [다듬기] my_bookstation 검색→서재 흐름 화면 점검 잔여 지적 7건 | `BookDetails.tsx:301,317`, `MyLibraryBookDetailModal.tsx:671,686` | `████░░` | `██░░░░` | 라벨 불일치: 목록·검색은 「종이책/전자책」, 상세는 「알라딘 보기/전자책 보기」 (BookDetails.tsx:301,317 / MyLibraryBookDetailModal.tsx:671,686) (세션 `bcefd449-d457-5403-97db-218c969ba405`) |
 
 > 정렬 기준: 사용자에게 보이는 재고 정확도 영향이 큰 순서로 배치하고, 같은 영향권에서는 다음 실행 가능성이 높은 항목을 아래에 두었습니다.
 
